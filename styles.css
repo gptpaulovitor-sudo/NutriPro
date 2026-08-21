@@ -1,0 +1,179 @@
+/* ═══════════════════════════════════════════════════════════
+   NutriAx Pro — Sci-Fi HUD High-Contrast Design System
+═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100vh;
+  background-color: #000000 !important;
+  color: #e5e7eb !important;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;
+}
+
+/* Standard HUD Card */
+.hud-card {
+  background: linear-gradient(135deg, #18181b 0%, #09090b 100%) !important;
+  border: 1px solid rgba(63, 63, 70, 0.7) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  position: relative;
+}
+
+.hud-card:hover {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Giant Neon Score */
+.score-giant-neon {
+  font-size: 5rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  color: #ef4444 !important;
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.3) !important;
+}
+
+@media (min-width: 768px) {
+  .score-giant-neon {
+    font-size: 6rem !important;
+  }
+}
+
+/* Top Header Navigation Tabs */
+.hud-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 600;
+  color: #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 22, 0.6);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.hud-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(127, 29, 29, 0.4);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.hud-tab-btn.active {
+  color: #ffffff !important;
+  background: rgba(185, 28, 28, 0.45) !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 100, 100, 0.3) !important;
+}
+
+/* Primary Neon Button */
+.btn-nax-primary {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 14px rgba(220, 38, 38, 0.45) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-nax-primary:hover {
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.7) !important;
+  transform: translateY(-1px);
+}
+
+/* Inputs & Selects */
+input, select, textarea {
+  background-color: rgba(9, 9, 11, 0.9) !important;
+  border: 1px solid rgba(63, 63, 70, 0.8) !important;
+  color: #f3f4f6 !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+  outline: none !important;
+}
+
+option {
+  background-color: #09090b !important;
+  color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PALETAS E TEMAS DOS 5 PILARES NUTRIAX
+   Pilar 1: Mentalidade (Roxo)
+   Pilar 2: Disciplina (Laranja)
+   Pilar 3: Nutrição (Vermelho)
+   Pilar 4: Performance (Azul)
+   Pilar 5: Resultado (Dourado)
+═══════════════════════════════════════════════════════════ */
+
+/* Pilar 4: Performance (Azul Cobalto / Cyan) */
+.hud-card-blue {
+  background: linear-gradient(135deg, #091326 0%, #060b14 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(59, 130, 246, 0.08) !important;
+}
+
+.hud-card-blue:hover {
+  border-color: rgba(96, 165, 250, 0.6) !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.18) !important;
+}
+
+.btn-nax-blue {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 14px rgba(37, 99, 235, 0.45) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-nax-blue:hover {
+  box-shadow: 0 0 22px rgba(59, 130, 246, 0.75) !important;
+  transform: translateY(-1px);
+}
+
+.hud-tab-btn-blue.active {
+  color: #ffffff !important;
+  background: rgba(30, 58, 138, 0.6) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(147, 197, 253, 0.3) !important;
+}
+
+/* Shimmer animation para botão de IA */
+@keyframes shimmerSweep {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmerSweep 2.5s infinite;
+}
+

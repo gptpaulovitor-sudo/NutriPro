@@ -1,0 +1,337 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model FoodItem {
+  id           String   @id @default(uuid())
+  name         String
+  category     String
+  source       String   @default("TACO") // TACO, TBCA, Rótulos, etc.
+  baseQuantity Float    @default(100.0) // padrão 100g/100ml
+  calories     Float    // kcal por baseQuantity
+  protein      Float    // g por baseQuantity
+  carbohydrate Float    // g por baseQuantity
+  lipid        Float    // g por baseQuantity
+  fiber        Float    // g por baseQuantity
+  sodium       Float    // mg por baseQuantity
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  prescriptionItems  PrescriptionItem[]
+  foodSubstitutions  FoodSubstitution[]
+  recipeIngredients RecipeIngredient[]
+  questionnaireItems QuestionnaireItem[]
+
+  @@map("food_items")
+}
+
+model Patient {
+  id                  String   @id @default(uuid())
+  name                String
+  email               String?
+  phone               String?
+  gender              String   // Masculino / Feminino
+  age                 Int
+  height              Float    // m (ex: 1.96)
+  currentWeight       Float    // kg (ex: 116.0)
+  usualWeight         Float?   // kg (ex: 120.61)
+  targetWeight        Float?   // kg
+  objective           String   // Perda de peso, Manutenção, Ganho de massa
+  patientType         String?  // Praticante recreativo, Atleta, etc.
+  mainModality        String?  // Musculação, etc.
+  cardioType          String?  // HIIT, etc.
+  workoutFrequency    String?  // 6x/semana
+  workoutSplit        String?  // ABC
+  workoutVolume       String?  // Alto
+  cardioFrequency     String?  // 3x/semana
+  cardioDuration      String?  // Até 15 min
+  cardioIntensity     String?  // Moderada
+  neatRoutine         String?  // Baixo
+  dailySteps          String?  // 5.000–7.499
+  workRoutine         String?  // Sentado
+  averageSleep        String?  // 7–8 h/noite
+  sleepQuality        String?  // Boa
+  stressLevel         String?  // Moderado
+  cookingAvailability String?  // Diariamente
+  eatingOutFreq       String?  // 1x/semana
+  performanceGoal     String?  // Hipertrofia
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  assessments          Assessment[]
+  anthropometryHistory AnthropometryHistory[]
+  clinicalExams        ClinicalExam[]
+  dietaryPrescriptions DietaryPrescription[]
+  dietaryQuestionnaires DietaryQuestionnaire[]
+  dailyLogs            DailyLog[]
+  performanceMetabolica PerformanceMetabolica[]
+
+  @@map("patients")
+}
+
+model Assessment {
+  id               String   @id @default(uuid())
+  patientId        String
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date             DateTime @default(now())
+  tmbKatch         Float
+  tmbMifflin       Float
+  activityFactor   Float
+  get              Float
+  targetKcal       Float
+  targetProteinG   Float
+  targetCarbG      Float
+  targetLipidG     Float
+  targetFiberG     Float
+  targetWaterMl    Float
+  proteinGPerKgMLG Float
+  carbGPerKg       Float
+  lipidPercentKcal Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("assessments")
+}
+
+model AnthropometryHistory {
+  id                   String   @id @default(uuid())
+  patientId            String
+  patient              Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date                 DateTime @default(now())
+  weight               Float
+  height               Float
+  imc                  Float
+  imcClassification    String
+  waist                Float
+  hip                  Float
+  neck                 Float?
+  rcq                  Float
+  rcqClassification    String
+  rcEst                Float
+  rcEstClassification  String
+  skinfoldChest        Float?
+  skinfoldAxillary     Float?
+  skinfoldTriceps      Float?
+  skinfoldSubscapular  Float?
+  skinfoldAbdominal    Float?
+  skinfoldSuprailiac   Float?
+  skinfoldThigh        Float?
+  skinfoldBiceps       Float?
+  skinfoldCalf         Float?
+  skinfoldSupraspinal  Float?
+  skinfoldsSum         Float?
+  protocolEffective    String   // Jackson Pollock 7, JP3, Faulkner, Durnin
+  bodyDensity          Float
+  bodyFatPercent       Float
+  fatMassKg            Float
+  leanMassKg           Float
+  ffmi                 Float
+  fmi                  Float
+  skeletalMuscleMassKg Float?
+  immeSmi              Float?
+  armMuscularArea      Float?
+  calfCircumference    Float?
+  muscleScore          Float?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("anthropometry_history")
+}
+
+model ClinicalExam {
+  id                String   @id @default(uuid())
+  patientId         String
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date              DateTime @default(now())
+  category          String   // HEMOGRAMA, LIPIDOGRAMA, FUNÇÃO RENAL, etc.
+  examName          String
+  resultValue       Float
+  unit              String
+  refMin            Float?
+  refMax            Float?
+  status            String   // Dentro, Alto, Baixo
+  priority          String   // Alta, Média, Rotina
+  interpretation    String?
+  nutritionalAction String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("clinical_exams")
+}
+
+model DietaryPrescription {
+  id            String             @id @default(uuid())
+  patientId     String
+  patient       Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title         String             @default("Plano Alimentar Base")
+  targetKcal    Float
+  targetProtein Float
+  targetCarb    Float
+  targetLipid   Float
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  items         PrescriptionItem[]
+
+  @@map("dietary_prescriptions")
+}
+
+model PrescriptionItem {
+  id             String             @id @default(uuid())
+  prescriptionId String
+  prescription   DietaryPrescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  mealName       String             // Café da manhã, Almoço, Pré-treino, etc.
+  mealTime       String             // 07:00, 12:30, etc.
+  foodItemId     String
+  foodItem       FoodItem           @relation(fields: [foodItemId], references: [id])
+  quantity       Float              // g ou ml
+  calories       Float
+  protein        Float
+  carbohydrate   Float
+  lipid          Float
+  fiber          Float
+  sodium         Float
+  substitutions  FoodSubstitution[]
+
+  @@map("prescription_items")
+}
+
+model FoodSubstitution {
+  id                 String            @id @default(uuid())
+  prescriptionItemId String?
+  prescriptionItem   PrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: Cascade)
+  categoryGroup      String            // Proteína magra, Carboidrato limpo, etc.
+  foodItemId         String
+  foodItem           FoodItem          @relation(fields: [foodItemId], references: [id])
+  portionQuantity    Float
+  notes              String?
+
+  @@map("food_substitutions")
+}
+
+model Recipe {
+  id              String             @id @default(uuid())
+  name            String
+  description     String?
+  category        String?
+  servings        Int                @default(1)
+  prepTimeMinutes Int?
+  instructions    String?
+  totalCalories   Float
+  totalProtein    Float
+  totalCarb       Float
+  totalLipid      Float
+  totalFiber      Float
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  ingredients     RecipeIngredient[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id         String   @id @default(uuid())
+  recipeId   String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  foodItemId String
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id])
+  quantity   Float    // g ou ml
+
+  @@map("recipe_ingredients")
+}
+
+model DietaryQuestionnaire {
+  id           String              @id @default(uuid())
+  patientId    String
+  patient      Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date         DateTime            @default(now())
+  totalKcal    Float
+  totalProtein Float
+  totalCarb    Float
+  totalLipid   Float
+  totalFiber   Float
+  totalSodium  Float
+  items        QuestionnaireItem[]
+
+  @@map("dietary_questionnaires")
+}
+
+model QuestionnaireItem {
+  id              String               @id @default(uuid())
+  questionnaireId String
+  questionnaire   DietaryQuestionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  mealName        String
+  mealTime        String
+  foodItemId      String
+  foodItem        FoodItem             @relation(fields: [foodItemId], references: [id])
+  quantity        Float
+  calories        Float
+  protein         Float
+  carbohydrate    Float
+  lipid           Float
+  fiber           Float
+  sodium          Float
+
+  @@map("questionnaire_items")
+}
+
+model DailyLog {
+  id             String         @id @default(uuid())
+  patientId      String
+  patient        Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date           DateTime       @default(now())
+  adherenceScore Float          // 0-100%
+  hungerRating   Int?           // 0-10
+  energyRating   Int?           // 0-10
+  waterIntakeMl  Float?
+  workoutDone    Boolean        @default(false)
+  cardioDone     Boolean        @default(false)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  items          DailyLogItem[]
+
+  @@map("daily_logs")
+}
+
+model DailyLogItem {
+  id              String   @id @default(uuid())
+  dailyLogId      String
+  dailyLog        DailyLog @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+  mealName        String
+  consumed        Boolean  @default(true)
+  isSubstitution  Boolean  @default(false)
+  substitutedWith String?
+  notes           String?
+
+  @@map("daily_log_items")
+}
+
+model PerformanceMetabolica {
+  id                      String   @id @default(uuid())
+  patientId               String
+  patient                 Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date                    DateTime @default(now())
+  nutriAxIndex            Float    // 0-100 (ex: 87)
+  nutriAxClassification   String   // Muito bom
+  estimatedMetabolicAge   Int      // ex: 30
+  ageDifference           Int      // ex: -8
+  scoreBodyComposition    Float    // 70
+  scoreRelativeMuscle     Float    // 100
+  scoreMetabolicPotential Float    // 100
+  scoreCentralRisk        Float    // 94
+  scoreImcComplementary   Float    // 59
+  scoreMuscleReserve      Float    // 88
+  mainLimiter             String   // Composição corporal
+  limiterSeverity         Float    // 70
+  aiTechnicalReport       String
+  aiPatientReport         String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("performance_metabolica")
+}

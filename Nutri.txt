@@ -1,0 +1,83 @@
+Aqui está o prompt unificado, completo e estruturado, contendo toda a lógica das suas planilhas mais a integração da base de dados de alimentos (TACO/TBCA/Rótulos).
+
+Você pode copiar integralmente o texto abaixo e colar no Google Project Antigravity IDE.
+
+---
+
+### 📋 Copie o texto abaixo e cole no Antigravity:
+
+**Contexto e Objetivo:**
+Estou desenvolvendo o **NutriAx Pro**, uma plataforma web progressiva (PWA) moderna voltada para o acompanhamento entre nutricionistas e pacientes. Tenho uma arquitetura de dados baseada em 13 planilhas de referência que consolida todo o fluxo de trabalho nutricional, além da necessidade imperativa de uma **Base de Alimentos Central** (como tabelas TACO, TBCA, USDA e rótulos comerciais) que será o coração do sistema.
+
+Meu objetivo agora é que você atue como um Desenvolvedor Full-Stack Sênior e transforme a lógica integral dessas planilhas e da base de alimentos em uma aplicação web funcional, escalável e visualmente profissional.
+
+**Stack Tecnológico Exigido:**
+
+* **Framework:** Next.js (App Router)
+* **Linguagem:** TypeScript
+* **Estilização:** Tailwind CSS
+* **Componentes de UI:** Shadcn UI e Radix UI
+* **Gráficos:** Recharts (para os dashboards de evolução)
+* **Modelagem/Banco de Dados:** Prisma ORM (com PostgreSQL ou SQLite) e React Hook Form (para formulários)
+
+**Estrutura de Dados de Origem (A ser convertida e conectada):**
+
+* **Fundação: Base de Alimentos (`FoodItem`):** Tabela central com informações nutricionais em base de 100g/100ml (Kcal, Proteínas, Carboidratos, Lipídios, Fibras e Sódio), categorizada por grupo alimentar e fonte (TACO, Rótulos, etc.).
+* **01. Paciente:** Dados cadastrais, rotina e nível de disponibilidade para cozinhar.
+* **02. Exames Clínicos:** Sistema de triagem, referências laboratoriais e alertas clínicos do paciente.
+* **03. Questionário Alimentar:** Registro do recordatório alimentar habitual.
+* **04. Antropometria:** Cadastro de dobras e circunferências com matriz de risco (Verde, Amarelo, Laranja).
+* **05. Avaliação Nutricional:** Motor de cálculo integrado (peso, altura, sexo) para gerar TMB, GET e alvos de macronutrientes.
+* **06. Dashboard Corporal:** Exibição resumida dos indicadores antropométricos e adipometria atualizados.
+* **07. Evolução Corporal:** Dados históricos (data a data) de peso, IMC, RCQ, % Gordura, Massa Magra, para visualização de tendências.
+* **08. Prescrição Nutricional:** O plano alimentar modular com refeições, horários sugeridos, kcal e macros.
+* **09. Substituições Alimentares:** Banco de trocas equivalentes em macros, permitindo flexibilidade na dieta.
+* **10. Receitas:** Biblioteca de preparos, lista de ingredientes, porções e tabela nutricional base.
+* **11. Controle Alimentar Mensal:** Calendário log (31 dias) das refeições efetivamente consumidas versus o prescrito.
+* **12. App do Paciente:** Interface/logs diários preenchidos pelo paciente (adesão, fome, energia, treinos e cárdio).
+* **13. Performance Metabólica:** Motor de interpretação de regras de negócios unindo o objetivo do paciente ao resultado corporal.
+
+**Plano de Ação e Entregáveis Solicitados:**
+Por favor, gere os códigos em etapas lógicas. Siga esta ordem rigorosamente:
+
+* **ETAPA 1: Modelagem de Dados (Prisma Schema)**
+* Crie o arquivo `schema.prisma` mapeando todas as entidades acima.
+* Crie a entidade principal `FoodItem` com os campos: `id`, `name`, `category`, `source`, `baseQuantity` (padrão 100g/ml), `calories`, `protein`, `carbohydrate`, `lipid`, `fiber`, e `sodium`.
+* Crie os relacionamentos: `Patient` 1:N com `Assessments`, `AnthropometryHistory`, `ClinicalExams`, `DietaryPrescriptions` e `DailyLogs`.
+* As tabelas `DietaryPrescriptions`, `FoodSubstitutions`, `Recipes` e `DietaryQuestionnaire` **devem obrigatoriamente possuir chaves estrangeiras (`foodItemId`)** apontando para a tabela `FoodItem`.
+
+
+* **ETAPA 2: Lógica, Utilitários e Layout Base**
+* Crie um script utilitário de banco (`prisma/seed.ts`) estruturado para no futuro importar um JSON da tabela TACO para popular a tabela `FoodItem`.
+* Crie `utils/nutritionMath.ts` contendo: a) Funções para automatizar os cálculos de TMB, GET e IMC; b) Uma função `calculateMacroPortion(foodItem, targetQuantity)` que receba um alimento da base (100g) e retorne os valores proporcionais de Kcal e Macros para a quantidade desejada.
+* Crie um layout global responsivo (`app/layout.tsx`) com uma Sidebar de navegação ("Dashboard", "Anamnese", "Avaliação", "Prescrição", "Catálogo de Alimentos", "App Paciente").
+
+
+* **ETAPA 3: Telas do Nutricionista (Backoffice Clínico)**
+* `app/dashboard/page.tsx`: Tela inicial unindo o Dashboard Corporal e a Performance Metabólica usando cards do Shadcn UI.
+* `app/dashboard/foods/page.tsx`: Um catálogo de alimentos (Food Database) com barra de pesquisa robusta, filtros por grupo/fonte, e um modal para "Cadastrar Novo Alimento/Rótulo".
+* `app/dashboard/evolution/page.tsx`: Gráficos lineares usando *Recharts* para plotar os dados temporais (Peso, %Gordura, Massa Magra).
+* `app/dashboard/evaluation/page.tsx`: Formulário calculador usando funções do `nutritionMath.ts` para dados em tempo real.
+* `app/dashboard/prescription/page.tsx`: Interface de construção de dieta. Deve incluir um componente de *Autocomplete/Combobox* (Shadcn UI) para buscar alimentos diretamente da base `FoodItem`, calculando os macros da refeição ao vivo e vinculando substituições.
+
+
+* **ETAPA 4: Tela do Paciente (Mobile First)**
+* `app/patient-app/page.tsx`: Uma interface simplificada.
+* O paciente deve ver sua prescrição do dia, com botões rápidos de check ("Consumiu?"), sliders ou botões para "Fome (0-10)", "Energia (0-10)", e marcação de treino/cárdio.
+* Botão "Usar Troca" que abre um Drawer/Modal trazendo os itens relacionados da tabela de Substituições Alimentares para aquela refeição.
+
+
+
+**Regras de Codificação:**
+
+1. Escreva o código completo para os componentes cruciais, não deixe funções "vazias" ou apenas com comentários tipo `// lógica aqui`.
+2. Separe lógicas complexas de cálculo e classificação (como as da antropometria) nos arquivos em `/utils`.
+3. Garanta que a interface do usuário seja visualmente hierárquica, elegante, limpa e com a paleta de cores voltada para a área de saúde (uso de tons de verde, branco e cinza, por exemplo).
+
+Comece gerando o `schema.prisma` completo e as funções utilitárias (`nutritionMath.ts`). Após gerar e explicar essa primeira parte, aguarde minha confirmação para prosseguir para as páginas e componentes visuais.
+
+---
+
+### 💡 Lembrete Importante para o momento do uso:
+
+No Project Antigravity, **lembre-se de manter os 13 arquivos `.csv` anexados no chat**. Isso permitirá que o agente consulte os arquivos originais sempre que tiver dúvida sobre quais variáveis e dados exatos devem ser inseridos nos modelos e nos cálculos das fórmulas (como as de Avaliação Nutricional e Antropometria).
