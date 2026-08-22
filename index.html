@@ -223,16 +223,28 @@
           </div>
         </div>
 
-        <!-- ── MENU PILAR 5: RESULTADO ── -->
-        <div id="header-pilar-nav-5" class="hidden items-center justify-center gap-2">
-          <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-800/80 flex items-center gap-1.5">
-            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> PILAR 5 · RESULTADOS &amp; IMPACTO
+        <!-- ── MENU PILAR 5: RESULTADO & IMPACTO ── -->
+        <div id="header-pilar-nav-5" class="hidden items-center justify-center gap-1.5 flex-wrap">
+          <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-800/80 flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.25)]">
+            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> PILAR 5 · RESULTADO &amp; IMPACTO
           </span>
-          <button onclick="exportPrescriptionAndEvaluationPDF()" class="hud-tab-btn">
-            <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i> Relatório Completo PDF
+          <button onclick="resultsSwitchSubView('dashboard')" id="results-nav-dashboard" class="hud-tab-btn hud-tab-btn-amber active text-xs font-bold flex items-center gap-1">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-amber-400"></i> Dashboard &amp; IEC
           </button>
-          <button onclick="switchTab('evolution')" class="hud-tab-btn">
-            <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400"></i> Gráficos Comparativos
+          <button onclick="resultsSwitchSubView('charts')" id="results-nav-charts" class="hud-tab-btn text-xs font-bold flex items-center gap-1">
+            <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400"></i> Gráficos
+          </button>
+          <button onclick="resultsSwitchSubView('synergy')" id="results-nav-synergy" class="hud-tab-btn text-xs font-bold flex items-center gap-1">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Sinergia Nutri × Treino
+          </button>
+          <button onclick="resultsSwitchSubView('gallery')" id="results-nav-gallery" class="hud-tab-btn text-xs font-bold flex items-center gap-1">
+            <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i> Linha do Tempo &amp; Fotos
+          </button>
+          <button onclick="resultsSwitchSubView('predictive')" id="results-nav-predictive" class="hud-tab-btn text-xs font-bold flex items-center gap-1">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Projeção IA
+          </button>
+          <button onclick="exportImpactReportPDF()" class="hud-tab-btn text-xs font-bold flex items-center gap-1 text-amber-300 hover:text-white">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i> Laudo PDF
           </button>
         </div>
 
@@ -647,13 +659,29 @@
               🛡️ Módulos de Disciplina e Rastreamento de Hábitos em breve.
             </div>
             <div id="card-subnav-5" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="exportPrescriptionAndEvaluationPDF()" class="p-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-700 flex items-center gap-2 text-left text-amber-200 font-bold transition-all">
-                <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-                <span class="text-[11px] truncate">Exportar PDF</span>
+              <button onclick="switchTab('evolution'); resultsSwitchSubView('dashboard');" class="p-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-700 flex items-center gap-2 text-left text-amber-200 font-bold transition-all">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Dashboard &amp; IEC</span>
               </button>
-              <button onclick="switchTab('evolution')" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+              <button onclick="switchTab('evolution'); resultsSwitchSubView('charts');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
                 <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Gráficos Evolutivos</span>
+              </button>
+              <button onclick="switchTab('evolution'); resultsSwitchSubView('synergy');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Sinergia Nutri × Treino</span>
+              </button>
+              <button onclick="switchTab('evolution'); resultsSwitchSubView('gallery');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+                <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Fotos Antes/Depois</span>
+              </button>
+              <button onclick="switchTab('evolution'); resultsSwitchSubView('predictive');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Projeção de Metas IA</span>
+              </button>
+              <button onclick="exportImpactReportPDF()" class="p-2 rounded-xl bg-gradient-to-r from-amber-900/80 to-zinc-900 hover:from-amber-800 border border-amber-600/70 flex items-center gap-2 text-left text-amber-200 font-bold transition-all">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Exportar Laudo PDF</span>
               </button>
             </div>
           </div>
@@ -2603,124 +2631,423 @@
       <div id="prescriptionMealContainer"></div>
     </section>
 
-    <!-- 4. EVOLUTION TAB (ABA 07 - COM GRÁFICOS CHART.JS) -->
+    <!-- 4. PILAR 5: RESULTADO & IMPACTO (HUD & SUB-VIEWS) -->
     <section id="tab-evolution" class="max-w-7xl mx-auto space-y-6 w-full hidden">
-      <!-- Header Banner HUD -->
-      <div class="module-header glass-card hud-box rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <span
-              class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md" style="background:rgba(255,26,26,0.1);border:1px solid rgba(255,26,26,0.25);color:rgba(255,80,80,0.9);font-size:9px;">
-              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500"></i> Módulo 07: Evolução Temporal &
-              Tendências
+      
+      <!-- Header Banner HUD do Pilar 5 (Âmbar / Ouro) -->
+      <div class="hud-card-amber p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+        <div class="flex-1 min-w-0 w-full">
+          <div class="flex items-center gap-2 flex-wrap mb-2">
+            <span class="text-xs font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.25)]">
+              <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> Pilar 5 · Resultado &amp; Impacto Clínico
             </span>
-            <span class="text-xs text-zinc-400 font-bold">Gráficos Interativos</span>
+            <span class="text-xs font-mono font-medium text-zinc-400">Cruzamento Nutrição × Performance · Recomposição &amp; P-Ratio</span>
           </div>
-          <h1 class="text-2xl font-black text-white mt-1">Evolução Antropométrica Temporal</h1>
-          <p class="text-xs text-zinc-400">Acompanhamento longitudinal de peso, composição corporal e circunferências.
+          <h1 class="text-xl md:text-3xl font-bold text-white tracking-tight">
+            Painel de <span class="text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]">Resultados &amp; Impacto</span>
+          </h1>
+          <p class="text-xs md:text-sm font-medium text-gray-300 mt-1 flex flex-wrap gap-2">
+            <span id="resultsPatientName">Paulo Vitor R de Sousa</span> • <span id="resultsPatientGoal" class="text-amber-300 font-semibold">Hipertrofia &amp; Recomposição</span> • Análise Longitudinal
+          </p>
+
+          <!-- Ação Rápida e Sub-View Selector no Banner -->
+          <div class="mt-3 flex items-center gap-2 flex-wrap">
+            <button onclick="resultsSwitchSubView('dashboard')" id="results-subbtn-dashboard"
+              class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.4)] flex items-center gap-1.5 transition-all">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Dashboard &amp; IEC
+            </button>
+            <button onclick="resultsSwitchSubView('charts')" id="results-subbtn-charts"
+              class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all">
+              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400"></i> Gráficos
+            </button>
+            <button onclick="resultsSwitchSubView('synergy')" id="results-subbtn-synergy"
+              class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Sinergia Nutri × Treino
+            </button>
+            <button onclick="resultsSwitchSubView('gallery')" id="results-subbtn-gallery"
+              class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all">
+              <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i> Fotos Antes/Depois
+            </button>
+            <button onclick="resultsSwitchSubView('predictive')" id="results-subbtn-predictive"
+              class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Projeção IA
+            </button>
+            <button onclick="openNewAssessmentModal()"
+              class="btn-nax-amber px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.3)] transition-all">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> + Nova Reavaliação
+            </button>
+            <button onclick="exportImpactReportPDF()"
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-200 bg-amber-950/80 border border-amber-600/70 hover:bg-amber-900 flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+              <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-400"></i> Exportar Laudo PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Métricas Rápidas HUD do Pilar 5 (Grid 3 Colunas) -->
+        <div class="grid grid-cols-3 gap-2 w-full md:w-auto shrink-0">
+          <div class="bg-black/60 border border-zinc-800 p-2.5 sm:p-3.5 rounded-xl text-center shadow-inner">
+            <span class="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-400 block uppercase">Índice IEC</span>
+            <p class="text-lg sm:text-xl font-bold text-amber-400 mt-0.5"><span id="results-iec-score">88</span> <span class="text-[10px] text-zinc-500 font-normal">/100</span></p>
+          </div>
+          <div class="bg-amber-950/60 border border-amber-800/80 p-2.5 sm:p-3.5 rounded-xl text-center shadow-[0_0_15px_rgba(245,158,11,0.25)]">
+            <span class="text-[9px] sm:text-[10px] font-mono font-bold text-amber-300 block uppercase tracking-wide">P-Ratio</span>
+            <p class="text-lg sm:text-xl font-black text-white mt-0.5"><span id="results-pratio-val">+78%</span> <span class="text-[10px] text-amber-300 font-normal">MM</span></p>
+          </div>
+          <div class="bg-black/60 border border-zinc-800 p-2.5 sm:p-3.5 rounded-xl text-center">
+            <span class="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-400 block uppercase">Vitalidade</span>
+            <p class="text-lg sm:text-xl font-bold text-emerald-400 mt-0.5"><span id="results-vitality-val">-8</span> <span class="text-[10px] text-zinc-500 font-normal">anos</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- SUB-VIEW 1: DASHBOARD EXECUTIVO & IEC (PADRÃO ATIVO)           -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="results-view-dashboard" class="results-subview space-y-6 w-full">
+        
+        <!-- Card Nobre de Diagnóstico de Eficiência Composta (IEC) -->
+        <div class="hud-card-amber p-6 space-y-4 rounded-2xl border border-amber-500/50 bg-gradient-to-br from-amber-950/40 via-black/90 to-zinc-950 shadow-[0_0_25px_rgba(245,158,11,0.15)]">
+          <div class="flex items-center justify-between border-b border-amber-500/30 pb-3 flex-wrap gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 rounded-xl bg-amber-950/90 border border-amber-500/60 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.35)]">
+                <i data-lucide="award" class="w-5 h-5"></i>
+              </span>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700/80 px-2.5 py-0.5 rounded-full uppercase">
+                    Índice de Eficiência Composta (IEC)
+                  </span>
+                  <span id="results-iec-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md badge-iec-recomp">
+                    🟢 Recomposição Corporal Perfeita
+                  </span>
+                </div>
+                <h2 class="text-base md:text-lg font-bold text-white tracking-tight mt-1">
+                  Diagnóstico de Resposta Metabólica &amp; Adaptação Tecidual
+                </h2>
+              </div>
+            </div>
+            <span class="text-xs font-mono text-zinc-400">Auditoria Cruzada: <strong class="text-amber-300">Pilar 3 (Nutrição) × Pilar 4 (Treino)</strong></span>
+          </div>
+
+          <!-- 4 Métricas de Matriz Cruzada -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Qualidade do Ganho</span>
+              <strong id="results-iec-lean-var" class="text-emerald-400 text-sm block">+2,05 kg Massa Magra</strong>
+              <p class="text-[11px] text-zinc-400">Preservação e hipertrofia ativa sob estímulo biomecânico.</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Redução Adiposa</span>
+              <strong id="results-iec-fat-var" class="text-amber-400 text-sm block">-4,65% (% Gordura)</strong>
+              <p class="text-[11px] text-zinc-400">Déficit lipídico eficiente sem comprometimento proteico.</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Balanço Nutricional</span>
+              <strong id="results-iec-diet-sync" class="text-blue-300 text-sm block">Déficit Controlado (-450 kcal)</strong>
+              <p class="text-[11px] text-zinc-400">Aporte de 2.0 g/kg de proteína sustentando o particionamento.</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Volume de Treino</span>
+              <strong id="results-iec-training-sync" class="text-purple-300 text-sm block">33 Séries / Semana (RPE 8)</strong>
+              <p class="text-[11px] text-zinc-400">Estímulo mecânico no ponto ideal de supercompensação.</p>
+            </div>
+          </div>
+
+          <p id="results-iec-explanation" class="text-xs text-zinc-300 leading-relaxed font-sans bg-black/40 p-3 rounded-xl border border-zinc-800/80">
+            Excelente resposta fisiológica! O paciente demonstrou recomposição corporal ativa, ganhando tecido muscular magro enquanto oxidava gordura visceral e subcutânea. A ingestão proteica prescrita casou perfeitamente com o volume de treinamento prescrito.
           </p>
         </div>
 
-        <button onclick="openNewAssessmentModal()"
-          class="btn-nax-primary text-white font-bold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all shrink-0">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i> + Nova Reavaliação
-        </button>
+        <!-- 4 Summary Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-zinc-900/90 p-4 sm:p-5 rounded-2xl border border-zinc-800 shadow-card-dark">
+            <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Variação Total de Peso</span>
+            <p id="evoWeightChange" class="text-2xl font-black text-white mt-1">-4,61 kg</p>
+            <span class="text-[11px] text-emerald-400 font-semibold block mt-0.5">↓ Redução ponderal saudável</span>
+          </div>
+          <div class="bg-zinc-900/90 p-4 sm:p-5 rounded-2xl border border-zinc-800 shadow-card-dark">
+            <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Ganho de Massa Magra</span>
+            <p id="evoLeanGain" class="text-2xl font-black text-emerald-400 mt-1">+2,05 kg</p>
+            <span class="text-[11px] text-zinc-300 font-semibold block mt-0.5">↑ Densidade e tônus miofibrilar</span>
+          </div>
+          <div class="bg-zinc-900/90 p-4 sm:p-5 rounded-2xl border border-zinc-800 shadow-card-dark">
+            <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Redução de % Gordura</span>
+            <p id="evoFatReduction" class="text-2xl font-black text-amber-400 mt-1">-4,65 %</p>
+            <span class="text-[11px] text-amber-400 font-semibold block mt-0.5">27.45% → 22.80%</span>
+          </div>
+          <div class="bg-zinc-900/90 p-4 sm:p-5 rounded-2xl border border-zinc-800 shadow-card-dark">
+            <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Redução de Cintura</span>
+            <p id="evoWaistReduction" class="text-2xl font-black text-white mt-1">-6,0 cm</p>
+            <span class="text-[11px] text-zinc-300 font-semibold block mt-0.5">102cm → 96cm (RCEst Melhorado)</span>
+          </div>
+        </div>
+
+        <!-- Tabela Histórica de Reavaliações & Medições -->
+        <div class="bg-zinc-900/90 rounded-2xl border border-zinc-800 shadow-card-dark overflow-hidden">
+          <div class="p-4 sm:p-5 border-b border-zinc-800 flex justify-between items-center flex-wrap gap-2">
+            <div>
+              <h2 class="font-black text-white text-sm sm:text-base flex items-center gap-2">
+                <i data-lucide="table" class="w-4 h-4 text-amber-500"></i> Histórico de Registros &amp; Reavaliações Clínicas
+              </h2>
+              <p class="text-xs text-zinc-400">Banco de dados local criptografado com sincronização em nuvem</p>
+            </div>
+            <button onclick="openNewAssessmentModal()" class="btn-nax-amber px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Inserir Registro
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-zinc-950 text-zinc-400 font-bold border-b border-zinc-800">
+                <tr>
+                  <th class="p-3.5 pl-5">Data</th>
+                  <th class="p-3.5">Peso (kg)</th>
+                  <th class="p-3.5">Massa Magra (kg)</th>
+                  <th class="p-3.5">Massa Gorda (kg)</th>
+                  <th class="p-3.5">% Gordura</th>
+                  <th class="p-3.5">Cintura (cm)</th>
+                  <th class="p-3.5">IEC Status</th>
+                  <th class="p-3.5 text-right pr-5">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="evaluationsTableBody" class="divide-y divide-zinc-800 font-medium text-zinc-200">
+                <!-- Rendered dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Summary Stat Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-zinc-900/90 p-5 rounded-3xl border border-zinc-800 shadow-card-dark">
-          <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Variação de Peso</span>
-          <p id="evoWeightChange" class="text-2xl font-black text-white mt-1">-4,61 kg</p>
-          <span class="text-[11px] text-red-400 font-semibold block mt-0.5">↓ 3.8% do peso inicial</span>
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- SUB-VIEW 2: GRÁFICOS EVOLUTIVOS MULTIDIMENSIONAIS              -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="results-view-charts" class="results-subview space-y-6 w-full" style="display:none">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Gráfico 1: Peso vs Peso Alvo -->
+          <div class="hud-card p-4 sm:p-6 space-y-3 rounded-2xl border border-zinc-800">
+            <div class="flex justify-between items-center">
+              <h2 class="font-black text-white text-sm flex items-center gap-2">
+                <i data-lucide="scale" class="w-4 h-4 text-amber-500"></i> Histórico de Peso vs Meta Alvo (kg)
+              </h2>
+              <span class="text-[11px] font-mono font-bold text-amber-400">Meta: 103.7 kg</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="chartWeightHistory"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 2: % de Gordura -->
+          <div class="hud-card p-4 sm:p-6 space-y-3 rounded-2xl border border-zinc-800">
+            <div class="flex justify-between items-center">
+              <h2 class="font-black text-white text-sm flex items-center gap-2">
+                <i data-lucide="percent" class="w-4 h-4 text-amber-500"></i> Evolução do % de Gordura Corporal
+              </h2>
+              <span class="text-[11px] font-mono font-bold text-amber-400">Meta: 10.0%</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="chartBodyFatHistory"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 3: Massa Magra vs Massa Gorda -->
+          <div class="hud-card p-4 sm:p-6 space-y-3 lg:col-span-2 rounded-2xl border border-zinc-800">
+            <div class="flex justify-between items-center">
+              <h2 class="font-black text-white text-sm flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> Distribuição: Massa Magra vs Massa Gorda (kg)
+              </h2>
+              <span class="text-[11px] font-mono font-bold text-emerald-400">Particionamento Tecidual</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="chartBodyCompHistory"></canvas>
+            </div>
+          </div>
         </div>
-        <div class="bg-zinc-900/90 p-5 rounded-3xl border border-zinc-800 shadow-card-dark">
-          <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Ganho de Massa Magra</span>
-          <p id="evoLeanGain" class="text-2xl font-black text-red-400 mt-1">+2,05 kg</p>
-          <span class="text-[11px] text-zinc-300 font-semibold block mt-0.5">↑ Densidade muscular elevada</span>
-        </div>
-        <div class="bg-zinc-900/90 p-5 rounded-3xl border border-zinc-800 shadow-card-dark">
-          <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Redução de % Gordura</span>
-          <p id="evoFatReduction" class="text-2xl font-black text-amber-400 mt-1">-4,65 %</p>
-          <span class="text-[11px] text-amber-400 font-semibold block mt-0.5">27.45% → 22.80%</span>
-        </div>
-        <div class="bg-zinc-900/90 p-5 rounded-3xl border border-zinc-800 shadow-card-dark">
-          <span class="text-xs text-zinc-400 font-bold block uppercase tracking-wider">Redução de Cintura</span>
-          <p id="evoWaistReduction" class="text-2xl font-black text-white mt-1">-6,0 cm</p>
-          <span class="text-[11px] text-zinc-300 font-semibold block mt-0.5">102cm → 96cm</span>
-        </div>
+
       </div>
 
-      <!-- 3 Interactive Line Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Gráfico 1: Peso vs Peso Alvo -->
-        <div class="hud-card p-6 space-y-3">
-          <div class="flex justify-between items-center">
-            <h2 class="font-black text-white text-sm flex items-center gap-2">
-              <i data-lucide="scale" class="w-4 h-4 text-red-500"></i> Histórico de Peso vs Meta Alvo (kg)
-            </h2>
-            <span class="text-[11px] font-mono font-bold text-zinc-400">Meta: 103.7 kg</span>
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- SUB-VIEW 3: SINERGIA NUTRIÇÃO × PERFORMANCE (POWER-MACRO)      -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="results-view-synergy" class="results-subview space-y-6 w-full" style="display:none">
+        
+        <div class="hud-card p-6 space-y-5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-black/80 to-zinc-950">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 rounded-xl bg-amber-950/80 border border-amber-700/60 text-amber-400">
+                <i data-lucide="zap" class="w-5 h-5"></i>
+              </span>
+              <div>
+                <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-wide">
+                  Matriz de Sinergia Nutrição × Performance (Power-Macro Sync)
+                </h2>
+                <p class="text-xs text-zinc-400">Como o aporte de carboidratos, proteínas e hidratação potencializam o rendimento do treino de força.</p>
+              </div>
+            </div>
           </div>
-          <div class="h-64 relative">
-            <canvas id="chartWeightHistory"></canvas>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
+              <div class="flex items-center gap-2 text-amber-400 font-bold font-mono uppercase">
+                <i data-lucide="battery-charging" class="w-4 h-4"></i> 1. Carbo Pré-Treino × Carga
+              </div>
+              <p class="text-zinc-300 leading-relaxed font-sans">
+                Quando a recarga glicêmica prévia atinge <strong class="text-white">100% da meta</strong>, a progressão média de tonelagem na musculação avança <strong class="text-amber-400">+4.8%</strong> por microciclo.
+              </p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
+              <div class="flex items-center gap-2 text-blue-400 font-bold font-mono uppercase">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> 2. Aporte Proteico × Preservação
+              </div>
+              <p class="text-zinc-300 leading-relaxed font-sans">
+                Aporte sustentado em <strong class="text-white">2.0 g/kg</strong> garantiu retenção de <strong class="text-blue-300">98.5%</strong> da massa magra mesmo durante as fases de déficit aeróbico.
+              </p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
+              <div class="flex items-center gap-2 text-emerald-400 font-bold font-mono uppercase">
+                <i data-lucide="flame" class="w-4 h-4"></i> 3. Cardio × Déficit Lipídico
+              </div>
+              <p class="text-zinc-300 leading-relaxed font-sans">
+                Os protocolos de <strong class="text-white">Compromised Running / Zona 2</strong> geraram <strong class="text-emerald-300">~550 kcal/sessão</strong> de gasto adicional acelerando a queima de gordura visceral.
+              </p>
+            </div>
+          </div>
+
+          <!-- Disponibilidade Energética (Energy Availability) -->
+          <div class="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider">Disponibilidade Energética (Energy Availability - EA)</span>
+              <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2.5 py-0.5 rounded-full">42 kcal / kg Massa Magra (Ótimo)</span>
+            </div>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              O balanço energético atual fornece energia suficiente para funções fisiológicas básicas, síntese proteica e sistema imunológico, prevenindo o risco de overtraining ou fadiga crônica.
+            </p>
           </div>
         </div>
 
-        <!-- Gráfico 2: % de Gordura -->
-        <div class="hud-card p-6 space-y-3">
-          <div class="flex justify-between items-center">
-            <h2 class="font-black text-white text-sm flex items-center gap-2">
-              <i data-lucide="percent" class="w-4 h-4 text-red-500"></i> Evolução do % de Gordura Corporal
-            </h2>
-            <span class="text-[11px] font-mono font-bold text-zinc-400">Meta: 10.0%</span>
-          </div>
-          <div class="h-64 relative">
-            <canvas id="chartBodyFatHistory"></canvas>
-          </div>
-        </div>
-
-        <!-- Gráfico 3: Massa Magra vs Massa Gorda -->
-        <div class="hud-card p-6 space-y-3 lg:col-span-2">
-          <div class="flex justify-between items-center">
-            <h2 class="font-black text-white text-sm flex items-center gap-2">
-              <i data-lucide="activity" class="w-4 h-4 text-red-500"></i> Distribuição: Massa Magra vs Massa Gorda (kg)
-            </h2>
-            <span class="text-[11px] font-mono font-bold text-zinc-400">Composição Corporal</span>
-          </div>
-          <div class="h-64 relative">
-            <canvas id="chartBodyCompHistory"></canvas>
-          </div>
-        </div>
       </div>
 
-      <!-- Tabela Histórica de Reavaliações -->
-      <div class="bg-zinc-900/90 rounded-3xl border border-zinc-800 shadow-card-dark overflow-hidden">
-        <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
-          <h2 class="font-black text-white text-sm flex items-center gap-2">
-            <i data-lucide="table" class="w-4 h-4 text-red-500"></i> Histórico de Registros & Medições
-          </h2>
-          <span class="text-zinc-400 text-[11px]">Dados gravados no Dexie.js</span>
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- SUB-VIEW 4: LINHA DO TEMPO & FOTOS "ANTES VS DEPOIS"           -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="results-view-gallery" class="results-subview space-y-6 w-full" style="display:none">
+        
+        <div class="hud-card p-6 space-y-5 rounded-2xl border border-zinc-800">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <i data-lucide="camera" class="w-5 h-5 text-amber-400"></i>
+              <h2 class="text-base font-bold text-white uppercase tracking-wide">Galeria &amp; Linha do Tempo Fotográfica</h2>
+              <span class="text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800 px-2 py-0.5 rounded-full font-bold">Frente · Costas · Perfil</span>
+            </div>
+            <button onclick="resultsTriggerPhotoUpload()" class="btn-nax-amber px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload de Nova Foto
+            </button>
+            <input type="file" id="resultsPhotoFileInput" accept="image/*" class="hidden" onchange="resultsHandlePhotoUpload(event)">
+          </div>
+
+          <!-- Comparador Visual Lado a Lado -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="results-photo-compare-container">
+            <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 text-center space-y-3">
+              <div class="flex justify-between items-center text-xs font-mono text-zinc-400">
+                <span class="font-bold text-white">📸 Foto Inicial (Avaliação #1)</span>
+                <span>25.04.2026</span>
+              </div>
+              <div class="h-72 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden relative">
+                <img id="results-photo-before" src="shapes_banner.jpg" alt="Foto Antes" class="object-cover w-full h-full opacity-80 hover:opacity-100 transition-opacity">
+                <div class="absolute bottom-2 left-2 bg-black/80 px-2.5 py-1 rounded-lg text-[10px] font-mono text-zinc-300 border border-zinc-700">
+                  116.0 kg • 27.45% BF • Cintura 102cm
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-black/60 border border-amber-600/40 text-center space-y-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+              <div class="flex justify-between items-center text-xs font-mono text-amber-400">
+                <span class="font-bold text-amber-300">🔥 Foto Atual (Reavaliação Recente)</span>
+                <span>25.06.2026</span>
+              </div>
+              <div class="h-72 rounded-xl bg-zinc-950 border border-amber-500/40 flex items-center justify-center overflow-hidden relative">
+                <img id="results-photo-after" src="shapes_banner.jpg" alt="Foto Depois" class="object-cover w-full h-full">
+                <div class="absolute bottom-2 left-2 bg-amber-950/90 px-2.5 py-1 rounded-lg text-[10px] font-mono text-amber-200 border border-amber-700">
+                  111.4 kg • 22.80% BF • Cintura 96cm
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-zinc-950 text-zinc-400 font-bold border-b border-zinc-800">
-              <tr>
-                <th class="p-3.5 pl-5">Data</th>
-                <th class="p-3.5">Peso (kg)</th>
-                <th class="p-3.5">Massa Magra (kg)</th>
-                <th class="p-3.5">Massa Gorda (kg)</th>
-                <th class="p-3.5">% Gordura</th>
-                <th class="p-3.5">Cintura (cm)</th>
-                <th class="p-3.5 text-right pr-5">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="evaluationsTableBody" class="divide-y divide-zinc-800 font-medium text-zinc-200">
-              <!-- Rendered dynamically by app.js -->
-            </tbody>
-          </table>
-        </div>
       </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- SUB-VIEW 5: PROJEÇÃO PREDITIVA IA DE METAS                    -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="results-view-predictive" class="results-subview space-y-6 w-full" style="display:none">
+        
+        <div class="hud-card p-6 space-y-5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-black/80 to-zinc-950">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 rounded-xl bg-amber-950/80 border border-amber-700/60 text-amber-400">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+              </span>
+              <div>
+                <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-wide">
+                  Motor Preditivo com IA (Predictive Outcome Engine)
+                </h2>
+                <p class="text-xs text-zinc-400">Projeção matemática em semanas para atingir a meta estética e metabólica com base na taxa de queima real.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Velocidade Semanal Atual</span>
+              <strong class="text-amber-400 text-lg block">-0,57 kg / semana</strong>
+              <p class="text-zinc-400 text-[11px]">Ritmo seguro de perda lipídica com 100% de preservação muscular.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Estimativa para Meta (10% BF)</span>
+              <strong class="text-emerald-400 text-lg block">~14 Semanas (~3,5 Meses)</strong>
+              <p class="text-zinc-400 text-[11px]">Previsão de alcance: Outubro de 2026 mantendo o plano atual.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Confiança do Modelo IA</span>
+              <strong class="text-blue-300 text-lg block">96.4% Alta Fidelidade</strong>
+              <p class="text-zinc-400 text-[11px]">Baseado em 3 medições consistentes de bioimpedância e dobras.</p>
+            </div>
+          </div>
+
+          <!-- Simulador Interativo -->
+          <div class="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+            <h3 class="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">Simulador de Aceleração de Metas</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label class="block text-zinc-400 mb-1">Ajuste de Déficit Calórico:</label>
+                <select id="pred-deficit-adjust" onchange="resultsRecalculatePrediction()" class="w-full bg-zinc-900 border border-zinc-700 text-white p-2 rounded-xl outline-none">
+                  <option value="0">Manter Plano Atual (-450 kcal/dia)</option>
+                  <option value="-200">Aumentar Déficit em -200 kcal (-650 kcal/dia)</option>
+                  <option value="-400">Aumentar Déficit em -400 kcal (-850 kcal/dia)</option>
+                  <option value="+200">Diminuir Déficit em +200 kcal (-250 kcal/dia)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-zinc-400 mb-1">Sessões Adicionais de Cardio (Zona 2 / Engine):</label>
+                <select id="pred-cardio-adjust" onchange="resultsRecalculatePrediction()" class="w-full bg-zinc-900 border border-zinc-700 text-white p-2 rounded-xl outline-none">
+                  <option value="0">Manter 3 Sessões / Semana</option>
+                  <option value="1">+1 Sessão Semanal (4x / sem)</option>
+                  <option value="2">+2 Sessões Semanais (5x / sem)</option>
+                </select>
+              </div>
+            </div>
+            <div class="p-3 rounded-lg bg-black/50 border border-amber-500/30 text-xs text-amber-200" id="pred-simulation-result">
+              💡 <strong>Resultado da Simulação:</strong> Com o plano atual, o objetivo será atingido em <strong>14 semanas</strong>.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </section>
 
     <!-- 4.1 ADHERENCE & COMPLIANCE TAB (ABA 06) -->

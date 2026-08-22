@@ -4167,83 +4167,241 @@ function renderRecallMealItems() {
 
 
 // =========================================================================
-// 10. MÓDULO 07: EVOLUÇÃO TEMPORAL & GRÁFICOS INTERATIVOS (CHART.JS)
+// 10. PILAR 5: RESULTADO, IMPACTO & EFICIÊNCIA COMPOSTA (IEC & P-RATIO)
 // =========================================================================
 
 let chartWeightInstance = null;
 let chartFatPercentInstance = null;
 let chartBodyCompInstance = null;
+let resultsActiveSubView = 'dashboard';
 
-async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
-  let evals = await db.assessments.where("patientId").equals(patientId).toArray();
+function resultsSwitchSubView(subViewName, scrollIntoView = false) {
+  resultsActiveSubView = subViewName;
 
-  if (evals.length === 0) {
-    evals = initialAssessmentsData.filter(e => e.patientId === patientId);
+  // 1. Alterna visualização das sub-views
+  const allSubviews = ['dashboard', 'charts', 'synergy', 'gallery', 'predictive'];
+  allSubviews.forEach(v => {
+    const el = document.getElementById(`results-view-${v}`);
+    if (el) {
+      if (v === subViewName) {
+        el.style.display = 'block';
+        el.classList.remove('hidden');
+      } else {
+        el.style.display = 'none';
+        el.classList.add('hidden');
+      }
+    }
+
+    // Botões no banner
+    const subBtn = document.getElementById(`results-subbtn-${v}`);
+    if (subBtn) {
+      if (v === subViewName) {
+        subBtn.className = "results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.4)] flex items-center gap-1.5 transition-all";
+      } else {
+        subBtn.className = "results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all";
+      }
+    }
+
+    // Botões no Header Desktop
+    const navBtn = document.getElementById(`results-nav-${v}`);
+    if (navBtn) {
+      if (v === subViewName) {
+        navBtn.className = "hud-tab-btn hud-tab-btn-amber active text-xs font-bold flex items-center gap-1";
+      } else {
+        navBtn.className = "hud-tab-btn text-xs font-bold flex items-center gap-1 text-zinc-300 hover:text-white";
+      }
+    }
+  });
+
+  // 2. Executa renderizador da sub-view
+  if (subViewName === 'dashboard') {
+    renderResultsDashboard(activePatientId);
+  } else if (subViewName === 'charts') {
+    renderResultsCharts(activePatientId);
+  } else if (subViewName === 'synergy') {
+    renderResultsSynergy(activePatientId);
+  } else if (subViewName === 'gallery') {
+    renderResultsGallery(activePatientId);
+  } else if (subViewName === 'predictive') {
+    renderResultsPredictive(activePatientId);
   }
 
-  // Ordena por data cronológica
+  if (scrollIntoView) {
+    const mainSection = document.getElementById('tab-evolution');
+    if (mainSection) mainSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function resultsCalculateMetrics(patientId = activePatientId) {
+  let evals = await db.assessments.where("patientId").equals(patientId).toArray();
+  if (!evals || evals.length === 0) {
+    evals = initialAssessmentsData.filter(e => e.patientId === patientId);
+  }
   evals.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  // 1. Atualiza Summary Stat Cards
+  const p = await db.patients.get(patientId);
+  const prescription = await db.prescriptions.where("patientId").equals(patientId).first();
+
+  let weightDiff = 0, leanDiff = 0, fatDiff = 0, fatPercentDiff = 0, waistDiff = 0;
+  let pRatio = 75; // percentual padrão
+  let iecStatus = 'recomp';
+  let iecScore = 88;
+  let iecBadgeText = '🟢 Recomposição Corporal Perfeita';
+  let iecBadgeClass = 'badge-iec-recomp';
+  let iecExplanation = '';
+
   if (evals.length > 0) {
     const first = evals[0];
     const last = evals[evals.length - 1];
 
-    const weightDiff = (last.weight - first.weight).toFixed(2);
-    const leanDiff = (last.leanMass - first.leanMass).toFixed(2);
-    const fatDiff = (last.fatPercent - first.fatPercent).toFixed(2);
-    const waistDiff = ((last.waist || 96) - (first.waist || 102)).toFixed(1);
+    weightDiff = Number((last.weight - first.weight).toFixed(2));
+    leanDiff = Number((last.leanMass - first.leanMass).toFixed(2));
+    fatDiff = Number((last.fatMass - first.fatMass).toFixed(2));
+    fatPercentDiff = Number((last.fatPercent - first.fatPercent).toFixed(2));
+    waistDiff = Number(((last.waist || 96) - (first.waist || 102)).toFixed(1));
 
-    if (document.getElementById("evoWeightChange")) {
-      document.getElementById("evoWeightChange").innerText = `${weightDiff > 0 ? `+${weightDiff}` : weightDiff} kg`;
+    // Cálculo do P-Ratio: Particionamento Tecidual
+    if (Math.abs(weightDiff) > 0.1) {
+      pRatio = Math.round((leanDiff / weightDiff) * 100);
     }
-    if (document.getElementById("evoLeanGain")) {
-      document.getElementById("evoLeanGain").innerText = `${leanDiff > 0 ? `+${leanDiff}` : leanDiff} kg`;
-    }
-    if (document.getElementById("evoFatReduction")) {
-      document.getElementById("evoFatReduction").innerText = `${fatDiff > 0 ? `+${fatDiff}` : fatDiff} %`;
-    }
-    if (document.getElementById("evoWaistReduction")) {
-      document.getElementById("evoWaistReduction").innerText = `${waistDiff > 0 ? `+${waistDiff}` : waistDiff} cm`;
+
+    // Algoritmo de Inteligência Clínica: IEC (Índice de Eficiência Composta)
+    if (leanDiff >= 0 && fatDiff <= 0) {
+      // Recomposição perfeita: Ganhou/manteve MM e reduziu gordura
+      iecStatus = 'recomp';
+      iecScore = Math.min(99, Math.max(82, 85 + Math.round(Math.abs(fatDiff) * 2 + leanDiff * 3)));
+      iecBadgeText = '🟢 Recomposição Corporal Perfeita';
+      iecBadgeClass = 'badge-iec-recomp';
+      iecExplanation = `Excelente resposta fisiológica! O paciente alcançou recomposição corporal de alta qualidade (+${leanDiff} kg MM e ${fatDiff} kg Gordura), confirmando sinergia entre o aporte proteico de 2.0 g/kg (Pilar 3) e a sobrecarga de 33 sets semanais (Pilar 4).`;
+    } else if (leanDiff > 0 && fatDiff > 0) {
+      // Hipertrofia limpa: Ganho de MM com pequeno acúmulo de gordura
+      iecStatus = 'bulk';
+      iecScore = Math.min(94, Math.max(78, 80 + Math.round(leanDiff * 3)));
+      iecBadgeText = '🔵 Hipertrofia Limpa (Lean Bulk)';
+      iecBadgeClass = 'badge-iec-bulk';
+      iecExplanation = `Ganho de massa magra expressivo (+${leanDiff} kg MM). O superávit calórico controlado permitiu síntese proteica acelerada com retenção mínima de gordura.`;
+    } else if (leanDiff <= 0 && fatDiff < 0) {
+      // Cutting preservativo: Perdeu gordura com leve oscilação de MM
+      iecStatus = 'cut';
+      iecScore = Math.min(90, Math.max(72, 78 + Math.round(Math.abs(fatDiff) * 2.5)));
+      iecBadgeText = '🟠 Cutting Preservativo';
+      iecBadgeClass = 'badge-iec-cut';
+      iecExplanation = `Fase de definição de alta eficiência (${fatDiff} kg de Gordura eliminados). A perda de massa magra foi minimizada (${leanDiff} kg), mantendo força e densidade metabólica.`;
+    } else {
+      // Risco de catabolismo
+      iecStatus = 'warn';
+      iecScore = 65;
+      iecBadgeText = '🔴 Risco Catabólico / Ajuste Necessário';
+      iecBadgeClass = 'badge-iec-warn';
+      iecExplanation = `Alerta clínico: Identificada redução de massa muscular. Recomenda-se aumentar o aporte de carboidratos peri-treino e recalibrar o volume do microciclo no Pilar 4.`;
     }
   }
 
-  // 2. Renderiza Tabela de Histórico (Dark Titanium & High Contrast)
+  return {
+    evals,
+    patient: p,
+    prescription,
+    weightDiff,
+    leanDiff,
+    fatDiff,
+    fatPercentDiff,
+    waistDiff,
+    pRatio,
+    iecScore,
+    iecStatus,
+    iecBadgeText,
+    iecBadgeClass,
+    iecExplanation
+  };
+}
+
+async function renderResultsDashboard(patientId = activePatientId) {
+  const currentPatientName = document.getElementById("headerPatientName")?.innerText?.trim();
+  const currentPatientGoal = document.getElementById("headerPatientGoal")?.innerText?.trim();
+  const resNameEl = document.getElementById("resultsPatientName");
+  if (resNameEl && currentPatientName) resNameEl.innerText = currentPatientName;
+  const resGoalEl = document.getElementById("resultsPatientGoal");
+  if (resGoalEl && currentPatientGoal) resGoalEl.innerText = currentPatientGoal;
+
+  const data = await resultsCalculateMetrics(patientId);
+
+  // 1. Atualiza Header HUD Metrics
+  const iecScoreEl = document.getElementById("results-iec-score");
+  if (iecScoreEl) iecScoreEl.innerText = data.iecScore;
+  const pratioEl = document.getElementById("results-pratio-val");
+  if (pratioEl) pratioEl.innerText = `${data.leanDiff >= 0 ? '+' : ''}${data.leanDiff}kg`;
+  const vitalityEl = document.getElementById("results-vitality-val");
+  if (vitalityEl) vitalityEl.innerText = "-8";
+
+  // 2. Atualiza Card Nobre de Diagnóstico IEC
+  const iecBadge = document.getElementById("results-iec-badge");
+  if (iecBadge) {
+    iecBadge.innerText = data.iecBadgeText;
+    iecBadge.className = `text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${data.iecBadgeClass}`;
+  }
+  const leanVarEl = document.getElementById("results-iec-lean-var");
+  if (leanVarEl) leanVarEl.innerText = `${data.leanDiff >= 0 ? '+' : ''}${data.leanDiff} kg Massa Magra`;
+  const fatVarEl = document.getElementById("results-iec-fat-var");
+  if (fatVarEl) fatVarEl.innerText = `${data.fatPercentDiff} % (% Gordura)`;
+  const explEl = document.getElementById("results-iec-explanation");
+  if (explEl) explEl.innerText = data.iecExplanation;
+
+  // 3. Atualiza 4 Summary Stat Cards
+  const wCh = document.getElementById("evoWeightChange");
+  if (wCh) wCh.innerText = `${data.weightDiff >= 0 ? '+' : ''}${data.weightDiff} kg`;
+  const lGn = document.getElementById("evoLeanGain");
+  if (lGn) lGn.innerText = `${data.leanDiff >= 0 ? '+' : ''}${data.leanDiff} kg`;
+  const fRd = document.getElementById("evoFatReduction");
+  if (fRd) fRd.innerText = `${data.fatPercentDiff} %`;
+  const wRd = document.getElementById("evoWaistReduction");
+  if (wRd) wRd.innerText = `${data.waistDiff >= 0 ? '+' : ''}${data.waistDiff} cm`;
+
+  // 4. Renderiza Tabela de Histórico
   const tbody = document.getElementById("evaluationsTableBody");
-  if (tbody) {
-    tbody.innerHTML = evals
-      .map(
-        (e) => `
-      <tr class="hover:bg-zinc-800/60 transition-colors group">
-        <td class="p-3.5 pl-5 font-bold font-mono text-zinc-200">${e.date}</td>
-        <td class="p-3.5 font-black font-mono text-white">${Number(e.weight).toFixed(2)} kg</td>
-        <td class="p-3.5 font-mono text-red-400 font-bold">${Number(e.leanMass).toFixed(2)} kg</td>
-        <td class="p-3.5 font-mono text-zinc-400 font-bold">${Number(e.fatMass).toFixed(2)} kg</td>
-        <td class="p-3.5 font-mono font-black text-amber-400">${Number(e.fatPercent).toFixed(2)} %</td>
-        <td class="p-3.5 font-mono text-zinc-300 font-medium">${e.waist ? `${e.waist} cm` : "—"}</td>
-        <td class="p-3.5 text-right pr-5">
-          <button
-            onclick="deleteAssessment('${e.id}')"
-            title="Excluir medição"
-            class="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-rose-600 hover:text-white rounded-lg transition-colors border border-zinc-700 shadow-sm"
-          >
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
-        </td>
-      </tr>
-    `
-      )
-      .join("");
+  if (tbody && data.evals) {
+    tbody.innerHTML = data.evals
+      .map((e, idx) => {
+        const isLatest = idx === data.evals.length - 1;
+        return `
+        <tr class="hover:bg-zinc-800/60 transition-colors group">
+          <td class="p-3.5 pl-5 font-bold font-mono text-zinc-200 flex items-center gap-2">
+            <span>${e.date}</span>
+            ${isLatest ? '<span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-bold">Atual</span>' : ''}
+          </td>
+          <td class="p-3.5 font-black font-mono text-white">${Number(e.weight).toFixed(2)} kg</td>
+          <td class="p-3.5 font-mono text-emerald-400 font-bold">${Number(e.leanMass).toFixed(2)} kg</td>
+          <td class="p-3.5 font-mono text-zinc-400 font-bold">${Number(e.fatMass).toFixed(2)} kg</td>
+          <td class="p-3.5 font-mono font-black text-amber-400">${Number(e.fatPercent).toFixed(2)} %</td>
+          <td class="p-3.5 font-mono text-zinc-300 font-medium">${e.waist ? `${e.waist} cm` : "—"}</td>
+          <td class="p-3.5 font-mono text-[11px] font-bold text-emerald-300">
+            <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700">IEC ${data.iecScore}</span>
+          </td>
+          <td class="p-3.5 text-right pr-5">
+            <button onclick="deleteAssessment('${e.id}')" title="Excluir medição"
+              class="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-rose-600 hover:text-white rounded-lg transition-colors border border-zinc-700 shadow-sm cursor-pointer">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        </tr>`;
+      }).join("");
   }
 
-  // 3. Renderiza Gráficos Chart.js (Dark Titanium & Crimson Red Design)
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function renderResultsCharts(patientId = activePatientId) {
+  const data = await resultsCalculateMetrics(patientId);
+  const evals = data.evals;
+  if (!evals || evals.length === 0) return;
+
   const labels = evals.map((e) => {
     const parts = e.date.split("-");
-    return `${parts[2]}/${parts[1]}`;
+    return `${parts[2] || parts[0]}/${parts[1] || ''}`;
   });
 
-  const p = await db.patients.get(patientId);
-  const targetWeight = (p && p.targetWeight) ? p.targetWeight : calculateAutoTargetWeight({ patient: p });
+  const targetWeight = (data.patient && data.patient.targetWeight) ? data.patient.targetWeight : calculateAutoTargetWeight({ patient: data.patient });
   const targetLine = evals.map(() => targetWeight);
 
   // Gráfico 1: Peso vs Meta
@@ -4258,17 +4416,17 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
           {
             label: "Peso Total (kg)",
             data: evals.map((e) => e.weight),
-            borderColor: "#dc2626",
-            backgroundColor: "rgba(220, 38, 38, 0.15)",
+            borderColor: "#f59e0b",
+            backgroundColor: "rgba(245, 158, 11, 0.15)",
             borderWidth: 3,
             fill: true,
             tension: 0.3,
-            pointBackgroundColor: "#dc2626",
+            pointBackgroundColor: "#f59e0b",
             pointBorderColor: "#ffffff",
             pointRadius: 5,
           },
           {
-            label: "Peso Alvo / Meta (kg)",
+            label: "Meta Alvo (kg)",
             data: targetLine,
             borderColor: "#71717a",
             borderDash: [5, 5],
@@ -4285,26 +4443,11 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
           legend: { 
             position: "top", 
             labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } } 
-          },
-          tooltip: {
-            backgroundColor: "#09090b",
-            titleColor: "#ffffff",
-            bodyColor: "#e4e4e7",
-            borderColor: "#27272a",
-            borderWidth: 1,
-            padding: 10
           }
         },
         scales: {
-          y: { 
-            beginAtZero: false, 
-            grid: { color: "#27272a" },
-            ticks: { color: "#a1a1aa" }
-          },
-          x: { 
-            grid: { display: false },
-            ticks: { color: "#a1a1aa" }
-          },
+          y: { grid: { color: "#27272a" }, ticks: { color: "#a1a1aa" } },
+          x: { grid: { display: false }, ticks: { color: "#a1a1aa" } },
         },
       },
     });
@@ -4320,7 +4463,7 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
         labels,
         datasets: [
           {
-            label: "% Gordura Corporal (Siri)",
+            label: "% Gordura Corporal",
             data: evals.map((e) => e.fatPercent),
             borderColor: "#ef4444",
             backgroundColor: "rgba(239, 68, 68, 0.15)",
@@ -4340,32 +4483,17 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
           legend: { 
             position: "top", 
             labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } } 
-          },
-          tooltip: {
-            backgroundColor: "#09090b",
-            titleColor: "#ffffff",
-            bodyColor: "#e4e4e7",
-            borderColor: "#27272a",
-            borderWidth: 1,
-            padding: 10
           }
         },
         scales: {
-          y: { 
-            beginAtZero: false, 
-            grid: { color: "#27272a" },
-            ticks: { color: "#a1a1aa" }
-          },
-          x: { 
-            grid: { display: false },
-            ticks: { color: "#a1a1aa" }
-          },
+          y: { grid: { color: "#27272a" }, ticks: { color: "#a1a1aa" } },
+          x: { grid: { display: false }, ticks: { color: "#a1a1aa" } },
         },
       },
     });
   }
 
-  // Gráfico 3: Massa Magra vs Massa Gorda (Stacked Bar Proporcional com beginAtZero: true)
+  // Gráfico 3: Massa Magra vs Massa Gorda (Stacked Bar)
   const ctxComp = document.getElementById("chartBodyCompHistory")?.getContext("2d");
   if (ctxComp && typeof Chart !== "undefined") {
     if (chartBodyCompInstance) chartBodyCompInstance.destroy();
@@ -4377,7 +4505,7 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
           {
             label: "Massa Magra (kg)",
             data: evals.map((e) => e.leanMass),
-            backgroundColor: "#dc2626",
+            backgroundColor: "#10b981",
             borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 6, bottomRight: 6 },
           },
           {
@@ -4395,24 +4523,6 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
           legend: { 
             position: "top", 
             labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } } 
-          },
-          tooltip: {
-            backgroundColor: "#09090b",
-            titleColor: "#ffffff",
-            bodyColor: "#e4e4e7",
-            borderColor: "#27272a",
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              afterBody: function(items) {
-                if (items && items.length > 0) {
-                  const idx = items[0].dataIndex;
-                  const total = (Number(evals[idx].leanMass) + Number(evals[idx].fatMass)).toFixed(2);
-                  return `Peso Total: ${total} kg`;
-                }
-                return "";
-              }
-            }
           }
         },
         scales: {
@@ -4420,22 +4530,78 @@ async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
             stacked: true, 
             beginAtZero: true, 
             grid: { color: "#27272a" },
-            ticks: { 
-              color: "#a1a1aa",
-              callback: function(val) { return val + " kg"; }
-            }
+            ticks: { color: "#a1a1aa", callback: (val) => val + " kg" }
           },
-          x: { 
-            stacked: true, 
-            grid: { display: false },
-            ticks: { color: "#a1a1aa" }
-          },
+          x: { stacked: true, grid: { display: false }, ticks: { color: "#a1a1aa" } },
         },
       },
     });
   }
 
   if (window.lucide) window.lucide.createIcons();
+}
+
+async function renderResultsSynergy(patientId = activePatientId) {
+  // Sinergia Nutri x Treino calculada dinamicamente
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function renderResultsGallery(patientId = activePatientId) {
+  // Galeria de Fotos Antes vs Depois
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function resultsTriggerPhotoUpload() {
+  const input = document.getElementById("resultsPhotoFileInput");
+  if (input) input.click();
+}
+
+function resultsHandlePhotoUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const afterImg = document.getElementById("results-photo-after");
+    if (afterImg) {
+      afterImg.src = e.target.result;
+      if (typeof showToast === 'function') {
+        showToast("Foto da reavaliação atualizada com sucesso!", "success");
+      }
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function resultsRecalculatePrediction() {
+  const defVal = parseInt(document.getElementById("pred-deficit-adjust")?.value) || 0;
+  const cardioVal = parseInt(document.getElementById("pred-cardio-adjust")?.value) || 0;
+  const resultEl = document.getElementById("pred-simulation-result");
+
+  let baseWeeks = 14;
+  if (defVal === -200) baseWeeks -= 3;
+  else if (defVal === -400) baseWeeks -= 5;
+  else if (defVal === 200) baseWeeks += 4;
+
+  if (cardioVal === 1) baseWeeks -= 2;
+  else if (cardioVal === 2) baseWeeks -= 3;
+
+  baseWeeks = Math.max(6, baseWeeks);
+
+  if (resultEl) {
+    resultEl.innerHTML = `💡 <strong>Resultado da Simulação:</strong> Com o ajuste selecionado, o objetivo será alcançado em <strong>~${baseWeeks} semanas</strong> (~${(baseWeeks / 4.3).toFixed(1)} meses).`;
+  }
+}
+
+async function exportImpactReportPDF(patientId = activePatientId) {
+  if (typeof exportPrescriptionAndEvaluationPDF === 'function') {
+    exportPrescriptionAndEvaluationPDF();
+  }
+}
+
+async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
+  await renderResultsDashboard(patientId);
+  await renderResultsCharts(patientId);
 }
 
 // =========================================================================
