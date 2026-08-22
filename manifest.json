@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "id": "/nutriax-pro",
+  "name": "NutriAx Pro — Sistema Clínico de Alta Performance",
+  "short_name": "NutriAx Pro",
+  "description": "Plataforma clínica avançada de nutrição, avaliação corporal, prescrição e biomecânica.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#b91c1c",
+  "categories": ["medical", "health", "fitness", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Prescrição de Dieta",
+      "short_name": "Dieta",
+      "description": "Elaborar e ajustar plano alimentar",
+      "url": "./index.html?tab=prescription",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Prescrição de Treino",
+      "short_name": "Treino",
+      "description": "Biomecânica e prescrição de musculação",
+      "url": "./index.html?tab=performance",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "App do Paciente",
+      "short_name": "Paciente",
+      "description": "Visão simplificada do paciente",
+      "url": "./index.html?tab=patientApp",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard & Radar",
+      "short_name": "Dashboard",
+      "description": "Resumo clínico e metas do paciente",
+      "url": "./index.html?tab=dashboard",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Base de Alimentos",
+      "short_name": "Tabela TACO",
+      "description": "Catálogo TACO, TBCA e Rótulos",
+      "url": "./index.html?tab=foods",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

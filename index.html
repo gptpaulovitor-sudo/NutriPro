@@ -3,9 +3,27 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>NutriAx Pro — Sistema Clínico de Alta Performance</title>
   <meta name="description" content="Plataforma nutricional avançada: avaliação metabólica, prescrição e acompanhamento de alta performance.">
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="theme-color" content="#b91c1c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NutriAx Pro">
+  <meta name="application-name" content="NutriAx Pro">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="shortcut icon" href="favicon.png" type="image/png">
 
   <!-- Google Fonts: Inter + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -216,6 +234,20 @@
       </div>
 
     </nav>
+    <!-- Header Right Actions: Mobile Install Button & App Mode Indicator -->
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="header-install-app-btn" onclick="openMobileInstallModal()" 
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 border border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.45)] transition-all active:scale-95"
+        title="Instalar NutriAx Pro no Celular / Computador">
+        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i>
+        <span>Instalar App</span>
+      </button>
+      <div id="header-app-installed-badge" class="hidden items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-mono text-emerald-400 font-bold">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>APP INSTALADO</span>
+      </div>
+    </div>
+
   </header>
 
   <!-- ═══ 2. ESTRUTURA PRINCIPAL: SIDEBAR + CONTEÚDO ═══ -->
@@ -228,6 +260,23 @@
         <!-- Logo Original da Marca no Topo da Sidebar -->
         <div class="pt-1 text-center">
           <img src="logo.png" alt="NutriAx Logo Original" class="w-48 mx-auto drop-shadow-[0_0_15px_rgba(255,0,0,0.7)] object-contain" />
+        </div>
+
+        <!-- Card de Instalação Mobile PWA na Sidebar -->
+        <div id="sidebar-install-card" class="hud-card p-3.5 space-y-2 border border-red-900/60 bg-gradient-to-br from-red-950/40 via-black to-zinc-950">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5 text-red-500"></i> VERSÃO CELULAR
+            </span>
+            <span class="text-[9px] bg-red-950 text-red-300 border border-red-800 px-1.5 py-0.5 rounded font-mono font-bold">PWA / APK</span>
+          </div>
+          <p class="text-[11px] text-zinc-400 leading-snug">
+            Instale o NutriAx Pro no seu Android ou iPhone para acesso instantâneo e offline.
+          </p>
+          <button onclick="openMobileInstallModal()"
+            class="w-full btn-nax-primary text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(239,68,68,0.35)]">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Instalar no Celular
+          </button>
         </div>
 
         <!-- Card de Gestão do Paciente Ativo -->
@@ -3671,6 +3720,200 @@
         <button onclick="perfCloseExerciseGuide()"
           class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold transition-all text-xs">
           Fechar Guia
+        </button>
+      </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MOBILE BOTTOM NAVIGATION BAR (FIXA PARA SMARTPHONES)
+  ═══════════════════════════════════════════════════════════ -->
+  <nav id="mobile-bottom-nav" class="mobile-bottom-nav block lg:hidden" aria-label="Navegação Mobile">
+    <div class="grid grid-cols-5 items-center justify-around px-1 pt-1 text-center">
+      
+      <!-- 1. Dashboard -->
+      <button id="mob-nav-dashboard" onclick="switchTab('dashboard')" class="mobile-nav-btn active">
+        <i data-lucide="layout-dashboard" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Radar</span>
+      </button>
+
+      <!-- 2. Prescrição de Dieta -->
+      <button id="mob-nav-prescription" onclick="switchTab('prescription')" class="mobile-nav-btn">
+        <i data-lucide="utensils" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Dieta</span>
+      </button>
+
+      <!-- 3. Performance / Treino (Highlight) -->
+      <button id="mob-nav-performance" onclick="switchTab('performance'); if(typeof perfRender==='function') perfRender();" class="mobile-nav-btn mobile-nav-btn-highlight">
+        <i data-lucide="dumbbell" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Treino</span>
+      </button>
+
+      <!-- 4. Modo Paciente -->
+      <button id="mob-nav-patientApp" onclick="switchTab('patientApp')" class="mobile-nav-btn">
+        <i data-lucide="smartphone" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Paciente</span>
+      </button>
+
+      <!-- 5. Instalar / Menu -->
+      <button id="mob-nav-install" onclick="openMobileInstallModal()" class="mobile-nav-btn">
+        <i data-lucide="download-cloud" class="w-5 h-5 mobile-nav-icon text-amber-400"></i>
+        <span class="text-amber-400">Instalar</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL DE INSTALAÇÃO NO CELULAR (ANDROID / IOS / QR CODE)
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="mobile-install-modal" style="display:none;" 
+    class="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    
+    <div class="hud-card modal-slide-up w-full max-w-xl bg-zinc-950 border border-red-800/80 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.3)] flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 bg-gradient-to-r from-red-950/80 via-black to-zinc-950 border-b border-red-900/60 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(255,0,0,0.4)]">
+            <i data-lucide="smartphone" class="w-5 h-5 text-red-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-white tracking-tight flex items-center gap-2">
+              Instalar NutriAx Pro no Celular
+              <span class="text-[10px] font-mono bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full font-bold uppercase">PWA Nativo</span>
+            </h3>
+            <p class="text-xs text-zinc-400">Acesso instantâneo, tela cheia e funcionamento offline.</p>
+          </div>
+        </div>
+        <button onclick="closeMobileInstallModal()" class="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Abas por Sistema Operacional) -->
+      <div class="p-5 space-y-5 overflow-y-auto flex-1 text-xs">
+        
+        <!-- Abas Seletoras -->
+        <div class="grid grid-cols-3 gap-1.5 p-1 bg-zinc-900/90 rounded-2xl border border-zinc-800">
+          <button id="install-tab-btn-android" onclick="switchInstallTab('android')"
+            class="py-2.5 px-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 bg-red-600 text-white shadow-md">
+            <i data-lucide="smartphone" class="w-4 h-4"></i> Android
+          </button>
+          <button id="install-tab-btn-ios" onclick="switchInstallTab('ios')"
+            class="py-2.5 px-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 text-zinc-400 hover:text-white">
+            <i data-lucide="apple" class="w-4 h-4"></i> iPhone (iOS)
+          </button>
+          <button id="install-tab-btn-wifi" onclick="switchInstallTab('wifi')"
+            class="py-2.5 px-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 text-zinc-400 hover:text-white">
+            <i data-lucide="qr-code" class="w-4 h-4"></i> Wi-Fi / QR Code
+          </button>
+        </div>
+
+        <!-- Conteúdo 1: ANDROID -->
+        <div id="install-content-android" class="space-y-4">
+          <!-- Botão de Instalação 1-Clique Nativo -->
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-red-950/70 via-black to-zinc-900 border border-red-700/60 space-y-3 text-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[11px] font-mono font-bold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Instalação Rápida Disponível
+            </span>
+            <h4 class="text-sm font-bold text-white">Pronto para instalar no seu Android</h4>
+            <p class="text-zinc-300 text-xs">
+              Toque no botão abaixo para adicionar o aplicativo diretamente à sua tela inicial sem precisar da Play Store.
+            </p>
+            <button id="btn-pwa-install-action" onclick="triggerPWAInstall()"
+              class="w-full btn-nax-primary py-3 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+              <i data-lucide="download-cloud" class="w-5 h-5"></i>
+              <span>🚀 Instalar NutriAx Pro Agora</span>
+            </button>
+          </div>
+
+          <!-- Passo a Passo Manual para Android -->
+          <div class="space-y-2">
+            <span class="text-zinc-400 font-bold uppercase text-[11px] block">Ou instale manualmente pelo Chrome / Samsung Internet:</span>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div class="p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-1">
+                <span class="text-red-400 font-mono font-bold text-xs">1. Menu</span>
+                <p class="text-zinc-300 text-[11px]">Toque nos <strong>3 pontinhos (⋮)</strong> no canto superior direito do navegador.</p>
+              </div>
+              <div class="p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-1">
+                <span class="text-red-400 font-mono font-bold text-xs">2. Instalar</span>
+                <p class="text-zinc-300 text-[11px]">Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</p>
+              </div>
+              <div class="p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-1">
+                <span class="text-red-400 font-mono font-bold text-xs">3. Concluir</span>
+                <p class="text-zinc-300 text-[11px]">Confirme em <strong>"Instalar"</strong>. O ícone aparecerá junto aos seus outros apps.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo 2: IPHONE (iOS Safari) -->
+        <div id="install-content-ios" class="space-y-4 hidden">
+          <div class="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+              <span class="text-white font-bold text-xs">Instalação no iPhone e iPad (Safari)</span>
+            </div>
+            <p class="text-zinc-300 text-xs leading-relaxed">
+              No iOS, a instalação é realizada diretamente pelo navegador <strong>Safari</strong> em menos de 10 segundos:
+            </p>
+          </div>
+
+          <div class="space-y-2.5">
+            <div class="flex items-start gap-3 p-3.5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl">
+              <div class="w-7 h-7 rounded-xl bg-blue-950 text-blue-400 border border-blue-800 flex items-center justify-center font-mono font-bold shrink-0">1</div>
+              <div>
+                <span class="font-bold text-white block">Abra no Safari e toque em Compartilhar</span>
+                <span class="text-zinc-400 text-[11px]">Toque no ícone de <strong>Compartilhar</strong> (o quadrado com uma seta para cima <i data-lucide="share" class="w-3.5 h-3.5 inline text-blue-400"></i>) na barra inferior do Safari.</span>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3 p-3.5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl">
+              <div class="w-7 h-7 rounded-xl bg-blue-950 text-blue-400 border border-blue-800 flex items-center justify-center font-mono font-bold shrink-0">2</div>
+              <div>
+                <span class="font-bold text-white block">Adicionar à Tela de Início</span>
+                <span class="text-zinc-400 text-[11px]">Role as opções para baixo e toque em <strong>"Adicionar à Tela de Início"</strong> (ícone com um <i data-lucide="plus-square" class="w-3.5 h-3.5 inline text-blue-400"></i>).</span>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3 p-3.5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl">
+              <div class="w-7 h-7 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center font-mono font-bold shrink-0">3</div>
+              <div>
+                <span class="font-bold text-white block">Confirmar "Adicionar"</span>
+                <span class="text-zinc-400 text-[11px]">Toque em <strong>"Adicionar"</strong> no canto superior direito. Pronto! O app abrirá em tela cheia independente do Safari.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo 3: WI-FI LOCAL / QR CODE -->
+        <div id="install-content-wifi" class="space-y-4 hidden">
+          <div class="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-3 text-center">
+            <h4 class="text-sm font-bold text-white">Acessar pelo Celular na mesma rede Wi-Fi</h4>
+            <p class="text-zinc-300 text-xs">
+              Conecte seu celular à mesma rede Wi-Fi do computador e abra o endereço abaixo no navegador do celular:
+            </p>
+            <div class="p-3 bg-black rounded-xl border border-red-900/50 flex items-center justify-between gap-2">
+              <span id="localWifiUrlDisplay" class="font-mono font-bold text-red-400 text-xs truncate">http://localhost:8080</span>
+              <button onclick="copyWifiUrl()" class="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-[11px]">
+                Copiar
+              </button>
+            </div>
+            <p class="text-[11px] text-zinc-400">
+              Dica: Execute o script <code class="bg-zinc-800 px-1.5 py-0.5 rounded text-red-300 font-mono">iniciar_servidor_celular.bat</code> na pasta do projeto para ver seu IP local exato e QR code automático!
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-black/70 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+        <span class="flex items-center gap-1.5">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          PWA Certificado · 100% Seguro &amp; Sem Anúncios
+        </span>
+        <button onclick="closeMobileInstallModal()" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold transition-all">
+          Fechar
         </button>
       </div>
 

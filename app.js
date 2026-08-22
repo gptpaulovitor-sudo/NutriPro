@@ -5220,6 +5220,19 @@ function switchTab(tabName, syncPilar = true) {
   const activeBtn = document.getElementById('nav-' + tabName);
   if (activeBtn) activeBtn.classList.add('active');
 
+  // Atualiza estado ativo na Bottom Navigation Bar Mobile
+  const mobNavIds = ['dashboard', 'prescription', 'performance', 'patientApp'];
+  mobNavIds.forEach(id => {
+    const mobBtn = document.getElementById('mob-nav-' + id);
+    if (mobBtn) {
+      if (id === tabName) {
+        mobBtn.classList.add('active');
+      } else {
+        mobBtn.classList.remove('active');
+      }
+    }
+  });
+
   // Triggers específicos de renderização por módulo
   if (tabName === 'performance' && typeof perfRender === 'function') {
     perfRender();
@@ -5236,9 +5249,25 @@ function switchTab(tabName, syncPilar = true) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Inicializa no carregamento da página
+// Inicializa no carregamento da página com suporte a atalhos PWA (?tab=...)
 document.addEventListener('DOMContentLoaded', () => {
-  switchPilar(3, 'dashboard');
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedTab = urlParams.get('tab') || window.location.hash.replace('#', '');
+
+  if (requestedTab && ALL_TAB_IDS.includes(requestedTab)) {
+    if (requestedTab === 'performance') {
+      switchPilar(4, 'performance');
+    } else {
+      switchPilar(3, requestedTab);
+    }
+  } else {
+    switchPilar(3, 'dashboard');
+  }
+
+  // Inicializa o Motor PWA Mobile
+  if (typeof initNutriAxPWA === 'function') {
+    initNutriAxPWA();
+  }
 });
 
 // =========================================================================
@@ -8873,4 +8902,189 @@ window.perfBuildWeeklySchedule = perfBuildWeeklySchedule;
 window.renderPerfWeeklySchedule = renderPerfWeeklySchedule;
 window.perfGetNutritionContext = perfGetNutritionContext;
 window.perfSyncNutritionAudit = perfSyncNutritionAudit;
+
+// ═══════════════════════════════════════════════════════════
+// MOTOR PWA MOBILE & GERENCIADOR DE INSTALAÇÃO NO CELULAR
+// ═══════════════════════════════════════════════════════════
+
+let deferredInstallPrompt = null;
+let isAppInstalled = false;
+
+function initNutriAxPWA() {
+  console.log("[NutriAx PWA] Inicializando motor Mobile PWA...");
+
+  // 1. Registro do Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then((registration) => {
+          console.log('[NutriAx PWA] Service Worker registrado com sucesso. Escopo:', registration.scope);
+          
+          // Verifica se há atualização do Service Worker
+          registration.onupdatefound = () => {
+            const installingWorker = registration.installing;
+            if (installingWorker) {
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[NutriAx PWA] Nova versão disponível. O cache será renovado.');
+                }
+              };
+            }
+          };
+        })
+        .catch((error) => {
+          console.warn('[NutriAx PWA] Falha ao registrar Service Worker:', error);
+        });
+    });
+  }
+
+  // 2. Captura do Evento Nativo de Instalação (beforeinstallprompt) no Android / Chrome
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Previne o mini-infobar padrão do Chrome para usarmos nosso modal elegante
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    console.log('[NutriAx PWA] Evento beforeinstallprompt capturado. Pronto para instalação rápida.');
+
+    // Atualiza o botão de ação rápida de instalação
+    const btnAction = document.getElementById('btn-pwa-install-action');
+    if (btnAction) {
+      btnAction.classList.add('install-glow-badge');
+    }
+  });
+
+  // 3. Detecção de Instalação Concluída (appinstalled)
+  window.addEventListener('appinstalled', () => {
+    console.log('[NutriAx PWA] Aplicativo instalado com sucesso no dispositivo.');
+    deferredInstallPrompt = null;
+    isAppInstalled = true;
+    updateInstalledStateVisuals();
+  });
+
+  // 4. Detecção de Modo Standalone (Já executando como App Instalado)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       window.navigator.standalone === true ||
+                       document.referrer.includes('android-app://');
+
+  if (isStandalone) {
+    isAppInstalled = true;
+    console.log('[NutriAx PWA] Executando em modo Standalone (App Nativo).');
+    updateInstalledStateVisuals();
+  }
+
+  // 5. Preenche endereço de Wi-Fi Local no modal
+  const localUrlDisplay = document.getElementById('localWifiUrlDisplay');
+  if (localUrlDisplay) {
+    const currentOrigin = window.location.origin || window.location.href.split('#')[0].split('?')[0];
+    localUrlDisplay.textContent = currentOrigin;
+  }
+}
+
+function updateInstalledStateVisuals() {
+  const headerBtn = document.getElementById('header-install-app-btn');
+  const headerBadge = document.getElementById('header-app-installed-badge');
+  const sidebarCard = document.getElementById('sidebar-install-card');
+
+  if (headerBtn) headerBtn.style.display = 'none';
+  if (headerBadge) {
+    headerBadge.classList.remove('hidden');
+    headerBadge.style.display = 'flex';
+  }
+  if (sidebarCard) {
+    sidebarCard.innerHTML = `
+      <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <span>NutriAx Pro Instalado</span>
+      </div>
+      <p class="text-[11px] text-zinc-400">Modo aplicativo nativo ativo com persistência offline.</p>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+  }
+}
+
+function openMobileInstallModal() {
+  const modal = document.getElementById('mobile-install-modal');
+  if (!modal) return;
+
+  // Auto-detecta iOS vs Android para abrir na aba correspondente
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+
+  if (isIOS) {
+    switchInstallTab('ios');
+  } else {
+    switchInstallTab('android');
+  }
+
+  modal.style.display = 'flex';
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeMobileInstallModal() {
+  const modal = document.getElementById('mobile-install-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function switchInstallTab(tabId) {
+  const tabs = ['android', 'ios', 'wifi'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`install-tab-btn-${t}`);
+    const content = document.getElementById(`install-content-${t}`);
+    
+    if (btn) {
+      if (t === tabId) {
+        btn.className = "py-2.5 px-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 bg-red-600 text-white shadow-md";
+      } else {
+        btn.className = "py-2.5 px-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 text-zinc-400 hover:text-white";
+      }
+    }
+
+    if (content) {
+      if (t === tabId) {
+        content.classList.remove('hidden');
+      } else {
+        content.classList.add('hidden');
+      }
+    }
+  });
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function triggerPWAInstall() {
+  if (deferredInstallPrompt) {
+    // Dispara o diálogo nativo do sistema operacional
+    deferredInstallPrompt.prompt();
+    const choiceResult = await deferredInstallPrompt.userChoice;
+    console.log('[NutriAx PWA] Escolha do usuário:', choiceResult.outcome);
+
+    if (choiceResult.outcome === 'accepted') {
+      console.log('[NutriAx PWA] Usuário aceitou a instalação.');
+      closeMobileInstallModal();
+    }
+    deferredInstallPrompt = null;
+  } else {
+    // Se o evento nativo ainda não disparou ou está no desktop, orienta pelo menu do navegador
+    alert("Para instalar agora:\n1. Toque nos 3 pontinhos (⋮) do seu navegador;\n2. Selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");
+  }
+}
+
+function copyWifiUrl() {
+  const url = window.location.origin || window.location.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      alert("✅ Endereço copiado: " + url + "\nCole no navegador do celular conectado ao mesmo Wi-Fi!");
+    });
+  } else {
+    prompt("Copie o link abaixo para abrir no celular:", url);
+  }
+}
+
+// Vincula funções ao window global para invocações HTML
+window.initNutriAxPWA = initNutriAxPWA;
+window.openMobileInstallModal = openMobileInstallModal;
+window.closeMobileInstallModal = closeMobileInstallModal;
+window.switchInstallTab = switchInstallTab;
+window.triggerPWAInstall = triggerPWAInstall;
+window.copyWifiUrl = copyWifiUrl;
+
 

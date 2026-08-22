@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="#1c1917" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a2a" />
+      <stop offset="50%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4d4d" />
+      <stop offset="100%" stop-color="#ef4444" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" stroke="#3f3f46" stroke-width="6" />
+
+  <!-- Outer Sci-Fi HUD Hexagon / Shield -->
+  <polygon points="256,48 430,132 430,340 256,464 82,340 82,132" 
+           fill="none" stroke="#dc2626" stroke-width="8" stroke-dasharray="16, 8" opacity="0.6" />
+  
+  <polygon points="256,66 414,142 414,328 256,444 98,328 98,142" 
+           fill="#0f0505" stroke="url(#redGrad)" stroke-width="6" />
+
+  <!-- Stylized NutriAx 'N' with DNA/Metabolic angle -->
+  <path d="M 160,370 L 160,150 L 210,150 L 302,310 L 302,150 L 352,150 L 352,370 L 302,370 L 210,210 L 210,370 Z" 
+        fill="url(#redGrad)" filter="url(#glow)" />
+  
+  <!-- Ax / Apex Accent Slash -->
+  <path d="M 330,140 L 375,140 L 305,370 L 260,370 Z" 
+        fill="#ff4444" opacity="0.9" />
+
+  <!-- Pulse Dot Indicator -->
+  <circle cx="256" cy="110" r="10" fill="#22c55e" filter="url(#glow)" />
+
+  <!-- PRO Badge at the bottom -->
+  <g transform="translate(196, 396)">
+    <rect width="120" height="32" rx="8" fill="#450a0a" stroke="#ef4444" stroke-width="2" />
+    <text x="60" y="22" font-family="'JetBrains Mono', 'Arial Black', sans-serif" font-size="18" font-weight="900" 
+          fill="#ffffff" text-anchor="middle" letter-spacing="3">PRO</text>
+  </g>
+</svg>

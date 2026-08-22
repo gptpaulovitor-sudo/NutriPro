@@ -177,3 +177,141 @@ option {
   animation: shimmerSweep 2.5s infinite;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   PWA & MOBILE APP FIRST STYLES
+   Suporte a iOS Notch, Safe Area e Barra Inferior
+═══════════════════════════════════════════════════════════ */
+
+/* Suporte a Safe Area (iPhone X em diante & Android Gestures) */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Espaçamento inferior extra em telas móveis para não sobrepor a Bottom Nav */
+@media (max-width: 1023px) {
+  main {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Mobile Bottom Navigation Bar */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: rgba(10, 10, 14, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(220, 38, 38, 0.35);
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.9), 0 -1px 0 rgba(255, 255, 255, 0.05);
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  color: #9ca3af;
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  touch-action: manipulation;
+}
+
+.mobile-nav-btn:active {
+  transform: scale(0.92);
+}
+
+.mobile-nav-btn.active {
+  color: #ffffff !important;
+}
+
+.mobile-nav-btn.active .mobile-nav-icon {
+  color: #ef4444;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
+  transform: translateY(-2px);
+}
+
+.mobile-nav-btn.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: #ef4444;
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+}
+
+/* Botão especial de destaque na Bottom Nav (Treino/Performance) */
+.mobile-nav-btn-highlight {
+  position: relative;
+}
+
+.mobile-nav-btn-highlight.active .mobile-nav-icon {
+  color: #3b82f6 !important;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)) !important;
+}
+
+.mobile-nav-btn-highlight.active::after {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.9) !important;
+}
+
+/* Modal Animations */
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-slide-up {
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Glowing Pulsing Badge for Install Button */
+.install-glow-badge {
+  position: relative;
+}
+
+.install-glow-badge::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(90deg, #ff1a1a, #dc2626, #ef4444);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.75;
+  filter: blur(6px);
+  animation: pulseGlow 2s infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0%   { opacity: 0.4; filter: blur(4px); }
+  100% { opacity: 0.9; filter: blur(8px); }
+}
+
+
