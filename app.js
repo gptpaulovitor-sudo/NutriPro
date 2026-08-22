@@ -5221,7 +5221,7 @@ function switchTab(tabName, syncPilar = true) {
   if (activeBtn) activeBtn.classList.add('active');
 
   // Atualiza estado ativo na Bottom Navigation Bar Mobile
-  const mobNavIds = ['dashboard', 'prescription', 'performance', 'patientApp'];
+  const mobNavIds = ['dashboard', 'prescription', 'performance', 'backup', 'patientApp'];
   mobNavIds.forEach(id => {
     const mobBtn = document.getElementById('mob-nav-' + id);
     if (mobBtn) {
@@ -5232,6 +5232,12 @@ function switchTab(tabName, syncPilar = true) {
       }
     }
   });
+
+  // Fecha o modal de menu mobile se estiver aberto
+  const menuModal = document.getElementById('mobile-menu-modal');
+  if (menuModal && menuModal.style.display !== 'none') {
+    menuModal.style.display = 'none';
+  }
 
   // Triggers específicos de renderização por módulo
   if (tabName === 'performance' && typeof perfRender === 'function') {
@@ -9079,6 +9085,21 @@ function copyWifiUrl() {
   }
 }
 
+function openMobileMenuModal() {
+  const modal = document.getElementById('mobile-menu-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    if (window.lucide) window.lucide.createIcons();
+  }
+}
+
+function closeMobileMenuModal() {
+  const modal = document.getElementById('mobile-menu-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
 // Vincula funções ao window global para invocações HTML
 window.initNutriAxPWA = initNutriAxPWA;
 window.openMobileInstallModal = openMobileInstallModal;
@@ -9086,5 +9107,8 @@ window.closeMobileInstallModal = closeMobileInstallModal;
 window.switchInstallTab = switchInstallTab;
 window.triggerPWAInstall = triggerPWAInstall;
 window.copyWifiUrl = copyWifiUrl;
+window.openMobileMenuModal = openMobileMenuModal;
+window.closeMobileMenuModal = closeMobileMenuModal;
+
 
 

@@ -234,18 +234,35 @@
       </div>
 
     </nav>
-    <!-- Header Right Actions: Mobile Install Button & App Mode Indicator -->
+    <!-- Header Right Actions: Drive Backup, Mobile Install Button & Menu -->
     <div class="flex items-center gap-2 shrink-0">
+      <!-- Botão Rápido de Drive Backup (Nuvem) -->
+      <button onclick="switchTab('backup')" 
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all active:scale-95"
+        title="Abrir Drive Backup / Sincronizar Google Drive">
+        <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>Drive Backup</span>
+      </button>
+
+      <!-- Botão Instalar App -->
       <button id="header-install-app-btn" onclick="openMobileInstallModal()" 
         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 border border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.45)] transition-all active:scale-95"
         title="Instalar NutriAx Pro no Celular / Computador">
         <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i>
-        <span>Instalar App</span>
+        <span class="hidden sm:inline">Instalar App</span>
+        <span class="sm:hidden">App</span>
       </button>
       <div id="header-app-installed-badge" class="hidden items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-mono text-emerald-400 font-bold">
         <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-        <span>APP INSTALADO</span>
+        <span class="hidden sm:inline">APP INSTALADO</span>
       </div>
+
+      <!-- Botão Menu Mobile (Telas pequenas) -->
+      <button onclick="openMobileMenuModal()" 
+        class="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-zinc-200 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition-all active:scale-95"
+        title="Abrir Menu com todos os Módulos">
+        <i data-lucide="menu" class="w-4 h-4 text-zinc-300"></i>
+      </button>
     </div>
 
   </header>
@@ -308,14 +325,20 @@
           <div class="space-y-2 pt-1">
             <div class="grid grid-cols-2 gap-2">
               <button onclick="loadPatientFromCloud(activePatientId, true)"
-                class="w-full bg-zinc-800 hover:bg-zinc-700 text-gray-200 border border-zinc-700 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all">
-                <i data-lucide="cloud-download" class="w-3.5 h-3.5 text-red-400"></i> Baixar
+                class="w-full bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-700/80 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all active:scale-95"
+                title="Baixar dados do paciente atualizados do Google Drive">
+                <i data-lucide="cloud-download" class="w-4 h-4 text-emerald-400"></i> Baixar Nuvem
               </button>
               <button onclick="savePatientToCloud(activePatientId)"
-                class="btn-nax-primary text-white text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all">
-                <i data-lucide="cloud-upload" class="w-3.5 h-3.5 text-white"></i> Salvar
+                class="btn-nax-primary text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(239,68,68,0.4)] transition-all active:scale-95"
+                title="Salvar dados do paciente atualizados no Google Drive">
+                <i data-lucide="cloud-upload" class="w-4 h-4 text-white"></i> Salvar Nuvem
               </button>
             </div>
+            <button onclick="switchTab('backup')"
+              class="w-full bg-zinc-900/90 hover:bg-zinc-800 text-emerald-400 border border-emerald-900/50 hover:border-emerald-700 text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i> Painel do Drive Backup
+            </button>
             <button onclick="exportPrescriptionAndEvaluationPDF()"
               class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-white border border-red-900/60 hover:border-red-600 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-all">
               <i data-lucide="file-text" class="w-3.5 h-3.5 text-red-500"></i> Exportar Relatório PDF
@@ -367,15 +390,44 @@
           <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2" id="mobile-menu-title">Navegação · Nutrição</span>
           
           <!-- Mobile Pilar 3 -->
-          <div id="mobile-pilar-nav-3" class="space-y-1">
-            <button onclick="switchTab('dashboard')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Dashboard &amp; Radar</button>
-            <button onclick="switchTab('anamnese')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Anamnese</button>
-            <button onclick="switchTab('exams')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Exames</button>
-            <button onclick="switchTab('evaluation')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Avaliação &amp; Corpo</button>
-            <button onclick="switchTab('prescription')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Prescrição &amp; Macros</button>
-            <button onclick="switchTab('evolution')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Evolução</button>
-            <button onclick="switchTab('adherence')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Controle de Adesão</button>
-            <button onclick="switchTab('foods')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Alimentos TACO</button>
+          <div id="mobile-pilar-nav-3" class="space-y-1.5">
+            <!-- Botão em Destaque Especial: Drive Backup -->
+            <button onclick="switchTab('backup')" 
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-emerald-300 bg-emerald-950/80 border border-emerald-700/80 flex items-center justify-between shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+              <span class="flex items-center gap-2">
+                <i data-lucide="cloud-upload" class="w-4 h-4 text-emerald-400 animate-pulse"></i>
+                <span>Drive Backup (Google Drive)</span>
+              </span>
+              <span class="text-[9px] font-mono bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded-full font-bold">NUVEM</span>
+            </button>
+
+            <button onclick="switchTab('dashboard')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-500"></i> Dashboard &amp; Radar
+            </button>
+            <button onclick="switchTab('anamnese')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-red-500"></i> Anamnese &amp; Perfil
+            </button>
+            <button onclick="switchTab('exams')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-red-500"></i> Exames Clínicos
+            </button>
+            <button onclick="switchTab('evaluation')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500"></i> Avaliação &amp; Corpo
+            </button>
+            <button onclick="switchTab('prescription')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500"></i> Prescrição &amp; Macros
+            </button>
+            <button onclick="switchTab('evolution')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500"></i> Evolução Temporal
+            </button>
+            <button onclick="switchTab('adherence')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="check-check" class="w-3.5 h-3.5 text-red-500"></i> Controle de Adesão
+            </button>
+            <button onclick="switchTab('foods')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="database" class="w-3.5 h-3.5 text-red-500"></i> Alimentos TACO / Rótulos
+            </button>
+            <button onclick="switchTab('patientApp')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-300 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5 text-rose-400"></i> App do Paciente
+            </button>
           </div>
 
           <!-- Mobile Pilar 4 -->
@@ -2812,45 +2864,101 @@
       </div>
     </section>
 
-    <!-- 7. BACKUP TAB -->
-    <section id="tab-backup" class="max-w-xl mx-auto space-y-6 w-full hidden">
-      <div class="glass-card rounded-xl p-5 border border-zinc-700/50 space-y-4">
-        <h1 class="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
-          <i data-lucide="cloud-upload" class="w-6 h-6 text-emerald-500"></i> Banco Cloud por Paciente (Google Drive)
-        </h1>
-        <p class="text-xs text-zinc-400 leading-relaxed">
-          Cada paciente possui seu arquivo individualizado no Google Drive (ex: <code
-            class="bg-slate-100 px-1 py-0.5 rounded">NutriAx_Paciente_paulo-vitor.json</code>).
-        </p>
-
-        <div class="space-y-3 text-xs">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">URL do Web App do Google Apps Script
-              (GOOGLE_SCRIPT_URL)</label>
-            <input id="googleScriptUrlInput" type="text" placeholder="https://script.google.com/macros/s/.../exec"
-              value="https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec"
-              class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-[11px]" />
+    <!-- 7. BACKUP TAB (GOOGLE DRIVE CLOUD ENGINE) -->
+    <section id="tab-backup" class="max-w-2xl mx-auto space-y-6 w-full hidden">
+      
+      <!-- Card Principal de Sincronização Google Drive -->
+      <div class="hud-card p-5 md:p-6 border border-emerald-800/80 bg-gradient-to-br from-emerald-950/50 via-zinc-950 to-black space-y-5 rounded-3xl shadow-[0_0_35px_rgba(16,185,129,0.18)]">
+        
+        <!-- Header da Aba de Backup -->
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-4 flex-wrap gap-2">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-700/60 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.35)] shrink-0">
+              <i data-lucide="cloud-upload" class="w-6 h-6 text-emerald-400"></i>
+            </div>
+            <div>
+              <h1 class="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+                Drive Backup &amp; Sincronização
+                <span class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">Google Drive</span>
+              </h1>
+              <p class="text-xs text-zinc-400">Armazenamento em nuvem individualizado por paciente com sincronização bidirecional.</p>
+            </div>
           </div>
-
-          <div class="flex gap-2">
-            <button onclick="saveGoogleScriptUrl()"
-              class="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl">Salvar URL</button>
-            <button onclick="savePatientToCloud(activePatientId)"
-              class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl shadow">
-              🚀 Salvar Paciente Ativo no Drive
-            </button>
-            <button onclick="loadPatientFromCloud(activePatientId, true)"
-              class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2 rounded-xl">
-              📥 Carregar do Drive
-            </button>
-            <button onclick="listDrivePatients()"
-              class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-xl">
-              📋 Consultar Arquivos no Drive
-            </button>
-          </div>
-
-          <div id="syncStatusMessage" class="pt-2 text-xs min-h-[32px] max-h-80 overflow-y-auto"></div>
+          <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[11px] font-mono text-zinc-300 font-bold">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Nuvem Ativa
+          </span>
         </div>
+
+        <!-- Botões Principais de Ação Rápida (Mobile & Desktop) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Botão 1: Carregar da Nuvem -->
+          <button onclick="loadPatientFromCloud(activePatientId, true)"
+            class="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 to-zinc-900 hover:from-emerald-900 hover:to-zinc-800 border-2 border-emerald-600/80 text-white font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.25)] flex flex-col items-start gap-1 group active:scale-95 text-left">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-sm font-black text-emerald-300 flex items-center gap-2">
+                <i data-lucide="cloud-download" class="w-5 h-5 text-emerald-400 group-hover:animate-bounce"></i>
+                📥 Carregar Dados do Drive
+              </span>
+              <span class="text-[10px] bg-emerald-900/80 text-emerald-200 px-2 py-0.5 rounded font-mono font-bold">BAIXAR</span>
+            </div>
+            <p class="text-[11px] text-zinc-300 mt-1">
+              Baixa a dieta, treinos, histórico e dados do paciente ativo diretamente do Google Drive para este celular.
+            </p>
+          </button>
+
+          <!-- Botão 2: Salvar na Nuvem -->
+          <button onclick="savePatientToCloud(activePatientId)"
+            class="p-4 rounded-2xl btn-nax-primary text-white font-bold transition-all shadow-[0_0_20px_rgba(239,68,68,0.35)] flex flex-col items-start gap-1 group active:scale-95 text-left">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-sm font-black text-white flex items-center gap-2">
+                <i data-lucide="cloud-upload" class="w-5 h-5 text-white"></i>
+                🚀 Salvar Paciente no Drive
+              </span>
+              <span class="text-[10px] bg-red-950 text-red-200 px-2 py-0.5 rounded font-mono font-bold">ENVIAR</span>
+            </div>
+            <p class="text-[11px] text-red-100/80 mt-1">
+              Envia as alterações de prescrição, avaliações e logs atuais para o arquivo na sua nuvem Google Drive.
+            </p>
+          </button>
+        </div>
+
+        <!-- Ações Secundárias & Configurações da API -->
+        <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+              <i data-lucide="settings" class="w-3.5 h-3.5 text-zinc-400"></i> Configuração do Google Apps Script
+            </span>
+            <button onclick="listDrivePatients()"
+              class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs flex items-center gap-1.5 transition-all">
+              <i data-lucide="folder-search" class="w-3.5 h-3.5 text-emerald-400"></i> Consultar Arquivos no Drive
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-[11px] font-bold text-zinc-400">URL do Web App Google Script (GOOGLE_SCRIPT_URL):</label>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input id="googleScriptUrlInput" type="text" placeholder="https://script.google.com/macros/s/.../exec"
+                value="https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec"
+                class="flex-1 p-2.5 bg-zinc-950 border border-zinc-700 rounded-xl text-zinc-200 focus:ring-2 focus:ring-emerald-500 font-mono text-xs" />
+              <button onclick="saveGoogleScriptUrl()"
+                class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all shrink-0">
+                Salvar URL
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de Status e Logs da Sincronização -->
+        <div class="space-y-2">
+          <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i> Log da Sincronização
+          </span>
+          <div id="syncStatusMessage" 
+            class="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 text-xs min-h-[48px] max-h-80 overflow-y-auto font-mono text-zinc-300 leading-relaxed">
+            Aguardando comando de sincronização com o Google Drive...
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -3729,7 +3837,7 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav block lg:hidden" aria-label="Navegação Mobile">
     <div class="grid grid-cols-5 items-center justify-around px-1 pt-1 text-center">
       
-      <!-- 1. Dashboard -->
+      <!-- 1. Dashboard / Radar -->
       <button id="mob-nav-dashboard" onclick="switchTab('dashboard')" class="mobile-nav-btn active">
         <i data-lucide="layout-dashboard" class="w-5 h-5 mobile-nav-icon"></i>
         <span>Radar</span>
@@ -3747,20 +3855,189 @@
         <span>Treino</span>
       </button>
 
-      <!-- 4. Modo Paciente -->
-      <button id="mob-nav-patientApp" onclick="switchTab('patientApp')" class="mobile-nav-btn">
-        <i data-lucide="smartphone" class="w-5 h-5 mobile-nav-icon"></i>
-        <span>Paciente</span>
+      <!-- 4. Drive Backup (Google Drive) - ACESSO DIRETO EM 1 TOQUE -->
+      <button id="mob-nav-backup" onclick="switchTab('backup')" class="mobile-nav-btn">
+        <i data-lucide="cloud-upload" class="w-5 h-5 mobile-nav-icon text-emerald-400"></i>
+        <span class="text-emerald-400 font-bold">Drive</span>
       </button>
 
-      <!-- 5. Instalar / Menu -->
-      <button id="mob-nav-install" onclick="openMobileInstallModal()" class="mobile-nav-btn">
-        <i data-lucide="download-cloud" class="w-5 h-5 mobile-nav-icon text-amber-400"></i>
-        <span class="text-amber-400">Instalar</span>
+      <!-- 5. Menu Completo de Módulos & Instalação -->
+      <button id="mob-nav-menu" onclick="openMobileMenuModal()" class="mobile-nav-btn">
+        <i data-lucide="menu" class="w-5 h-5 mobile-nav-icon text-zinc-300"></i>
+        <span>Menu</span>
       </button>
 
     </div>
   </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL DE MENU COMPLETO MOBILE (TODOS OS MÓDULOS & NUVEM)
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="mobile-menu-modal" style="display:none;" 
+    class="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+    
+    <div class="hud-card modal-slide-up w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col max-h-[90vh]">
+      
+      <!-- Menu Header -->
+      <div class="p-4 bg-gradient-to-r from-zinc-900 via-black to-zinc-900 border-b border-zinc-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/50 flex items-center justify-center">
+            <i data-lucide="grid" class="w-5 h-5 text-red-500"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white">Menu de Módulos NutriAx</h3>
+            <p class="text-[11px] text-zinc-400">Navegue por todos os módulos clínicos</p>
+          </div>
+        </div>
+        <button onclick="closeMobileMenuModal()" class="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Menu Body -->
+      <div class="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+        <!-- Bloco de Destaque: DRIVE BACKUP GOOGLE DRIVE -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-zinc-900 border border-emerald-700/80 space-y-2.5 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-emerald-300 flex items-center gap-2">
+              <i data-lucide="cloud-upload" class="w-4 h-4 text-emerald-400 animate-pulse"></i>
+              SINCRONIZAÇÃO GOOGLE DRIVE
+            </span>
+            <span class="text-[9px] font-mono bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded-full font-bold">NUVEM ATIVA</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="loadPatientFromCloud(activePatientId, true); closeMobileMenuModal();"
+              class="py-2.5 px-3 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 text-emerald-200 border border-emerald-600/80 font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+              <i data-lucide="cloud-download" class="w-4 h-4 text-emerald-400"></i> Baixar do Drive
+            </button>
+            <button onclick="savePatientToCloud(activePatientId); closeMobileMenuModal();"
+              class="py-2.5 px-3 rounded-xl btn-nax-primary font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 text-white">
+              <i data-lucide="cloud-upload" class="w-4 h-4"></i> Salvar no Drive
+            </button>
+          </div>
+          <button onclick="switchTab('backup'); closeMobileMenuModal();"
+            class="w-full text-center text-[11px] font-bold text-emerald-400 hover:text-emerald-300 py-1 flex items-center justify-center gap-1">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i> Abrir Painel Completo do Drive Backup &rarr;
+          </button>
+        </div>
+
+        <!-- Grid de Todos os Módulos -->
+        <div class="grid grid-cols-2 gap-2">
+          
+          <button onclick="switchTab('dashboard'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="layout-dashboard" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Dashboard</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Radar &amp; Score</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('prescription'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="utensils-crossed" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Prescrição</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Dieta &amp; Macros</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('performance'); if(typeof perfRender==='function') perfRender(); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-blue-950/40 hover:bg-blue-950/70 border border-blue-800/60 flex items-center gap-2.5 text-left font-bold text-blue-200 transition-all">
+            <i data-lucide="dumbbell" class="w-4 h-4 text-blue-400 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Treino &amp; Força</span>
+              <span class="text-[10px] text-blue-300 font-normal">Biomecânica</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('patientApp'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-rose-300 transition-all">
+            <i data-lucide="smartphone" class="w-4 h-4 text-rose-400 shrink-0"></i>
+            <div>
+              <span class="block text-xs">App do Paciente</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Logs &amp; Trocas</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('anamnese'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="clipboard-list" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Anamnese</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Perfil &amp; Hábitos</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('exams'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="flask-conical" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Exames</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Triagem &amp; Alertas</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('evaluation'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="activity" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Avaliação</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Gordura &amp; GET</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('evolution'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="line-chart" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Evolução</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Histórico &amp; Gráficos</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('adherence'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="check-check" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Adesão</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Calendário 31 Dias</span>
+            </div>
+          </button>
+
+          <button onclick="switchTab('foods'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
+            <i data-lucide="database" class="w-4 h-4 text-red-500 shrink-0"></i>
+            <div>
+              <span class="block text-xs">Tabela TACO</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Base de Alimentos</span>
+            </div>
+          </button>
+
+        </div>
+
+        <!-- Botão Instalar App no Celular -->
+        <button onclick="closeMobileMenuModal(); openMobileInstallModal();"
+          class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-red-950 via-black to-zinc-900 border border-red-700/60 font-bold text-white flex items-center justify-between shadow-sm active:scale-95">
+          <span class="flex items-center gap-2">
+            <i data-lucide="smartphone" class="w-4 h-4 text-red-500"></i>
+            <span>Instalar App no Celular (PWA)</span>
+          </span>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-400"></i>
+        </button>
+
+      </div>
+
+      <!-- Menu Footer -->
+      <div class="p-3 bg-black/70 border-t border-zinc-800 text-center">
+        <button onclick="closeMobileMenuModal()" class="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs">
+          Fechar Menu
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- ═══════════════════════════════════════════════════════════
        MODAL DE INSTALAÇÃO NO CELULAR (ANDROID / IOS / QR CODE)
