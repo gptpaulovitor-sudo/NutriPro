@@ -426,7 +426,7 @@
             <!-- Pilar 5 -->
             <button id="pilar-5" onclick="switchPilar(5)" class="w-full text-left px-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-gray-300 flex items-center justify-between hover:bg-amber-950/40 hover:border-amber-800/60 hover:text-amber-200 transition-all">
               <span class="flex items-center gap-2"><i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> 5. Resultado</span>
-              <span class="text-[9px] font-bold text-zinc-600 uppercase">Em breve</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.9)]"></span>
             </button>
           </div>
         </div>
@@ -2890,28 +2890,28 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
               <div class="flex items-center gap-2 text-amber-400 font-bold font-mono uppercase">
-                <i data-lucide="battery-charging" class="w-4 h-4"></i> 1. Carbo Pré-Treino × Carga
+                <i data-lucide="battery-charging" class="w-4 h-4"></i> 1. Carbo Peri-Treino × Carga
               </div>
-              <p class="text-zinc-300 leading-relaxed font-sans">
+              <p id="synergy-carbo-desc" class="text-zinc-300 leading-relaxed font-sans">
                 Quando a recarga glicêmica prévia atinge <strong class="text-white">100% da meta</strong>, a progressão média de tonelagem na musculação avança <strong class="text-amber-400">+4.8%</strong> por microciclo.
               </p>
             </div>
 
             <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
               <div class="flex items-center gap-2 text-blue-400 font-bold font-mono uppercase">
-                <i data-lucide="shield-check" class="w-4 h-4"></i> 2. Aporte Proteico × Preservação
+                <i data-lucide="shield-check" class="w-4 h-4"></i> 2. Aporte Proteico × Síntese
               </div>
-              <p class="text-zinc-300 leading-relaxed font-sans">
-                Aporte sustentado em <strong class="text-white">2.0 g/kg</strong> garantiu retenção de <strong class="text-blue-300">98.5%</strong> da massa magra mesmo durante as fases de déficit aeróbico.
+              <p id="synergy-protein-desc" class="text-zinc-300 leading-relaxed font-sans">
+                Aporte sustentado em <strong class="text-white">2.0 g/kg (232g/dia)</strong> garante taxa de síntese proteica elevada e particionamento anabólico positivo.
               </p>
             </div>
 
             <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
               <div class="flex items-center gap-2 text-emerald-400 font-bold font-mono uppercase">
-                <i data-lucide="flame" class="w-4 h-4"></i> 3. Cardio × Déficit Lipídico
+                <i data-lucide="flame" class="w-4 h-4"></i> 3. Cardio &amp; Sensibilidade Insulínica
               </div>
-              <p class="text-zinc-300 leading-relaxed font-sans">
-                Os protocolos de <strong class="text-white">Compromised Running / Zona 2</strong> geraram <strong class="text-emerald-300">~550 kcal/sessão</strong> de gasto adicional acelerando a queima de gordura visceral.
+              <p id="synergy-cardio-desc" class="text-zinc-300 leading-relaxed font-sans">
+                A sessão semanal de <strong class="text-white">Zona 2 Base Aeróbica</strong> (Quarta-feira) aprimora a biogênese mitocondrial e direciona os nutrientes para a hipertrofia muscular.
               </p>
             </div>
           </div>
@@ -2920,10 +2920,10 @@
           <div class="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider">Disponibilidade Energética (Energy Availability - EA)</span>
-              <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2.5 py-0.5 rounded-full">42 kcal / kg Massa Magra (Ótimo)</span>
+              <span id="synergy-ea-badge" class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2.5 py-0.5 rounded-full">44 kcal / kg Massa Magra (Faixa Ótima)</span>
             </div>
-            <p class="text-xs text-zinc-400 leading-relaxed">
-              O balanço energético atual fornece energia suficiente para funções fisiológicas básicas, síntese proteica e sistema imunológico, prevenindo o risco de overtraining ou fadiga crônica.
+            <p id="synergy-ea-desc" class="text-xs text-zinc-400 leading-relaxed">
+              O balanço energético atual fornece aporte ideal para suporte anabólico e síntese proteica miofibrilar, com zero risco de fadiga do SNC ou sobrecarga metabólica.
             </p>
           </div>
         </div>
@@ -2953,12 +2953,12 @@
             <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 text-center space-y-3">
               <div class="flex justify-between items-center text-xs font-mono text-zinc-400">
                 <span class="font-bold text-white">📸 Foto Inicial (Avaliação #1)</span>
-                <span>25.04.2026</span>
+                <span>15.05.2026</span>
               </div>
               <div class="h-72 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden relative">
                 <img id="results-photo-before" src="shapes_banner.jpg" alt="Foto Antes" class="object-cover w-full h-full opacity-80 hover:opacity-100 transition-opacity">
                 <div class="absolute bottom-2 left-2 bg-black/80 px-2.5 py-1 rounded-lg text-[10px] font-mono text-zinc-300 border border-zinc-700">
-                  116.0 kg • 27.45% BF • Cintura 102cm
+                  120.6 kg • 27.45% BF • Cintura 102cm
                 </div>
               </div>
             </div>
@@ -2966,12 +2966,12 @@
             <div class="p-4 rounded-2xl bg-black/60 border border-amber-600/40 text-center space-y-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
               <div class="flex justify-between items-center text-xs font-mono text-amber-400">
                 <span class="font-bold text-amber-300">🔥 Foto Atual (Reavaliação Recente)</span>
-                <span>25.06.2026</span>
+                <span>15.08.2026</span>
               </div>
               <div class="h-72 rounded-xl bg-zinc-950 border border-amber-500/40 flex items-center justify-center overflow-hidden relative">
                 <img id="results-photo-after" src="shapes_banner.jpg" alt="Foto Depois" class="object-cover w-full h-full">
                 <div class="absolute bottom-2 left-2 bg-amber-950/90 px-2.5 py-1 rounded-lg text-[10px] font-mono text-amber-200 border border-amber-700">
-                  111.4 kg • 22.80% BF • Cintura 96cm
+                  116.0 kg • 22.80% BF • Cintura 96cm
                 </div>
               </div>
             </div>
@@ -2995,26 +2995,26 @@
                 <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-wide">
                   Motor Preditivo com IA (Predictive Outcome Engine)
                 </h2>
-                <p class="text-xs text-zinc-400">Projeção matemática em semanas para atingir a meta estética e metabólica com base na taxa de queima real.</p>
+                <p class="text-xs text-zinc-400">Projeção matemática em semanas sincronizada com o plano de treino, cardio prescrito e aporte calórico.</p>
               </div>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
             <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
-              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Velocidade Semanal Atual</span>
-              <strong class="text-amber-400 text-lg block">-0,57 kg / semana</strong>
-              <p class="text-zinc-400 text-[11px]">Ritmo seguro de perda lipídica com 100% de preservação muscular.</p>
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Ritmo de Adaptação</span>
+              <strong id="pred-rate-val" class="text-amber-400 text-lg block">+0,28 kg MM / semana</strong>
+              <p class="text-zinc-400 text-[11px]">Recomposição ativa com preservação da densidade miofibrilar.</p>
             </div>
             <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
-              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Estimativa para Meta (10% BF)</span>
-              <strong class="text-emerald-400 text-lg block">~14 Semanas (~3,5 Meses)</strong>
-              <p class="text-zinc-400 text-[11px]">Previsão de alcance: Outubro de 2026 mantendo o plano atual.</p>
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Estimativa para Meta (10-12% BF)</span>
+              <strong id="pred-eta-val" class="text-emerald-400 text-lg block">~12 Semanas (~3,0 Meses)</strong>
+              <p class="text-zinc-400 text-[11px]">Previsão de alcance consolidada mantendo o plano atual.</p>
             </div>
             <div class="p-4 rounded-xl bg-black/60 border border-zinc-800 space-y-2">
               <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase">Confiança do Modelo IA</span>
-              <strong class="text-blue-300 text-lg block">96.4% Alta Fidelidade</strong>
-              <p class="text-zinc-400 text-[11px]">Baseado em 3 medições consistentes de bioimpedância e dobras.</p>
+              <strong id="pred-conf-val" class="text-blue-300 text-lg block">96.4% Alta Fidelidade</strong>
+              <p class="text-zinc-400 text-[11px]">Baseado no histórico longitudinal de 4 reavaliações consistentes.</p>
             </div>
           </div>
 
@@ -3023,27 +3023,23 @@
             <h3 class="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">Simulador de Aceleração de Metas</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <label class="block text-zinc-400 mb-1">Ajuste de Déficit Calórico:</label>
+                <label id="pred-caloric-label" class="block text-zinc-400 mb-1">Balanço Calórico &amp; Estratégia:</label>
                 <select id="pred-deficit-adjust" onchange="resultsRecalculatePrediction()" class="w-full bg-zinc-900 border border-zinc-700 text-white p-2 rounded-xl outline-none">
-                  <option value="0">Manter Plano Atual (-450 kcal/dia)</option>
-                  <option value="-200">Aumentar Déficit em -200 kcal (-650 kcal/dia)</option>
-                  <option value="-400">Aumentar Déficit em -400 kcal (-850 kcal/dia)</option>
-                  <option value="+200">Diminuir Déficit em +200 kcal (-250 kcal/dia)</option>
+                  <!-- Injetado dinamicamente por renderResultsPredictive() -->
                 </select>
               </div>
               <div>
-                <label class="block text-zinc-400 mb-1">Sessões Adicionais de Cardio (Zona 2 / Engine):</label>
+                <label id="pred-cardio-label" class="block text-zinc-400 mb-1">Sessões de Cardio Prescritas (Pilar 4):</label>
                 <select id="pred-cardio-adjust" onchange="resultsRecalculatePrediction()" class="w-full bg-zinc-900 border border-zinc-700 text-white p-2 rounded-xl outline-none">
-                  <option value="0">Manter 3 Sessões / Semana</option>
-                  <option value="1">+1 Sessão Semanal (4x / sem)</option>
-                  <option value="2">+2 Sessões Semanais (5x / sem)</option>
+                  <!-- Injetado dinamicamente por renderResultsPredictive() -->
                 </select>
               </div>
             </div>
             <div class="p-3 rounded-lg bg-black/50 border border-amber-500/30 text-xs text-amber-200" id="pred-simulation-result">
-              💡 <strong>Resultado da Simulação:</strong> Com o plano atual, o objetivo será atingido em <strong>14 semanas</strong>.
+              💡 <strong>Resultado da Simulação:</strong> Com o plano atual, o objetivo será atingido em <strong>12 semanas</strong>.
             </div>
           </div>
+        </div>
         </div>
 
       </div>
