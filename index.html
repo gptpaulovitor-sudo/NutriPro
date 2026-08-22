@@ -585,63 +585,59 @@
             
             <!-- Pilar 3 Sub-módulos Grid -->
             <div id="card-subnav-3" class="grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="switchTab('dashboard')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
-                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
+              <button id="card-subnav-btn-3-dashboard" onclick="selectMobilePilarTool(3, 'dashboard')" class="p-2 rounded-xl bg-red-950/80 border border-red-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-red-950 transition-all">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-400 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Radar &amp; Scores</span>
               </button>
-              <button onclick="switchTab('prescription')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-prescription" onclick="selectMobilePilarTool(3, 'prescription')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Dieta &amp; Macros</span>
               </button>
-              <button onclick="switchTab('evaluation')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-evaluation" onclick="selectMobilePilarTool(3, 'evaluation')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Avaliação Física</span>
               </button>
-              <button onclick="switchTab('anamnese')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-anamnese" onclick="selectMobilePilarTool(3, 'anamnese')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Anamnese Clínica</span>
               </button>
-              <button onclick="switchTab('exams')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-exams" onclick="selectMobilePilarTool(3, 'exams')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Exames de Sangue</span>
               </button>
-              <button onclick="switchTab('recall')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-recall" onclick="selectMobilePilarTool(3, 'recall')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Recordatório 24h</span>
               </button>
-              <button onclick="switchTab('evolution')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
-                <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Evolução &amp; Gráficos</span>
-              </button>
-              <button onclick="switchTab('adherence')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-adherence" onclick="selectMobilePilarTool(3, 'adherence')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="check-check" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Adesão do Paciente</span>
               </button>
-              <button onclick="switchTab('foods')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-3-foods" onclick="selectMobilePilarTool(3, 'foods')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="database" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Base TACO &amp; TBCA</span>
               </button>
-              <button onclick="switchTab('patientApp')" class="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 flex items-center gap-2 text-left text-rose-200 transition-all">
+              <button id="card-subnav-btn-3-patientApp" onclick="selectMobilePilarTool(3, 'patientApp')" class="col-span-2 p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 flex items-center justify-center gap-2 text-rose-200 transition-all">
                 <i data-lucide="smartphone" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">App do Paciente</span>
+                <span class="font-bold text-[11px] truncate">App do Paciente (Painel &amp; Acesso)</span>
               </button>
             </div>
 
             <!-- Pilar 4 Sub-módulos Grid -->
             <div id="card-subnav-4" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="perfSwitchView('prescription'); switchTab('performance');" class="p-2 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-700 flex items-center gap-2 text-left text-blue-200 font-bold transition-all">
+              <button id="card-subnav-btn-4-prescription" onclick="selectMobilePilarTool(4, 'prescription')" class="p-2 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-700 flex items-center gap-2 text-left text-blue-200 font-bold transition-all">
                 <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Prescrição de Força</span>
               </button>
-              <button onclick="perfSwitchView('schedule'); switchTab('performance');" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-4-schedule" onclick="selectMobilePilarTool(4, 'schedule')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Agenda Semanal</span>
               </button>
-              <button onclick="perfSwitchView('cardio'); switchTab('performance');" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-amber-200 transition-all">
+              <button id="card-subnav-btn-4-cardio" onclick="selectMobilePilarTool(4, 'cardio')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-amber-200 transition-all">
                 <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Cardios &amp; Déficit</span>
               </button>
-              <button onclick="perfSwitchView('catalog'); switchTab('performance');" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+              <button id="card-subnav-btn-4-catalog" onclick="selectMobilePilarTool(4, 'catalog')" class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Catálogo Biomecânico</span>
               </button>
@@ -659,23 +655,23 @@
               🛡️ Módulos de Disciplina e Rastreamento de Hábitos em breve.
             </div>
             <div id="card-subnav-5" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="switchTab('evolution'); resultsSwitchSubView('dashboard');" class="p-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-700 flex items-center gap-2 text-left text-amber-200 font-bold transition-all">
+              <button id="card-subnav-btn-5-dashboard" onclick="selectMobilePilarTool(5, 'dashboard')" class="p-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-700 flex items-center gap-2 text-left text-amber-200 font-bold transition-all">
                 <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Dashboard &amp; IEC</span>
               </button>
-              <button onclick="switchTab('evolution'); resultsSwitchSubView('charts');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+              <button id="card-subnav-btn-5-charts" onclick="selectMobilePilarTool(5, 'charts')" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
                 <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Gráficos Evolutivos</span>
               </button>
-              <button onclick="switchTab('evolution'); resultsSwitchSubView('synergy');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+              <button id="card-subnav-btn-5-synergy" onclick="selectMobilePilarTool(5, 'synergy')" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
                 <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Sinergia Nutri × Treino</span>
               </button>
-              <button onclick="switchTab('evolution'); resultsSwitchSubView('gallery');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+              <button id="card-subnav-btn-5-gallery" onclick="selectMobilePilarTool(5, 'gallery')" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
                 <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Fotos Antes/Depois</span>
               </button>
-              <button onclick="switchTab('evolution'); resultsSwitchSubView('predictive');" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+              <button id="card-subnav-btn-5-predictive" onclick="selectMobilePilarTool(5, 'predictive')" class="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                 <span class="text-[11px] truncate">Projeção de Metas IA</span>
               </button>
@@ -4484,7 +4480,7 @@
         <!-- Grid de Todos os Módulos -->
         <div class="grid grid-cols-2 gap-2">
           
-          <button onclick="switchTab('dashboard'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'dashboard'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="layout-dashboard" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
@@ -4493,7 +4489,7 @@
             </div>
           </button>
 
-          <button onclick="switchTab('prescription'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'prescription'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="utensils-crossed" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
@@ -4502,7 +4498,7 @@
             </div>
           </button>
 
-          <button onclick="switchTab('performance'); if(typeof perfRender==='function') perfRender(); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(4, 'prescription'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-blue-950/40 hover:bg-blue-950/70 border border-blue-800/60 flex items-center gap-2.5 text-left font-bold text-blue-200 transition-all">
             <i data-lucide="dumbbell" class="w-4 h-4 text-blue-400 shrink-0"></i>
             <div>
@@ -4511,16 +4507,16 @@
             </div>
           </button>
 
-          <button onclick="switchTab('patientApp'); closeMobileMenuModal();"
-            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-rose-300 transition-all">
-            <i data-lucide="smartphone" class="w-4 h-4 text-rose-400 shrink-0"></i>
+          <button onclick="selectMobilePilarTool(5, 'dashboard'); closeMobileMenuModal();"
+            class="p-3 rounded-xl bg-amber-950/40 hover:bg-amber-950/70 border border-amber-800/60 flex items-center gap-2.5 text-left font-bold text-amber-200 transition-all">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-400 shrink-0"></i>
             <div>
-              <span class="block text-xs">App do Paciente</span>
-              <span class="text-[10px] text-zinc-400 font-normal">Logs &amp; Trocas</span>
+              <span class="block text-xs">Resultado &amp; IEC</span>
+              <span class="text-[10px] text-amber-300 font-normal">Evolução &amp; Metas</span>
             </div>
           </button>
 
-          <button onclick="switchTab('anamnese'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'anamnese'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="clipboard-list" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
@@ -4529,7 +4525,7 @@
             </div>
           </button>
 
-          <button onclick="switchTab('exams'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'exams'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="flask-conical" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
@@ -4538,7 +4534,7 @@
             </div>
           </button>
 
-          <button onclick="switchTab('evaluation'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'evaluation'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="activity" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
@@ -4547,16 +4543,16 @@
             </div>
           </button>
 
-          <button onclick="switchTab('evolution'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(5, 'charts'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="line-chart" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
-              <span class="block text-xs">Evolução</span>
-              <span class="text-[10px] text-zinc-400 font-normal">Histórico &amp; Gráficos</span>
+              <span class="block text-xs">Evolução &amp; Gráficos</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Histórico Real</span>
             </div>
           </button>
 
-          <button onclick="switchTab('adherence'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'adherence'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="check-check" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
@@ -4565,12 +4561,21 @@
             </div>
           </button>
 
-          <button onclick="switchTab('foods'); closeMobileMenuModal();"
+          <button onclick="selectMobilePilarTool(3, 'foods'); closeMobileMenuModal();"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2.5 text-left font-bold text-white transition-all">
             <i data-lucide="database" class="w-4 h-4 text-red-500 shrink-0"></i>
             <div>
               <span class="block text-xs">Tabela TACO</span>
               <span class="text-[10px] text-zinc-400 font-normal">Base de Alimentos</span>
+            </div>
+          </button>
+
+          <button onclick="selectMobilePilarTool(3, 'patientApp'); closeMobileMenuModal();"
+            class="col-span-2 p-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 flex items-center gap-2.5 text-left font-bold text-rose-300 transition-all">
+            <i data-lucide="smartphone" class="w-4 h-4 text-rose-400 shrink-0"></i>
+            <div>
+              <span class="block text-xs">App do Paciente</span>
+              <span class="text-[10px] text-zinc-400 font-normal">Logs &amp; Trocas de Refeição</span>
             </div>
           </button>
 

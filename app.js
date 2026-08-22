@@ -5825,7 +5825,84 @@ function togglePilaresAcessosCard() {
   }
 }
 
-function switchPilar(pilarId, targetTab = null) {
+function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
+  // Pilar 3 Tools
+  const p3Tools = ['dashboard', 'prescription', 'evaluation', 'anamnese', 'exams', 'recall', 'adherence', 'foods', 'patientApp'];
+  p3Tools.forEach(t => {
+    const btn = document.getElementById(`card-subnav-btn-3-${t}`);
+    if (btn) {
+      if (pilarId === 3 && t === toolKey) {
+        btn.className = (t === 'patientApp')
+          ? "col-span-2 p-2 rounded-xl bg-rose-950 border border-rose-500 text-white font-bold flex items-center justify-center gap-2 shadow-sm shadow-rose-950 transition-all"
+          : "p-2 rounded-xl bg-red-950/90 border border-red-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-red-950 transition-all";
+      } else {
+        btn.className = (t === 'patientApp')
+          ? "col-span-2 p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 flex items-center justify-center gap-2 text-rose-200 transition-all"
+          : "p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
+      }
+    }
+  });
+
+  // Pilar 4 Tools
+  const p4Tools = ['prescription', 'schedule', 'cardio', 'catalog'];
+  p4Tools.forEach(t => {
+    const btn = document.getElementById(`card-subnav-btn-4-${t}`);
+    if (btn) {
+      if (pilarId === 4 && t === toolKey) {
+        btn.className = "p-2 rounded-xl bg-blue-950 border border-blue-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-blue-950 transition-all";
+      } else {
+        btn.className = "p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
+      }
+    }
+  });
+
+  // Pilar 5 Tools
+  const p5Tools = ['dashboard', 'charts', 'synergy', 'gallery', 'predictive'];
+  p5Tools.forEach(t => {
+    const btn = document.getElementById(`card-subnav-btn-5-${t}`);
+    if (btn) {
+      if (pilarId === 5 && t === toolKey) {
+        btn.className = "p-2 rounded-xl bg-amber-950 border border-amber-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-amber-950 transition-all";
+      } else {
+        btn.className = "p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
+      }
+    }
+  });
+}
+
+async function selectMobilePilarTool(pilarId, toolKey) {
+  // 1. Atualiza pilar ativo
+  switchPilar(pilarId, null, false);
+
+  // 2. Executa a ativação de acordo com o pilar
+  if (pilarId === 3) {
+    await switchTab(toolKey, false, false);
+  } else if (pilarId === 4) {
+    await switchTab('performance', false, false);
+    if (typeof perfRender === 'function') perfRender();
+    if (typeof perfSwitchView === 'function') perfSwitchView(toolKey, false);
+  } else if (pilarId === 5) {
+    await switchTab('evolution', false, false);
+    if (typeof resultsSwitchSubView === 'function') resultsSwitchSubView(toolKey, false);
+  }
+
+  // 3. Atualiza os botões visuais no card móvel
+  updateMobileSubnavActiveVisuals(pilarId, toolKey);
+
+  // 4. Scroll suave no mobile para trazer a ferramenta para a tela
+  const isMobile = window.innerWidth < 1024;
+  if (isMobile) {
+    const cardEl = document.getElementById("mobile-pilares-acessos-card");
+    if (cardEl) {
+      const offsetTop = cardEl.offsetTop + cardEl.offsetHeight - 20;
+      window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+    }
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function switchPilar(pilarId, targetTab = null, autoScroll = true) {
   currentActivePilar = pilarId;
 
   // 1. Alterna os menus superiores no Header Desktop
@@ -5888,15 +5965,22 @@ function switchPilar(pilarId, targetTab = null) {
 
   // 6. Determina qual aba abrir por padrão no pilar escolhido
   if (targetTab) {
-    switchTab(targetTab, false);
+    switchTab(targetTab, false, autoScroll);
+    if (pilarId === 3) updateMobileSubnavActiveVisuals(3, targetTab);
+    else if (pilarId === 4) updateMobileSubnavActiveVisuals(4, 'prescription');
+    else if (pilarId === 5) updateMobileSubnavActiveVisuals(5, 'dashboard');
   } else {
     if (pilarId === 3) {
-      switchTab('dashboard', false);
+      switchTab('dashboard', false, autoScroll);
+      updateMobileSubnavActiveVisuals(3, 'dashboard');
     } else if (pilarId === 4) {
-      switchTab('performance', false);
+      switchTab('performance', false, autoScroll);
       if (typeof perfRender === 'function') perfRender();
+      updateMobileSubnavActiveVisuals(4, 'prescription');
     } else if (pilarId === 5) {
-      switchTab('evolution', false);
+      switchTab('evolution', false, autoScroll);
+      if (typeof resultsSwitchSubView === 'function') resultsSwitchSubView('dashboard', false);
+      updateMobileSubnavActiveVisuals(5, 'dashboard');
     }
   }
 
@@ -5938,7 +6022,7 @@ function updateSidebarPilarVisuals(activePilarId) {
   }
 }
 
-async function switchTab(tabName, syncPilar = true) {
+async function switchTab(tabName, syncPilar = true, autoScroll = true) {
   if (!tabName) return;
 
   // 1. Flush de salvamento pendente antes de sair da aba
@@ -5949,13 +6033,13 @@ async function switchTab(tabName, syncPilar = true) {
   // 2. Sincroniza o Pilar correspondente se acionado diretamente
   if (syncPilar) {
     if (tabName === 'performance' && currentActivePilar !== 4) {
-      switchPilar(4, 'performance');
+      switchPilar(4, 'performance', autoScroll);
       return;
     } else if (tabName === 'evolution' && currentActivePilar !== 5) {
-      switchPilar(5, 'evolution');
+      switchPilar(5, 'evolution', autoScroll);
       return;
     } else if (tabName !== 'performance' && tabName !== 'evolution' && currentActivePilar !== 3) {
-      switchPilar(3, tabName);
+      switchPilar(3, tabName, autoScroll);
       return;
     }
   }
@@ -6035,8 +6119,19 @@ async function switchTab(tabName, syncPilar = true) {
   // 9. Re-cria ícones Lucide na nova aba
   if (window.lucide) window.lucide.createIcons();
 
-  // 10. Scroll instantâneo ao topo do conteúdo (para tela de celular)
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  // 10. Scroll para o topo apenas se explicitamente solicitado
+  if (autoScroll) {
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile) {
+      const cardEl = document.getElementById("mobile-pilares-acessos-card");
+      if (cardEl) {
+        const offsetTop = cardEl.offsetTop + cardEl.offsetHeight - 20;
+        window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+      }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }
 }
 
 // Inicializa no carregamento da página com suporte a atalhos PWA (?tab=...)
@@ -9903,6 +9998,14 @@ window.triggerPWAInstall = triggerPWAInstall;
 window.copyWifiUrl = copyWifiUrl;
 window.openMobileMenuModal = openMobileMenuModal;
 window.closeMobileMenuModal = closeMobileMenuModal;
+window.selectMobilePilarTool = selectMobilePilarTool;
+window.switchPilar = switchPilar;
+window.switchTab = switchTab;
+window.togglePilaresAcessosCard = togglePilaresAcessosCard;
+window.updateMobileSubnavActiveVisuals = updateMobileSubnavActiveVisuals;
+window.perfSwitchView = perfSwitchView;
+window.resultsSwitchSubView = resultsSwitchSubView;
+
 
 
 
