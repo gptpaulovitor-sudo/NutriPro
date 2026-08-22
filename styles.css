@@ -335,10 +335,11 @@ section[id^="tab-"]:not(.hidden) {
     background-color: #000000;
   }
   
-  /* Ajuste de padding de containers no celular para aproveitar a tela cheia */
+  /* Ajuste de padding de containers no celular para aproveitar a tela cheia e dar espaço para a bottom bar */
   main {
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
     padding-top: 0.75rem !important;
+    padding-bottom: 5.5rem !important;
   }
 }

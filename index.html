@@ -507,7 +507,108 @@
     </aside>
 
     <!-- ═══ ÁREA DE CONTEÚDO PRINCIPAL ═══ -->
-    <main class="flex-1 flex flex-col p-4 md:p-6 lg:p-8 space-y-6">
+    <main class="flex-1 flex flex-col p-3 md:p-6 lg:p-8 space-y-4 md:space-y-6">
+
+      <!-- ═══ BARRA SUPERIOR MOBILE DE PILARES & MÓDULOS (EXCLUSIVO SMARTPHONES) ═══ -->
+      <div class="block md:hidden space-y-2 mb-1">
+        <!-- 1. Carrossel Horizontal dos 5 Pilares + Botão Drive Backup -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <button id="mob-pilar-3" onclick="switchPilar(3)" class="px-3 py-1.5 rounded-xl bg-red-950 border border-red-600 text-white font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm shadow-red-950 transition-all">
+            <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-400"></i>
+            <span>3. Nutrição</span>
+          </button>
+          <button id="mob-pilar-4" onclick="switchPilar(4)" class="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0 transition-all">
+            <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400"></i>
+            <span>4. Performance</span>
+          </button>
+          <button id="mob-pilar-5" onclick="switchPilar(5)" class="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0 transition-all">
+            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>5. Resultado</span>
+          </button>
+          <button id="mob-pilar-1" onclick="switchPilar(1)" class="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0 transition-all">
+            <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i>
+            <span>1. Mentalidade</span>
+          </button>
+          <button id="mob-pilar-2" onclick="switchPilar(2)" class="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0 transition-all">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i>
+            <span>2. Disciplina</span>
+          </button>
+          <!-- Botão Destaque: Painel do Drive Backup -->
+          <button onclick="switchTab('backup')" class="px-3 py-1.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-600/80 text-emerald-300 font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.25)] transition-all active:scale-95" title="Abrir Painel do Drive Backup">
+            <i data-lucide="cloud-upload" class="w-3.5 h-3.5 text-emerald-400 animate-pulse"></i>
+            <span>Drive Backup</span>
+          </button>
+        </div>
+
+        <!-- 2. Sub-módulos do Pilar Selecionado (Horizontal Scroll) -->
+        <!-- Pilar 3 (Nutrição) Sub-módulos -->
+        <div id="mobile-top-subnav-3" class="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+          <button onclick="switchTab('dashboard')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="layout-dashboard" class="w-3 h-3 text-red-400"></i> Radar
+          </button>
+          <button onclick="switchTab('prescription')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="utensils" class="w-3 h-3 text-red-400"></i> Dieta &amp; Macros
+          </button>
+          <button onclick="switchTab('evaluation')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="activity" class="w-3 h-3 text-red-400"></i> Avaliação
+          </button>
+          <button onclick="switchTab('anamnese')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="clipboard-list" class="w-3 h-3 text-red-400"></i> Anamnese
+          </button>
+          <button onclick="switchTab('exams')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="flask-conical" class="w-3 h-3 text-red-400"></i> Exames
+          </button>
+          <button onclick="switchTab('recall')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="utensils-crossed" class="w-3 h-3 text-red-400"></i> Recordatório
+          </button>
+          <button onclick="switchTab('evolution')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="line-chart" class="w-3 h-3 text-red-400"></i> Evolução
+          </button>
+          <button onclick="switchTab('adherence')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="check-check" class="w-3 h-3 text-red-400"></i> Adesão
+          </button>
+          <button onclick="switchTab('foods')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="database" class="w-3 h-3 text-red-400"></i> TACO
+          </button>
+          <button onclick="switchTab('patientApp')" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-rose-300 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="smartphone" class="w-3 h-3 text-rose-400"></i> App Paciente
+          </button>
+          <button onclick="switchTab('backup')" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-bold whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-emerald-900">
+            <i data-lucide="cloud" class="w-3 h-3 text-emerald-400"></i> Painel Drive
+          </button>
+        </div>
+
+        <!-- Pilar 4 (Performance) Sub-módulos -->
+        <div id="mobile-top-subnav-4" class="hidden items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+          <button onclick="perfSwitchView('prescription'); switchTab('performance');" class="px-2.5 py-1 rounded-lg bg-blue-950/80 border border-blue-700 text-blue-200 font-bold whitespace-nowrap flex items-center gap-1 shrink-0">
+            <i data-lucide="dumbbell" class="w-3 h-3 text-blue-400"></i> Prescrição de Força
+          </button>
+          <button onclick="perfSwitchView('schedule'); switchTab('performance');" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="calendar" class="w-3 h-3 text-blue-400"></i> Agenda Semanal
+          </button>
+          <button onclick="perfSwitchView('cardio'); switchTab('performance');" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-amber-300 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="flame" class="w-3 h-3 text-amber-400"></i> Cardios &amp; Déficit
+          </button>
+          <button onclick="perfSwitchView('catalog'); switchTab('performance');" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0 hover:bg-zinc-800">
+            <i data-lucide="book-open" class="w-3 h-3 text-blue-400"></i> Catálogo
+          </button>
+          <button onclick="handleGenerateAITraining()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-900 to-blue-900 border border-violet-600 text-white font-bold whitespace-nowrap flex items-center gap-1 shrink-0">
+            <i data-lucide="sparkles" class="w-3 h-3 text-violet-300"></i> Gerar via IA
+          </button>
+        </div>
+
+        <!-- Pilar 1, 2, 5 Sub-módulos -->
+        <div id="mobile-top-subnav-1" class="hidden p-2 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">Módulos de Mentalidade em desenvolvimento.</div>
+        <div id="mobile-top-subnav-2" class="hidden p-2 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">Módulos de Disciplina em desenvolvimento.</div>
+        <div id="mobile-top-subnav-5" class="hidden items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+          <button onclick="exportPrescriptionAndEvaluationPDF()" class="px-2.5 py-1 rounded-lg bg-amber-950/80 border border-amber-700 text-amber-200 font-bold whitespace-nowrap flex items-center gap-1 shrink-0">
+            <i data-lucide="file-text" class="w-3 h-3 text-amber-400"></i> Exportar Relatório PDF
+          </button>
+          <button onclick="switchTab('evolution')" class="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 font-medium whitespace-nowrap flex items-center gap-1 shrink-0">
+            <i data-lucide="line-chart" class="w-3 h-3 text-amber-400"></i> Gráficos Comparativos
+          </button>
+        </div>
+      </div>
 
       <!-- ═══ 0. PERFORMANCE TAB (PILAR 4 · ALINHADO AO TOPO DO MAIN) ═══ -->
       <section id="tab-performance" class="max-w-7xl mx-auto space-y-6 w-full" style="display:none">
@@ -3877,16 +3978,16 @@
         <span>Treino</span>
       </button>
 
-      <!-- 4. Avaliação Física & Antropometria -->
-      <button id="mob-nav-evaluation" onclick="switchTab('evaluation')" class="mobile-nav-btn">
-        <i data-lucide="activity" class="w-5 h-5 mobile-nav-icon"></i>
-        <span>Avaliação</span>
+      <!-- 4. Painel do Drive Backup (Acesso Direto em 1 Toque) -->
+      <button id="mob-nav-backup" onclick="switchTab('backup')" class="mobile-nav-btn">
+        <i data-lucide="cloud-upload" class="w-5 h-5 mobile-nav-icon text-emerald-400"></i>
+        <span class="text-emerald-400 font-bold">Drive</span>
       </button>
 
-      <!-- 5. Mais Módulos (Menu Bottom Sheet) -->
+      <!-- 5. Mais Módulos & Pilares (Menu Bottom Sheet) -->
       <button id="mob-nav-menu" onclick="openMobileMenuModal()" class="mobile-nav-btn">
         <i data-lucide="grid" class="w-5 h-5 mobile-nav-icon text-zinc-300"></i>
-        <span>Mais</span>
+        <span>Pilares</span>
       </button>
 
     </div>
@@ -3907,8 +4008,8 @@
             <i data-lucide="grid" class="w-5 h-5 text-red-500"></i>
           </div>
           <div>
-            <h3 class="text-sm font-black text-white">Menu de Módulos NutriAx</h3>
-            <p class="text-[11px] text-zinc-400">Navegue por todos os módulos clínicos</p>
+            <h3 class="text-sm font-black text-white">Menu de Módulos &amp; Pilares</h3>
+            <p class="text-[11px] text-zinc-400">Navegue por todos os 5 pilares e ferramentas</p>
           </div>
         </div>
         <button onclick="closeMobileMenuModal()" class="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">
@@ -3918,6 +4019,29 @@
 
       <!-- Menu Body -->
       <div class="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
+
+        <!-- Seleção Direta de Pilares no Modal -->
+        <div class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-2">
+          <span class="text-xs font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="award" class="w-4 h-4 text-red-500"></i> PILARES NUTRIAX
+          </span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="switchPilar(3); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700 text-white font-bold text-left flex items-center justify-between">
+              <span class="flex items-center gap-2"><i data-lucide="utensils" class="w-3.5 h-3.5 text-red-400"></i> 3. Nutrição</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+            </button>
+            <button onclick="switchPilar(4); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-700 text-white font-bold text-left flex items-center justify-between">
+              <span class="flex items-center gap-2"><i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400"></i> 4. Performance</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+            </button>
+            <button onclick="switchPilar(5); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-left flex items-center gap-2">
+              <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> 5. Resultado
+            </button>
+            <button onclick="switchPilar(1); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-left flex items-center gap-2">
+              <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i> 1. Mentalidade
+            </button>
+          </div>
+        </div>
         
         <!-- Bloco de Destaque: DRIVE BACKUP GOOGLE DRIVE -->
         <div class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-zinc-900 border border-emerald-700/80 space-y-2.5 shadow-[0_0_15px_rgba(16,185,129,0.2)]">

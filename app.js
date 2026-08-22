@@ -5176,7 +5176,7 @@ const PILAR_NAMES = {
 function switchPilar(pilarId, targetTab = null) {
   currentActivePilar = pilarId;
 
-  // 1. Alterna os menus superiores no Header
+  // 1. Alterna os menus superiores no Header Desktop
   for (let i = 1; i <= 5; i++) {
     const navEl = document.getElementById(`header-pilar-nav-${i}`);
     if (navEl) {
@@ -5190,7 +5190,21 @@ function switchPilar(pilarId, targetTab = null) {
     }
   }
 
-  // 2. Alterna os menus no menu lateral Mobile
+  // 2. Alterna sub-menus mobile superiores
+  for (let i = 1; i <= 5; i++) {
+    const mobSub = document.getElementById(`mobile-top-subnav-${i}`);
+    if (mobSub) {
+      if (i === pilarId) {
+        mobSub.classList.remove('hidden');
+        mobSub.style.display = (i === 3 || i === 4 || i === 5) ? 'flex' : 'block';
+      } else {
+        mobSub.classList.add('hidden');
+        mobSub.style.display = 'none';
+      }
+    }
+  }
+
+  // 3. Alterna os menus no menu lateral Mobile (se existir)
   for (let i = 1; i <= 5; i++) {
     const mobEl = document.getElementById(`mobile-pilar-nav-${i}`);
     if (mobEl) {
@@ -5206,10 +5220,10 @@ function switchPilar(pilarId, targetTab = null) {
     mobTitle.textContent = `Navegação · ${PILAR_NAMES[pilarId]}`;
   }
 
-  // 3. Atualiza os botões dos Pilares na Sidebar
+  // 4. Atualiza os botões dos Pilares na Sidebar Desktop e no Mobile Top Bar
   updateSidebarPilarVisuals(pilarId);
 
-  // 4. Determina qual aba abrir por padrão no pilar escolhido
+  // 5. Determina qual aba abrir por padrão no pilar escolhido
   if (targetTab) {
     switchTab(targetTab, false);
   } else {
@@ -5227,29 +5241,37 @@ function switchPilar(pilarId, targetTab = null) {
 }
 
 function updateSidebarPilarVisuals(activePilarId) {
-  // Reset em todos os 5 pilares para estado inativo
+  // Reset em todos os 5 pilares para estado inativo (Desktop e Mobile)
   for (let i = 1; i <= 5; i++) {
     const btn = document.getElementById(`pilar-${i}`);
-    if (!btn) continue;
-
-    // Remove todas as classes de destaque ativo
-    btn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-gray-300 flex items-center justify-between transition-all";
+    if (btn) {
+      btn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-gray-300 flex items-center justify-between transition-all";
+    }
+    const mobPilarBtn = document.getElementById(`mob-pilar-${i}`);
+    if (mobPilarBtn) {
+      mobPilarBtn.className = "px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0 transition-all";
+    }
   }
 
   // Aplica tema ativo específico do pilar selecionado
   const activeBtn = document.getElementById(`pilar-${activePilarId}`);
-  if (!activeBtn) return;
+  const activeMobPilar = document.getElementById(`mob-pilar-${activePilarId}`);
 
   if (activePilarId === 1) {
-    activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-purple-950/70 border border-purple-800 text-white font-bold flex items-center justify-between shadow-sm shadow-purple-950 transition-all";
+    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-purple-950/70 border border-purple-800 text-white font-bold flex items-center justify-between shadow-sm shadow-purple-950 transition-all";
+    if (activeMobPilar) activeMobPilar.className = "px-3 py-1.5 rounded-xl bg-purple-950 border border-purple-600 text-white font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm shadow-purple-950 transition-all";
   } else if (activePilarId === 2) {
-    activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-orange-950/70 border border-orange-800 text-white font-bold flex items-center justify-between shadow-sm shadow-orange-950 transition-all";
+    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-orange-950/70 border border-orange-800 text-white font-bold flex items-center justify-between shadow-sm shadow-orange-950 transition-all";
+    if (activeMobPilar) activeMobPilar.className = "px-3 py-1.5 rounded-xl bg-orange-950 border border-orange-600 text-white font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm shadow-orange-950 transition-all";
   } else if (activePilarId === 3) {
-    activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-red-950/70 border border-red-800 text-white font-bold flex items-center justify-between shadow-sm shadow-red-950 transition-all";
+    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-red-950/70 border border-red-800 text-white font-bold flex items-center justify-between shadow-sm shadow-red-950 transition-all";
+    if (activeMobPilar) activeMobPilar.className = "px-3 py-1.5 rounded-xl bg-red-950 border border-red-600 text-white font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm shadow-red-950 transition-all";
   } else if (activePilarId === 4) {
-    activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-blue-950/70 border border-blue-800 text-white font-bold flex items-center justify-between shadow-sm shadow-blue-950 transition-all";
+    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-blue-950/70 border border-blue-800 text-white font-bold flex items-center justify-between shadow-sm shadow-blue-950 transition-all";
+    if (activeMobPilar) activeMobPilar.className = "px-3 py-1.5 rounded-xl bg-blue-950 border border-blue-600 text-white font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm shadow-blue-950 transition-all";
   } else if (activePilarId === 5) {
-    activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-amber-950/70 border border-amber-800 text-white font-bold flex items-center justify-between shadow-sm shadow-amber-950 transition-all";
+    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-amber-950/70 border border-amber-800 text-white font-bold flex items-center justify-between shadow-sm shadow-amber-950 transition-all";
+    if (activeMobPilar) activeMobPilar.className = "px-3 py-1.5 rounded-xl bg-amber-950 border border-amber-600 text-white font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm shadow-amber-950 transition-all";
   }
 }
 
