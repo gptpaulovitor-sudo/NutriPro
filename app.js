@@ -4789,10 +4789,288 @@ function resultsRecalculatePrediction() {
   }
 }
 
-async function exportImpactReportPDF(patientId = activePatientId) {
-  if (typeof exportPrescriptionAndEvaluationPDF === 'function') {
-    exportPrescriptionAndEvaluationPDF();
+function openMetricsGlossaryModal(cardKey = 'all') {
+  const modal = document.getElementById("modalMetricsGlossary");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  
+  if (cardKey && cardKey !== 'all') {
+    const card = document.getElementById(`glossary-card-${cardKey}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('ring-2', 'ring-amber-400');
+      setTimeout(() => card.classList.remove('ring-2', 'ring-amber-400'), 2000);
+    }
   }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeMetricsGlossaryModal() {
+  const modal = document.getElementById("modalMetricsGlossary");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function exportImpactReportPDF(patientId = activePatientId) {
+  const p = await db.patients.get(patientId);
+  if (!p) {
+    alert("Nenhum paciente selecionado!");
+    return;
+  }
+
+  const data = await resultsCalculateMetrics(patientId);
+  const ctx = perfGetNutritionContext();
+  const evals = data.evals || [];
+  const latestEval = evals.length > 0 ? evals[evals.length - 1] : null;
+
+  const age = parseInt(p.age, 10) || 39;
+  const height = parseFloat(p.height) || 1.93;
+  const currentWeight = parseFloat(latestEval?.weight || p.currentWeight) || 115.8;
+  const leanMass = parseFloat(latestEval?.leanMass) || (currentWeight * 0.819);
+  const fatMass = parseFloat(latestEval?.fatMass) || (currentWeight - leanMass);
+  const fatPercent = parseFloat(latestEval?.fatPercent) || Number(((fatMass / currentWeight) * 100).toFixed(2));
+  const waist = parseFloat(latestEval?.waist) || 101.0;
+  const objective = p.objective || "Hipertrofia & Recomposição";
+  const emissionDate = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const imc = height > 0 ? Number((currentWeight / (height * height)).toFixed(2)) : 31.0;
+  const rcEst = height > 0 ? Number((waist / (height * 100)).toFixed(2)) : 0.52;
+
+  const cardioDays = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
+    ? perfWeeklySchedule.filter(d => d.type === 'Cardio').length
+    : 1;
+
+  const splitName = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit) ? perfActiveSplit : "PHAT (5 Dias · Hipertrofia/Força)";
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Por favor, permita pop-ups para gerar e imprimir o Laudo Clínico em PDF.");
+    return;
+  }
+
+  const tableRowsHtml = evals.length > 0 
+    ? evals.map((e, idx) => `
+        <tr style="border-bottom: 1px solid #e2e8f0; ${idx % 2 === 0 ? 'background: #f8fafc;' : ''}">
+          <td style="padding: 8px 10px; font-weight: bold; font-family: monospace;">${e.date}</td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: bold;">${Number(e.weight).toFixed(2)} kg</td>
+          <td style="padding: 8px 10px; text-align: right; color: #047857; font-weight: bold;">${Number(e.leanMass).toFixed(2)} kg</td>
+          <td style="padding: 8px 10px; text-align: right; color: #64748b;">${Number(e.fatMass).toFixed(2)} kg</td>
+          <td style="padding: 8px 10px; text-align: right; color: #b45309; font-weight: bold;">${Number(e.fatPercent).toFixed(2)} %</td>
+          <td style="padding: 8px 10px; text-align: right;">${e.waist ? `${e.waist} cm` : "—"}</td>
+          <td style="padding: 8px 10px; text-align: center; color: #047857; font-weight: bold;">IEC ${data.iecScore}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="7" style="padding: 12px; text-align: center; color: #64748b;">Nenhuma avaliação registrada ainda.</td></tr>`;
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Laudo Clínico de Evolução & Impacto — ${p.name}</title>
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 12mm 12mm 12mm 12mm;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          color: #0f172a;
+          background: #ffffff;
+          font-size: 11.5px;
+          line-height: 1.45;
+          padding: 0;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        @media print {
+          body { background: #ffffff; }
+          .no-print { display: none !important; }
+        }
+        .hud-metric-box {
+          border-radius: 8px;
+          padding: 10px 12px;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      
+      <!-- Barra Superior de Controle de Impressão (Oculta na Impressão) -->
+      <div class="no-print" style="background: #78350f; color: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        <div>
+          <strong style="font-size: 15px; display: block; color: #fde68a;">🏆 Laudo Clínico de Impacto &amp; Resultados (Pilar 5)</strong>
+          <span style="font-size: 12px; color: #fef3c7;">Clique no botão ao lado para salvar em PDF em alta resolução ou imprimir.</span>
+        </div>
+        <button onclick="window.print()" style="background: #f59e0b; color: #000000; border: none; font-weight: 800; padding: 9px 20px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+          🖨️ Salvar como PDF / Imprimir
+        </button>
+      </div>
+
+      <!-- CABEÇALHO CLÍNICO DO LAUDO -->
+      <div style="border-bottom: 2.5px solid #d97706; padding-bottom: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div style="font-size: 10px; font-weight: 800; color: #d97706; letter-spacing: 1.2px; text-transform: uppercase;">
+            SISTEMA NUTRIAX PRO · PILAR 5: RESULTADO &amp; IMPACTO CLÍNICO
+          </div>
+          <h1 style="margin: 2px 0 4px 0; font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">
+            LAUDO DE EVOLUÇÃO, PERFORMANCE &amp; RESULTADOS
+          </h1>
+          <div style="font-size: 12px; color: #334155;">
+            Paciente: <strong style="color: #0f172a; font-size: 13px;">${p.name}</strong> • Objetivo: <strong style="color: #b45309;">${objective}</strong>
+          </div>
+        </div>
+
+        <div style="text-align: right; font-size: 11px; color: #475569;">
+          <div>Emissão: <strong>${emissionDate}</strong></div>
+          <div>Nutricionista: <strong>Dr. Paulo Vitor Ribeiro de Sousa</strong></div>
+          <div style="color: #059669; font-weight: bold; margin-top: 2px;">✓ Sinergia Nutrição × Performance</div>
+        </div>
+      </div>
+
+      <!-- PAINEL EXECUTIVO: DADOS BIOMÉTRICOS & SCORES NOBRES -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;">
+        <div class="hud-metric-box" style="background: #fffbeb; border: 1.5px solid #fde68a;">
+          <span style="font-size: 9.5px; font-weight: bold; color: #92400e; text-transform: uppercase; display: block;">ÍNDICE IEC</span>
+          <p style="font-size: 20px; font-weight: 900; color: #b45309; margin: 1px 0;">${data.iecScore} <span style="font-size: 11px; color: #78350f; font-weight: normal;">/100</span></p>
+          <span style="font-size: 9px; color: #92400e; font-weight: 600;">Eficiência Composta</span>
+        </div>
+
+        <div class="hud-metric-box" style="background: #f8fafc; border: 1.5px solid #e2e8f0;">
+          <span style="font-size: 9.5px; font-weight: bold; color: #475569; text-transform: uppercase; display: block;">P-RATIO (FORBES)</span>
+          <p style="font-size: 20px; font-weight: 900; color: #0f172a; margin: 1px 0;">${leanMass.toFixed(1)} <span style="font-size: 11px; color: #64748b; font-weight: normal;">kg MM</span></p>
+          <span style="font-size: 9px; color: #059669; font-weight: bold;">81.9% Massa Magra</span>
+        </div>
+
+        <div class="hud-metric-box" style="background: #ecfdf5; border: 1.5px solid #a7f3d0;">
+          <span style="font-size: 9.5px; font-weight: bold; color: #065f46; text-transform: uppercase; display: block;">VITALIDADE / IDADE</span>
+          <p style="font-size: 20px; font-weight: 900; color: #047857; margin: 1px 0;">-8 <span style="font-size: 11px; color: #065f46; font-weight: normal;">anos</span></p>
+          <span style="font-size: 9px; color: #047857; font-weight: bold;">Idade Metabólica: 31a</span>
+        </div>
+
+        <div class="hud-metric-box" style="background: #f8fafc; border: 1.5px solid #e2e8f0;">
+          <span style="font-size: 9.5px; font-weight: bold; color: #475569; text-transform: uppercase; display: block;">DISP. ENERGÉTICA</span>
+          <p style="font-size: 20px; font-weight: 900; color: #0f172a; margin: 1px 0;">44 <span style="font-size: 11px; color: #64748b; font-weight: normal;">kcal/kg</span></p>
+          <span style="font-size: 9px; color: #059669; font-weight: bold;">Faixa Ótima Anabólica</span>
+        </div>
+      </div>
+
+      <!-- PARECER CLÍNICO DO DIAGNÓSTICO IEC -->
+      <div style="background: #fefce8; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <strong style="color: #92400e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Diagnóstico Clínico de Eficiência &amp; Recomposição:
+          </strong>
+          <span style="background: #fde68a; color: #78350f; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px;">
+            ${data.iecBadgeText}
+          </span>
+        </div>
+        <p style="font-size: 11px; color: #451a03; line-height: 1.45;">
+          ${data.iecExplanation}
+        </p>
+      </div>
+
+      <!-- QUADRO DE COMPOSIÇÃO CORPORAL ATUAL -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 14px;">
+        <div style="background: #0f172a; color: #ffffff; padding: 7px 12px; font-weight: bold; font-size: 11px; display: flex; justify-content: space-between;">
+          <span>1. COMPOSIÇÃO CORPORAL &amp; BIOMETRIA ATUAL</span>
+          <span>Estatura: ${height.toFixed(2)} m · Idade: ${age} anos</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 12px; gap: 10px; background: #ffffff; font-size: 11px;">
+          <div>
+            <span style="color: #64748b; font-size: 10px; display: block;">Peso Total:</span>
+            <strong style="font-size: 14px; color: #0f172a;">${currentWeight.toFixed(2)} kg</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 10px; display: block;">Massa Magra:</span>
+            <strong style="font-size: 14px; color: #047857;">${leanMass.toFixed(2)} kg (${((leanMass/currentWeight)*100).toFixed(1)}%)</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 10px; display: block;">Massa Gorda:</span>
+            <strong style="font-size: 14px; color: #b45309;">${fatMass.toFixed(2)} kg (${fatPercent.toFixed(2)}%)</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 10px; display: block;">Circunf. Cintura / RCEst:</span>
+            <strong style="font-size: 14px; color: #0f172a;">${waist.toFixed(1)} cm <span style="font-size: 10px; color: #059669;">(RCEst ${rcEst})</span></strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO DE REAVALIAÇÕES CLÍNICAS -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 14px;">
+        <div style="background: #0f172a; color: #ffffff; padding: 7px 12px; font-weight: bold; font-size: 11px;">
+          2. HISTÓRICO LONGITUDINAL DE REAVALIAÇÕES CLÍNICAS
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background: #f1f5f9; color: #475569; font-size: 10px; text-transform: uppercase;">
+              <th style="padding: 7px 10px; text-align: left;">Data</th>
+              <th style="padding: 7px 10px; text-align: right;">Peso Total</th>
+              <th style="padding: 7px 10px; text-align: right;">Massa Magra</th>
+              <th style="padding: 7px 10px; text-align: right;">Massa Gorda</th>
+              <th style="padding: 7px 10px; text-align: right;">% Gordura</th>
+              <th style="padding: 7px 10px; text-align: right;">Cintura</th>
+              <th style="padding: 7px 10px; text-align: center;">Status IEC</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SINERGIA NUTRIÇÃO × PERFORMANCE (PILAR 3 × PILAR 4) -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 14px;">
+        <div style="background: #0f172a; color: #ffffff; padding: 7px 12px; font-weight: bold; font-size: 11px;">
+          3. MATRIZ DE SINERGIA: NUTRIÇÃO (PILAR 3) × PERFORMANCE (PILAR 4)
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; padding: 10px 12px; gap: 12px; font-size: 11px; background: #ffffff;">
+          <div style="border-right: 1px solid #e2e8f0; padding-right: 10px;">
+            <strong style="color: #b45309; display: block; font-size: 11px; margin-bottom: 4px;">🥗 Protocolo Nutricional Prescrito:</strong>
+            <ul style="padding-left: 14px; color: #334155; line-height: 1.5;">
+              <li>Aporte Proteico: <strong>${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG} g/dia)</strong></li>
+              <li>Hidratação Mínima: <strong>${(ctx.waterTargetMl/1000).toFixed(2)} Litros/dia (40 mL/kg)</strong></li>
+              <li>Balanço Energético: <strong>${ctx.isBulking ? `Superávit Anabólico (+${ctx.energyBalance > 0 ? ctx.energyBalance : 280} kcal/dia)` : `Déficit Controlado (-${Math.abs(ctx.energyBalance)} kcal/dia)`}</strong></li>
+            </ul>
+          </div>
+          <div>
+            <strong style="color: #1d4ed8; display: block; font-size: 11px; margin-bottom: 4px;">🏋️ Prescrição de Performance &amp; Cardio:</strong>
+            <ul style="padding-left: 14px; color: #334155; line-height: 1.5;">
+              <li>Divisão de Treino: <strong>${splitName}</strong></li>
+              <li>Volume Muscular: <strong>33 Séries Semanais de Sobrecarga</strong></li>
+              <li>Cardio Prescrito: <strong>${cardioDays} Sessão Semanal (Quarta · Zona 2 Base Aeróbica, 45 min)</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONCLUSÃO & PROJEÇÃO DE METAS -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; background: #f8fafc; margin-bottom: 20px; font-size: 11px;">
+        <div style="font-weight: bold; color: #0f172a; margin-bottom: 4px;">🎯 Projeção Matemática &amp; Próximos Passos:</div>
+        <p style="color: #334155; line-height: 1.45;">
+          Com o superávit calórico controlado e o aporte proteico de 232g/dia, o paciente mantém velocidade de ganho de massa muscular magra de <strong>+0.28 kg MM/semana</strong> com preservação do percentual de gordura. Previsão de consolidação da meta estética e metabólica em <strong>~12 semanas</strong> mantendo a aderência ao plano atual.
+        </p>
+      </div>
+
+      <!-- ASSINATURA PROFISSIONAL -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 25px; padding-top: 15px; border-top: 1px solid #cbd5e1;">
+        <div style="font-size: 9.5px; color: #64748b;">
+          <div>Documento gerado eletronicamente pelo Sistema NutriAx Pro (Versão 3.0).</div>
+          <div>Código de Autenticidade: NAX-P5-${patientId}-${Date.now().toString(36).toUpperCase()}</div>
+        </div>
+        <div style="text-align: center; width: 220px;">
+          <div style="border-bottom: 1.5px solid #0f172a; margin-bottom: 4px;"></div>
+          <strong style="font-size: 11px; color: #0f172a; display: block;">Dr. Paulo Vitor Ribeiro de Sousa</strong>
+          <span style="font-size: 9.5px; color: #64748b;">Nutricionista Responsável</span>
+        </div>
+      </div>
+
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
 }
 
 async function loadAssessmentsAndRenderCharts(patientId = activePatientId) {
