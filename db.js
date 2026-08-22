@@ -631,6 +631,12 @@ async function seedDatabase() {
   try {
     await seedFoodsDatabase();
 
+    // ── Remove avaliações fictícias/falsas de versões anteriores ─────────────
+    const fakeEvalIds = ["eval_pv_1", "eval_pv_2", "eval_pv_3", "eval_pv_4"];
+    for (const fakeId of fakeEvalIds) {
+      await db.assessments.delete(fakeId);
+    }
+
     // ── Remove pacientes de demonstração criados em versões anteriores ──────
     for (const demoId of _DEMO_PATIENT_IDS_TO_REMOVE) {
       const exists = await db.patients.get(demoId);

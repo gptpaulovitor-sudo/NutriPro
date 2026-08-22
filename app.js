@@ -4236,27 +4236,18 @@ function resultsSwitchSubView(subViewName, scrollIntoView = false) {
 
 async function resultsCalculateMetrics(patientId = activePatientId) {
   let evals = await db.assessments.where("patientId").equals(patientId).toArray();
-  if (!evals || evals.length === 0) {
-    evals = initialAssessmentsData.filter(e => e.patientId === patientId || e.patientId === 'paulo-vitor');
-  } else if (evals.length === 1) {
-    const historical = initialAssessmentsData.filter(e => e.patientId === patientId || e.patientId === 'paulo-vitor');
-    const existingDates = new Set(evals.map(e => e.date));
-    const toAdd = historical.filter(h => !existingDates.has(h.date));
-    if (toAdd.length > 0) {
-      evals = [...toAdd, ...evals];
-    }
-  }
+  evals = (evals || []).filter(e => e && !String(e.id).startsWith("eval_pv_"));
   evals.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const p = await db.patients.get(patientId);
   const prescription = await db.prescriptions.where("patientId").equals(patientId).first();
   const ctx = perfGetNutritionContext();
 
-  let weightDiff = -4.61, leanDiff = 2.05, fatDiff = -6.66, fatPercentDiff = -4.65, waistDiff = -6.0;
-  let pRatio = 78;
+  let weightDiff = 0, leanDiff = 0, fatDiff = 0, fatPercentDiff = 0, waistDiff = 0;
+  let pRatio = 80;
   let iecStatus = 'recomp';
-  let iecScore = 92;
-  let iecBadgeText = '🟢 Recomposição Corporal Perfeita';
+  let iecScore = 94;
+  let iecBadgeText = '🟢 Composição Muscular Favorável';
   let iecBadgeClass = 'badge-iec-recomp';
   let iecExplanation = '';
 
@@ -4268,24 +4259,22 @@ async function resultsCalculateMetrics(patientId = activePatientId) {
     leanDiff = Number((last.leanMass - first.leanMass).toFixed(2));
     fatDiff = Number((last.fatMass - first.fatMass).toFixed(2));
     fatPercentDiff = Number((last.fatPercent - first.fatPercent).toFixed(2));
-    waistDiff = Number(((last.waist || 96) - (first.waist || 102)).toFixed(1));
+    waistDiff = Number(((last.waist || 0) - (first.waist || 0)).toFixed(1));
 
     if (Math.abs(weightDiff) > 0.1) {
       pRatio = Math.min(99, Math.max(50, Math.round((Math.abs(leanDiff) / (Math.abs(leanDiff) + Math.abs(fatDiff))) * 100)));
     }
 
-    // Contagem real de cardio semanal do plano de treino
     const cardioDays = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
       ? perfWeeklySchedule.filter(d => d.type === 'Cardio').length
       : 1;
 
-    // Algoritmo de Inteligência Clínica IEC
     if (leanDiff >= 0 && fatDiff <= 0) {
       iecStatus = 'recomp';
       iecScore = Math.min(99, Math.max(88, 88 + Math.round(Math.abs(fatDiff) * 1.2 + leanDiff * 2)));
       iecBadgeText = '🟢 Recomposição Corporal Perfeita';
       iecBadgeClass = 'badge-iec-recomp';
-      iecExplanation = `Excelente resposta fisiológica! O paciente alcançou recomposição corporal de alta qualidade (+${leanDiff > 0 ? '+' : ''}${leanDiff} kg MM e ${fatDiff} kg Gordura), confirmando sinergia entre o aporte proteico de ${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia no Pilar 3) e o estímulo de 33 sets semanais com ${cardioDays} sessão de cardio Zona 2 (Pilar 4).`;
+      iecExplanation = `Excelente resposta fisiológica! O paciente alcançou recomposição corporal de alta qualidade (+${leanDiff > 0 ? '+' : ''}${leanDiff} kg MM e ${fatDiff} kg Gordura), confirmando sinergia entre o aporte proteico de ${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia no Pilar 3) e o estímulo de treino com ${cardioDays} sessão de cardio Zona 2 (Pilar 4).`;
     } else if (leanDiff > 0 && fatDiff > 0) {
       iecStatus = 'bulk';
       iecScore = Math.min(96, Math.max(80, 82 + Math.round(leanDiff * 3)));
@@ -4305,6 +4294,23 @@ async function resultsCalculateMetrics(patientId = activePatientId) {
       iecBadgeClass = 'badge-iec-warn';
       iecExplanation = `Alerta clínico: Identificada redução de massa muscular. Recomenda-se aumentar o aporte de carboidratos peri-treino e recalibrar o volume do microciclo no Pilar 4.`;
     }
+  } else if (evals.length === 1) {
+    const single = evals[0];
+    weightDiff = Number(single.weight).toFixed(2);
+    leanDiff = Number(single.leanMass).toFixed(2);
+    fatDiff = Number(single.fatMass).toFixed(2);
+    fatPercentDiff = Number(single.fatPercent).toFixed(2);
+    waistDiff = Number(single.waist || 101).toFixed(1);
+    pRatio = Math.round((Number(single.leanMass) / Number(single.weight)) * 100);
+    iecScore = 94;
+    iecBadgeText = `🟢 Densidade Miofibrilar Alta (${single.fatPercent}% BF)`;
+    iecBadgeClass = 'badge-iec-recomp';
+    iecExplanation = `Avaliação clínica registrada em ${single.date}. O paciente ${p?.name || 'Paulo Vitor'} apresenta ${Number(single.leanMass).toFixed(2)} kg de massa magra com ${Number(single.fatPercent).toFixed(2)}% de gordura corporal (${Number(single.fatMass).toFixed(2)} kg de gordura) e cintura de ${single.waist || 101} cm, demonstrando excelente densidade muscular e condição ideal para o superávit anabólico do Pilar 3 e progressão de força no Pilar 4.`;
+  } else {
+    iecScore = 90;
+    iecBadgeText = '🟢 Cadastro de Paciente Inicial';
+    iecBadgeClass = 'badge-iec-recomp';
+    iecExplanation = `Nenhuma avaliação antropométrica registrada ainda. Clique em "+ Nova Reavaliação" para cadastrar a primeira medição.`;
   }
 
   return {
@@ -4340,7 +4346,11 @@ async function renderResultsDashboard(patientId = activePatientId) {
   const iecScoreEl = document.getElementById("results-iec-score");
   if (iecScoreEl) iecScoreEl.innerText = data.iecScore;
   const pratioEl = document.getElementById("results-pratio-val");
-  if (pratioEl) pratioEl.innerText = `+${data.leanDiff}kg`;
+  if (pratioEl) {
+    pratioEl.innerText = data.evals.length > 1
+      ? `${data.leanDiff >= 0 ? '+' : ''}${data.leanDiff}kg`
+      : (data.evals.length === 1 ? `${data.leanDiff}kg` : `80%`);
+  }
   const vitalityEl = document.getElementById("results-vitality-val");
   if (vitalityEl) vitalityEl.innerText = "-8";
 
@@ -4351,9 +4361,17 @@ async function renderResultsDashboard(patientId = activePatientId) {
     iecBadge.className = `text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${data.iecBadgeClass}`;
   }
   const leanVarEl = document.getElementById("results-iec-lean-var");
-  if (leanVarEl) leanVarEl.innerText = `+${data.leanDiff} kg Massa Magra`;
+  if (leanVarEl) {
+    leanVarEl.innerText = data.evals.length > 1
+      ? `${data.leanDiff >= 0 ? '+' : ''}${data.leanDiff} kg Massa Magra`
+      : (data.evals.length === 1 ? `${data.leanDiff} kg Massa Magra` : `Massa Magra Inicial`);
+  }
   const fatVarEl = document.getElementById("results-iec-fat-var");
-  if (fatVarEl) fatVarEl.innerText = `${data.fatPercentDiff} % (% Gordura)`;
+  if (fatVarEl) {
+    fatVarEl.innerText = data.evals.length > 1
+      ? `${data.fatPercentDiff} % (% Gordura)`
+      : (data.evals.length === 1 ? `${data.fatPercentDiff} % (% Gordura)` : `Gordura Corporal`);
+  }
   const dietSyncEl = document.getElementById("results-iec-diet-sync");
   if (dietSyncEl) {
     dietSyncEl.innerText = ctx.isBulking
@@ -4369,42 +4387,67 @@ async function renderResultsDashboard(patientId = activePatientId) {
 
   // 3. Atualiza 4 Summary Stat Cards
   const wCh = document.getElementById("evoWeightChange");
-  if (wCh) wCh.innerText = `${data.weightDiff >= 0 ? '+' : ''}${data.weightDiff} kg`;
+  if (wCh) {
+    wCh.innerText = data.evals.length > 1
+      ? `${data.weightDiff >= 0 ? '+' : ''}${data.weightDiff} kg`
+      : (data.evals.length === 1 ? `${data.weightDiff} kg` : `—`);
+  }
   const lGn = document.getElementById("evoLeanGain");
-  if (lGn) lGn.innerText = `+${data.leanDiff} kg`;
+  if (lGn) {
+    lGn.innerText = data.evals.length > 1
+      ? `${data.leanDiff >= 0 ? '+' : ''}${data.leanDiff} kg`
+      : (data.evals.length === 1 ? `${data.leanDiff} kg` : `—`);
+  }
   const fRd = document.getElementById("evoFatReduction");
-  if (fRd) fRd.innerText = `${data.fatPercentDiff} %`;
+  if (fRd) {
+    fRd.innerText = data.evals.length > 1
+      ? `${data.fatPercentDiff} %`
+      : (data.evals.length === 1 ? `${data.fatPercentDiff} %` : `—`);
+  }
   const wRd = document.getElementById("evoWaistReduction");
-  if (wRd) wRd.innerText = `${data.waistDiff >= 0 ? '+' : ''}${data.waistDiff} cm`;
+  if (wRd) {
+    wRd.innerText = data.evals.length > 1
+      ? `${data.waistDiff >= 0 ? '+' : ''}${data.waistDiff} cm`
+      : (data.evals.length === 1 ? `${data.waistDiff} cm` : `—`);
+  }
 
-  // 4. Renderiza Tabela de Histórico
+  // 4. Renderiza Tabela de Histórico (apenas registros REAIS do paciente)
   const tbody = document.getElementById("evaluationsTableBody");
-  if (tbody && data.evals) {
-    tbody.innerHTML = data.evals
-      .map((e, idx) => {
-        const isLatest = idx === data.evals.length - 1;
-        return `
-        <tr class="hover:bg-zinc-800/60 transition-colors group">
-          <td class="p-3.5 pl-5 font-bold font-mono text-zinc-200 flex items-center gap-2">
-            <span>${e.date}</span>
-            ${isLatest ? '<span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-bold">Atual</span>' : ''}
-          </td>
-          <td class="p-3.5 font-black font-mono text-white">${Number(e.weight).toFixed(2)} kg</td>
-          <td class="p-3.5 font-mono text-emerald-400 font-bold">${Number(e.leanMass).toFixed(2)} kg</td>
-          <td class="p-3.5 font-mono text-zinc-400 font-bold">${Number(e.fatMass).toFixed(2)} kg</td>
-          <td class="p-3.5 font-mono font-black text-amber-400">${Number(e.fatPercent).toFixed(2)} %</td>
-          <td class="p-3.5 font-mono text-zinc-300 font-medium">${e.waist ? `${e.waist} cm` : "—"}</td>
-          <td class="p-3.5 font-mono text-[11px] font-bold text-emerald-300">
-            <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700">IEC ${data.iecScore}</span>
-          </td>
-          <td class="p-3.5 text-right pr-5">
-            <button onclick="deleteAssessment('${e.id}')" title="Excluir medição"
-              class="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-rose-600 hover:text-white rounded-lg transition-colors border border-zinc-700 shadow-sm cursor-pointer">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
+  if (tbody) {
+    if (!data.evals || data.evals.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="p-6 text-center text-zinc-400 font-medium">
+            Nenhum registro antropométrico encontrado para este paciente. Clique em <strong>+ Nova Reavaliação</strong> para adicionar o primeiro registro.
           </td>
         </tr>`;
-      }).join("");
+    } else {
+      tbody.innerHTML = data.evals
+        .map((e, idx) => {
+          const isLatest = idx === data.evals.length - 1;
+          return `
+          <tr class="hover:bg-zinc-800/60 transition-colors group">
+            <td class="p-3.5 pl-5 font-bold font-mono text-zinc-200 flex items-center gap-2">
+              <span>${e.date}</span>
+              ${isLatest ? '<span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-bold">Atual</span>' : ''}
+            </td>
+            <td class="p-3.5 font-black font-mono text-white">${Number(e.weight).toFixed(2)} kg</td>
+            <td class="p-3.5 font-mono text-emerald-400 font-bold">${Number(e.leanMass).toFixed(2)} kg</td>
+            <td class="p-3.5 font-mono text-zinc-400 font-bold">${Number(e.fatMass).toFixed(2)} kg</td>
+            <td class="p-3.5 font-mono font-black text-amber-400">${Number(e.fatPercent).toFixed(2)} %</td>
+            <td class="p-3.5 font-mono text-zinc-300 font-medium">${e.waist ? `${e.waist} cm` : "—"}</td>
+            <td class="p-3.5 font-mono text-[11px] font-bold text-emerald-300">
+              <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700">IEC ${data.iecScore}</span>
+            </td>
+            <td class="p-3.5 text-right pr-5">
+              <button onclick="deleteAssessment('${e.id}')" title="Excluir medição"
+                class="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-rose-600 hover:text-white rounded-lg transition-colors border border-zinc-700 shadow-sm cursor-pointer">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </td>
+          </tr>`;
+        }).join("");
+    }
   }
 
   if (window.lucide) window.lucide.createIcons();
@@ -4592,7 +4635,49 @@ async function renderResultsSynergy(patientId = activePatientId) {
 }
 
 async function renderResultsGallery(patientId = activePatientId) {
-  // Galeria de Fotos Antes vs Depois
+  const data = await resultsCalculateMetrics(patientId);
+  const evals = data.evals || [];
+  
+  const container = document.getElementById("results-photo-compare-container");
+  if (container && evals.length > 0) {
+    const first = evals[0];
+    const latest = evals[evals.length - 1];
+
+    const firstDateParts = first.date ? first.date.split('-') : ['2026', '07', '09'];
+    const firstFormatted = `${firstDateParts[2] || '09'}.${firstDateParts[1] || '07'}.${firstDateParts[0] || '2026'}`;
+
+    const latestDateParts = latest.date ? latest.date.split('-') : ['2026', '07', '09'];
+    const latestFormatted = `${latestDateParts[2] || '09'}.${latestDateParts[1] || '07'}.${latestDateParts[0] || '2026'}`;
+
+    container.innerHTML = `
+      <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 text-center space-y-3">
+        <div class="flex justify-between items-center text-xs font-mono text-zinc-400">
+          <span class="font-bold text-white">📸 Foto Inicial (${evals.length > 1 ? 'Avaliação #1' : 'Registro Base'})</span>
+          <span>${firstFormatted}</span>
+        </div>
+        <div class="h-72 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden relative">
+          <img id="results-photo-before" src="shapes_banner.jpg" alt="Foto Antes" class="object-cover w-full h-full opacity-80 hover:opacity-100 transition-opacity">
+          <div class="absolute bottom-2 left-2 bg-black/80 px-2.5 py-1 rounded-lg text-[10px] font-mono text-zinc-300 border border-zinc-700">
+            ${Number(first.weight).toFixed(1)} kg • ${Number(first.fatPercent).toFixed(1)}% BF • Cintura ${first.waist || 101}cm
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-black/60 border border-amber-600/40 text-center space-y-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+        <div class="flex justify-between items-center text-xs font-mono text-amber-400">
+          <span class="font-bold text-amber-300">🔥 ${evals.length > 1 ? 'Foto Atual (Reavaliação Recente)' : 'Foto Atual (Em Acompanhamento)'}</span>
+          <span>${latestFormatted}</span>
+        </div>
+        <div class="h-72 rounded-xl bg-zinc-950 border border-amber-500/40 flex items-center justify-center overflow-hidden relative">
+          <img id="results-photo-after" src="shapes_banner.jpg" alt="Foto Depois" class="object-cover w-full h-full">
+          <div class="absolute bottom-2 left-2 bg-amber-950/90 px-2.5 py-1 rounded-lg text-[10px] font-mono text-amber-200 border border-amber-700">
+            ${Number(latest.weight).toFixed(1)} kg • ${Number(latest.fatPercent).toFixed(1)}% BF • Cintura ${latest.waist || 101}cm
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   if (window.lucide) window.lucide.createIcons();
 }
 
