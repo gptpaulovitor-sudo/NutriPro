@@ -538,31 +538,31 @@
               <!-- Pilar 1 -->
               <button id="card-pilar-1" onclick="switchPilar(1)" class="p-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-300 flex flex-col items-center justify-center gap-1 hover:bg-purple-950/40 hover:border-purple-800/60 transition-all">
                 <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i>
-                <span class="text-[10px] font-bold truncate w-full">1. Mente</span>
+                <span class="text-[9px] sm:text-[10px] font-bold truncate w-full">1. Mentalidade</span>
               </button>
 
               <!-- Pilar 2 -->
               <button id="card-pilar-2" onclick="switchPilar(2)" class="p-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-300 flex flex-col items-center justify-center gap-1 hover:bg-orange-950/40 hover:border-orange-800/60 transition-all">
                 <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i>
-                <span class="text-[10px] font-bold truncate w-full">2. Hábitos</span>
+                <span class="text-[9px] sm:text-[10px] font-bold truncate w-full">2. Disciplina</span>
               </button>
 
               <!-- Pilar 3 (Nutrição - Ativo) -->
               <button id="card-pilar-3" onclick="switchPilar(3)" class="p-1.5 rounded-xl bg-red-950 border border-red-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-sm shadow-red-950 transition-all">
                 <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-400"></i>
-                <span class="text-[10px] font-black truncate w-full">3. Dieta</span>
+                <span class="text-[9px] sm:text-[10px] font-black truncate w-full">3. Nutrição</span>
               </button>
 
               <!-- Pilar 4 (Performance) -->
               <button id="card-pilar-4" onclick="switchPilar(4)" class="p-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-300 flex flex-col items-center justify-center gap-1 hover:bg-blue-950/50 hover:border-blue-800/60 transition-all">
                 <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400"></i>
-                <span class="text-[10px] font-bold truncate w-full">4. Treino</span>
+                <span class="text-[9px] sm:text-[10px] font-bold truncate w-full">4. Performance</span>
               </button>
 
               <!-- Pilar 5 -->
               <button id="card-pilar-5" onclick="switchPilar(5)" class="p-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-300 flex flex-col items-center justify-center gap-1 hover:bg-amber-950/40 hover:border-amber-800/60 transition-all">
                 <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
-                <span class="text-[10px] font-bold truncate w-full">5. Impacto</span>
+                <span class="text-[9px] sm:text-[10px] font-bold truncate w-full">5. Resultado</span>
               </button>
             </div>
           </div>
@@ -684,35 +684,35 @@
       <section id="tab-performance" class="max-w-7xl mx-auto space-y-6 w-full" style="display:none">
         
         <!-- Header Banner HUD de Performance (Pilar 4 - Azul Cobalto) -->
-        <div class="hud-card-blue p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div class="flex-1 min-w-0">
+        <div class="hud-card-blue p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+          <div class="flex-1 min-w-0 w-full">
             <div class="flex items-center gap-2 flex-wrap mb-2">
               <span class="text-xs font-mono font-bold bg-blue-950/90 text-blue-300 border border-blue-700/60 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_10px_rgba(59,130,246,0.25)]">
                 <i data-lucide="zap" class="w-3.5 h-3.5 text-blue-400"></i> Pilar 4 · Performance &amp; Biomecânica
               </span>
               <span class="text-xs font-mono font-medium text-zinc-400">Delavier · Nick Evans · Jim Stoppani</span>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">
+            <h1 class="text-xl md:text-3xl font-bold text-white tracking-tight">
               Prescrição de <span class="text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.5)]">Treinamento</span>
             </h1>
-            <p class="text-sm font-medium text-gray-300 mt-1 flex flex-wrap gap-2">
+            <p class="text-xs md:text-sm font-medium text-gray-300 mt-1 flex flex-wrap gap-2">
               <span id="perfPatientName">Paulo Vitor R de Sousa</span> • <span id="perfPatientGoal" class="text-blue-300 font-semibold">Hipertrofia &amp; Recomposição</span> • Periodização Personalizada
             </p>
 
             <!-- Ação Rápida do Co-piloto IA no Banner -->
-            <div class="mt-4 flex items-center gap-3 flex-wrap">
+            <div class="mt-3 flex items-center gap-2 flex-wrap">
               <button id="perf-ai-btn" onclick="handleGenerateAITraining()"
-                class="relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all overflow-hidden border border-violet-400/40 shadow-[0_0_16px_rgba(139,92,246,0.45)] hover:shadow-[0_0_24px_rgba(139,92,246,0.7)]"
+                class="w-full sm:w-auto relative flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all overflow-hidden border border-violet-400/40 shadow-[0_0_16px_rgba(139,92,246,0.45)] hover:shadow-[0_0_24px_rgba(139,92,246,0.7)]"
                 style="background:linear-gradient(135deg,#7c3aed 0%,#2563eb 100%)">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-200"></i>
                 <span>Gerar Treino via IA (Co-piloto Biomecânico)</span>
               </button>
 
               <!-- Seletor de Divisão / Split de Treino -->
-              <div class="flex items-center gap-1.5 bg-black/60 border border-zinc-800 p-1.5 rounded-xl">
-                <span class="text-[11px] font-bold text-zinc-400 px-1 uppercase tracking-wider">Divisão:</span>
+              <div class="w-full sm:w-auto flex items-center gap-1.5 bg-black/60 border border-zinc-800 p-1.5 rounded-xl">
+                <span class="text-[11px] font-bold text-zinc-400 px-1 uppercase tracking-wider shrink-0">Divisão:</span>
                 <select id="perf-split-select" onchange="perfSetSplit(this.value)"
-                  class="bg-zinc-950 text-blue-300 font-bold text-xs p-1.5 rounded-lg border border-blue-900/60 outline-none focus:border-blue-500">
+                  class="bg-zinc-950 text-blue-300 font-bold text-xs p-1.5 rounded-lg border border-blue-900/60 outline-none focus:border-blue-500 w-full sm:w-auto">
                   <option value="PPL">Push / Pull / Legs (ABC - 3 a 6 Dias)</option>
                   <option value="UpperLower">Upper / Lower (ABCD - 4 Dias / Alta Frequência)</option>
                   <option value="ABCD">Divisão Tradicional (ABCD - 4 Dias)</option>
@@ -723,16 +723,16 @@
               </div>
 
               <!-- Seletor Rápido de Treino Alvo Dinâmico -->
-              <div class="flex items-center gap-1.5 bg-black/60 border border-zinc-800 p-1 rounded-xl">
-                <span class="text-[11px] font-bold text-zinc-400 px-2 uppercase tracking-wider">Rotina:</span>
-                <div id="perf-target-buttons-container" class="flex items-center gap-1">
+              <div class="w-full sm:w-auto flex items-center gap-1.5 bg-black/60 border border-zinc-800 p-1 rounded-xl">
+                <span class="text-[11px] font-bold text-zinc-400 px-2 uppercase tracking-wider shrink-0">Rotina:</span>
+                <div id="perf-target-buttons-container" class="flex items-center gap-1 overflow-x-auto">
                   <!-- Injetado dinamicamente: A, B, C, D, E -->
                 </div>
               </div>
 
               <!-- Botão de Exportar PDF Completo -->
               <button onclick="perfGeneratePDF()"
-                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-600/70 hover:bg-emerald-900 transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-600/70 hover:bg-emerald-900 transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]">
                 <i data-lucide="file-down" class="w-3.5 h-3.5 text-emerald-400"></i>
                 <span>Exportar PDF da Semana</span>
               </button>
@@ -745,19 +745,19 @@
 
             <!-- Card HUD de Integração com o Pilar Nutrição (Gerado pela IA) -->
             <div id="perf-nutrition-audit-card" style="display:none;margin-top:14px;"
-              class="hud-card p-4 border border-blue-500/40 bg-gradient-to-r from-blue-950/70 via-black/80 to-purple-950/60 space-y-2.5 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.18)]">
+              class="hud-card p-3 sm:p-4 border border-blue-500/40 bg-gradient-to-r from-blue-950/70 via-black/80 to-purple-950/60 space-y-2.5 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.18)]">
               <div class="flex items-center justify-between flex-wrap gap-2 border-b border-blue-900/40 pb-2">
                 <div class="flex items-center gap-2">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]"></span>
-                  <span class="text-xs font-mono font-bold text-blue-300 uppercase tracking-wider">Metas do Pilar 3 (Nutrição) Integradas ao Treino</span>
+                  <span class="text-[11px] sm:text-xs font-mono font-bold text-blue-300 uppercase tracking-wider">Metas do Pilar 3 (Nutrição) Integradas ao Treino</span>
                 </div>
-                <span id="audit-sync-badge" class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-md font-bold">100% Sincronizado</span>
+                <span id="audit-sync-badge" class="text-[9px] sm:text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-md font-bold">100% Sincronizado</span>
               </div>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
-                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Objetivo Nutricional</span><strong id="audit-obj" class="text-white">Perda de peso</strong></div>
-                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Balanço Calórico</span><strong id="audit-cals" class="text-red-400">Déficit (-450 kcal)</strong></div>
-                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Aporte Proteico</span><strong id="audit-prot" class="text-blue-300">2.0 g/kg (Preservação)</strong></div>
-                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Diretriz Biomecânica</span><strong id="audit-guideline" class="text-purple-300">Volume Modulado &amp; RPE 7-8</strong></div>
+                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Objetivo Nutricional</span><strong id="audit-obj" class="text-white text-xs">Perda de peso</strong></div>
+                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Balanço Calórico</span><strong id="audit-cals" class="text-red-400 text-xs">Déficit (-450 kcal)</strong></div>
+                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Aporte Proteico</span><strong id="audit-prot" class="text-blue-300 text-xs">2.0 g/kg (Preservação)</strong></div>
+                <div class="bg-black/50 p-2 rounded-lg border border-zinc-800"><span class="text-[10px] text-zinc-400 block">Diretriz Biomecânica</span><strong id="audit-guideline" class="text-purple-300 text-xs">Volume Modulado &amp; RPE 7-8</strong></div>
               </div>
               <p id="audit-explanation" class="text-[11px] text-zinc-300 leading-relaxed font-sans pt-1">
                 Volume e intensidades calibrados para retenção de massa magra sob restrição energética, com pausas controladas e exercícios multiarticulares de alta eficiência miofibrilar.
@@ -765,19 +765,19 @@
             </div>
           </div>
 
-          <!-- Métricas Rápidas HUD -->
-          <div class="flex items-center gap-3 shrink-0 flex-wrap">
-            <div class="bg-black/60 border border-zinc-800 p-3.5 rounded-xl text-center min-w-[110px] shadow-inner">
-              <span class="text-[10px] font-mono font-bold text-zinc-400 block uppercase">Exercícios</span>
-              <p class="text-xl font-bold text-blue-400 mt-0.5"><span id="perf-total-ex">9</span> <span class="text-xs text-zinc-500 font-normal">totais</span></p>
+          <!-- Métricas Rápidas HUD (Grid Responsivo 3 Colunas) -->
+          <div class="grid grid-cols-3 gap-2 w-full md:w-auto shrink-0">
+            <div class="bg-black/60 border border-zinc-800 p-2.5 sm:p-3.5 rounded-xl text-center shadow-inner">
+              <span class="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-400 block uppercase">Exercícios</span>
+              <p class="text-lg sm:text-xl font-bold text-blue-400 mt-0.5"><span id="perf-total-ex">9</span> <span class="text-[10px] text-zinc-500 font-normal">totais</span></p>
             </div>
-            <div class="bg-blue-950/60 border border-blue-800/80 p-3.5 rounded-xl text-center min-w-[120px] shadow-[0_0_15px_rgba(59,130,246,0.25)]">
-              <span class="text-[10px] font-mono font-bold text-blue-300 block uppercase tracking-wide">Séries Totais</span>
-              <p class="text-xl font-black text-white mt-0.5"><span id="perf-total-sets">33</span> <span class="text-xs text-blue-300 font-normal">sets</span></p>
+            <div class="bg-blue-950/60 border border-blue-800/80 p-2.5 sm:p-3.5 rounded-xl text-center shadow-[0_0_15px_rgba(59,130,246,0.25)]">
+              <span class="text-[9px] sm:text-[10px] font-mono font-bold text-blue-300 block uppercase tracking-wide">Séries</span>
+              <p class="text-lg sm:text-xl font-black text-white mt-0.5"><span id="perf-total-sets">33</span> <span class="text-[10px] text-blue-300 font-normal">sets</span></p>
             </div>
-            <div class="bg-black/60 border border-zinc-800 p-3.5 rounded-xl text-center min-w-[90px]">
-              <span class="text-[10px] font-mono font-bold text-zinc-400 block uppercase">Rotinas</span>
-              <p class="text-xl font-bold text-zinc-200 mt-0.5">3 <span class="text-xs text-zinc-500 font-normal">A·B·C</span></p>
+            <div class="bg-black/60 border border-zinc-800 p-2.5 sm:p-3.5 rounded-xl text-center">
+              <span class="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-400 block uppercase">Rotinas</span>
+              <p class="text-lg sm:text-xl font-bold text-zinc-200 mt-0.5">3 <span class="text-[10px] text-zinc-500 font-normal">A·B·C</span></p>
             </div>
           </div>
         </div>
@@ -4090,25 +4090,28 @@
       <!-- Menu Body -->
       <div class="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
 
-        <!-- Seleção Direta de Pilares no Modal -->
+        <!-- Seleção Direta de Pilares no Modal (1 a 5 na Ordem Correta) -->
         <div class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-2">
           <span class="text-xs font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="award" class="w-4 h-4 text-red-500"></i> PILARES NUTRIAX
+            <i data-lucide="award" class="w-4 h-4 text-red-500"></i> PILARES NUTRIAX (1 A 5)
           </span>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button onclick="switchPilar(1); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-950/80 border border-purple-800/60 text-purple-200 font-bold text-left flex items-center gap-2">
+              <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400 shrink-0"></i> 1. Mentalidade
+            </button>
+            <button onclick="switchPilar(2); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-orange-950/40 hover:bg-orange-950/80 border border-orange-800/60 text-orange-200 font-bold text-left flex items-center gap-2">
+              <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400 shrink-0"></i> 2. Disciplina
+            </button>
             <button onclick="switchPilar(3); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700 text-white font-bold text-left flex items-center justify-between">
-              <span class="flex items-center gap-2"><i data-lucide="utensils" class="w-3.5 h-3.5 text-red-400"></i> 3. Nutrição</span>
+              <span class="flex items-center gap-2"><i data-lucide="utensils" class="w-3.5 h-3.5 text-red-400 shrink-0"></i> 3. Nutrição</span>
               <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
             </button>
             <button onclick="switchPilar(4); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-700 text-white font-bold text-left flex items-center justify-between">
-              <span class="flex items-center gap-2"><i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400"></i> 4. Performance</span>
+              <span class="flex items-center gap-2"><i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i> 4. Performance</span>
               <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
             </button>
-            <button onclick="switchPilar(5); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-left flex items-center gap-2">
-              <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> 5. Resultado
-            </button>
-            <button onclick="switchPilar(1); closeMobileMenuModal();" class="p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-left flex items-center gap-2">
-              <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i> 1. Mentalidade
+            <button onclick="switchPilar(5); closeMobileMenuModal();" class="col-span-2 sm:col-span-1 p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-950/80 border border-amber-800/60 text-amber-200 font-bold text-left flex items-center gap-2">
+              <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i> 5. Resultado
             </button>
           </div>
         </div>

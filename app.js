@@ -8072,32 +8072,32 @@ function renderPerfWorkoutPlan() {
           const restVal = parseInt(ex.rest) || 60;
           
           return `
-          <div class="p-4 border-b border-zinc-800/60 hover:bg-blue-950/15 transition-all">
+          <div class="p-3 sm:p-4 border-b border-zinc-800/60 hover:bg-blue-950/15 transition-all">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               
               <!-- Bloco 1: Identificação & Biomecânica do Exercício -->
               <div class="flex-1 min-w-0 space-y-1.5">
-                <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <span class="text-xs font-mono font-bold text-blue-400 bg-blue-950/80 border border-blue-800/60 px-2 py-0.5 rounded-md">
                     #${idx+1}
                   </span>
-                  <h4 class="text-sm md:text-base font-bold text-white tracking-tight truncate">${ex.name || dbEx.name}</h4>
+                  <h4 class="text-sm md:text-base font-bold text-white tracking-tight break-words">${ex.name || dbEx.name}</h4>
                   <button onclick="perfOpenExerciseGuide('${resolvedId}')"
-                    class="px-2.5 py-1 rounded-md text-[10px] font-bold text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/70 flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(59,130,246,0.25)] hover:shadow-[0_0_12px_rgba(59,130,246,0.5)] cursor-pointer"
+                    class="px-2 py-0.5 rounded-md text-[10px] font-bold text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/70 flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(59,130,246,0.25)] hover:shadow-[0_0_12px_rgba(59,130,246,0.5)] cursor-pointer"
                     title="Ver GIF animado e guia biomecânico de execução">
                     <i data-lucide="play-circle" class="w-3.5 h-3.5 text-blue-400"></i>
                     <span>GIF &amp; Execução</span>
                   </button>
-                  <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  <span class="text-[9px] sm:text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
                     ${dbEx.group}
                   </span>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-900/60">
+                  <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-900/60">
                     ${dbEx.equipment} · ${dbEx.mechanics}
                   </span>
                 </div>
 
                 <!-- Detalhes Anatômicos & Cadência -->
-                <div class="flex items-center gap-2 flex-wrap text-[11px] text-zinc-400">
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap text-[10px] sm:text-[11px] text-zinc-400">
                   <span>🎯 <strong class="text-zinc-200">Primário:</strong> ${dbEx.primary}</span>
                   <span class="text-zinc-600">•</span>
                   <span>⚡ <strong class="text-zinc-300">Sinérgicos:</strong> ${dbEx.secondary}</span>
@@ -8106,78 +8106,76 @@ function renderPerfWorkoutPlan() {
                 </div>
               </div>
 
-              <!-- Bloco 2: Controles de Séries, Reps, RPE e Pausa -->
-              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap bg-black/60 p-2 rounded-xl border border-zinc-800/80">
-                
-                <!-- Séries -->
-                <div class="flex flex-col items-center min-w-[55px]">
-                  <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Séries</span>
-                  <input type="number" min="1" max="10" value="${parseInt(ex.sets) || 3}"
-                    onchange="perfUpdateField('${routine.id}','${resolvedId}','sets',+this.value)"
-                    class="w-12 p-1 text-center font-bold text-xs md:text-sm text-white rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
-                </div>
+              <!-- Bloco 2: Controles de Séries, Reps, RPE e Pausa (100% Responsivo no Celular) -->
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+                <div class="grid grid-cols-4 sm:flex sm:items-center gap-1.5 bg-black/60 p-2 rounded-xl border border-zinc-800/80 w-full sm:w-auto">
+                  
+                  <!-- Séries -->
+                  <div class="flex flex-col items-center">
+                    <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Séries</span>
+                    <input type="number" min="1" max="10" value="${parseInt(ex.sets) || 3}"
+                      onchange="perfUpdateField('${routine.id}','${resolvedId}','sets',+this.value)"
+                      class="w-full sm:w-12 p-1 text-center font-bold text-xs sm:text-sm text-white rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                  </div>
 
-                <!-- Repetições -->
-                <div class="flex flex-col items-center min-w-[70px]">
-                  <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Reps</span>
-                  <input type="text" value="${ex.reps || '8-12'}"
-                    onchange="perfUpdateField('${routine.id}','${resolvedId}','reps',this.value)"
-                    class="w-16 p-1 text-center font-bold text-xs md:text-sm text-white rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
-                </div>
+                  <!-- Repetições -->
+                  <div class="flex flex-col items-center">
+                    <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Reps</span>
+                    <input type="text" value="${ex.reps || '8-12'}"
+                      onchange="perfUpdateField('${routine.id}','${resolvedId}','reps',this.value)"
+                      class="w-full sm:w-16 p-1 text-center font-bold text-xs sm:text-sm text-white rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                  </div>
 
-                <!-- RPE / RIR -->
-                <div class="flex flex-col items-center min-w-[80px]">
-                  <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider" title="Rating of Perceived Exertion">RPE (1-10)</span>
-                  <div class="flex items-center gap-1">
+                  <!-- RPE / RIR -->
+                  <div class="flex flex-col items-center">
+                    <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider" title="Rating of Perceived Exertion">RPE</span>
                     <input type="number" min="1" max="10" value="${rpeVal}"
                       onchange="perfUpdateField('${routine.id}','${resolvedId}','rpe',+this.value)"
-                      class="w-10 p-1 text-center font-black text-xs md:text-sm rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
-                    <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${rpeBadgeClass}">${rpeRir}</span>
+                      class="w-full sm:w-10 p-1 text-center font-black text-xs sm:text-sm rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
                   </div>
-                </div>
 
-                <!-- Pausa em Segundos -->
-                <div class="flex flex-col items-center min-w-[65px]">
-                  <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Pausa</span>
-                  <div class="flex items-center gap-0.5">
-                    <input type="number" min="0" step="15" value="${restVal}"
-                      onchange="perfUpdateField('${routine.id}','${resolvedId}','rest',+this.value)"
-                      class="w-12 p-1 text-center font-semibold text-xs md:text-sm text-zinc-300 rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
-                    <span class="text-[10px] text-zinc-500 font-mono">s</span>
+                  <!-- Pausa em Segundos -->
+                  <div class="flex flex-col items-center">
+                    <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Pausa</span>
+                    <div class="flex items-center justify-center w-full">
+                      <input type="number" min="0" step="15" value="${restVal}"
+                        onchange="perfUpdateField('${routine.id}','${resolvedId}','rest',+this.value)"
+                        class="w-full sm:w-12 p-1 text-center font-semibold text-xs sm:text-sm text-zinc-300 rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                    </div>
                   </div>
                 </div>
 
                 <!-- Botão Remover -->
-                <div class="pl-1">
+                <div class="flex justify-end sm:justify-center">
                   <button onclick="perfRemoveExercise('${routine.id}','${resolvedId}')"
-                    class="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer" title="Remover exercício da rotina">
+                    class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]" title="Remover exercício da rotina">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span class="sm:hidden text-[10px] text-zinc-400">Excluir</span>
                   </button>
                 </div>
-
               </div>
             </div>
           </div>`;
         }).join('');
 
     card.innerHTML = `
-      <div class="flex justify-between items-center px-5 py-4 border-b border-zinc-800 ${isTarget ? 'bg-blue-950/40' : 'bg-black/40'}">
-        <div class="flex items-center gap-3">
-          <span class="w-8 h-8 rounded-xl bg-blue-900/60 border border-blue-700/60 flex items-center justify-center font-bold text-blue-300 text-sm shadow-[0_0_8px_rgba(59,130,246,0.3)]">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3.5 sm:px-5 sm:py-4 border-b border-zinc-800 gap-2.5 ${isTarget ? 'bg-blue-950/40' : 'bg-black/40'}">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-8 h-8 rounded-xl bg-blue-900/60 border border-blue-700/60 flex items-center justify-center font-bold text-blue-300 text-sm shadow-[0_0_8px_rgba(59,130,246,0.3)] shrink-0">
             ${routine.id}
           </span>
-          <div>
-            <h3 class="text-sm md:text-base font-bold text-white flex items-center gap-2">
-              ${routine.name}
-              ${isTarget ? '<span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(59,130,246,0.6)]">Alvo Ativo</span>' : ''}
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm md:text-base font-bold text-white flex items-center gap-2 flex-wrap">
+              <span>${routine.name}</span>
+              ${isTarget ? '<span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(59,130,246,0.6)] shrink-0">Alvo Ativo</span>' : ''}
             </h3>
-            <span class="text-xs text-zinc-400 font-mono">${routine.exercises.length} exercícios estruturados</span>
+            <span class="text-[11px] text-zinc-400 font-mono block">${routine.exercises.length} exercícios estruturados</span>
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-3 py-1 rounded-lg">
-            Volume: <strong class="text-blue-400 font-bold">${totalSets} séries totais</strong>
+        <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0">
+          <span class="text-[11px] font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg">
+            Volume: <strong class="text-blue-400 font-bold">${totalSets} sets</strong>
           </span>
           <button onclick="perfSetTarget('${routine.id}')"
             class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${isTarget ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-800 text-zinc-400 hover:text-white'}">
@@ -8188,12 +8186,12 @@ function renderPerfWorkoutPlan() {
 
       <div>${exercisesHtml}</div>
 
-      <div class="px-5 py-3 border-t border-zinc-800/60 flex items-center justify-between bg-black/40 text-xs text-zinc-400">
+      <div class="px-3.5 sm:px-5 py-2.5 sm:py-3 border-t border-zinc-800/60 flex flex-col sm:flex-row sm:items-center justify-between bg-black/40 text-xs text-zinc-400 gap-2">
         <div class="flex items-center gap-2">
-          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span>Progressão de Carga recomendada: <strong>+1 repetição por série</strong> antes de subir o peso.</span>
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+          <span class="text-[11px] leading-tight">Progressão: <strong>+1 rep por série</strong> antes de subir a carga.</span>
         </div>
-        <button onclick="perfSwitchView('catalog', true)" class="text-blue-400 hover:text-blue-300 font-bold transition-colors flex items-center gap-1">
+        <button onclick="perfSwitchView('catalog', true)" class="text-blue-400 hover:text-blue-300 font-bold transition-colors flex items-center gap-1 text-[11px] sm:text-xs">
           <span>+ Adicionar Exercício nesta Rotina</span>
         </button>
       </div>`;

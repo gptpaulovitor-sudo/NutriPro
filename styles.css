@@ -341,5 +341,29 @@ section[id^="tab-"]:not(.hidden) {
     padding-right: 0.75rem !important;
     padding-top: 0.75rem !important;
     padding-bottom: 5.5rem !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Responsividade Avançada para Pilar 4 (Performance & Biomecânica) no Mobile */
+  #tab-performance {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  
+  #tab-performance .hud-card-blue,
+  #tab-performance .hud-card {
+    padding: 0.875rem !important;
+    border-radius: 1rem !important;
+  }
+
+  #perf-routines-container input {
+    font-size: 0.75rem !important;
+    padding: 0.25rem !important;
+  }
+  
+  #tab-performance select,
+  #tab-performance button {
+    max-width: 100% !important;
   }
 }
