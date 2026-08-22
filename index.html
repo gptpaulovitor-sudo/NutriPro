@@ -78,200 +78,234 @@
 
 <body class="min-h-screen bg-black text-gray-200 flex flex-col antialiased selection:bg-red-600 selection:text-white">
 
-  <!-- ═══ 1. CABEÇALHO SUPERIOR FIXO (TOP HEADER HUD - CENTRADO EM 2 LINHAS) ═══ -->
-  <header class="sticky top-0 z-50 w-full bg-black/90 backdrop-blur-md border-b border-red-900/50 px-6 py-2.5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-[0_4px_25px_rgba(0,0,0,0.85)]">
-    <!-- Brand Title & Status (Left) -->
-    <div class="flex items-center gap-3 shrink-0">
-      <span class="text-xl font-black tracking-tight text-white">
-        Nutri<span class="text-red-500 drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]">Ax</span>
-      </span>
-      <span class="text-xs font-mono font-bold bg-red-950/80 text-red-400 border border-red-800/80 px-2 py-0.5 rounded tracking-widest uppercase">
-        PRO HUD
-      </span>
-      <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse"></span>
-        <span class="font-bold text-emerald-400">DATA ENGINE ON</span>
+  <!-- ═══ 1. CABEÇALHO SUPERIOR FIXO (TOP HEADER HUD) ═══ -->
+  <header class="sticky top-0 z-50 w-full bg-black/95 backdrop-blur-md border-b border-red-900/50 shadow-[0_4px_25px_rgba(0,0,0,0.85)]">
+    
+    <!-- ── CABEÇALHO DESKTOP (MD E ACIMA) ── -->
+    <div class="hidden md:flex px-6 py-2.5 items-center justify-between gap-3">
+      <!-- Brand Title & Status (Left) -->
+      <div class="flex items-center gap-3 shrink-0">
+        <span class="text-xl font-black tracking-tight text-white">
+          Nutri<span class="text-red-500 drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]">Ax</span>
+        </span>
+        <span class="text-xs font-mono font-bold bg-red-950/80 text-red-400 border border-red-800/80 px-2 py-0.5 rounded tracking-widest uppercase">
+          PRO HUD
+        </span>
+        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse"></span>
+          <span class="font-bold text-emerald-400">DATA ENGINE ON</span>
+        </div>
+      </div>
+
+      <!-- ═══ ABAS DE NAVEGAÇÃO DOS MÓDULOS POR PILAR (HEADER DINÂMICO DESKTOP) ═══ -->
+      <nav class="flex flex-col gap-1.5 items-center justify-center mx-auto" id="main-header-nav">
+        
+        <!-- ── MENU PILAR 1: MENTALIDADE ── -->
+        <div id="header-pilar-nav-1" class="hidden items-center justify-center gap-2">
+          <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-purple-950/80 text-purple-300 border border-purple-800/80 flex items-center gap-1.5">
+            <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i> PILAR 1 · MENTALIDADE &amp; COMPORTAMENTO
+          </span>
+          <button class="hud-tab-btn opacity-60 cursor-not-allowed">
+            <i data-lucide="target" class="w-3.5 h-3.5 text-purple-400"></i> Foco &amp; Metas <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+          </button>
+          <button class="hud-tab-btn opacity-60 cursor-not-allowed">
+            <i data-lucide="smile" class="w-3.5 h-3.5 text-purple-400"></i> Registro de Mindset <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+          </button>
+        </div>
+
+        <!-- ── MENU PILAR 2: DISCIPLINA ── -->
+        <div id="header-pilar-nav-2" class="hidden items-center justify-center gap-2">
+          <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-800/80 flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i> PILAR 2 · DISCIPLINA &amp; HÁBITOS
+          </span>
+          <button class="hud-tab-btn opacity-60 cursor-not-allowed">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-orange-400"></i> Rotina Diária <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+          </button>
+          <button class="hud-tab-btn opacity-60 cursor-not-allowed">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400"></i> Consistência Semanal <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+          </button>
+        </div>
+
+        <!-- ── MENU PILAR 3: NUTRIÇÃO (ATIVO POR PADRÃO) ── -->
+        <div id="header-pilar-nav-3" class="flex flex-col gap-1.5 items-center justify-center">
+          <!-- Linha 1: Módulos Clínicos & Prescrição -->
+          <div class="flex items-center justify-center gap-1.5">
+            <button id="nav-dashboard" onclick="switchTab('dashboard')" class="hud-tab-btn active">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-500"></i> Dashboard &amp; Radar
+            </button>
+            <button id="nav-anamnese" onclick="switchTab('anamnese')" class="hud-tab-btn">
+              <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-red-500"></i> Anamnese &amp; Perfil
+            </button>
+            <button id="nav-exams" onclick="switchTab('exams')" class="hud-tab-btn">
+              <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-red-500"></i> Exames Clínicos
+            </button>
+            <button id="nav-recall" onclick="switchTab('recall')" class="hud-tab-btn">
+              <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-500"></i> Recordatório
+            </button>
+            <button id="nav-evaluation" onclick="switchTab('evaluation')" class="hud-tab-btn">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500"></i> Avaliação &amp; Corpo
+            </button>
+            <button id="nav-prescription" onclick="switchTab('prescription')" class="hud-tab-btn">
+              <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500"></i> Prescrição &amp; Macros
+            </button>
+          </div>
+
+          <!-- Linha 2: Acompanhamento, Alimentos, App e Backup -->
+          <div class="flex items-center justify-center gap-1.5">
+            <button id="nav-evolution" onclick="switchTab('evolution')" class="hud-tab-btn">
+              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500"></i> Evolução Temporal
+            </button>
+            <button id="nav-adherence" onclick="switchTab('adherence')" class="hud-tab-btn">
+              <i data-lucide="check-check" class="w-3.5 h-3.5 text-red-500"></i> Controle de Adesão
+            </button>
+            <button id="nav-foods" onclick="switchTab('foods')" class="hud-tab-btn">
+              <i data-lucide="database" class="w-3.5 h-3.5 text-red-500"></i> Base de Alimentos
+            </button>
+            <button id="nav-patientApp" onclick="switchTab('patientApp')" class="hud-tab-btn" style="color:#f87171;">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5 text-red-400"></i> App do Paciente
+            </button>
+            <button id="nav-backup" onclick="switchTab('backup')" class="hud-tab-btn">
+              <i data-lucide="cloud" class="w-3.5 h-3.5 text-red-500"></i> Drive Backup
+            </button>
+          </div>
+        </div>
+
+        <!-- ── MENU PILAR 4: PERFORMANCE COM AGENDA DIÁRIA IA ── -->
+        <div id="header-pilar-nav-4" class="hidden flex-col gap-1.5 items-center justify-center">
+          <!-- Linha 1: Módulos & Ação da IA -->
+          <div class="flex items-center justify-center gap-1.5 flex-wrap">
+            <button id="perf-nav-btn-prescription" onclick="perfSwitchView('prescription')" class="hud-tab-btn active" style="color:#93c5fd;border-color:rgba(59,130,246,0.5);background:rgba(30,58,138,0.45);">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5 text-blue-400"></i> Prescrição de Força
+            </button>
+            <button id="perf-nav-btn-schedule" onclick="perfSwitchView('schedule')" class="hud-tab-btn" style="color:#60a5fa;">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i> Agenda Semanal (7 Dias)
+            </button>
+            <button id="perf-nav-btn-cardio" onclick="perfSwitchView('cardio')" class="hud-tab-btn font-bold" style="color:#fbbf24;border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.12);">
+              <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i> Cardios &amp; Engine (Déficit)
+            </button>
+            <button id="perf-nav-btn-catalog" onclick="perfSwitchView('catalog')" class="hud-tab-btn">
+              <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-400"></i> Catálogo Biomecânico
+            </button>
+            <button id="perf-nav-btn-pdf" onclick="perfGeneratePDF()" class="hud-tab-btn font-bold text-emerald-300" style="border-color:rgba(16,185,129,0.5);background:rgba(6,78,59,0.45);box-shadow:0 0 10px rgba(16,185,129,0.25);">
+              <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-400"></i> PDF do Treino Completo
+            </button>
+            <button onclick="handleGenerateAITraining()" class="hud-tab-btn font-bold" style="background:linear-gradient(135deg,rgba(124,58,237,0.45),rgba(37,99,235,0.45));border-color:rgba(167,139,250,0.5);color:#ffffff;box-shadow:0 0 12px rgba(139,92,246,0.35);">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-300"></i> Gerar Treino via IA
+            </button>
+          </div>
+
+          <!-- Linha 2: AGENDA DIÁRIA INTERATIVA (SEGUNDA A DOMINGO - GERADA PELA IA) -->
+          <div class="flex items-center justify-center gap-1" id="perf-header-daily-schedule">
+            <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mr-1 flex items-center gap-1">
+              <i data-lucide="clock" class="w-3 h-3 text-blue-400"></i> Agenda:
+            </span>
+            <button id="day-btn-seg" onclick="perfFocusDay('seg')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Segunda-feira: Treino A">
+              <span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
+            </button>
+            <button id="day-btn-ter" onclick="perfFocusDay('ter')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Terça-feira: Treino B">
+              <span class="font-bold text-blue-400">TER</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
+            </button>
+            <button id="day-btn-qua" onclick="perfFocusDay('qua')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Quarta-feira: Descanso / Cardio">
+              <span class="font-bold text-amber-400">QUA</span> <span class="text-[10px] text-zinc-400">Cardio / Off</span>
+            </button>
+            <button id="day-btn-qui" onclick="perfFocusDay('qui')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Quinta-feira: Treino C">
+              <span class="font-bold text-blue-400">QUI</span> <span class="text-[10px] text-zinc-300">Legs (C)</span>
+            </button>
+            <button id="day-btn-sex" onclick="perfFocusDay('sex')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Sexta-feira: Treino A">
+              <span class="font-bold text-blue-400">SEX</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
+            </button>
+            <button id="day-btn-sab" onclick="perfFocusDay('sab')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Sábado: Treino B">
+              <span class="font-bold text-blue-400">SÁB</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
+            </button>
+            <button id="day-btn-dom" onclick="perfFocusDay('dom')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Domingo: Descanso Total">
+              <span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Descanso</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── MENU PILAR 5: RESULTADO ── -->
+        <div id="header-pilar-nav-5" class="hidden items-center justify-center gap-2">
+          <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-800/80 flex items-center gap-1.5">
+            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> PILAR 5 · RESULTADOS &amp; IMPACTO
+          </span>
+          <button onclick="exportPrescriptionAndEvaluationPDF()" class="hud-tab-btn">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i> Relatório Completo PDF
+          </button>
+          <button onclick="switchTab('evolution')" class="hud-tab-btn">
+            <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400"></i> Gráficos Comparativos
+          </button>
+        </div>
+
+      </nav>
+      <!-- Header Right Actions: Drive Backup & Mobile Install Button -->
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- Botão Rápido de Drive Backup (Nuvem) -->
+        <button onclick="switchTab('backup')" 
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all active:scale-95"
+          title="Abrir Drive Backup / Sincronizar Google Drive">
+          <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Drive Backup</span>
+        </button>
+
+        <!-- Botão Instalar App -->
+        <button id="header-install-app-btn" onclick="openMobileInstallModal()" 
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 border border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.45)] transition-all active:scale-95"
+          title="Instalar NutriAx Pro no Celular / Computador">
+          <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i>
+          <span>Instalar App</span>
+        </button>
+        <div id="header-app-installed-badge" class="hidden items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-mono text-emerald-400 font-bold">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>APP INSTALADO</span>
+        </div>
       </div>
     </div>
 
-    <!-- ═══ ABAS DE NAVEGAÇÃO DOS MÓDULOS POR PILAR (HEADER DINÂMICO) ═══ -->
-    <nav class="hidden lg:flex flex-col gap-1.5 items-center justify-center mx-auto" id="main-header-nav">
-      
-      <!-- ── MENU PILAR 1: MENTALIDADE ── -->
-      <div id="header-pilar-nav-1" class="hidden items-center justify-center gap-2">
-        <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-purple-950/80 text-purple-300 border border-purple-800/80 flex items-center gap-1.5">
-          <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i> PILAR 1 · MENTALIDADE &amp; COMPORTAMENTO
+    <!-- ── CABEÇALHO COMPACTO MOBILE (EXCLUSIVO SMARTPHONES) ── -->
+    <div class="flex md:hidden px-3 py-2 items-center justify-between gap-2 w-full">
+      <!-- Brand Logo / Title -->
+      <div class="flex items-center gap-1.5 shrink-0" onclick="switchTab('dashboard')" role="button">
+        <span class="text-base font-black tracking-tight text-white flex items-center gap-1">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.9)]"></span>
+          Nutri<span class="text-red-500">Ax</span>
         </span>
-        <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-          <i data-lucide="target" class="w-3.5 h-3.5 text-purple-400"></i> Foco &amp; Metas <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
-        </button>
-        <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-          <i data-lucide="smile" class="w-3.5 h-3.5 text-purple-400"></i> Registro de Mindset <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
-        </button>
       </div>
 
-      <!-- ── MENU PILAR 2: DISCIPLINA ── -->
-      <div id="header-pilar-nav-2" class="hidden items-center justify-center gap-2">
-        <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-800/80 flex items-center gap-1.5">
-          <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i> PILAR 2 · DISCIPLINA &amp; HÁBITOS
-        </span>
-        <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-orange-400"></i> Rotina Diária <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
-        </button>
-        <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-          <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400"></i> Consistência Semanal <span class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+      <!-- Seletor do Paciente em Chip Dropdown Interativo (Mobile Top Bar) -->
+      <div class="flex-1 max-w-[210px] flex items-center gap-1 bg-zinc-900/90 border border-zinc-700/80 hover:border-red-500/60 rounded-xl px-2 py-1 transition-all shadow-inner">
+        <i data-lucide="user" class="w-3.5 h-3.5 text-red-400 shrink-0"></i>
+        <select id="mobileActivePatientSelect" onchange="onPatientChange(this.value)"
+          class="bg-transparent text-xs font-bold text-white border-0 p-0 focus:ring-0 cursor-pointer w-full truncate"
+          title="Alternar Paciente Ativo">
+          <option value="paulo-vitor">Paulo Vitor R de Sousa</option>
+        </select>
+        <button onclick="openNewPatientModal()" title="Cadastrar Novo Paciente" class="text-red-400 hover:text-white font-black text-xs px-1 shrink-0">
+          +
         </button>
       </div>
 
-      <!-- ── MENU PILAR 3: NUTRIÇÃO (ATIVO POR PADRÃO) ── -->
-      <div id="header-pilar-nav-3" class="flex flex-col gap-1.5 items-center justify-center">
-        <!-- Linha 1: Módulos Clínicos & Prescrição -->
-        <div class="flex items-center justify-center gap-1.5">
-          <button id="nav-dashboard" onclick="switchTab('dashboard')" class="hud-tab-btn active">
-            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-500"></i> Dashboard &amp; Radar
-          </button>
-          <button id="nav-anamnese" onclick="switchTab('anamnese')" class="hud-tab-btn">
-            <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-red-500"></i> Anamnese &amp; Perfil
-          </button>
-          <button id="nav-exams" onclick="switchTab('exams')" class="hud-tab-btn">
-            <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-red-500"></i> Exames Clínicos
-          </button>
-          <button id="nav-recall" onclick="switchTab('recall')" class="hud-tab-btn">
-            <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-500"></i> Recordatório
-          </button>
-          <button id="nav-evaluation" onclick="switchTab('evaluation')" class="hud-tab-btn">
-            <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500"></i> Avaliação &amp; Corpo
-          </button>
-          <button id="nav-prescription" onclick="switchTab('prescription')" class="hud-tab-btn">
-            <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500"></i> Prescrição &amp; Macros
-          </button>
-        </div>
-
-        <!-- Linha 2: Acompanhamento, Alimentos, App e Backup -->
-        <div class="flex items-center justify-center gap-1.5">
-          <button id="nav-evolution" onclick="switchTab('evolution')" class="hud-tab-btn">
-            <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500"></i> Evolução Temporal
-          </button>
-          <button id="nav-adherence" onclick="switchTab('adherence')" class="hud-tab-btn">
-            <i data-lucide="check-check" class="w-3.5 h-3.5 text-red-500"></i> Controle de Adesão
-          </button>
-          <button id="nav-foods" onclick="switchTab('foods')" class="hud-tab-btn">
-            <i data-lucide="database" class="w-3.5 h-3.5 text-red-500"></i> Base de Alimentos
-          </button>
-          <button id="nav-patientApp" onclick="switchTab('patientApp')" class="hud-tab-btn" style="color:#f87171;">
-            <i data-lucide="smartphone" class="w-3.5 h-3.5 text-red-400"></i> App do Paciente
-          </button>
-          <button id="nav-backup" onclick="switchTab('backup')" class="hud-tab-btn">
-            <i data-lucide="cloud" class="w-3.5 h-3.5 text-red-500"></i> Drive Backup
-          </button>
-        </div>
-      </div>
-
-      <!-- ── MENU PILAR 4: PERFORMANCE COM AGENDA DIÁRIA IA ── -->
-      <div id="header-pilar-nav-4" class="hidden flex-col gap-1.5 items-center justify-center">
-        <!-- Linha 1: Módulos & Ação da IA -->
-        <div class="flex items-center justify-center gap-1.5 flex-wrap">
-          <button id="perf-nav-btn-prescription" onclick="perfSwitchView('prescription')" class="hud-tab-btn active" style="color:#93c5fd;border-color:rgba(59,130,246,0.5);background:rgba(30,58,138,0.45);">
-            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-blue-400"></i> Prescrição de Força
-          </button>
-          <button id="perf-nav-btn-schedule" onclick="perfSwitchView('schedule')" class="hud-tab-btn" style="color:#60a5fa;">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i> Agenda Semanal (7 Dias)
-          </button>
-          <button id="perf-nav-btn-cardio" onclick="perfSwitchView('cardio')" class="hud-tab-btn font-bold" style="color:#fbbf24;border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.12);">
-            <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i> Cardios &amp; Engine (Déficit)
-          </button>
-          <button id="perf-nav-btn-catalog" onclick="perfSwitchView('catalog')" class="hud-tab-btn">
-            <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-400"></i> Catálogo Biomecânico
-          </button>
-          <button id="perf-nav-btn-pdf" onclick="perfGeneratePDF()" class="hud-tab-btn font-bold text-emerald-300" style="border-color:rgba(16,185,129,0.5);background:rgba(6,78,59,0.45);box-shadow:0 0 10px rgba(16,185,129,0.25);">
-            <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-400"></i> PDF do Treino Completo
-          </button>
-          <button onclick="handleGenerateAITraining()" class="hud-tab-btn font-bold" style="background:linear-gradient(135deg,rgba(124,58,237,0.45),rgba(37,99,235,0.45));border-color:rgba(167,139,250,0.5);color:#ffffff;box-shadow:0 0 12px rgba(139,92,246,0.35);">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-300"></i> Gerar Treino via IA
-          </button>
-        </div>
-
-        <!-- Linha 2: AGENDA DIÁRIA INTERATIVA (SEGUNDA A DOMINGO - GERADA PELA IA) -->
-        <div class="flex items-center justify-center gap-1" id="perf-header-daily-schedule">
-          <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mr-1 flex items-center gap-1">
-            <i data-lucide="clock" class="w-3 h-3 text-blue-400"></i> Agenda:
-          </span>
-          <button id="day-btn-seg" onclick="perfFocusDay('seg')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Segunda-feira: Treino A">
-            <span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
-          </button>
-          <button id="day-btn-ter" onclick="perfFocusDay('ter')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Terça-feira: Treino B">
-            <span class="font-bold text-blue-400">TER</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
-          </button>
-          <button id="day-btn-qua" onclick="perfFocusDay('qua')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Quarta-feira: Descanso / Cardio">
-            <span class="font-bold text-amber-400">QUA</span> <span class="text-[10px] text-zinc-400">Cardio / Off</span>
-          </button>
-          <button id="day-btn-qui" onclick="perfFocusDay('qui')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Quinta-feira: Treino C">
-            <span class="font-bold text-blue-400">QUI</span> <span class="text-[10px] text-zinc-300">Legs (C)</span>
-          </button>
-          <button id="day-btn-sex" onclick="perfFocusDay('sex')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Sexta-feira: Treino A">
-            <span class="font-bold text-blue-400">SEX</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
-          </button>
-          <button id="day-btn-sab" onclick="perfFocusDay('sab')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Sábado: Treino B">
-            <span class="font-bold text-blue-400">SÁB</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
-          </button>
-          <button id="day-btn-dom" onclick="perfFocusDay('dom')" class="hud-tab-btn text-[11px] px-2 py-0.5" title="Domingo: Descanso Total">
-            <span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Descanso</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- ── MENU PILAR 5: RESULTADO ── -->
-      <div id="header-pilar-nav-5" class="hidden items-center justify-center gap-2">
-        <span class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-800/80 flex items-center gap-1.5">
-          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> PILAR 5 · RESULTADOS &amp; IMPACTO
-        </span>
-        <button onclick="exportPrescriptionAndEvaluationPDF()" class="hud-tab-btn">
-          <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i> Relatório Completo PDF
+      <!-- Ações Rápidas Mobile (Sincronizar Nuvem & Menu Geral) -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="loadPatientFromCloud(activePatientId, true)" 
+          class="p-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.25)] active:scale-90 transition-all"
+          title="Baixar Dados do Paciente do Drive">
+          <i data-lucide="cloud-download" class="w-4 h-4 text-emerald-400"></i>
         </button>
-        <button onclick="switchTab('evolution')" class="hud-tab-btn">
-          <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400"></i> Gráficos Comparativos
+        <button onclick="openMobileMenuModal()" 
+          class="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 active:scale-90 transition-all"
+          title="Abrir Menu de Módulos">
+          <i data-lucide="grid" class="w-4 h-4"></i>
         </button>
       </div>
-
-    </nav>
-    <!-- Header Right Actions: Drive Backup, Mobile Install Button & Menu -->
-    <div class="flex items-center gap-2 shrink-0">
-      <!-- Botão Rápido de Drive Backup (Nuvem) -->
-      <button onclick="switchTab('backup')" 
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all active:scale-95"
-        title="Abrir Drive Backup / Sincronizar Google Drive">
-        <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
-        <span>Drive Backup</span>
-      </button>
-
-      <!-- Botão Instalar App -->
-      <button id="header-install-app-btn" onclick="openMobileInstallModal()" 
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 border border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.45)] transition-all active:scale-95"
-        title="Instalar NutriAx Pro no Celular / Computador">
-        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i>
-        <span class="hidden sm:inline">Instalar App</span>
-        <span class="sm:hidden">App</span>
-      </button>
-      <div id="header-app-installed-badge" class="hidden items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-mono text-emerald-400 font-bold">
-        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-        <span class="hidden sm:inline">APP INSTALADO</span>
-      </div>
-
-      <!-- Botão Menu Mobile (Telas pequenas) -->
-      <button onclick="openMobileMenuModal()" 
-        class="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-zinc-200 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition-all active:scale-95"
-        title="Abrir Menu com todos os Módulos">
-        <i data-lucide="menu" class="w-4 h-4 text-zinc-300"></i>
-      </button>
     </div>
 
   </header>
 
-  <!-- ═══ 2. ESTRUTURA PRINCIPAL: SIDEBAR + CONTEÚDO ═══ -->
+  <!-- ═══ 2. ESTRUTURA PRINCIPAL: SIDEBAR (DESKTOP) + CONTEÚDO ═══ -->
   <div class="flex-1 flex flex-col md:flex-row">
 
-    <!-- ═══ SIDEBAR (GESTÃO DO PACIENTE ATIVO + PILARES + CARTÃO NUTRICIONISTA) ═══ -->
-    <aside class="w-full md:w-72 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-gray-200 border-r border-zinc-800/80 flex flex-col justify-between shrink-0 p-5 space-y-6 shadow-2xl z-40 md:sticky md:top-[75px] md:h-[calc(100vh-75px)] md:overflow-y-auto">
+    <!-- ═══ SIDEBAR (GESTÃO DO PACIENTE ATIVO + PILARES + CARTÃO NUTRICIONISTA - EXCLUSIVO DESKTOP) ═══ -->
+    <aside class="hidden md:flex md:w-72 md:flex-col justify-between shrink-0 p-5 space-y-6 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-gray-200 border-r border-zinc-800/80 shadow-2xl z-40 md:sticky md:top-[75px] md:h-[calc(100vh-75px)] md:overflow-y-auto">
       
       <div class="space-y-5">
         <!-- Logo Original da Marca no Topo da Sidebar -->
@@ -2820,46 +2854,34 @@
     <section id="tab-patientApp" class="max-w-md mx-auto space-y-4 w-full hidden">
       <div class="bg-zinc-950 text-white rounded-3xl p-5 border border-zinc-800 shadow-2xl space-y-4">
         <div class="flex justify-between items-center">
-          <span class="text-xs font-bold text-red-400">NutriAx Paciente Mobile</span>
+          <span class="text-xs font-bold text-red-400 flex items-center gap-1.5">
+            <i data-lucide="smartphone" class="w-4 h-4 text-red-500"></i> NutriAx Paciente Mobile
+          </span>
           <button onclick="openPatientLoginModal()"
-            class="text-[10px] font-bold bg-zinc-900 text-red-400 px-2.5 py-1 rounded-lg border border-zinc-700">
+            class="text-[10px] font-bold bg-zinc-900 hover:bg-zinc-800 text-red-400 px-2.5 py-1 rounded-lg border border-zinc-700 transition-all">
             🔑 Login / Sincronizar
           </button>
         </div>
 
         <div>
-          <h2 class="text-xl font-black text-white">Olá, Paulo Vitor! 👋</h2>
-          <p class="text-xs text-zinc-400">Prescrição do dia: 3739 kcal • 186g Proteína</p>
+          <h2 id="patientAppGreeting" class="text-xl font-black text-white">Olá, Paciente! 👋</h2>
+          <p id="patientAppDailySummary" class="text-xs text-zinc-400">Prescrição do dia: calculando macros...</p>
         </div>
 
         <div class="flex gap-2">
           <button onclick="loadPatientFromCloud(activePatientId, true)"
-            class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-bold py-2 rounded-xl border border-zinc-700 flex items-center justify-center gap-1.5">
-            <i data-lucide="cloud-download" class="w-4 h-4"></i> Carregar Dieta
+            class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-bold py-2.5 rounded-xl border border-zinc-700 flex items-center justify-center gap-1.5 transition-all active:scale-95">
+            <i data-lucide="cloud-download" class="w-4 h-4 text-emerald-400"></i> Carregar Dieta
           </button>
           <button onclick="savePatientToCloud(activePatientId)"
-            class="flex-1 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-bold py-2 rounded-xl shadow-lg shadow-red-950/40 flex items-center justify-center gap-1.5">
+            class="flex-1 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg shadow-red-950/40 flex items-center justify-center gap-1.5 transition-all active:scale-95">
             <i data-lucide="cloud-upload" class="w-4 h-4"></i> Enviar Log do Dia
           </button>
         </div>
 
-        <div class="space-y-2 text-xs">
-          <div class="p-3 bg-slate-800 rounded-xl flex justify-between items-center">
-            <div>
-              <span class="font-bold text-white block">07:00 • Café da manhã</span>
-              <span class="text-slate-400 text-[11px]">100ml Café + 30g Leite em Pó</span>
-            </div>
-            <button onclick="togglePatientMeal('1')" class="text-emerald-400 font-bold">Consumiu ✓</button>
-          </div>
-
-          <div class="p-3 bg-slate-800 rounded-xl flex justify-between items-center">
-            <div>
-              <span class="font-bold text-white block">12:30 • Almoço</span>
-              <span class="text-slate-400 text-[11px]">200g Frango + 200g Arroz + 80g Feijão</span>
-            </div>
-            <button onclick="openSwapModal('Almoço')"
-              class="text-amber-400 font-bold text-[10px] bg-slate-700 px-2 py-1 rounded">Trocar</button>
-          </div>
+        <!-- Lista Dinâmica de Refeições Prescritas -->
+        <div id="patientAppMealList" class="space-y-2.5 text-xs">
+          <!-- Renderizado dinamicamente via renderPatientAppView() -->
         </div>
       </div>
     </section>
@@ -3855,16 +3877,16 @@
         <span>Treino</span>
       </button>
 
-      <!-- 4. Drive Backup (Google Drive) - ACESSO DIRETO EM 1 TOQUE -->
-      <button id="mob-nav-backup" onclick="switchTab('backup')" class="mobile-nav-btn">
-        <i data-lucide="cloud-upload" class="w-5 h-5 mobile-nav-icon text-emerald-400"></i>
-        <span class="text-emerald-400 font-bold">Drive</span>
+      <!-- 4. Avaliação Física & Antropometria -->
+      <button id="mob-nav-evaluation" onclick="switchTab('evaluation')" class="mobile-nav-btn">
+        <i data-lucide="activity" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Avaliação</span>
       </button>
 
-      <!-- 5. Menu Completo de Módulos & Instalação -->
+      <!-- 5. Mais Módulos (Menu Bottom Sheet) -->
       <button id="mob-nav-menu" onclick="openMobileMenuModal()" class="mobile-nav-btn">
-        <i data-lucide="menu" class="w-5 h-5 mobile-nav-icon text-zinc-300"></i>
-        <span>Menu</span>
+        <i data-lucide="grid" class="w-5 h-5 mobile-nav-icon text-zinc-300"></i>
+        <span>Mais</span>
       </button>
 
     </div>

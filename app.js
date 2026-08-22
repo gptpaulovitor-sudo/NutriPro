@@ -3,7 +3,7 @@
 
 // Google Apps Script Web App Endpoint URL Configuration
 let GOOGLE_SCRIPT_URL = localStorage.getItem("NUTRIAX_GOOGLE_SCRIPT_URL") || "https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec";
-let activePatientId = "paulo-vitor";
+let activePatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") || "paulo-vitor";
 
 // Active Prescription Items Memory Array
 let currentPrescriptionItems = [
@@ -43,15 +43,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     scriptUrlInput.value = GOOGLE_SCRIPT_URL;
   }
 
-  // Populate Patient Selector in Top Bar
+  // Recupera o último paciente ativo salvo no localStorage
+  const savedPatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID");
+  if (savedPatientId) {
+    const exists = await db.patients.get(savedPatientId);
+    if (exists) {
+      activePatientId = savedPatientId;
+    }
+  }
+
+  // Populate Patient Selector in Top Bar and Mobile Header
   await populatePatientSelect();
 
-  // Render initial foods catalog & prescription
-  await loadFoods();
-  await loadEvaluationForPatient(activePatientId);
-  renderPrescriptionTotals();
-  renderMealItems();
-  await updateDashboardAndRadar(activePatientId);
+  // Load active patient data
+  await onPatientChange(activePatientId);
+
+  // Render initial foods catalog
+  if (typeof loadFoods === "function") await loadFoods();
+
   if (typeof attachEvaluationTriggers === "function") attachEvaluationTriggers();
   if (typeof attachAnamneseTriggers === "function") attachAnamneseTriggers();
 });
@@ -481,39 +490,64 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
   }
 }
 
-// 1. Populate Nutritionist Patient Selector
+// 1. Populate Nutritionist Patient Selector (Desktop & Mobile)
 async function populatePatientSelect() {
   const select = document.getElementById("activePatientSelect");
-  if (!select) return;
+  const mobSelect = document.getElementById("mobileActivePatientSelect");
+  if (!select && !mobSelect) return;
 
   const allPatients = await db.patients.toArray();
-  select.innerHTML = allPatients
+  const optionsHtml = allPatients
     .map(
-      (p) => `<option value="${p.id}" ${p.id === activePatientId ? "selected" : ""}>${p.name} (${p.objective})</option>`
+      (p) => `<option value="${p.id}" ${p.id === activePatientId ? "selected" : ""}>${p.name}${p.objective ? ' (' + p.objective + ')' : ''}</option>`
     )
     .join("");
+
+  if (select) {
+    select.innerHTML = optionsHtml;
+    select.value = activePatientId;
+  }
+  if (mobSelect) {
+    mobSelect.innerHTML = optionsHtml;
+    mobSelect.value = activePatientId;
+  }
 }
 
 // 2. On Nutritionist Patient Change (Select Event)
 async function onPatientChange(patientId) {
+  if (!patientId) return;
+
   // ── 0. Flush save pendente do paciente ATUAL antes de qualquer mudança ───
-  //      activePatientId ainda aponta para o paciente antigo aqui → save correto
-  if (typeof _flushAnamneseSave === "function") await _flushAnamneseSave();
+  if (typeof _flushAnamneseSave === "function") {
+    try { await _flushAnamneseSave(); } catch(e) { console.warn(e); }
+  }
 
   activePatientId = patientId;
+  localStorage.setItem("NUTRIAX_ACTIVE_PATIENT_ID", patientId);
+
+  // Sincroniza ambos os seletores de paciente na tela
+  const select = document.getElementById("activePatientSelect");
+  const mobSelect = document.getElementById("mobileActivePatientSelect");
+  if (select && select.value !== patientId) select.value = patientId;
+  if (mobSelect && mobSelect.value !== patientId) mobSelect.value = patientId;
+
   const p = await db.patients.get(patientId);
   if (!p) return;
 
-  // ── 1. Atualiza cabeçalho imediatamente (sem esperar nada) ──────────────
-  document.getElementById("headerPatientName").innerText = p.name;
-  document.getElementById("headerPatientInfo").innerText = `${p.age} anos • ${p.height} m • ${p.currentWeight} kg`;
-  document.getElementById("headerPatientGoal").innerText = p.objective;
+  // ── 1. Atualiza cabeçalhos imediatamente ──────────────────────────────────
+  const nameEl = document.getElementById("headerPatientName");
+  if (nameEl) nameEl.innerText = p.name;
+  const infoEl = document.getElementById("headerPatientInfo");
+  if (infoEl) infoEl.innerText = `${p.age} anos • ${p.height} m • ${p.currentWeight} kg`;
+  const goalEl = document.getElementById("headerPatientGoal");
+  if (goalEl) goalEl.innerText = p.objective || "Acompanhamento Nutricional";
+
   const perfPatientNameEl = document.getElementById("perfPatientName");
   if (perfPatientNameEl) perfPatientNameEl.innerText = p.name;
   const perfPatientGoalEl = document.getElementById("perfPatientGoal");
   if (perfPatientGoalEl) perfPatientGoalEl.innerText = p.objective || "Hipertrofia & Recomposição";
 
-  // ── 2. Carrega todos os módulos locais em paralelo (Dexie = rápido) ─────
+  // ── 2. Carrega todos os módulos locais em paralelo (Dexie = ultra rápido) ─
   const localLoads = [
     loadEvaluationForPatient(patientId),
     updateDashboardAndRadar(patientId),
@@ -527,6 +561,10 @@ async function onPatientChange(patientId) {
 
   await Promise.all(localLoads);
 
+  if (typeof renderPatientAppView === "function") {
+    renderPatientAppView(patientId);
+  }
+
   // ── 3. Sync com a nuvem em background (sem bloquear a UI) ───────────────
   if (GOOGLE_SCRIPT_URL) {
     loadPatientFromCloud(patientId, false).catch(err =>
@@ -535,59 +573,6 @@ async function onPatientChange(patientId) {
   }
 }
 
-// 3. Tab Switching Controller
-async function switchTab(tabId) {
-  const tabs = ["dashboard", "anamnese", "exams", "recall", "evaluation", "prescription", "evolution", "adherence", "foods", "patientApp", "backup"];
-  tabs.forEach((id) => {
-    const el = document.getElementById(`tab-${id}`);
-    const navBtn = document.getElementById(`nav-${id}`);
-    if (el) el.classList.add("hidden");
-    if (navBtn) {
-      navBtn.classList.remove("active");
-      navBtn.style.color = "";
-      navBtn.style.background = "";
-      navBtn.style.borderLeft = "";
-    }
-  });
-
-  const activeEl = document.getElementById(`tab-${tabId}`);
-  const activeNav = document.getElementById(`nav-${tabId}`);
-  if (activeEl) activeEl.classList.remove("hidden");
-  if (activeNav) {
-    activeNav.classList.add("active");
-  }
-
-  if (tabId === "dashboard") {
-    await updateDashboardAndRadar(activePatientId);
-  } else if (tabId === "anamnese") {
-    // Não recarrega ao trocar de aba — form já foi carregado pelo onPatientChange
-    // Isso evita que setSelectValue sobrescreva escolhas do usuário
-  } else if (tabId === "exams") {
-    // Ao sair da anamnese, garante que dados pendentes são salvos
-    if (typeof _flushAnamneseSave === "function") await _flushAnamneseSave();
-    await loadClinicalExams(activePatientId);
-  } else if (tabId === "evaluation") {
-    if (typeof _flushAnamneseSave === "function") await _flushAnamneseSave();
-    await loadEvaluationForPatient(activePatientId);
-  } else if (tabId === "recall") {
-    if (typeof _flushAnamneseSave === "function") await _flushAnamneseSave();
-    await loadDietaryRecall(activePatientId);
-  } else if (tabId === "prescription") {
-    if (typeof _flushAnamneseSave === "function") await _flushAnamneseSave();
-    await loadPrescriptionForPatient(activePatientId);
-    renderPrescriptionClinicalAlerts(activePatientId);
-  } else if (tabId === "evolution") {
-    await loadAssessmentsAndRenderCharts(activePatientId);
-  } else if (tabId === "adherence") {
-    await loadAdherenceDashboard(activePatientId);
-  } else if (tabId === "foods") {
-    if (typeof loadFoods === "function") loadFoods();
-  }
-
-  if (window.lucide) {
-    lucide.createIcons();
-  }
-}
 
 // =========================================================================
 // 4. BASE DE ALIMENTOS: TACO, TBCA & RÓTULOS (Dexie.js / IndexedDB)
@@ -2836,30 +2821,118 @@ async function handlePatientAppLogin(event) {
   if (!inputId) return;
 
   activePatientId = inputId;
+  localStorage.setItem("NUTRIAX_ACTIVE_PATIENT_ID", inputId);
   closePatientLoginModal();
 
   if (GOOGLE_SCRIPT_URL) {
     await loadPatientFromCloud(inputId, true);
   } else {
+    await onPatientChange(inputId);
     alert(`Paciente ${inputId} ativado localmente no App!`);
   }
 }
 
+async function renderPatientAppView(patientId = activePatientId) {
+  const p = await db.patients.get(patientId);
+  const greetingEl = document.getElementById("patientAppGreeting");
+  const summaryEl = document.getElementById("patientAppDailySummary");
+  const mealContainer = document.getElementById("patientAppMealList");
+
+  if (p && greetingEl) {
+    const firstName = (p.name || "").split(" ")[0] || "Paciente";
+    greetingEl.innerText = `Olá, ${firstName}! 👋`;
+  }
+
+  // Calcula macros e calorias a partir dos itens da prescrição atual
+  let totalKcal = 0;
+  let totalProt = 0;
+  if (Array.isArray(currentPrescriptionItems) && currentPrescriptionItems.length > 0) {
+    totalKcal = Math.round(currentPrescriptionItems.reduce((acc, item) => acc + (Number(item.calories) || 0), 0));
+    totalProt = Math.round(currentPrescriptionItems.reduce((acc, item) => acc + (Number(item.protein) || 0), 0));
+  } else if (p) {
+    totalKcal = Math.round(p.targetCalories || 2000);
+    totalProt = Math.round(p.targetProtein || 150);
+  }
+
+  if (summaryEl) {
+    summaryEl.innerText = `Prescrição do dia: ${totalKcal} kcal • ${totalProt}g Proteína`;
+  }
+
+  if (mealContainer) {
+    if (!currentPrescriptionItems || currentPrescriptionItems.length === 0) {
+      mealContainer.innerHTML = `
+        <div class="p-4 bg-zinc-900/60 border border-zinc-800 rounded-2xl text-center text-zinc-400 text-xs">
+          Nenhuma refeição prescrita ainda para este paciente. Acesse a aba "Prescrição" para montar o plano.
+        </div>
+      `;
+      return;
+    }
+
+    // Agrupa itens de refeição por mealName
+    const mealsMap = {};
+    currentPrescriptionItems.forEach((item) => {
+      const mName = item.mealName || "Refeição";
+      if (!mealsMap[mName]) {
+        mealsMap[mName] = { time: item.mealTime || "Horário livre", items: [] };
+      }
+      mealsMap[mName].items.push(item);
+    });
+
+    let mealsHtml = "";
+    Object.keys(mealsMap).forEach((mName, idx) => {
+      const meal = mealsMap[mName];
+      const itemsSummary = meal.items.map(i => `${i.quantity}g ${i.foodName}`).join(" + ");
+      const mealKcal = Math.round(meal.items.reduce((s, i) => s + (Number(i.calories) || 0), 0));
+
+      mealsHtml += `
+        <div id="patientMealCard-${idx}" class="p-3.5 bg-zinc-900/80 border border-zinc-800 rounded-2xl flex items-center justify-between gap-3 transition-all">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-black text-white text-xs block">${meal.time} • ${mName}</span>
+              <span class="text-[10px] font-mono font-bold bg-red-950 text-red-300 border border-red-800/60 px-1.5 py-0.2 rounded">${mealKcal} kcal</span>
+            </div>
+            <span class="text-zinc-400 text-[11px] block truncate mt-0.5">${itemsSummary}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="openSwapModal('${mName.replace(/'/g, "\\'")}')" class="text-amber-400 font-bold text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2 py-1 rounded-lg">Trocar</button>
+            <button onclick="togglePatientMeal('${idx}')" id="patientMealBtn-${idx}" class="text-emerald-400 font-bold text-xs bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-1 rounded-lg hover:bg-emerald-900 transition-all">Consumiu ✓</button>
+          </div>
+        </div>
+      `;
+    });
+
+    mealContainer.innerHTML = mealsHtml;
+  }
+}
+
 function togglePatientMeal(id) {
-  const el = document.getElementById(`patientMealCheck-${id}`);
-  if (el) {
-    el.classList.toggle("bg-emerald-950");
-    el.classList.toggle("border-emerald-700");
+  const card = document.getElementById(`patientMealCard-${id}`);
+  const btn = document.getElementById(`patientMealBtn-${id}`);
+  if (card) {
+    card.classList.toggle("bg-emerald-950/40");
+    card.classList.toggle("border-emerald-700/80");
+  }
+  if (btn) {
+    if (btn.innerText.includes("Consumido")) {
+      btn.innerText = "Consumiu ✓";
+      btn.className = "text-emerald-400 font-bold text-xs bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-1 rounded-lg hover:bg-emerald-900 transition-all";
+    } else {
+      btn.innerText = "Consumido ✨";
+      btn.className = "text-emerald-200 font-bold text-xs bg-emerald-800 border border-emerald-500 px-2.5 py-1 rounded-lg shadow-sm shadow-emerald-500/50 transition-all";
+    }
   }
 }
 
 function openSwapModal(mealName) {
-  document.getElementById("swapMealTitle").innerText = mealName;
-  document.getElementById("patientSwapModal").classList.remove("hidden");
+  const titleEl = document.getElementById("swapMealTitle");
+  if (titleEl) titleEl.innerText = mealName;
+  const modal = document.getElementById("patientSwapModal");
+  if (modal) modal.classList.remove("hidden");
 }
 
 function closeSwapModal() {
-  document.getElementById("patientSwapModal").classList.add("hidden");
+  const modal = document.getElementById("patientSwapModal");
+  if (modal) modal.classList.add("hidden");
 }
 
 // 8. Per-Patient Google Drive Sync Engine (savePatientToCloud & loadPatientFromCloud)
@@ -3001,29 +3074,24 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
 
       if (cloudData.prescriptions) {
         currentPrescriptionItems = cloudData.prescriptions;
+        await db.prescriptions.put({ id: patientId, patientId: patientId, items: currentPrescriptionItems });
         renderPrescriptionTotals();
         renderMealItems();
       }
 
-      // Atualiza o seletor de paciente (garante que o paciente importado apareça na lista)
+      activePatientId = patientId;
+      localStorage.setItem("NUTRIAX_ACTIVE_PATIENT_ID", patientId);
+
+      // Atualiza os seletores de paciente (desktop e mobile)
       await populatePatientSelect();
-      const selectEl = document.getElementById("activePatientSelect");
-      if (selectEl) selectEl.value = patientId;
 
       // Recarrega módulos impactados pelo cloud
-      // Só atualiza UI se o paciente ainda é o ativo (usuário pode ter trocado durante o sync)
-      if (patientId === activePatientId) {
-        await updateDashboardAndRadar(patientId);
-        if (typeof loadClinicalExams === "function") await loadClinicalExams(patientId);
-        if (typeof loadAssessmentsAndRenderCharts === "function") await loadAssessmentsAndRenderCharts(patientId);
-        if (typeof loadDietaryRecall === "function") await loadDietaryRecall(patientId);
-        if (typeof loadAdherenceDashboard === "function") await loadAdherenceDashboard(patientId);
-        // NÃO recarrega Anamnese — dados podem ter sido editados pelo usuário
-      } else {
-        // Paciente diferente do ativo: ativa ele agora
-        activePatientId = patientId;
-        await onPatientChange(patientId);
-      }
+      await updateDashboardAndRadar(patientId);
+      if (typeof loadClinicalExams === "function") await loadClinicalExams(patientId);
+      if (typeof loadAssessmentsAndRenderCharts === "function") await loadAssessmentsAndRenderCharts(patientId);
+      if (typeof loadDietaryRecall === "function") await loadDietaryRecall(patientId);
+      if (typeof loadAdherenceDashboard === "function") await loadAdherenceDashboard(patientId);
+      if (typeof renderPatientAppView === "function") renderPatientAppView(patientId);
 
       if (statusEl) statusEl.innerHTML = `<span class='text-emerald-600 font-bold'>✅ Paciente <strong>${patientId}</strong> importado do Drive e ativo no seletor!</span>`;
       if (showAlert) alert(`✅ Ficha completa de "${patientId}" restaurada do Google Drive e definida como paciente ativo!`);
@@ -3135,6 +3203,7 @@ async function loadPatientFromDriveByFileName(patientId) {
       }
       if (cloudData.prescriptions) {
         currentPrescriptionItems = cloudData.prescriptions;
+        await db.prescriptions.put({ id: patientId, patientId: patientId, items: currentPrescriptionItems });
       }
 
       // Atualiza seletor de paciente ativo e ativa o paciente carregado
@@ -5184,8 +5253,15 @@ function updateSidebarPilarVisuals(activePilarId) {
   }
 }
 
-function switchTab(tabName, syncPilar = true) {
-  // Sincroniza o Pilar correspondente se acionado diretamente
+async function switchTab(tabName, syncPilar = true) {
+  if (!tabName) return;
+
+  // 1. Flush de salvamento pendente antes de sair da aba
+  if (typeof _flushAnamneseSave === "function") {
+    try { await _flushAnamneseSave(); } catch(e) { console.warn(e); }
+  }
+
+  // 2. Sincroniza o Pilar correspondente se acionado diretamente
   if (syncPilar) {
     if (tabName === 'performance' && currentActivePilar !== 4) {
       switchPilar(4, 'performance');
@@ -5196,7 +5272,7 @@ function switchTab(tabName, syncPilar = true) {
     }
   }
 
-  // Esconde todas as seções
+  // 3. Esconde todas as seções
   ALL_TAB_IDS.forEach(id => {
     const el = document.getElementById('tab-' + id);
     if (el) {
@@ -5205,14 +5281,14 @@ function switchTab(tabName, syncPilar = true) {
     }
   });
 
-  // Mostra a aba solicitada
+  // 4. Mostra exclusivamente a aba solicitada
   const target = document.getElementById('tab-' + tabName);
   if (target) {
     target.classList.remove('hidden');
     target.style.display = 'block';
   }
 
-  // Atualiza estado ativo nos botões do header
+  // 5. Atualiza estado ativo nos botões do header desktop
   ALL_TAB_IDS.forEach(id => {
     const btn = document.getElementById('nav-' + id);
     if (btn) btn.classList.remove('active');
@@ -5220,8 +5296,8 @@ function switchTab(tabName, syncPilar = true) {
   const activeBtn = document.getElementById('nav-' + tabName);
   if (activeBtn) activeBtn.classList.add('active');
 
-  // Atualiza estado ativo na Bottom Navigation Bar Mobile
-  const mobNavIds = ['dashboard', 'prescription', 'performance', 'backup', 'patientApp'];
+  // 6. Atualiza estado ativo na Bottom Navigation Bar Mobile
+  const mobNavIds = ['dashboard', 'prescription', 'performance', 'evaluation', 'backup', 'patientApp'];
   mobNavIds.forEach(id => {
     const mobBtn = document.getElementById('mob-nav-' + id);
     if (mobBtn) {
@@ -5233,26 +5309,46 @@ function switchTab(tabName, syncPilar = true) {
     }
   });
 
-  // Fecha o modal de menu mobile se estiver aberto
+  // 7. Fecha o modal de menu mobile se estiver aberto
   const menuModal = document.getElementById('mobile-menu-modal');
   if (menuModal && menuModal.style.display !== 'none') {
     menuModal.style.display = 'none';
   }
 
-  // Triggers específicos de renderização por módulo
-  if (tabName === 'performance' && typeof perfRender === 'function') {
-    perfRender();
-  } else if (tabName === 'foods' && typeof renderFoodsTable === 'function') {
-    renderFoodsTable();
-  } else if (tabName === 'evolution' && typeof renderEvolutionCharts === 'function') {
-    renderEvolutionCharts();
+  // 8. Triggers específicos de carregamento dos dados do paciente ativo por módulo
+  try {
+    if (tabName === 'dashboard') {
+      if (typeof updateDashboardAndRadar === 'function') await updateDashboardAndRadar(activePatientId);
+    } else if (tabName === 'prescription') {
+      if (typeof loadPrescriptionForPatient === 'function') await loadPrescriptionForPatient(activePatientId);
+      if (typeof renderPrescriptionClinicalAlerts === 'function') renderPrescriptionClinicalAlerts(activePatientId);
+    } else if (tabName === 'evaluation') {
+      if (typeof loadEvaluationForPatient === 'function') await loadEvaluationForPatient(activePatientId);
+    } else if (tabName === 'exams') {
+      if (typeof loadClinicalExams === 'function') await loadClinicalExams(activePatientId);
+    } else if (tabName === 'recall') {
+      if (typeof loadDietaryRecall === 'function') await loadDietaryRecall(activePatientId);
+    } else if (tabName === 'evolution') {
+      if (typeof loadAssessmentsAndRenderCharts === 'function') await loadAssessmentsAndRenderCharts(activePatientId);
+      if (typeof renderEvolutionCharts === 'function') renderEvolutionCharts();
+    } else if (tabName === 'adherence') {
+      if (typeof loadAdherenceDashboard === 'function') await loadAdherenceDashboard(activePatientId);
+    } else if (tabName === 'performance') {
+      if (typeof perfRender === 'function') perfRender();
+    } else if (tabName === 'patientApp') {
+      if (typeof renderPatientAppView === 'function') renderPatientAppView(activePatientId);
+    } else if (tabName === 'foods') {
+      if (typeof loadFoods === 'function') await loadFoods();
+    }
+  } catch (err) {
+    console.error("Erro ao carregar dados do módulo " + tabName, err);
   }
 
-  // Re-cria ícones Lucide na nova aba
+  // 9. Re-cria ícones Lucide na nova aba
   if (window.lucide) window.lucide.createIcons();
 
-  // Scroll suave ao topo do conteúdo
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 10. Scroll instantâneo ao topo do conteúdo (para tela de celular)
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 // Inicializa no carregamento da página com suporte a atalhos PWA (?tab=...)

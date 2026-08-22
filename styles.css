@@ -314,4 +314,31 @@ input, textarea, [contenteditable="true"] {
   100% { opacity: 0.9; filter: blur(8px); }
 }
 
+/* Transições fluidas ao alternar abas no mobile */
+@keyframes tabScreenFade {
+  from {
+    opacity: 0.85;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+section[id^="tab-"]:not(.hidden) {
+  animation: tabScreenFade 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (max-width: 767px) {
+  body {
+    background-color: #000000;
+  }
+  
+  /* Ajuste de padding de containers no celular para aproveitar a tela cheia */
+  main {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0.75rem !important;
+  }
+}
