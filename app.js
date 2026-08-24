@@ -9144,8 +9144,8 @@ function renderPerfWorkoutPlan() {
           const restVal = parseInt(ex.rest) || 60;
           const substitutes = perfGetSubstitutes(resolvedId);
           const subOptionsHtml = substitutes.map(s => {
-            const primaryClean = s.primary ? s.primary.replace(/\(.*?\)/g, '').trim() : s.group;
-            return `<option value="${s.id}">• ${s.name} [🎯 ${primaryClean} | ${s.equipment} · ${s.mechanics}]</option>`;
+            const targetFull = s.primary || s.group;
+            return `<option value="${s.id}">• ${s.name} [🎯 Primário: ${targetFull} | ${s.equipment} · ${s.mechanics}]</option>`;
           }).join('');
           
           return `
