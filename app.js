@@ -8177,7 +8177,63 @@ function perfGetExerciseGuideData(ex) {
   };
 }
 
-function perfOpenExerciseGuide(exerciseId) {
+function perfGetSubstitutes(exerciseId) {
+  if (!exerciseId) return [];
+  let dbEx = PERF_EXERCISE_DB.find(e => e.id === exerciseId);
+  if (!dbEx) {
+    const clean = String(exerciseId).trim().toLowerCase();
+    dbEx = PERF_EXERCISE_DB.find(e => e.name.toLowerCase() === clean || e.name.toLowerCase().includes(clean));
+  }
+  if (!dbEx) return [];
+
+  // Retorna todos os outros exercícios do mesmo grupo muscular
+  return PERF_EXERCISE_DB.filter(e => e.group === dbEx.group && e.id !== dbEx.id);
+}
+
+function perfSwapExercise(routineId, oldExerciseId, newExerciseId) {
+  const newEx = PERF_EXERCISE_DB.find(e => e.id === newExerciseId);
+  if (!newEx) return;
+
+  let swappedName = '';
+  perfWorkoutPlan = perfWorkoutPlan.map(routine => {
+    if (routine.id !== routineId) return routine;
+    return {
+      ...routine,
+      exercises: routine.exercises.map(ex => {
+        const id = ex.exerciseId || ex.id;
+        if (id === oldExerciseId || ex.name === oldExerciseId) {
+          swappedName = newEx.name;
+          return {
+            ...ex,
+            exerciseId: newEx.id,
+            id: newEx.id,
+            name: newEx.name,
+            group: newEx.group,
+            mechanics: newEx.mechanics,
+            equipment: newEx.equipment,
+            primary: newEx.primary,
+            secondary: newEx.secondary
+          };
+        }
+        return ex;
+      })
+    };
+  });
+
+  savePerformanceForPatient(activePatientId);
+  perfRender();
+
+  const toast = document.getElementById('perf-ai-toast');
+  if (toast && swappedName) {
+    toast.style.display = 'flex';
+    toast.innerHTML = `<i data-lucide="shuffle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+      <div>Exercício substituído por <strong>${swappedName}</strong> (${newEx.equipment}) na Rotina ${routineId}.</div>`;
+    if (window.lucide) window.lucide.createIcons();
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4500);
+  }
+}
+
+function perfOpenExerciseGuide(exerciseId, routineId = null) {
   let ex = null;
   if (typeof exerciseId === 'object' && exerciseId !== null) {
     ex = exerciseId;
@@ -8217,6 +8273,8 @@ function perfOpenExerciseGuide(exerciseId) {
   const stepsEl = document.getElementById('guide-modal-steps');
   const breathEl = document.getElementById('guide-modal-breathing');
   const mistakeEl = document.getElementById('guide-modal-mistakes');
+  const subCountEl = document.getElementById('guide-modal-substitutes-count');
+  const subListEl = document.getElementById('guide-modal-substitutes-list');
 
   if (titleEl) titleEl.textContent = data.name;
   if (groupEl) groupEl.textContent = data.group;
@@ -8246,6 +8304,39 @@ function perfOpenExerciseGuide(exerciseId) {
         <span class="text-zinc-300 text-[11.5px] leading-snug">${st}</span>
       </div>
     `).join('');
+  }
+
+  // Preenche Variações e Substitutos
+  const substitutes = perfGetSubstitutes(data.id);
+  if (subCountEl) subCountEl.textContent = `${substitutes.length} opções disponíveis`;
+  if (subListEl) {
+    if (substitutes.length === 0) {
+      subListEl.innerHTML = `<div class="col-span-1 sm:col-span-2 text-center text-xs text-zinc-500 py-3">Nenhuma variação alternativa cadastrada para o grupo ${data.group}.</div>`;
+    } else {
+      subListEl.innerHTML = substitutes.map(sub => `
+        <div class="p-2.5 rounded-xl bg-black/60 border border-zinc-800/80 hover:border-amber-500/50 flex flex-col justify-between gap-2 transition-all">
+          <div>
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-bold text-white leading-tight truncate">${sub.name}</span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-amber-300 border border-amber-800/50 shrink-0">${sub.equipment}</span>
+            </div>
+            <div class="text-[10px] text-zinc-400 font-mono mt-0.5">${sub.mechanics} · ${sub.primary}</div>
+          </div>
+          <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-800/80">
+            <button onclick="perfOpenExerciseGuide('${sub.id}', '${routineId || ''}')"
+              class="flex-1 px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center justify-center gap-1">
+              <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> Ver GIF
+            </button>
+            ${routineId ? `
+              <button onclick="perfSwapExercise('${routineId}', '${data.id}', '${sub.id}'); perfCloseExerciseGuide();"
+                class="px-2.5 py-1 rounded-lg text-[10px] font-black text-amber-300 hover:text-white bg-amber-950/90 hover:bg-amber-800 border border-amber-600/70 transition-all flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.25)]">
+                <i data-lucide="check" class="w-3 h-3"></i> Aplicar
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
   }
 
   modal.classList.remove('hidden');
@@ -9048,6 +9139,10 @@ function renderPerfWorkoutPlan() {
 
           const cadence = dbEx.mechanics === 'Isolador' ? '3-1-1-0 (1s pico)' : '3-0-1-0 (Controlada)';
           const restVal = parseInt(ex.rest) || 60;
+          const substitutes = perfGetSubstitutes(resolvedId);
+          const subOptionsHtml = substitutes.map(s => 
+            `<option value="${s.id}">• ${s.name} [${s.equipment} · ${s.mechanics}]</option>`
+          ).join('');
           
           return `
           <div class="p-3 sm:p-4 border-b border-zinc-800/60 hover:bg-blue-950/15 transition-all">
@@ -9060,12 +9155,23 @@ function renderPerfWorkoutPlan() {
                     #${idx+1}
                   </span>
                   <h4 class="text-sm md:text-base font-bold text-white tracking-tight break-words">${ex.name || dbEx.name}</h4>
-                  <button onclick="perfOpenExerciseGuide('${resolvedId}')"
+                  <button onclick="perfOpenExerciseGuide('${resolvedId}', '${routine.id}')"
                     class="px-2 py-0.5 rounded-md text-[10px] font-bold text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/70 flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(59,130,246,0.25)] hover:shadow-[0_0_12px_rgba(59,130,246,0.5)] cursor-pointer"
                     title="Ver GIF animado e guia biomecânico de execução">
                     <i data-lucide="play-circle" class="w-3.5 h-3.5 text-blue-400"></i>
                     <span>GIF &amp; Execução</span>
                   </button>
+
+                  <!-- Seletor de Exercício Substituto / Variações de Execução -->
+                  <div class="relative inline-flex items-center">
+                    <select onchange="if(this.value){ perfSwapExercise('${routine.id}', '${resolvedId}', this.value); this.selectedIndex = 0; }"
+                      class="bg-amber-950/40 hover:bg-amber-950/80 text-amber-300 hover:text-amber-200 border border-amber-600/50 hover:border-amber-500 text-[10px] font-bold rounded-md px-2 py-0.5 outline-none transition-all cursor-pointer shadow-[0_0_8px_rgba(245,158,11,0.2)] max-w-[170px] sm:max-w-[210px] truncate"
+                      title="Substituir por outra opção de execução do mesmo grupo muscular">
+                      <option value="" selected>🔄 Variações (${substitutes.length})</option>
+                      ${subOptionsHtml}
+                    </select>
+                  </div>
+
                   <span class="text-[9px] sm:text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
                     ${dbEx.group}
                   </span>
@@ -10045,6 +10151,8 @@ window.loadPerformanceForPatient = loadPerformanceForPatient;
 window.savePerformanceForPatient = savePerformanceForPatient;
 window.updateAITrainingBanner = updateAITrainingBanner;
 window.approveAITraining = approveAITraining;
+window.perfGetSubstitutes = perfGetSubstitutes;
+window.perfSwapExercise = perfSwapExercise;
 
 // ═══════════════════════════════════════════════════════════
 // MOTOR PWA MOBILE & GERENCIADOR DE INSTALAÇÃO NO CELULAR
