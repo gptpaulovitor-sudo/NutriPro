@@ -8320,9 +8320,12 @@ function perfOpenExerciseGuide(exerciseId, routineId = null) {
               <span class="text-xs font-bold text-white leading-tight truncate">${sub.name}</span>
               <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-amber-300 border border-amber-800/50 shrink-0">${sub.equipment}</span>
             </div>
-            <div class="text-[10px] text-zinc-400 font-mono mt-0.5">${sub.mechanics} · ${sub.primary}</div>
+            <div class="text-[11px] text-amber-300/90 font-medium mt-1 flex items-center gap-1">
+              <span>🎯 Alvo:</span> <strong class="text-white">${sub.primary}</strong>
+            </div>
+            <div class="text-[10px] text-zinc-400 font-mono mt-0.5">${sub.mechanics} ${sub.secondary ? `· Sinérgicos: ${sub.secondary}` : ''}</div>
           </div>
-          <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-800/80">
+          <div class="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800/80">
             <button onclick="perfOpenExerciseGuide('${sub.id}', '${routineId || ''}')"
               class="flex-1 px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center justify-center gap-1">
               <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> Ver GIF
@@ -9140,9 +9143,10 @@ function renderPerfWorkoutPlan() {
           const cadence = dbEx.mechanics === 'Isolador' ? '3-1-1-0 (1s pico)' : '3-0-1-0 (Controlada)';
           const restVal = parseInt(ex.rest) || 60;
           const substitutes = perfGetSubstitutes(resolvedId);
-          const subOptionsHtml = substitutes.map(s => 
-            `<option value="${s.id}">• ${s.name} [${s.equipment} · ${s.mechanics}]</option>`
-          ).join('');
+          const subOptionsHtml = substitutes.map(s => {
+            const primaryClean = s.primary ? s.primary.replace(/\(.*?\)/g, '').trim() : s.group;
+            return `<option value="${s.id}">• ${s.name} [🎯 ${primaryClean} | ${s.equipment} · ${s.mechanics}]</option>`;
+          }).join('');
           
           return `
           <div class="p-3 sm:p-4 border-b border-zinc-800/60 hover:bg-blue-950/15 transition-all">
