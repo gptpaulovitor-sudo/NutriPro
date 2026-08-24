@@ -31,6 +31,20 @@ db.version(7).stores({
   performanceMetabolica: "id, patientId",
 });
 
+db.version(8).stores({
+  patients: "id, name, age, gender, objective",
+  foods: "id, name, category, source, brand",
+  assessments: "id, patientId, date",
+  anthropometry: "id, patientId, date",
+  clinicalExams: "id, patientId, examName, priority",
+  prescriptions: "id, patientId",
+  prescriptionItems: "id, prescriptionId, foodName",
+  substitutions: "id, categoryGroup",
+  dailyLogs: "id, patientId, date",
+  dietaryRecall: "id, patientId, mealName",
+  performanceMetabolica: "id, patientId",
+});
+
 // Comprehensive TACO, TBCA e Rótulos Catalog (Mais de 3000 alimentos oficiais, Ref. 100g / 100ml)
 // Inclui Café com Açúcar, Café sem Açúcar, todas as tabelas TACO 4ª Edição e TBCA/USP.
 const initialFoodsData = (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== "undefined" && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS) && COMPREHENSIVE_TACO_TBCA_FOODS.length > 0)

@@ -5923,7 +5923,7 @@ async function selectMobilePilarTool(pilarId, toolKey) {
   if (window.lucide) window.lucide.createIcons();
 }
 
-function switchPilar(pilarId, targetTab = null, autoScroll = true) {
+async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
   currentActivePilar = pilarId;
 
   // 1. Alterna os menus superiores no Header Desktop
@@ -5986,20 +5986,19 @@ function switchPilar(pilarId, targetTab = null, autoScroll = true) {
 
   // 6. Determina qual aba abrir por padrão no pilar escolhido
   if (targetTab) {
-    switchTab(targetTab, false, autoScroll);
+    await switchTab(targetTab, false, autoScroll);
     if (pilarId === 3) updateMobileSubnavActiveVisuals(3, targetTab);
     else if (pilarId === 4) updateMobileSubnavActiveVisuals(4, 'prescription');
     else if (pilarId === 5) updateMobileSubnavActiveVisuals(5, 'dashboard');
   } else {
     if (pilarId === 3) {
-      switchTab('dashboard', false, autoScroll);
+      await switchTab('dashboard', false, autoScroll);
       updateMobileSubnavActiveVisuals(3, 'dashboard');
     } else if (pilarId === 4) {
-      switchTab('performance', false, autoScroll);
-      if (typeof perfRender === 'function') perfRender();
+      await switchTab('performance', false, autoScroll);
       updateMobileSubnavActiveVisuals(4, 'prescription');
     } else if (pilarId === 5) {
-      switchTab('evolution', false, autoScroll);
+      await switchTab('evolution', false, autoScroll);
       if (typeof resultsSwitchSubView === 'function') resultsSwitchSubView('dashboard', false);
       updateMobileSubnavActiveVisuals(5, 'dashboard');
     }
@@ -8805,65 +8804,104 @@ let perfWorkoutMeta = {
 };
 
 async function savePerformanceForPatient(patientId = activePatientId) {
+  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
+  if (!pId) return;
+
+  const record = {
+    id: pId,
+    patientId: pId,
+    activeSplit: perfActiveSplit,
+    workoutPlan: perfWorkoutPlan,
+    weeklySchedule: perfWeeklySchedule,
+    prescribedCardioId: perfPrescribedCardioId,
+    auditData: perfAuditData,
+    meta: perfWorkoutMeta,
+    lastUpdated: new Date().toISOString()
+  };
+
+  // 1. Grava no localStorage imediatamente (síncrono e resiliente a fechamento de app / recarga)
   try {
-    if (!patientId) return;
-    await db.performanceMetabolica.put({
-      id: patientId,
-      patientId: patientId,
-      activeSplit: perfActiveSplit,
-      workoutPlan: perfWorkoutPlan,
-      weeklySchedule: perfWeeklySchedule,
-      prescribedCardioId: perfPrescribedCardioId,
-      auditData: perfAuditData,
-      meta: perfWorkoutMeta,
-      lastUpdated: new Date().toISOString()
-    });
+    localStorage.setItem("NUTRIAX_PERFORMANCE_" + pId, JSON.stringify(record));
+  } catch (lsErr) {
+    console.warn("Falha ao salvar performance no localStorage:", lsErr);
+  }
+
+  // 2. Grava no Dexie (IndexedDB)
+  try {
+    if (typeof db !== "undefined" && db.performanceMetabolica) {
+      await db.performanceMetabolica.put(record);
+    }
   } catch (err) {
-    console.error("Erro ao salvar performance/treino do paciente:", err);
+    console.warn("Falha ao salvar performance no Dexie:", err);
   }
 }
 
 async function loadPerformanceForPatient(patientId = activePatientId) {
+  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
+  if (!pId) return;
+
+  let saved = null;
+
+  // 1. Tenta recuperar do Dexie (IndexedDB)
   try {
-    const saved = await db.performanceMetabolica.get(patientId);
-    if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
-      perfActiveSplit = saved.activeSplit || 'PPL';
-      perfWorkoutPlan = saved.workoutPlan;
-      perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7)
-        ? saved.weeklySchedule
-        : perfBuildWeeklySchedule(perfActiveSplit);
-      perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
-      perfAuditData = saved.auditData || null;
-      perfWorkoutMeta = saved.meta || {
-        isAIGenerated: !!saved.isAIGenerated,
-        isClinicallyValidated: !!saved.isClinicallyValidated,
-        generatedAt: saved.generatedAt || null,
-        validatedAt: saved.validatedAt || null
-      };
-      perfTargetRoutine = (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
-    } else {
-      perfActiveSplit = 'PPL';
-      perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
-      perfWeeklySchedule = perfBuildWeeklySchedule('PPL');
-      perfPrescribedCardioId = 'cardio_01';
-      perfAuditData = null;
-      perfWorkoutMeta = {
-        isAIGenerated: false,
-        isClinicallyValidated: false,
-        generatedAt: null,
-        validatedAt: null
-      };
-      perfTargetRoutine = 'A';
+    if (typeof db !== "undefined" && db.performanceMetabolica) {
+      saved = await db.performanceMetabolica.get(pId);
     }
-
-    const selectEl = document.getElementById('perf-split-select');
-    if (selectEl) selectEl.value = perfActiveSplit;
-
-    updateAITrainingBanner();
-    perfRender();
   } catch (err) {
-    console.error("Erro ao carregar performance/treino do paciente:", err);
+    console.warn("Erro ao ler performance do Dexie:", err);
   }
+
+  // 2. Fallback de alta confiabilidade no localStorage
+  if (!saved || !Array.isArray(saved.workoutPlan) || saved.workoutPlan.length === 0) {
+    try {
+      const lsRaw = localStorage.getItem("NUTRIAX_PERFORMANCE_" + pId);
+      if (lsRaw) {
+        saved = JSON.parse(lsRaw);
+        // Sincroniza de volta no Dexie em segundo plano se disponível
+        if (saved && typeof db !== "undefined" && db.performanceMetabolica) {
+          db.performanceMetabolica.put(saved).catch(() => {});
+        }
+      }
+    } catch (lsErr) {
+      console.warn("Erro ao ler performance do localStorage:", lsErr);
+    }
+  }
+
+  if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
+    perfActiveSplit = saved.activeSplit || 'PPL';
+    perfWorkoutPlan = saved.workoutPlan;
+    perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7)
+      ? saved.weeklySchedule
+      : perfBuildWeeklySchedule(perfActiveSplit);
+    perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
+    perfAuditData = saved.auditData || null;
+    perfWorkoutMeta = saved.meta || {
+      isAIGenerated: !!saved.isAIGenerated,
+      isClinicallyValidated: !!saved.isClinicallyValidated,
+      generatedAt: saved.generatedAt || null,
+      validatedAt: saved.validatedAt || null
+    };
+    perfTargetRoutine = (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
+  } else {
+    perfActiveSplit = 'PPL';
+    perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
+    perfWeeklySchedule = perfBuildWeeklySchedule('PPL');
+    perfPrescribedCardioId = 'cardio_01';
+    perfAuditData = null;
+    perfWorkoutMeta = {
+      isAIGenerated: false,
+      isClinicallyValidated: false,
+      generatedAt: null,
+      validatedAt: null
+    };
+    perfTargetRoutine = 'A';
+  }
+
+  const selectEl = document.getElementById('perf-split-select');
+  if (selectEl) selectEl.value = perfActiveSplit;
+
+  updateAITrainingBanner();
+  perfRender();
 }
 
 function updateAITrainingBanner() {
