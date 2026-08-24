@@ -6631,7 +6631,7 @@ function perfBuildWeeklySchedule(splitKey) {
   if (splitKey === 'UpperLower') {
     return [
       {
-        dayKey: 'seg', dayName: 'Segunda', routineId: 'A', title: 'Treino A · Upper Força',
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Upper Força',
         focus: 'Tensão Mecânica Peitoral & Dorsal', type: 'Treino',
         carboTip: `${preCarbG} carbo (~1h30 antes · Aveia / Banana)`,
         proteinTip: protStr,
@@ -6639,7 +6639,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Recarga glicêmica pré-treino & pico de tensão miofibrilar'
       },
       {
-        dayKey: 'ter', dayName: 'Terça', routineId: 'B', title: 'Treino B · Lower Força',
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Lower Força',
         focus: 'Cadeia Posterior, Agachamento & Stiff', type: 'Treino',
         carboTip: `${preCarbG} carbo de baixo/médio IG (Batata doce / Arroz)`,
         proteinTip: protStr,
@@ -6647,7 +6647,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Reposição de glicogênio para membros inferiores'
       },
       {
-        dayKey: 'qua', dayName: 'Quarta', routineId: null, title: 'Cardio Engine (Déficit)',
+        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Engine (Déficit)',
         focus: 'Gasto Lipídico & Sensibilidade Insulínica', type: 'Cardio', cardioId: 'cardio_01',
         carboTip: '30g carbo leve pré-cardio ou treino em jejum moderado',
         proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Fracionado anti-catabólico)`,
@@ -6655,7 +6655,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Oxidação de ácidos graxos e biogênese mitocondrial'
       },
       {
-        dayKey: 'qui', dayName: 'Quinta', routineId: 'C', title: 'Treino C · Upper Hipertrofia',
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Upper Hipertrofia',
         focus: 'Volume Metabólico Deltoides & Braços', type: 'Treino',
         carboTip: `${preCarbG} carbo peri-treino (Frutas + Creatina 5g)`,
         proteinTip: protStr,
@@ -6663,7 +6663,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Pump sarcoplasmático e síntese proteica acelerada'
       },
       {
-        dayKey: 'sex', dayName: 'Sexta', routineId: 'D', title: 'Treino D · Lower Hipertrofia',
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Lower Hipertrofia',
         focus: 'Quadríceps, Hack Squat & Glúteos', type: 'Treino',
         carboTip: `${preCarbG} carbo denso pré e pós-treino (Arroz / Mandioca)`,
         proteinTip: protStr,
@@ -6671,7 +6671,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Recarga glicêmica estruturada para regeneração tecidual'
       },
       {
-        dayKey: 'sab', dayName: 'Sábado', routineId: null, title: 'Compromised Running',
+        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Compromised Running',
         focus: 'Circuito 50m Queima Acelerada', type: 'Cardio', cardioId: 'cardio_02',
         carboTip: 'Carboidratos moderados distribuídos ao longo do dia',
         proteinTip: protStr,
@@ -6679,7 +6679,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: `Déficit calórico planejado mantido (${ctx.caloricTarget} kcal)`
       },
       {
-        dayKey: 'dom', dayName: 'Domingo', routineId: null, title: 'Descanso Total (OFF)',
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
         focus: 'Regeneração Muscular & Supercompensação', type: 'Off',
         carboTip: 'Carboidratos complexos com fibras e vegetais abundantes',
         proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Recuperação estrutural contínua)`,
@@ -6690,7 +6690,7 @@ function perfBuildWeeklySchedule(splitKey) {
   } else if (splitKey === 'PHAT') {
     return [
       {
-        dayKey: 'seg', dayName: 'Segunda', routineId: 'A', title: 'Treino A · Upper Power',
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Upper Power',
         focus: 'Carga Máxima Supino, Remada & Militar', type: 'Treino',
         carboTip: '80-100g carbo denso pré-treino (Aveia / Tapioca / Mel)',
         proteinTip: protStr,
@@ -6698,7 +6698,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Superávit anabólico peri-treino para força máxima'
       },
       {
-        dayKey: 'ter', dayName: 'Terça', routineId: 'B', title: 'Treino B · Lower Power',
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Lower Power',
         focus: 'Agachamento Livre & Stiff Pesado (3-5 reps)', type: 'Treino',
         carboTip: '80-100g carbo pré-treino + Creatina 5g',
         proteinTip: protStr,
@@ -6706,7 +6706,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
       },
       {
-        dayKey: 'qua', dayName: 'Quarta', routineId: null, title: 'Zona 2 Base Aeróbica',
+        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Zona 2 Base Aeróbica',
         focus: 'FC 125-140 bpm Sensibilidade à Insulina', type: 'Cardio', cardioId: 'cardio_04',
         carboTip: 'Carbo moderado 40g para preservação de glicogênio',
         proteinTip: protStr,
@@ -6714,7 +6714,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Sensibilidade insulínica para otimização do superávit'
       },
       {
-        dayKey: 'qui', dayName: 'Quinta', routineId: 'C', title: 'Treino C · Costas/Ombros Hyp',
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Costas/Ombros Hyp',
         focus: 'Hipertrofia Sarcoplasmática Dorsais/Deltoides', type: 'Treino',
         carboTip: '70-80g carbo pré-treino (Arroz / Batata)',
         proteinTip: protStr,
@@ -6722,7 +6722,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Volume volumétrico com alto influxo de glicogênio'
       },
       {
-        dayKey: 'sex', dayName: 'Sexta', routineId: 'D', title: 'Treino D · Pernas Hipertrofia',
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Pernas Hipertrofia',
         focus: 'Hack Squat, Cadeira Extensora & Flexora', type: 'Treino',
         carboTip: '80g carbo denso pré e pós-treino',
         proteinTip: protStr,
@@ -6730,7 +6730,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Recarga glicêmica pós-treino para hipertrofia de membros inferiores'
       },
       {
-        dayKey: 'sab', dayName: 'Sábado', routineId: 'E', title: 'Treino E · Peitoral & Braços',
+        dayKey: 'd6', dayName: 'Dia 6', routineId: 'E', title: 'Treino E · Peitoral & Braços',
         focus: 'Densidade Miofibrilar Peito, Bíceps & Tríceps', type: 'Treino',
         carboTip: '70g carbo com refeição completa pré-treino',
         proteinTip: protStr,
@@ -6738,7 +6738,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Refeição de recarga livre planejada pós-treino'
       },
       {
-        dayKey: 'dom', dayName: 'Domingo', routineId: null, title: 'Descanso Total (OFF)',
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
         focus: 'Supercompensação e Crescimento Tecidual', type: 'Off',
         carboTip: 'Carboidratos equilibrados de lenta absorção',
         proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Síntese proteica contínua)`,
@@ -6750,7 +6750,7 @@ function perfBuildWeeklySchedule(splitKey) {
     // PPL (Push / Pull / Legs) — Padrão Normocalórica / Recomposição
     return [
       {
-        dayKey: 'seg', dayName: 'Segunda', routineId: 'A', title: 'Treino A · Push',
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push',
         focus: 'Peitoral, Deltoides & Tríceps', type: 'Treino',
         carboTip: `${preCarbG} carbo pré-treino (~1h30 antes)`,
         proteinTip: protStr,
@@ -6758,7 +6758,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Recarga glicêmica peri-treino para alta intensidade'
       },
       {
-        dayKey: 'ter', dayName: 'Terça', routineId: 'B', title: 'Treino B · Pull',
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull',
         focus: 'Costas, Bíceps, Trapézio & Core', type: 'Treino',
         carboTip: `${preCarbG} carbo pré-treino (Frutas / Aveia)`,
         proteinTip: protStr,
@@ -6766,7 +6766,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Aporte proteico fracionado ao longo do dia (35-40g/refeição)'
       },
       {
-        dayKey: 'qua', dayName: 'Quarta', routineId: null, title: 'Cardio Engine HIIT 3D',
+        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Engine HIIT 3D',
         focus: 'Gasto Lipídico Visceral & Core', type: 'Cardio', cardioId: 'cardio_05',
         carboTip: '30-40g carbo de rápida digestão pré-HIIT',
         proteinTip: protStr,
@@ -6774,7 +6774,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: `Gasto calórico estimado em ~550 kcal sob hidratação máxima`
       },
       {
-        dayKey: 'qui', dayName: 'Quinta', routineId: 'C', title: 'Treino C · Legs',
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs',
         focus: 'Quadríceps, Isquiotibiais & Panturrilhas', type: 'Treino',
         carboTip: `${preCarbG} carbo denso pré-agachamento`,
         proteinTip: protStr,
@@ -6782,7 +6782,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Recarga glicêmica peri-treino para suportar o volume de pernas'
       },
       {
-        dayKey: 'sex', dayName: 'Sexta', routineId: 'A', title: 'Treino A · Push',
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'A', title: 'Treino A · Push',
         focus: 'Densidade Peitoral & Ombros', type: 'Treino',
         carboTip: `${preCarbG} carbo peri-treino`,
         proteinTip: protStr,
@@ -6790,7 +6790,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Síntese proteica mantida com 2.0 g/kg'
       },
       {
-        dayKey: 'sab', dayName: 'Sábado', routineId: 'B', title: 'Treino B · Pull',
+        dayKey: 'd6', dayName: 'Dia 6', routineId: 'B', title: 'Treino B · Pull',
         focus: 'Dorsal, Braquial & Trapézio', type: 'Treino',
         carboTip: `${preCarbG} carbo com refeição equilibrada`,
         proteinTip: protStr,
@@ -6798,7 +6798,7 @@ function perfBuildWeeklySchedule(splitKey) {
         strategyTip: 'Refeição de recarga glicêmica pós-treino'
       },
       {
-        dayKey: 'dom', dayName: 'Domingo', routineId: null, title: 'Descanso Total (OFF)',
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
         focus: 'Regeneração Muscular & Repouso', type: 'Off',
         carboTip: 'Carbo complexo com fibras e hortaliças',
         proteinTip: protStr,
@@ -6954,22 +6954,18 @@ function perfRender() {
   const selectEl = document.getElementById('perf-split-select');
   if (selectEl && selectEl.value !== perfActiveSplit) selectEl.value = perfActiveSplit;
 
-  // Atualiza botões de dias da semana no topo do prontuário
+  // Atualiza botões do microciclo no topo do prontuário (Dia 1 a Dia 7)
   if (Array.isArray(perfWeeklySchedule) && perfWeeklySchedule.length >= 7) {
-    const daySegBtn = document.getElementById('day-btn-seg');
-    if (daySegBtn) daySegBtn.innerHTML = `<span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[0]?.title || '').replace('Treino ','')}</span>`;
-    const dayTerBtn = document.getElementById('day-btn-ter');
-    if (dayTerBtn) dayTerBtn.innerHTML = `<span class="font-bold text-blue-400">TER</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[1]?.title || '').replace('Treino ','')}</span>`;
-    const dayQuaBtn = document.getElementById('day-btn-qua');
-    if (dayQuaBtn) dayQuaBtn.innerHTML = `<span class="font-bold text-amber-400">QUA</span> <span class="text-[10px] text-amber-300 truncate max-w-[80px]">${perfWeeklySchedule[2]?.title || ''}</span>`;
-    const dayQuiBtn = document.getElementById('day-btn-qui');
-    if (dayQuiBtn) dayQuiBtn.innerHTML = `<span class="font-bold text-blue-400">QUI</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[3]?.title || '').replace('Treino ','')}</span>`;
-    const daySexBtn = document.getElementById('day-btn-sex');
-    if (daySexBtn) daySexBtn.innerHTML = `<span class="font-bold text-blue-400">SEX</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[4]?.title || '').replace('Treino ','')}</span>`;
-    const daySabBtn = document.getElementById('day-btn-sab');
-    if (daySabBtn) daySabBtn.innerHTML = `<span class="font-bold ${perfWeeklySchedule[5]?.type === 'Cardio' ? 'text-amber-400' : 'text-blue-400'}">SÁB</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[5]?.title || '').replace('Treino ','')}</span>`;
-    const dayDomBtn = document.getElementById('day-btn-dom');
-    if (dayDomBtn) dayDomBtn.innerHTML = `<span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Off</span>`;
+    const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    perfWeeklySchedule.forEach((d, idx) => {
+      const num = idx + 1;
+      const btn = document.getElementById(`day-btn-d${num}`) || document.getElementById(`day-btn-${legacyKeys[idx]}`) || document.getElementById(`day-btn-${d.dayKey}`);
+      if (btn) {
+        const colorClass = d.type === 'Treino' ? 'text-blue-400' : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
+        const titleShort = (d.title || '').replace('Treino ','');
+        btn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
+      }
+    });
   }
 
   // Sincroniza auditoria nutricional e racional
@@ -8382,7 +8378,8 @@ function renderPerfCardioProtocols(targetFocusId = null) {
   if (!container) return;
 
   const quaCardioId = perfWeeklySchedule.find(d => d.dayKey === 'qua' && d.type === 'Cardio')?.cardioId || 'cardio_01';
-  const sabCardioId = perfWeeklySchedule.find(d => d.dayKey === 'sab' && d.type === 'Cardio')?.cardioId || 'cardio_02';
+  const d3CardioId = perfWeeklySchedule.find(d => d.dayKey === 'd3' && d.type === 'Cardio')?.cardioId || 'cardio_01';
+  const d6CardioId = perfWeeklySchedule.find(d => d.dayKey === 'd6' && d.type === 'Cardio')?.cardioId || 'cardio_02';
 
   const filtered = PERF_CARDIO_DB.filter(c => {
     if (perfCardioActiveFilter === 'Todos') return true;
@@ -8400,28 +8397,28 @@ function renderPerfCardioProtocols(targetFocusId = null) {
                       isZ2 ? 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300' :
                       'border-purple-500/60 bg-purple-950/60 text-purple-300';
 
-    const isPrescribedQua = c.id === quaCardioId;
-    const isPrescribedSab = c.id === sabCardioId;
+    const isPrescribedD3 = c.id === d3CardioId;
+    const isPrescribedD6 = c.id === d6CardioId;
     const isFocused = c.id === perfFocusedCardioId;
 
     let dayBadge = '';
-    if (isPrescribedQua && isPrescribedSab) {
+    if (isPrescribedD3 && isPrescribedD6) {
       dayBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/60 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
-        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito: Quarta &amp; Sábado
+        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito: Dia 3 &amp; Dia 6
       </span>`;
-    } else if (isPrescribedQua) {
+    } else if (isPrescribedD3) {
       dayBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/60 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
-        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito para Quarta-Feira
+        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito para Dia 3
       </span>`;
-    } else if (isPrescribedSab) {
+    } else if (isPrescribedD6) {
       dayBadge = `<span class="bg-blue-500/20 text-blue-300 border border-blue-500/60 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(59,130,246,0.3)]">
-        <i data-lucide="calendar" class="w-3 h-3 text-blue-400"></i> Prescrito para Sábado
+        <i data-lucide="calendar" class="w-3 h-3 text-blue-400"></i> Prescrito para Dia 6
       </span>`;
     }
 
     const cardHighlight = isFocused
       ? 'border-amber-400 ring-2 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.4)] bg-gradient-to-b from-amber-950/40 via-black to-zinc-950'
-      : (isPrescribedQua || isPrescribedSab)
+      : (isPrescribedD3 || isPrescribedD6)
       ? 'border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-black/80'
       : 'border-zinc-800/90 bg-black/70';
 
@@ -8481,13 +8478,13 @@ function renderPerfCardioProtocols(targetFocusId = null) {
         <div class="pt-3 border-t border-zinc-800/80 flex items-center justify-between flex-wrap gap-2">
           <span class="text-[11px] font-mono text-zinc-400">Frequência: <strong class="text-zinc-200">${c.freq}</strong></span>
           <div class="flex items-center gap-1.5">
-            <button onclick="perfPrescribeCardioToDay('${c.id}', 'qua')"
-              class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-amber-300 bg-amber-950/80 border border-amber-600/60 hover:bg-amber-900 transition-all" title="Prescrever para Quarta-feira">
-              Prescrever QUA
+            <button onclick="perfPrescribeCardioToDay('${c.id}', 'd3')"
+              class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-amber-300 bg-amber-950/80 border border-amber-600/60 hover:bg-amber-900 transition-all" title="Prescrever para o Dia 3">
+              Prescrever Dia 3
             </button>
-            <button onclick="perfPrescribeCardioToDay('${c.id}', 'sab')"
-              class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-blue-300 bg-blue-950/80 border border-blue-600/60 hover:bg-blue-900 transition-all" title="Prescrever para Sábado">
-              Prescrever SÁB
+            <button onclick="perfPrescribeCardioToDay('${c.id}', 'd6')"
+              class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-blue-300 bg-blue-950/80 border border-blue-600/60 hover:bg-blue-900 transition-all" title="Prescrever para o Dia 6">
+              Prescrever Dia 6
             </button>
           </div>
         </div>
@@ -8510,8 +8507,11 @@ function perfPrescribeCardioToDay(cardioId, dayKey) {
   const cardio = PERF_CARDIO_DB.find(c => c.id === cardioId);
   if (!cardio) return;
 
+  const keyMap = { seg: 'd1', ter: 'd2', qua: 'd3', qui: 'd4', sex: 'd5', sab: 'd6', dom: 'd7' };
+  const targetKey = keyMap[dayKey] || dayKey;
+
   perfWeeklySchedule = perfWeeklySchedule.map(d => {
-    if (d.dayKey === dayKey) {
+    if (d.dayKey === dayKey || d.dayKey === targetKey) {
       return {
         ...d,
         cardioId: cardio.id,
@@ -8528,18 +8528,23 @@ function perfPrescribeCardioToDay(cardioId, dayKey) {
   renderPerfWeeklySchedule();
   renderPerfCardioProtocols(cardio.id);
 
+  const targetDay = perfWeeklySchedule.find(d => d.dayKey === targetKey || d.dayKey === dayKey);
+  const dayDisplay = targetDay ? targetDay.dayName : 'Dia';
+
   const toast = document.getElementById('perf-ai-toast');
   if (toast) {
     toast.style.display = 'flex';
     toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-      <div><strong class="text-white">${cardio.title}</strong> prescrito com sucesso para <strong>${dayKey === 'qua' ? 'Quarta-feira' : 'Sábado'}</strong>!</div>`;
+      <div><strong class="text-white">${cardio.title}</strong> prescrito com sucesso para o <strong>${dayDisplay}</strong>!</div>`;
     if (window.lucide) window.lucide.createIcons();
     setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
   }
 }
 
 function perfFocusDay(dayKey) {
-  const day = perfWeeklySchedule.find(d => d.dayKey === dayKey);
+  const keyMap = { seg: 'd1', ter: 'd2', qua: 'd3', qui: 'd4', sex: 'd5', sab: 'd6', dom: 'd7' };
+  const normalizedKey = keyMap[dayKey] || dayKey;
+  const day = perfWeeklySchedule.find(d => d.dayKey === dayKey || d.dayKey === normalizedKey) || perfWeeklySchedule[0];
   if (!day) return;
 
   // Atualiza botões no header
@@ -8547,7 +8552,7 @@ function perfFocusDay(dayKey) {
     btn.classList.remove('active');
     btn.style.boxShadow = '';
   });
-  const activeBtn = document.getElementById('day-btn-' + dayKey);
+  const activeBtn = document.getElementById('day-btn-' + day.dayKey) || document.getElementById('day-btn-' + normalizedKey) || document.getElementById('day-btn-' + dayKey);
   if (activeBtn) {
     activeBtn.classList.add('active');
     activeBtn.style.boxShadow = '0 0 10px rgba(59,130,246,0.5)';
@@ -8557,7 +8562,7 @@ function perfFocusDay(dayKey) {
     perfSwitchView('prescription', true);
     perfSetTarget(day.routineId);
   } else if (day.type === 'Cardio') {
-    const cardioId = day.cardioId || (dayKey === 'sab' ? 'cardio_02' : 'cardio_01');
+    const cardioId = day.cardioId || (day.dayKey === 'd6' || dayKey === 'sab' ? 'cardio_02' : 'cardio_01');
     perfSwitchView('cardio', false);
     renderPerfCardioProtocols(cardioId);
 
@@ -8576,10 +8581,11 @@ function perfFocusDay(dayKey) {
     if (toast) {
       toast.style.display = 'flex';
       toast.innerHTML = `<i data-lucide="coffee" class="w-4 h-4 text-amber-400 shrink-0"></i>
-        <div><strong class="text-white">${day.dayName}: ${day.title}</strong> — ${day.focus}. Diretriz Nutricional: ${day.nutrtip}.</div>`;
+        <div><strong class="text-white">${day.dayName}: ${day.title}</strong> — ${day.focus}.</div>`;
       if (window.lucide) window.lucide.createIcons();
       setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
     }
+    perfSwitchView('weekly', true);
   }
 }
 
@@ -9711,21 +9717,17 @@ async function handleGenerateAITraining() {
   // 5. PERSISTÊNCIA NO DEXIE.JS (INDEXEDDB) PARA O PACIENTE ATIVO
   await savePerformanceForPatient(activePatientId);
 
-  // 6. ATUALIZA CABEÇALHO SEMANAL DE DIAS
-  const daySegBtn = document.getElementById('day-btn-seg');
-  if (daySegBtn) daySegBtn.innerHTML = `<span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">${perfWeeklySchedule[0].title.replace('Treino ','')}</span>`;
-  const dayTerBtn = document.getElementById('day-btn-ter');
-  if (dayTerBtn) dayTerBtn.innerHTML = `<span class="font-bold text-blue-400">TER</span> <span class="text-[10px] text-zinc-300">${perfWeeklySchedule[1].title.replace('Treino ','')}</span>`;
-  const dayQuaBtn = document.getElementById('day-btn-qua');
-  if (dayQuaBtn) dayQuaBtn.innerHTML = `<span class="font-bold text-amber-400">QUA</span> <span class="text-[10px] text-amber-300 truncate max-w-[80px]">${perfWeeklySchedule[2].title}</span>`;
-  const dayQuiBtn = document.getElementById('day-btn-qui');
-  if (dayQuiBtn) dayQuiBtn.innerHTML = `<span class="font-bold text-blue-400">QUI</span> <span class="text-[10px] text-zinc-300">${perfWeeklySchedule[3].title.replace('Treino ','')}</span>`;
-  const daySexBtn = document.getElementById('day-btn-sex');
-  if (daySexBtn) daySexBtn.innerHTML = `<span class="font-bold text-blue-400">SEX</span> <span class="text-[10px] text-zinc-300">${perfWeeklySchedule[4].title.replace('Treino ','')}</span>`;
-  const daySabBtn = document.getElementById('day-btn-sab');
-  if (daySabBtn) daySabBtn.innerHTML = `<span class="font-bold ${perfWeeklySchedule[5].type === 'Cardio' ? 'text-amber-400' : 'text-blue-400'}">SÁB</span> <span class="text-[10px] text-zinc-300">${perfWeeklySchedule[5].title.replace('Treino ','')}</span>`;
-  const dayDomBtn = document.getElementById('day-btn-dom');
-  if (dayDomBtn) dayDomBtn.innerHTML = `<span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Off</span>`;
+  // 6. ATUALIZA CABEÇALHO DO MICROCICLO (DIA 1 A DIA 7)
+  const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+  perfWeeklySchedule.forEach((d, idx) => {
+    const num = idx + 1;
+    const btn = document.getElementById(`day-btn-d${num}`) || document.getElementById(`day-btn-${legacyKeys[idx]}`) || document.getElementById(`day-btn-${d.dayKey}`);
+    if (btn) {
+      const colorClass = d.type === 'Treino' ? 'text-blue-400' : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
+      const titleShort = (d.title || '').replace('Treino ','');
+      btn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
+    }
+  });
 
   // 7. ATUALIZA O CARD DE AUDITORIA NUTRICIONAL
   if (auditCard) {
@@ -9878,16 +9880,17 @@ function perfGeneratePDF() {
   }).join('');
 
   // Monta HTML da Agenda dos 7 Dias com Sinergia Nutricional
-  const scheduleRows = perfWeeklySchedule.map(d => {
+  const scheduleRows = perfWeeklySchedule.map((d, idx) => {
     const isTrain = d.type === 'Treino';
     const isCardio = d.type === 'Cardio';
     const typeColor = isTrain ? '#1e40af' : isCardio ? '#b45309' : '#6b7280';
     const typeBg = isTrain ? '#eff6ff' : isCardio ? '#fffbeb' : '#f9fafb';
+    const dayLabel = d.dayName ? d.dayName.toUpperCase() : `DIA ${idx + 1}`;
 
     return `
       <div style="flex: 1; min-width: 90px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; background: ${typeBg}; font-size: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 3px; margin-bottom: 3px;">
-          <strong style="color: ${typeColor}; font-size: 11px;">${d.dayName.substring(0,3).toUpperCase()}</strong>
+          <strong style="color: ${typeColor}; font-size: 11px;">${dayLabel}</strong>
           <span style="font-size: 9px; font-weight: bold; color: ${typeColor};">${d.type}</span>
         </div>
         <div style="font-weight: bold; color: #111827; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${d.title}</div>
@@ -10068,10 +10071,10 @@ function perfGeneratePDF() {
         </div>
       </div>
 
-      <!-- AGENDA SEMANAL DOS 7 DIAS -->
+      <!-- AGENDA PERIÓDICA DOS 7 DIAS (MICROCICLO) -->
       <div style="margin-bottom: 18px;">
         <div style="font-size: 11px; font-weight: bold; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
-          📅 Agenda Semanal de Treinamento &amp; Cardios (7 Dias)
+          📅 Agenda Periódica de Treinamento &amp; Cardios (Microciclo de 7 Dias)
         </div>
         <div style="display: flex; gap: 6px; width: 100%;">
           ${scheduleRows}

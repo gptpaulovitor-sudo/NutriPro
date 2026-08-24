@@ -213,40 +213,39 @@
             </button>
           </div>
 
-          <!-- Linha 2: AGENDA DIÁRIA INTERATIVA (SEGUNDA A DOMINGO - GERADA PELA IA) -->
-          <div class="flex items-center justify-center gap-1" id="perf-header-daily-schedule">
+          <!-- Linha 2: AGENDA PERIÓDICA INTERATIVA (DIA 1 A DIA 7 - GERADA PELA IA) -->
+          <div class="flex items-center justify-center gap-1 flex-wrap" id="perf-header-daily-schedule">
             <span
               class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mr-1 flex items-center gap-1">
-              <i data-lucide="clock" class="w-3 h-3 text-blue-400"></i> Agenda:
+              <i data-lucide="clock" class="w-3 h-3 text-blue-400"></i> Microciclo:
             </span>
-            <button id="day-btn-seg" onclick="perfFocusDay('seg')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Segunda-feira: Treino A">
-              <span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
+            <button id="day-btn-d1" onclick="perfFocusDay('d1')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 1: Treino A">
+              <span class="font-bold text-blue-400">DIA 1</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
             </button>
-            <button id="day-btn-ter" onclick="perfFocusDay('ter')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Terça-feira: Treino B">
-              <span class="font-bold text-blue-400">TER</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
+            <button id="day-btn-d2" onclick="perfFocusDay('d2')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 2: Treino B">
+              <span class="font-bold text-blue-400">DIA 2</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
             </button>
-            <button id="day-btn-qua" onclick="perfFocusDay('qua')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Quarta-feira: Descanso / Cardio">
-              <span class="font-bold text-amber-400">QUA</span> <span class="text-[10px] text-zinc-400">Cardio /
-                Off</span>
+            <button id="day-btn-d3" onclick="perfFocusDay('d3')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 3: Descanso / Cardio">
+              <span class="font-bold text-amber-400">DIA 3</span> <span class="text-[10px] text-zinc-400">Cardio / Off</span>
             </button>
-            <button id="day-btn-qui" onclick="perfFocusDay('qui')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Quinta-feira: Treino C">
-              <span class="font-bold text-blue-400">QUI</span> <span class="text-[10px] text-zinc-300">Legs (C)</span>
+            <button id="day-btn-d4" onclick="perfFocusDay('d4')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 4: Treino C">
+              <span class="font-bold text-blue-400">DIA 4</span> <span class="text-[10px] text-zinc-300">Legs (C)</span>
             </button>
-            <button id="day-btn-sex" onclick="perfFocusDay('sex')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Sexta-feira: Treino A">
-              <span class="font-bold text-blue-400">SEX</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
+            <button id="day-btn-d5" onclick="perfFocusDay('d5')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 5: Treino A">
+              <span class="font-bold text-blue-400">DIA 5</span> <span class="text-[10px] text-zinc-300">Push (A)</span>
             </button>
-            <button id="day-btn-sab" onclick="perfFocusDay('sab')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Sábado: Treino B">
-              <span class="font-bold text-blue-400">SÁB</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
+            <button id="day-btn-d6" onclick="perfFocusDay('d6')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 6: Treino B">
+              <span class="font-bold text-blue-400">DIA 6</span> <span class="text-[10px] text-zinc-300">Pull (B)</span>
             </button>
-            <button id="day-btn-dom" onclick="perfFocusDay('dom')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Domingo: Descanso Total">
-              <span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Descanso</span>
+            <button id="day-btn-d7" onclick="perfFocusDay('d7')" class="hud-tab-btn text-[11px] px-2 py-0.5"
+              title="Dia 7: Descanso Total">
+              <span class="font-bold text-zinc-500">DIA 7</span> <span class="text-[10px] text-zinc-500">Descanso</span>
             </button>
           </div>
         </div>
@@ -5324,10 +5323,10 @@
       </div>
 
       <!-- Custom Scripts -->
-      <script src="foodsData.js?v=20260824_substitutes_full_primary"></script>
-      <script src="db.js?v=20260824_substitutes_full_primary"></script>
-      <script src="math.js?v=20260824_substitutes_full_primary"></script>
-      <script src="app.js?v=20260824_substitutes_full_primary"></script>
+      <script src="foodsData.js?v=20260824_numeric_schedule"></script>
+      <script src="db.js?v=20260824_numeric_schedule"></script>
+      <script src="math.js?v=20260824_numeric_schedule"></script>
+      <script src="app.js?v=20260824_numeric_schedule"></script>
 </body>
 
 </html>
