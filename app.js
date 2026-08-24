@@ -553,6 +553,7 @@ async function onPatientChange(patientId) {
     updateDashboardAndRadar(patientId),
     loadPrescriptionForPatient(patientId),
   ];
+  if (typeof loadPerformanceForPatient === "function")    localLoads.push(loadPerformanceForPatient(patientId));
   if (typeof loadPatientAnamnese === "function")          localLoads.push(loadPatientAnamnese(patientId));
   if (typeof loadDietaryRecall === "function")            localLoads.push(loadDietaryRecall(patientId));
   if (typeof loadClinicalExams === "function")            localLoads.push(loadClinicalExams(patientId));
@@ -2969,6 +2970,16 @@ async function savePatientToCloud(patientId = activePatientId) {
     const assessmentsList = await db.assessments.where("patientId").equals(patientId).toArray();
     const recallList = await db.dietaryRecall.where("patientId").equals(patientId).toArray();
     const adherenceList = await db.dailyLogs.where("patientId").equals(patientId).toArray();
+    const perfData = (await db.performanceMetabolica.get(patientId)) || {
+      id: patientId,
+      patientId: patientId,
+      activeSplit: typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PPL',
+      workoutPlan: typeof perfWorkoutPlan !== 'undefined' ? perfWorkoutPlan : [],
+      weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : [],
+      prescribedCardioId: typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01',
+      auditData: typeof perfAuditData !== 'undefined' ? perfAuditData : null,
+      meta: typeof perfWorkoutMeta !== 'undefined' ? perfWorkoutMeta : null
+    };
 
     const payload = {
       action: "save",
@@ -2979,6 +2990,7 @@ async function savePatientToCloud(patientId = activePatientId) {
       dietaryRecall: recallList,
       dailyLogs: adherenceList,
       prescriptions: currentPrescriptionItems,
+      performance: perfData,
       lastUpdated: new Date().toISOString(),
     };
 
@@ -3079,6 +3091,14 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
         renderMealItems();
       }
 
+      if (cloudData.performance) {
+        await db.performanceMetabolica.put({
+          id: patientId,
+          patientId: patientId,
+          ...cloudData.performance
+        });
+      }
+
       activePatientId = patientId;
       localStorage.setItem("NUTRIAX_ACTIVE_PATIENT_ID", patientId);
 
@@ -3091,6 +3111,7 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
       if (typeof loadAssessmentsAndRenderCharts === "function") await loadAssessmentsAndRenderCharts(patientId);
       if (typeof loadDietaryRecall === "function") await loadDietaryRecall(patientId);
       if (typeof loadAdherenceDashboard === "function") await loadAdherenceDashboard(patientId);
+      if (typeof loadPerformanceForPatient === "function") await loadPerformanceForPatient(patientId);
       if (typeof renderPatientAppView === "function") renderPatientAppView(patientId);
 
       if (statusEl) statusEl.innerHTML = `<span class='text-emerald-600 font-bold'>✅ Paciente <strong>${patientId}</strong> importado do Drive e ativo no seletor!</span>`;
@@ -6106,7 +6127,8 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
     } else if (tabName === 'adherence') {
       if (typeof loadAdherenceDashboard === 'function') await loadAdherenceDashboard(activePatientId);
     } else if (tabName === 'performance') {
-      if (typeof perfRender === 'function') perfRender();
+      if (typeof loadPerformanceForPatient === 'function') await loadPerformanceForPatient(activePatientId);
+      else if (typeof perfRender === 'function') perfRender();
     } else if (tabName === 'patientApp') {
       if (typeof renderPatientAppView === 'function') renderPatientAppView(activePatientId);
     } else if (tabName === 'foods') {
@@ -6879,15 +6901,32 @@ function perfSyncNutritionAudit() {
   const auditCard = document.getElementById('perf-nutrition-audit-card');
   if (!auditCard) return;
 
-  const ctx = perfGetNutritionContext();
-
-  auditCard.style.display = 'block';
   const aObj = document.getElementById('audit-obj');
   const aCals = document.getElementById('audit-cals');
   const aProt = document.getElementById('audit-prot');
   const aGuide = document.getElementById('audit-guideline');
   const aExpl = document.getElementById('audit-explanation');
 
+  if (perfAuditData && perfAuditData.obj) {
+    auditCard.style.display = 'block';
+    if (aObj) aObj.textContent = perfAuditData.obj;
+    if (aCals) aCals.textContent = perfAuditData.cals;
+    if (aProt) aProt.textContent = perfAuditData.prot;
+    if (aGuide) aGuide.textContent = perfAuditData.guideline;
+    if (aExpl) aExpl.textContent = perfAuditData.explanation;
+
+    const ratTitle = document.getElementById('perf-rationale-title');
+    if (ratTitle) {
+      ratTitle.textContent = `Periodização ${perfActiveSplit} · Alvo: ${perfAuditData.obj}`;
+    }
+    const goalDescEl = document.getElementById('perf-meta-goal-desc');
+    if (goalDescEl) goalDescEl.textContent = perfAuditData.explanation;
+    return;
+  }
+
+  const ctx = perfGetNutritionContext();
+
+  auditCard.style.display = 'block';
   if (aObj) aObj.textContent = `${ctx.objective} · ${ctx.patientName}`;
   if (aCals) aCals.textContent = `${ctx.caloricTarget} kcal (${ctx.energyBalance >= 0 ? '+' + ctx.energyBalance : ctx.energyBalance} kcal balanço)`;
   if (aProt) aProt.textContent = `${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia)`;
@@ -6899,6 +6938,10 @@ function perfSyncNutritionAudit() {
       ? `Em superávit de ${ctx.caloricTarget} kcal (+${Math.abs(ctx.energyBalance)} kcal), a periodização estimula sobrecarga progressiva e hipertrofia volumétrica aproveitando o aporte proteico de ${ctx.proteinGKg.toFixed(1)} g/kg.`
       : `Em manutenção calórica (${ctx.caloricTarget} kcal), a periodização ${perfActiveSplit} estimula biogênese mitocondrial, recomposição corporal e ganho de força constante com ${ctx.waterTargetMl.toLocaleString('pt-BR')} mL de hidratação.`;
   }
+  const ratTitle = document.getElementById('perf-rationale-title');
+  if (ratTitle) {
+    ratTitle.textContent = `Periodização ${perfActiveSplit} · Alvo: ${ctx.objective}`;
+  }
 }
 
 function perfRender() {
@@ -6909,8 +6952,30 @@ function perfRender() {
   const perfGoalEl = document.getElementById("perfPatientGoal");
   if (perfGoalEl && currentPatientGoal) perfGoalEl.innerText = currentPatientGoal;
 
+  const selectEl = document.getElementById('perf-split-select');
+  if (selectEl && selectEl.value !== perfActiveSplit) selectEl.value = perfActiveSplit;
+
+  // Atualiza botões de dias da semana no topo do prontuário
+  if (Array.isArray(perfWeeklySchedule) && perfWeeklySchedule.length >= 7) {
+    const daySegBtn = document.getElementById('day-btn-seg');
+    if (daySegBtn) daySegBtn.innerHTML = `<span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[0]?.title || '').replace('Treino ','')}</span>`;
+    const dayTerBtn = document.getElementById('day-btn-ter');
+    if (dayTerBtn) dayTerBtn.innerHTML = `<span class="font-bold text-blue-400">TER</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[1]?.title || '').replace('Treino ','')}</span>`;
+    const dayQuaBtn = document.getElementById('day-btn-qua');
+    if (dayQuaBtn) dayQuaBtn.innerHTML = `<span class="font-bold text-amber-400">QUA</span> <span class="text-[10px] text-amber-300 truncate max-w-[80px]">${perfWeeklySchedule[2]?.title || ''}</span>`;
+    const dayQuiBtn = document.getElementById('day-btn-qui');
+    if (dayQuiBtn) dayQuiBtn.innerHTML = `<span class="font-bold text-blue-400">QUI</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[3]?.title || '').replace('Treino ','')}</span>`;
+    const daySexBtn = document.getElementById('day-btn-sex');
+    if (daySexBtn) daySexBtn.innerHTML = `<span class="font-bold text-blue-400">SEX</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[4]?.title || '').replace('Treino ','')}</span>`;
+    const daySabBtn = document.getElementById('day-btn-sab');
+    if (daySabBtn) daySabBtn.innerHTML = `<span class="font-bold ${perfWeeklySchedule[5]?.type === 'Cardio' ? 'text-amber-400' : 'text-blue-400'}">SÁB</span> <span class="text-[10px] text-zinc-300">${(perfWeeklySchedule[5]?.title || '').replace('Treino ','')}</span>`;
+    const dayDomBtn = document.getElementById('day-btn-dom');
+    if (dayDomBtn) dayDomBtn.innerHTML = `<span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Off</span>`;
+  }
+
   // Sincroniza auditoria nutricional e racional
   perfSyncNutritionAudit();
+  if (typeof updateAITrainingBanner === 'function') updateAITrainingBanner();
 
   perfSwitchView(perfActiveSubView, false);
   renderPerfTargetButtons();
@@ -8366,6 +8431,7 @@ function perfPrescribeCardioToDay(cardioId, dayKey) {
     return d;
   });
 
+  savePerformanceForPatient(activePatientId);
   renderPerfWeeklySchedule();
   renderPerfCardioProtocols(cardio.id);
 
@@ -8724,22 +8790,146 @@ const PERF_SPLIT_PRESETS = {
   ]
 };
 
-// Estado ativo da divisão
+// Estado ativo da divisão e persistência
 let perfActiveSplit = 'PPL';
 let perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
 let perfTargetRoutine = 'A';
 let perfSearchTerm = '';
 let perfGroupFilter = 'Todos';
+let perfAuditData = null;
+let perfWorkoutMeta = {
+  isAIGenerated: false,
+  isClinicallyValidated: false,
+  generatedAt: null,
+  validatedAt: null
+};
 
-function perfSetSplit(splitKey) {
+async function savePerformanceForPatient(patientId = activePatientId) {
+  try {
+    if (!patientId) return;
+    await db.performanceMetabolica.put({
+      id: patientId,
+      patientId: patientId,
+      activeSplit: perfActiveSplit,
+      workoutPlan: perfWorkoutPlan,
+      weeklySchedule: perfWeeklySchedule,
+      prescribedCardioId: perfPrescribedCardioId,
+      auditData: perfAuditData,
+      meta: perfWorkoutMeta,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("Erro ao salvar performance/treino do paciente:", err);
+  }
+}
+
+async function loadPerformanceForPatient(patientId = activePatientId) {
+  try {
+    const saved = await db.performanceMetabolica.get(patientId);
+    if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
+      perfActiveSplit = saved.activeSplit || 'PPL';
+      perfWorkoutPlan = saved.workoutPlan;
+      perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7)
+        ? saved.weeklySchedule
+        : perfBuildWeeklySchedule(perfActiveSplit);
+      perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
+      perfAuditData = saved.auditData || null;
+      perfWorkoutMeta = saved.meta || {
+        isAIGenerated: !!saved.isAIGenerated,
+        isClinicallyValidated: !!saved.isClinicallyValidated,
+        generatedAt: saved.generatedAt || null,
+        validatedAt: saved.validatedAt || null
+      };
+      perfTargetRoutine = (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
+    } else {
+      perfActiveSplit = 'PPL';
+      perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
+      perfWeeklySchedule = perfBuildWeeklySchedule('PPL');
+      perfPrescribedCardioId = 'cardio_01';
+      perfAuditData = null;
+      perfWorkoutMeta = {
+        isAIGenerated: false,
+        isClinicallyValidated: false,
+        generatedAt: null,
+        validatedAt: null
+      };
+      perfTargetRoutine = 'A';
+    }
+
+    const selectEl = document.getElementById('perf-split-select');
+    if (selectEl) selectEl.value = perfActiveSplit;
+
+    updateAITrainingBanner();
+    perfRender();
+  } catch (err) {
+    console.error("Erro ao carregar performance/treino do paciente:", err);
+  }
+}
+
+function updateAITrainingBanner() {
+  const banner = document.getElementById("perfAIGeneratedBanner");
+  const badge = document.getElementById("aiTrainingStatusBadge");
+  const btnApprove = document.getElementById("btnApproveAITraining");
+  if (!banner) return;
+
+  if (perfWorkoutMeta && perfWorkoutMeta.isAIGenerated) {
+    banner.classList.remove("hidden");
+    if (perfWorkoutMeta.isClinicallyValidated) {
+      if (badge) {
+        badge.className = "bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+        badge.innerHTML = "✅ Status: Validado e Assinado pelo Profissional";
+      }
+      if (btnApprove) {
+        btnApprove.className = "bg-zinc-800 text-zinc-400 font-bold px-3.5 py-2 rounded-xl text-xs border border-zinc-700 cursor-default flex items-center gap-1.5";
+        btnApprove.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i><span>Treino Assinado</span>`;
+        btnApprove.onclick = null;
+      }
+    } else {
+      if (badge) {
+        badge.className = "bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+        badge.innerHTML = "⚠️ Status: Requer Validação Biomecânica";
+      }
+      if (btnApprove) {
+        btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3.5 py-2 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer";
+        btnApprove.innerHTML = `<i data-lucide="check-check" class="w-4 h-4"></i><span>Validar e Assinar Treino</span>`;
+        btnApprove.onclick = approveAITraining;
+      }
+    }
+  } else {
+    banner.classList.add("hidden");
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function approveAITraining() {
+  if (!perfWorkoutMeta) {
+    perfWorkoutMeta = { isAIGenerated: true };
+  }
+  perfWorkoutMeta.isClinicallyValidated = true;
+  perfWorkoutMeta.validatedAt = new Date().toISOString();
+  await savePerformanceForPatient(activePatientId);
+  updateAITrainingBanner();
+  alert("✅ Prescrição de Treino e Periodização Biomecânica validada e assinada com sucesso!");
+}
+
+async function perfSetSplit(splitKey) {
   if (!PERF_SPLIT_PRESETS[splitKey]) return;
   perfActiveSplit = splitKey;
   perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[splitKey]));
   perfTargetRoutine = perfWorkoutPlan[0]?.id || 'A';
+  perfWeeklySchedule = perfBuildWeeklySchedule(splitKey);
+  perfWorkoutMeta = {
+    isAIGenerated: false,
+    isClinicallyValidated: false,
+    generatedAt: null,
+    validatedAt: null
+  };
 
   const selectEl = document.getElementById('perf-split-select');
   if (selectEl) selectEl.value = splitKey;
 
+  await savePerformanceForPatient(activePatientId);
+  updateAITrainingBanner();
   perfRender();
 
   const toast = document.getElementById('perf-ai-toast');
@@ -8970,6 +9160,7 @@ function perfAddExercise(exerciseId) {
       exerciseId: ex.id, id: ex.id, name: ex.name, sets: 3, reps: '8-12', rpe: 7, rest: 90
     }]};
   });
+  savePerformanceForPatient(activePatientId);
   perfRender();
 }
 
@@ -8984,6 +9175,7 @@ function perfRemoveExercise(routineId, exerciseId) {
       })
     };
   });
+  savePerformanceForPatient(activePatientId);
   perfRender();
 }
 
@@ -9001,6 +9193,7 @@ function perfUpdateField(routineId, exerciseId, field, value) {
       })
     };
   });
+  savePerformanceForPatient(activePatientId);
   renderPerfHudMetrics();
 }
 
@@ -9345,11 +9538,18 @@ async function handleGenerateAITraining() {
     ];
   }
 
-  // 3. APLICA O PLANO GERADO À MEMÓRIA DO SISTEMA
+  // 3. APLICA O PLANO GERADO À MEMÓRIA DO SISTEMA E PERSISTE NO BANCO DE DADOS
   perfActiveSplit = chosenSplit;
   perfPrescribedCardioId = chosenCardioId;
   perfWorkoutPlan = generatedWorkoutPlan;
   perfTargetRoutine = generatedWorkoutPlan[0]?.id || 'A';
+  perfAuditData = auditData;
+  perfWorkoutMeta = {
+    isAIGenerated: true,
+    isClinicallyValidated: false,
+    generatedAt: new Date().toISOString(),
+    validatedAt: null
+  };
 
   const selectEl = document.getElementById('perf-split-select');
   if (selectEl) selectEl.value = chosenSplit;
@@ -9360,7 +9560,10 @@ async function handleGenerateAITraining() {
   // 4. GERA AGENDA SEMANAL DINÂMICA COM SINERGIA NUTRICIONAL COMPLETA (4 PILARES)
   perfWeeklySchedule = perfBuildWeeklySchedule(chosenSplit);
 
-  // 5. ATUALIZA CABEÇALHO SEMANAL DE DIAS
+  // 5. PERSISTÊNCIA NO DEXIE.JS (INDEXEDDB) PARA O PACIENTE ATIVO
+  await savePerformanceForPatient(activePatientId);
+
+  // 6. ATUALIZA CABEÇALHO SEMANAL DE DIAS
   const daySegBtn = document.getElementById('day-btn-seg');
   if (daySegBtn) daySegBtn.innerHTML = `<span class="font-bold text-blue-400">SEG</span> <span class="text-[10px] text-zinc-300">${perfWeeklySchedule[0].title.replace('Treino ','')}</span>`;
   const dayTerBtn = document.getElementById('day-btn-ter');
@@ -9376,7 +9579,7 @@ async function handleGenerateAITraining() {
   const dayDomBtn = document.getElementById('day-btn-dom');
   if (dayDomBtn) dayDomBtn.innerHTML = `<span class="font-bold text-zinc-500">DOM</span> <span class="text-[10px] text-zinc-500">Off</span>`;
 
-  // 6. ATUALIZA O CARD DE AUDITORIA NUTRICIONAL
+  // 7. ATUALIZA O CARD DE AUDITORIA NUTRICIONAL
   if (auditCard) {
     auditCard.style.display = 'block';
     const aObj = document.getElementById('audit-obj');
@@ -9392,7 +9595,7 @@ async function handleGenerateAITraining() {
     if (aExpl) aExpl.textContent = auditData.explanation;
   }
 
-  // 7. ATUALIZA O PAINEL DE RACIONAL BIOMECÂNICO & METAS
+  // 8. ATUALIZA O PAINEL DE RACIONAL BIOMECÂNICO & METAS
   const ratTitle = document.getElementById('perf-rationale-title');
   if (ratTitle) {
     ratTitle.textContent = `Periodização ${chosenSplit} · Alvo: ${auditData.obj}`;
@@ -9412,6 +9615,9 @@ async function handleGenerateAITraining() {
   if (intEl) intEl.textContent = isCutting ? 'RPE 7 a 8 (1-2 RIR) · Tensão Constante' : isBulking ? 'RPE 8 a 9 (0-1 RIR) · Sobrecarga Máxima' : 'RPE 7 a 9 (1-2 RIR) · Variação Ondulatória';
   if (intDescEl) intDescEl.textContent = 'Treino estruturado com 1 a 2 repetições em reserva para recrutar unidades motoras de alto limiar sem sobrecarga no SNC.';
 
+  // Atualiza banner IA
+  updateAITrainingBanner();
+
   // Restaura botão
   btn.disabled = false;
   btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-violet-200"></i> Gerar Treino via IA (Co-piloto Biomecânico)`;
@@ -9421,8 +9627,8 @@ async function handleGenerateAITraining() {
   if (toast) {
     toast.style.display = 'flex';
     toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 shrink-0 text-emerald-400"></i>
-      <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Co-piloto IA · Rotinas de ${patientName} Prescritas</strong>
-      Divisão <strong>${chosenSplit}</strong> + <strong>${prescribedCardio ? prescribedCardio.title : 'Cardio'}</strong> (${prescribedCardio ? prescribedCardio.calEst : ''}) com base nos ${caloricTarget} kcal e ${proteinGKg.toFixed(1)}g/kg de proteína.</div>`;
+      <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Co-piloto IA · Rotinas de ${patientName} Prescritas e Salvas</strong>
+      Divisão <strong>${chosenSplit}</strong> + <strong>${prescribedCardio ? prescribedCardio.title : 'Cardio'}</strong> (${prescribedCardio ? prescribedCardio.calEst : ''}) salva no prontuário do paciente.</div>`;
     if (window.lucide) window.lucide.createIcons();
     setTimeout(() => { if(toast) toast.style.display='none'; }, 6000);
   }
@@ -9797,6 +10003,10 @@ window.perfBuildWeeklySchedule = perfBuildWeeklySchedule;
 window.renderPerfWeeklySchedule = renderPerfWeeklySchedule;
 window.perfGetNutritionContext = perfGetNutritionContext;
 window.perfSyncNutritionAudit = perfSyncNutritionAudit;
+window.loadPerformanceForPatient = loadPerformanceForPatient;
+window.savePerformanceForPatient = savePerformanceForPatient;
+window.updateAITrainingBanner = updateAITrainingBanner;
+window.approveAITraining = approveAITraining;
 
 // ═══════════════════════════════════════════════════════════
 // MOTOR PWA MOBILE & GERENCIADOR DE INSTALAÇÃO NO CELULAR
