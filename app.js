@@ -1,4 +1,4 @@
-// app.js - Application Controller, Per-Patient Cloud Sync & Bidirectional Engine
+﻿// app.js - Application Controller, Per-Patient Cloud Sync & Bidirectional Engine
 // v2026.08.18-1323 — Drive list com botões + seletor atualiza após importar
 
 // Google Apps Script Web App Endpoint URL Configuration
@@ -6183,137 +6183,226 @@ document.addEventListener('DOMContentLoaded', () => {
 // Banco Extensivo de Exercícios Biomecânicos (Delavier, Nick Evans, Jim Stoppani)
 const PERF_EXERCISE_DB = [
   // ── PEITORAL (BARRAS, HALTERES, CABOS, MÁQUINAS, LIVRES) ──
-  { id:'pe01', name:'Supino Reto com Barra',                    group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Esternocostal)',          secondary:'Deltoide Anterior, Tríceps Braquial' },
-  { id:'pe02', name:'Supino Inclinado com Barra (30° a 45°)',   group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Clavicular - Superior)',  secondary:'Deltoide Anterior, Tríceps' },
-  { id:'pe03', name:'Supino Declinado com Barra',               group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Inferior/Abdominal)',     secondary:'Tríceps Braquial, Deltoide Anterior' },
-  { id:'pe04', name:'Supino Reto com Halteres',                 group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Maior amplitude & adução)',     secondary:'Deltoide Anterior, Tríceps' },
-  { id:'pe05', name:'Supino Inclinado com Halteres',            group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Porção Superior)',              secondary:'Deltoide Anterior, Tríceps' },
-  { id:'pe06', name:'Supino Declinado com Halteres',            group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Porção Inferior)',              secondary:'Tríceps, Deltoide Anterior' },
-  { id:'pe07', name:'Crucifixo Reto com Halteres',              group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Alongamento Máximo)',           secondary:'Deltoide Anterior (estabilizador)' },
-  { id:'pe08', name:'Crucifixo Inclinado com Halteres',          group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Fibras Clavicilares)',          secondary:'Deltoide Anterior' },
-  { id:'pe09', name:'Crucifixo Declinado com Halteres',         group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Fibras Esternocostais)',        secondary:'Deltoide Anterior' },
-  { id:'pe10', name:'Crossover no Cabo (Polia Alta)',           group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Foco Porção Inferior)',         secondary:'Deltoide Anterior' },
-  { id:'pe11', name:'Crossover no Cabo (Polia Média)',          group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Tensão Contínua Esternal)',     secondary:'Deltoide Anterior' },
-  { id:'pe12', name:'Crossover no Cabo (Polia Baixa)',          group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Foco Feixe Clavicular)',        secondary:'Deltoide Anterior' },
-  { id:'pe13', name:'Peck Deck / Voador (Máquina)',             group:'Peitoral', mechanics:'Isolador', equipment:'Máquina',        primary:'Peitoral Maior (Pico de Contração Medial)',     secondary:'Deltoide Anterior' },
-  { id:'pe14', name:'Supino Vertical na Máquina Articulada',    group:'Peitoral', mechanics:'Composto', equipment:'Máquina',        primary:'Peitoral Maior (Trajetória Convergente)',       secondary:'Tríceps Braquial, Deltoide' },
-  { id:'pe15', name:'Supino Inclinado na Máquina Convergente',  group:'Peitoral', mechanics:'Composto', equipment:'Máquina',        primary:'Peitoral Maior (Porção Superior)',              secondary:'Tríceps, Deltoide Anterior' },
-  { id:'pe16', name:'Supino no Smith (Guia Reto)',              group:'Peitoral', mechanics:'Composto', equipment:'Smith',          primary:'Peitoral Maior',                                secondary:'Tríceps, Deltoide' },
-  { id:'pe17', name:'Supino no Smith Inclinado',                group:'Peitoral', mechanics:'Composto', equipment:'Smith',          primary:'Peitoral Maior (Superior)',                     secondary:'Tríceps, Deltoide Anterior' },
-  { id:'pe18', name:'Flexão de Braço no Solo (Push-up)',        group:'Peitoral', mechanics:'Composto', equipment:'Peso Corporal',  primary:'Peitoral Maior',                                secondary:'Tríceps, Core (estabilização)' },
-  { id:'pe19', name:'Mergulho em Paralelas (Foco Peitoral)',    group:'Peitoral', mechanics:'Composto', equipment:'Peso Corporal',  primary:'Peitoral Maior (Tronco inclinado à frente)',   secondary:'Tríceps Braquial, Deltoide Anterior' },
-  { id:'pe20', name:'Pullover com Halter',                      group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior & Serrátil Anterior',            secondary:'Latíssimo do Dorso, Tríceps Longo' },
+  // Fonte: Schoenfeld — "Science and Dev. of Muscle Hypertrophy" Cap.2/3 | Lima & Pinto — Cinesiologia Cap.4
+  { id:'pe01', name:'Supino Reto com Barra',                    group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Esternocostal)',          secondary:'Deltoide Anterior, Tríceps Braquial',       resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Pico de torque entre 0-60° de abdução horizontal (encurtamento). Exc. 3s acumula tensão mecânica máxima sem perder força intramuscular — Schoenfeld Cap.3.' },
+  { id:'pe02', name:'Supino Inclinado com Barra (30° a 45°)',   group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Clavicular - Superior)',  secondary:'Deltoide Anterior, Tríceps',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Ângulo inclinado desloca tensão para fibras claviculares. Excêntrico 3s preserva integridade da articulação glenoumeral — ACSM Cap.7.' },
+  { id:'pe03', name:'Supino Declinado com Barra',               group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Inferior/Abdominal)',     secondary:'Tríceps Braquial, Deltoide Anterior',       resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Declinação aumenta ativação do feixe esternal inferior. Exc. 3s controla sobrecarga em ângulo desfavorável para o ombro.' },
+  { id:'pe04', name:'Supino Reto com Halteres',                 group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Maior amplitude & adução)',     secondary:'Deltoide Anterior, Tríceps',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Halteres permitem ADM 20-30% maior que barra, gerando pico de torque no alongamento (90°+ de abdução). Responsável por maior TUT sarcomérico — Schoenfeld Cap.2.' },
+  { id:'pe05', name:'Supino Inclinado com Halteres',            group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Porção Superior)',              secondary:'Deltoide Anterior, Tríceps',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Combina ADM aumentada dos halteres com inclinação para feixe clavicular. Componente de alongamento em 90° solicita OIMS maximamente — Lima & Pinto Cap.4.' },
+  { id:'pe06', name:'Supino Declinado com Halteres',            group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Porção Inferior)',              secondary:'Tríceps, Deltoide Anterior',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'ADM ampliada + declinação: ativa porção abdominal do peitoral no alongamento. Par complementar ao Peck Deck — Schoenfeld Cap.2.' },
+  { id:'pe07', name:'Crucifixo Reto com Halteres',              group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Alongamento Máximo)',           secondary:'Deltoide Anterior (estabilizador)',         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Pico de torque a 90° de abdução horizontal (posição de maior comprimento). Pausa 1s no fundo recruta sarcômeros em série — Schoenfeld, Science of Hyp. Cap.2.' },
+  { id:'pe08', name:'Crucifixo Inclinado com Halteres',          group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Fibras Claviculares)',          secondary:'Deltoide Anterior',                         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Crucifixo inclinado: pico de tensão no alongamento com ênfase em fibras superiores. Pausa 1s no ponto de maior comprimento — Lima & Pinto Cap.4.' },
+  { id:'pe09', name:'Crucifixo Declinado com Halteres',         group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Fibras Esternocostais)',        secondary:'Deltoide Anterior',                         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Crucifixo declinado: alonga fibras esternocostais inferiores. Excêntrico lento de 3s é determinante para dano miofibrilar e remodelação — Schoenfeld Cap.3.' },
+  { id:'pe10', name:'Crossover no Cabo (Polia Alta)',           group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Foco Porção Inferior)',         secondary:'Deltoide Anterior',                         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia alta cria vetor de tração que desafia o peitoral na posição de maior comprimento. Tensão contínua do cabo em toda ADM — Lima & Pinto, Cinesiologia Cap.5.' },
+  { id:'pe11', name:'Crossover no Cabo (Polia Média)',          group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Tensão Contínua Esternal)',     secondary:'Deltoide Anterior',                         resistProfile:'uniform',   cadence:'3-1-1-0', cadenceNote:'Polia média cria curva de torque relativamente uniforme em toda ADM. Pausa de 1s na adução maximiza o pico de contração esternal — Schoenfeld Cap.2.' },
+  { id:'pe12', name:'Crossover no Cabo (Polia Baixa)',          group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Foco Feixe Clavicular)',        secondary:'Deltoide Anterior',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Polia baixa cria resistência que aumenta no encurtamento (adução cruzada). Pico de tensão na posição encurtada estimula fibras claviculares — Lima & Pinto Cap.4.' },
+  { id:'pe13', name:'Peck Deck / Voador (Máquina)',             group:'Peitoral', mechanics:'Isolador', equipment:'Máquina',        primary:'Peitoral Maior (Pico de Contração Medial)',     secondary:'Deltoide Anterior',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Peck Deck: curva de força crescente até o encurtamento total. 1s de pausa isométrica na adução máxima ativa UMs de alto limiar — Schoenfeld, Science Cap.3.' },
+  { id:'pe14', name:'Supino Vertical na Máquina Articulada',    group:'Peitoral', mechanics:'Composto', equipment:'Máquina',        primary:'Peitoral Maior (Trajetória Convergente)',       secondary:'Tríceps Braquial, Deltoide',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Máquina articulada converge para o centro, simulando adução. Trajetória guiada permite excêntrico controlado 3s sem falha técnica — ACSM Tabela 7-2.' },
+  { id:'pe15', name:'Supino Inclinado na Máquina Convergente',  group:'Peitoral', mechanics:'Composto', equipment:'Máquina',        primary:'Peitoral Maior (Porção Superior)',              secondary:'Tríceps, Deltoide Anterior',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Máquina convergente inclinada isola porção clavicular com trajetória controlada. Segurança para excêntrico pesado de 3s — ACSM Cap.7.' },
+  { id:'pe16', name:'Supino no Smith (Guia Reto)',              group:'Peitoral', mechanics:'Composto', equipment:'Smith',          primary:'Peitoral Maior',                                secondary:'Tríceps, Deltoide',                         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Guia vertical do Smith elimina graus de liberdade, focando o estímulo no encurtamento esternal. Útil para overload progressivo controlado — ACSM Cap.7.' },
+  { id:'pe17', name:'Supino no Smith Inclinado',                group:'Peitoral', mechanics:'Composto', equipment:'Smith',          primary:'Peitoral Maior (Superior)',                     secondary:'Tríceps, Deltoide Anterior',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Smith inclinado isola porção clavicular com trajetória controlada. Permite excêntrico de 3s com sobrecarga supramáxima segura — ACSM Cap.7.' },
+  { id:'pe18', name:'Flexão de Braço no Solo (Push-up)',        group:'Peitoral', mechanics:'Composto', equipment:'Peso Corporal',  primary:'Peitoral Maior',                                secondary:'Tríceps, Core (estabilização)',              resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Flexão de braço: pico de EMG peitoral no encurtamento (cotovelos estendidos). Excêntrico lento de 3s amplifica tensão muscular sem carga externa — Lima & Pinto.' },
+  { id:'pe19', name:'Mergulho em Paralelas (Foco Peitoral)',    group:'Peitoral', mechanics:'Composto', equipment:'Peso Corporal',  primary:'Peitoral Maior (Tronco inclinado à frente)',   secondary:'Tríceps Braquial, Deltoide Anterior',        resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Tronco inclinado à frente no mergulho cria componente de alongamento do peitoral. Descida de 3s com controle protege a articulação glenoumeral — Lima & Pinto Cap.4.' },
+  { id:'pe20', name:'Pullover com Halter',                      group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior & Serrátil Anterior',            secondary:'Latíssimo do Dorso, Tríceps Longo',         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Pullover sobrecarrega peitoral e serrátil no máximo alongamento (ombros em flexão). Pausa 1s no fundo amplifica estímulo em sarcômeros em série — Schoenfeld Cap.2.' },
 
   // ── DORSAL / COSTAS (BARRAS, HALTERES, CABOS, MÁQUINAS, LIVRES) ──
-  { id:'do01', name:'Barra Fixa Pronada (Pull-up)',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso (Largura Dorsal)',           secondary:'Romboides, Bíceps, Trapézio Inferior' },
-  { id:'do02', name:'Barra Fixa Supinada (Chin-up)',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso & Bíceps Braquial',          secondary:'Romboides, Braquial' },
-  { id:'do03', name:'Barra Fixa com Pegada Neutra',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso & Braquiorradial',           secondary:'Bíceps, Romboides' },
-  { id:'do04', name:'Puxada Frontal Aberta na Polia',           group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso (Fibras Superiores)',        secondary:'Bíceps Braquial, Romboides' },
-  { id:'do05', name:'Puxada Frontal com Triângulo (Fechada)',   group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso & Redondo Maior',            secondary:'Bíceps, Braquial' },
-  { id:'do06', name:'Puxada Supinada na Polia',                 group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso (Feixe Inferior)',           secondary:'Bíceps Braquial, Braquial' },
-  { id:'do07', name:'Pulldown / Puxada com Braços Retos (Cabo)',group:'Dorsal',   mechanics:'Isolador', equipment:'Cabo',           primary:'Latíssimo do Dorso (Isolamento)',               secondary:'Redondo Maior, Tríceps Longo' },
-  { id:'do08', name:'Remada Curvada com Barra (Pronada)',       group:'Dorsal',   mechanics:'Composto', equipment:'Barra',          primary:'Latíssimo do Dorso & Romboides (Espessura)',    secondary:'Trapézio Médio/Inf, Bíceps, Eretores' },
-  { id:'do09', name:'Remada Curvada com Barra (Supinada/Yates)',group:'Dorsal',  mechanics:'Composto', equipment:'Barra',          primary:'Latíssimo do Dorso (Feixe Inferior)',           secondary:'Bíceps Braquial, Romboides' },
-  { id:'do10', name:'Remada Cavalinho (Barra T)',               group:'Dorsal',   mechanics:'Composto', equipment:'Barra',          primary:'Romboides, Latíssimo & Trapézio Médio',         secondary:'Bíceps, Eretores da Espinha' },
-  { id:'do11', name:'Remada Unilateral com Halter (Serrote)',   group:'Dorsal',   mechanics:'Composto', equipment:'Halteres',       primary:'Latíssimo do Dorso (Unilateral)',               secondary:'Romboides, Bíceps, Redondo Maior' },
-  { id:'do12', name:'Remada Baixa no Cabo (Triângulo)',         group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Romboides & Latíssimo do Dorso',                secondary:'Bíceps Braquial, Trapézio' },
-  { id:'do13', name:'Remada Baixa com Barra Reta / Pegada Aberta',group:'Dorsal',mechanics:'Composto', equipment:'Cabo',           primary:'Trapézio Médio, Romboides & Deltoide Posterior',secondary:'Latíssimo, Bíceps' },
-  { id:'do14', name:'Remada Articulada na Máquina (Peito Apoiado)',group:'Dorsal',mechanics:'Composto',equipment:'Máquina',        primary:'Latíssimo do Dorso & Romboides',                secondary:'Bíceps, Trapézio' },
-  { id:'do15', name:'Puxada Vertical na Máquina Articulada',    group:'Dorsal',   mechanics:'Composto', equipment:'Máquina',        primary:'Latíssimo do Dorso',                            secondary:'Bíceps Braquial' },
-  { id:'do16', name:'Levantamento Terra Convencional (Deadlift)',group:'Dorsal',  mechanics:'Composto', equipment:'Barra',          primary:'Eretores da Espinha, Glúteos & Isquiotibiais',  secondary:'Latíssimo, Trapézio, Quadríceps, Core' },
-  { id:'do17', name:'Hiperextensão Lombar (Banco 45°)',         group:'Dorsal',   mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Eretores da Espinha (Lombar)',                  secondary:'Glúteo Máximo, Isquiotibiais' },
+  // Fonte: Lima & Pinto — Cinesiologia e Musculação Cap.5 | Schoenfeld Cap.2 (Moment Arm & EMG)
+  { id:'do01', name:'Barra Fixa Pronada (Pull-up)',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso (Largura Dorsal)',           secondary:'Romboides, Bíceps, Trapézio Inferior',     resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pico de ativação EMG do latíssimo com ombros em flexão máxima (posição de maior comprimento). Descida controlada 3s recruta mais fibras por mais tempo — Schoenfeld Cap.2.' },
+  { id:'do02', name:'Barra Fixa Supinada (Chin-up)',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso & Bíceps Braquial',          secondary:'Romboides, Braquial',                      resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pegada supinada reduz supressão neural de bíceps, aumentando cocativação. Pico de torque do latíssimo no alongamento — Lima & Pinto Cap.5.' },
+  { id:'do03', name:'Barra Fixa com Pegada Neutra',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso & Braquiorradial',           secondary:'Bíceps, Romboides',                        resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pegada neutra otimiza ativação do braquiorradial e latíssimo simultaneamente. Excêntrico 3s preserva o ombro em rotação neutra — ACSM Cap.7.' },
+  { id:'do04', name:'Puxada Frontal Aberta na Polia',           group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso (Fibras Superiores)',        secondary:'Bíceps Braquial, Romboides',               resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pegada aberta maximiza o momento de força sobre o latíssimo no ponto de maior comprimento (braços estendidos). Cabo mantém tensão constante — Lima & Pinto Cap.5.' },
+  { id:'do05', name:'Puxada Frontal com Triângulo (Fechada)',   group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso & Redondo Maior',            secondary:'Bíceps, Braquial',                         resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Triângulo fechado gera puxada na linha mediana, equilibrando tensão ao longo de toda ADM. Curva de torque do latíssimo relativamente uniforme — Schoenfeld Cap.2.' },
+  { id:'do06', name:'Puxada Supinada na Polia',                 group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso (Feixe Inferior)',           secondary:'Bíceps Braquial, Braquial',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Pegada supinada desloca torque para o feixe inferior do latíssimo, com pico no encurtamento (cotovelo junto ao corpo). Complementar à puxada aberta — Lima & Pinto Cap.5.' },
+  { id:'do07', name:'Pulldown / Puxada com Braços Retos (Cabo)',group:'Dorsal',   mechanics:'Isolador', equipment:'Cabo',           primary:'Latíssimo do Dorso (Isolamento)',               secondary:'Redondo Maior, Tríceps Longo',             resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Braços retos eliminam a contribuição de bíceps, isolando o latíssimo no momento de extensão do ombro (pico de torque no encurtamento). Pausa 1s no quadril — Schoenfeld Cap.3.' },
+  { id:'do08', name:'Remada Curvada com Barra (Pronada)',       group:'Dorsal',   mechanics:'Composto', equipment:'Barra',          primary:'Latíssimo do Dorso & Romboides (Espessura)',    secondary:'Trapézio Médio/Inf, Bíceps, Eretores',    resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Remada pronada: pico de ativação na retração escapular (encurtamento de romboides e trapézio médio). Excêntrico 3s com tronco estável a 45° — Lima & Pinto Cap.5.' },
+  { id:'do09', name:'Remada Curvada com Barra (Supinada/Yates)',group:'Dorsal',  mechanics:'Composto', equipment:'Barra',          primary:'Latíssimo do Dorso (Feixe Inferior)',           secondary:'Bíceps Braquial, Romboides',               resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Yates row: pegada supinada aumenta ativação do feixe inferior do latíssimo no encurtamento. Tronco mais ereto (70°) encurta o braço de momento — Schoenfeld Cap.2.' },
+  { id:'do10', name:'Remada Cavalinho (Barra T)',               group:'Dorsal',   mechanics:'Composto', equipment:'Barra',          primary:'Romboides, Latíssimo & Trapézio Médio',         secondary:'Bíceps, Eretores da Espinha',              resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Apoio no peito estabiliza o eixo e permite pico de contração na retração escapular (encurtamento de romboides). Excêntrico 3s com carga alta — Lima & Pinto Cap.5.' },
+  { id:'do11', name:'Remada Unilateral com Halter (Serrote)',   group:'Dorsal',   mechanics:'Composto', equipment:'Halteres',       primary:'Latíssimo do Dorso (Unilateral)',               secondary:'Romboides, Bíceps, Redondo Maior',         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Posição unilateral com apoio permite maior amplitude no início do movimento (posição de maior comprimento). Rotação de tronco controlada amplifica estímulo — Schoenfeld Cap.2.' },
+  { id:'do12', name:'Remada Baixa no Cabo (Triângulo)',         group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Romboides & Latíssimo do Dorso',                secondary:'Bíceps Braquial, Trapézio',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Remada baixa com triângulo: pico na retração escapular com cotovelos junto ao corpo (encurtamento). Controle da extensão pélvica evita compensação lombar — Lima & Pinto.' },
+  { id:'do13', name:'Remada Baixa com Barra Reta / Pegada Aberta',group:'Dorsal',mechanics:'Composto', equipment:'Cabo',           primary:'Trapézio Médio, Romboides & Deltoide Posterior',secondary:'Latíssimo, Bíceps',                         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Pegada aberta isola trapézio médio e deltoide posterior na retração. Par ideal de puxada aberta (ambas encurtadas diferentes) — Lima & Pinto Cap.5.' },
+  { id:'do14', name:'Remada Articulada na Máquina (Peito Apoiado)',group:'Dorsal',mechanics:'Composto',equipment:'Máquina',        primary:'Latíssimo do Dorso & Romboides',                secondary:'Bíceps, Trapézio',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Apoio no peito elimina a compensação lombar, isolando o dorsal no encurtamento. Pausa 1s na retração máxima ativa fibras de alto limiar — Schoenfeld Cap.3.' },
+  { id:'do15', name:'Puxada Vertical na Máquina Articulada',    group:'Dorsal',   mechanics:'Composto', equipment:'Máquina',        primary:'Latíssimo do Dorso',                            secondary:'Bíceps Braquial',                          resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Máquina articulada mantém tensão na posição de maior comprimento do latíssimo. Ideal para iniciantes controlarem a fase excêntrica — ACSM Cap.7.' },
+  { id:'do16', name:'Levantamento Terra Convencional (Deadlift)',group:'Dorsal',  mechanics:'Composto', equipment:'Barra',          primary:'Eretores da Espinha, Glúteos & Isquiotibiais',  secondary:'Latíssimo, Trapézio, Quadríceps, Core',   resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Terra convencional: pico de torque nos eretores e isquiotibiais na posição de maior comprimento (barra no solo). Exc. 4s controla cargas supramáximas — ACSM Tabela 7-2.' },
+  { id:'do17', name:'Hiperextensão Lombar (Banco 45°)',         group:'Dorsal',   mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Eretores da Espinha (Lombar)',                  secondary:'Glúteo Máximo, Isquiotibiais',             resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Hiperextensão: pico de ativação dos eretores no alongamento (tronco a 90°). Pausa 1s no fundo maximiza o estresse sobre as fibras lombares — Lima & Pinto Cap.5.' },
 
   // ── PERNAS & GLÚTEOS (QUADRÍCEPS, ISQUIOTIBIAIS, PANTURRILHA, GLÚTEO) ──
-  { id:'lg01', name:'Agachamento Livre com Barra (Back Squat)', group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Quadríceps (Vasto Lat., Med., Reto Fem.)',      secondary:'Glúteo Máximo, Isquiotibiais, Core' },
-  { id:'lg02', name:'Agachamento Frontal com Barra (Front Squat)',group:'Pernas', mechanics:'Composto', equipment:'Barra',          primary:'Quadríceps (Foco Reto Femoral)',                secondary:'Glúteos, Core Abdominal' },
-  { id:'lg03', name:'Agachamento Hack (Máquina)',               group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps (Isolamento de Carga)',              secondary:'Glúteo Máximo' },
-  { id:'lg04', name:'Leg Press 45°',                            group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps & Glúteos',                          secondary:'Isquiotibiais, Adutores' },
-  { id:'lg05', name:'Leg Press Horizontal',                     group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps',                                    secondary:'Glúteos' },
-  { id:'lg06', name:'Cadeira Extensora',                         group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Quadríceps (Reto Femoral & Vastos)',            secondary:'—' },
-  { id:'lg07', name:'Agachamento Búlgaro com Halteres',         group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Glúteo Máximo & Quadríceps (Unilateral)',       secondary:'Isquiotibiais, Adutores' },
-  { id:'lg08', name:'Avanço / Passada com Halteres ou Barra',   group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Quadríceps & Glúteos',                          secondary:'Isquiotibiais, Panturrilhas' },
-  { id:'lg09', name:'Agachamento Sissy (Sissy Squat)',          group:'Pernas',   mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Quadríceps (Alongamento Extremo Reto Fem.)',    secondary:'Core' },
-  { id:'lg10', name:'Stiff com Barra (Terra Romeno)',           group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Isquiotibiais (Bíceps Femoral, Semitendíneo)',  secondary:'Glúteo Máximo, Eretores Lombares' },
-  { id:'lg11', name:'Stiff com Halteres',                       group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Isquiotibiais & Glúteo',                        secondary:'Eretores da Espinha' },
-  { id:'lg12', name:'Mesa Flexora Deitada',                     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Bíceps Femoral)',                secondary:'Gastrocnêmio' },
-  { id:'lg13', name:'Cadeira Flexora Sentada',                  group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Maior Alongamento Pélvico)',     secondary:'Gastrocnêmio' },
-  { id:'lg14', name:'Flexora Vertical Unilateral',              group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Equilíbrio Muscular)',           secondary:'—' },
-  { id:'lg15', name:'Elevação Pélvica com Barra (Hip Thrust)',   group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Glúteo Máximo (Pico de Contração)',             secondary:'Isquiotibiais, Adutores' },
-  { id:'lg16', name:'Elevação Pélvica na Máquina',              group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Glúteo Máximo',                                 secondary:'Isquiotibiais' },
-  { id:'lg17', name:'Cadeira Abdutora',                         group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Glúteo Médio & Glúteo Mínimo',                  secondary:'Tensor da Fáscia Lata' },
-  { id:'lg18', name:'Cadeira Adutora',                          group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Adutores da Coxa (Magno, Longo, Breve)',        secondary:'Grácil' },
-  { id:'lg19', name:'Glúteo no Cabo (Coiçe / Extensão)',         group:'Pernas',   mechanics:'Isolador', equipment:'Cabo',           primary:'Glúteo Máximo (Isolado)',                       secondary:'Isquiotibiais' },
-  { id:'lg20', name:'Panturrilha em Pé na Máquina',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio (Cabeça Medial e Lateral)',        secondary:'Sóleo' },
-  { id:'lg21', name:'Panturrilha Sentado (Gêmeos / Sóleo)',     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Sóleo (Trabalho com Joelho Flexionado)',        secondary:'Gastrocnêmio profundo' },
-  { id:'lg22', name:'Panturrilha no Leg Press 45°',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio & Sóleo',                          secondary:'Tibial' },
+  // Fonte: "Biomecânica Básica dos Exercícios: Membros Inferiores" | Schoenfeld Cap.2 | ACSM Tabela 7-2
+  { id:'lg01', name:'Agachamento Livre com Barra (Back Squat)', group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Quadríceps (Vasto Lat., Med., Reto Fem.)',      secondary:'Glúteo Máximo, Isquiotibiais, Core',       resistProfile:'uniform',   cadence:'4-0-1-0', cadenceNote:'Curva de torque do agachamento é quasi-uniforme. Exc. 4s protege o tendão patelar e ligamento cruzado anterior, maximizando tensão mecânica — Biomecânica Membros Inferiores.' },
+  { id:'lg02', name:'Agachamento Frontal com Barra (Front Squat)',group:'Pernas', mechanics:'Composto', equipment:'Barra',          primary:'Quadríceps (Foco Reto Femoral)',                secondary:'Glúteos, Core Abdominal',                  resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Tronco mais vertical no front squat alonga o reto femoral na profundidade máxima. Exc. 4s com controle de joelho sobre o pé — Biomecânica Membros Inferiores.' },
+  { id:'lg03', name:'Agachamento Hack (Máquina)',               group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps (Isolamento de Carga)',              secondary:'Glúteo Máximo',                            resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Hack machine elimina carga axial na coluna. Joelhos avançam sobre os pés ampliando ADM do quadríceps (posição de maior comprimento). Exc. 4s preserva patelar — Biomec. MI.' },
+  { id:'lg04', name:'Leg Press 45°',                            group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps & Glúteos',                          secondary:'Isquiotibiais, Adutores',                  resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Leg Press: amplitude máxima com joelho acima de 90° gera pico de torque no quadríceps em posição de maior comprimento. Exc. 3s controlado na máquina — Biomec. MI.' },
+  { id:'lg05', name:'Leg Press Horizontal',                     group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps',                                    secondary:'Glúteos',                                  resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Leg Press horizontal: vetor de força horizontal cria ângulo diferente de torque. ADM completa com joelhos em 90°+ alonga quadríceps — Biomecânica Membros Inferiores.' },
+  { id:'lg06', name:'Cadeira Extensora',                         group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Quadríceps (Reto Femoral & Vastos)',            secondary:'—',                                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Cadeira extensora: pico de ativação EMG na extensão completa (posição de encurtamento). 1s isométrico no topo ativa UMs de alto limiar do reto femoral — Schoenfeld Cap.3.' },
+  { id:'lg07', name:'Agachamento Búlgaro com Halteres',         group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Glúteo Máximo & Quadríceps (Unilateral)',       secondary:'Isquiotibiais, Adutores',                  resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Búlgaro: pé traseiro elevado força o glúteo frontal a trabalhar no máximo alongamento (anteversão pélvica). Par ideal com Hip Thrust (encurtado) — Biomec. MI.' },
+  { id:'lg08', name:'Avanço / Passada com Halteres ou Barra',   group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Quadríceps & Glúteos',                          secondary:'Isquiotibiais, Panturrilhas',              resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Passada/avanço: descida profunda gera alongamento simultâneo de glúteo e quadríceps. Posição unilateral amplifica a instabilidade muscular — Biomec. Membros Inferiores.' },
+  { id:'lg09', name:'Agachamento Sissy (Sissy Squat)',          group:'Pernas',   mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Quadríceps (Alongamento Extremo Reto Fem.)',    secondary:'Core',                                     resistProfile:'stretched', cadence:'3-0-2-0', cadenceNote:'Sissy squat: joelhos avançam além dos pés com calcanhar elevado, gerando o maior alongamento possível do reto femoral. 2s concêntrico para controle — Biomec. MI.' },
+  { id:'lg10', name:'Stiff com Barra (Terra Romeno)',           group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Isquiotibiais (Bíceps Femoral, Semitendíneo)',  secondary:'Glúteo Máximo, Eretores Lombares',         resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Stiff/RDL: anteversão pélvica maximiza o alongamento dos isquiotibiais. Pico de torque no comprimento máximo. Exc. 4s é crítico para controlar tensão passiva — Biomec. MI.' },
+  { id:'lg11', name:'Stiff com Halteres',                       group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Isquiotibiais & Glúteo',                        secondary:'Eretores da Espinha',                      resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Halteres permitem maior ADM que a barra no stiff. Pico de torque dos isquiotibiais no comprimento máximo com maior destreza de execução — Biomec. Membros Inferiores.' },
+  { id:'lg12', name:'Mesa Flexora Deitada',                     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Bíceps Femoral)',                secondary:'Gastrocnêmio',                             resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Mesa flexora deitada: quadril neutro gera curva de torque mais uniforme. Porém, menor componente de alongamento que a cadeira sentada. Par com Stiff — Schoenfeld Cap.2.' },
+  { id:'lg13', name:'Cadeira Flexora Sentada',                  group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Maior Alongamento Pélvico)',     secondary:'Gastrocnêmio',                             resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Cadeira sentada: quadril em flexão cria anteversão pélvica que ENCURTA os isquiotibiais, gerando pico de força no encurtamento. Par científico do Stiff — Biomec. MI + Schoenfeld.' },
+  { id:'lg14', name:'Flexora Vertical Unilateral',              group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Equilíbrio Muscular)',           secondary:'—',                                        resistProfile:'uniform',   cadence:'3-1-1-0', cadenceNote:'Flexora vertical isola cada membro separadamente com curva de torque moderada. Pausa 1s na flexão máxima para contração máxima unilateral — Lima & Pinto Cap.6.' },
+  { id:'lg15', name:'Elevação Pélvica com Barra (Hip Thrust)',   group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Glúteo Máximo (Pico de Contração)',             secondary:'Isquiotibiais, Adutores',                  resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Hip Thrust: pico de ativação EMG do glúteo máximo na extensão completa do quadril (posição encurtada). 1s isométrico no topo = pico de força glúteo — Schoenfeld Cap.2.' },
+  { id:'lg16', name:'Elevação Pélvica na Máquina',              group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Glúteo Máximo',                                 secondary:'Isquiotibiais',                            resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Máquina de hip thrust: mesmo princípio biomecânico do hip thrust com barra, mas carga guiada. 1s isométrico no topo do movimento — Schoenfeld Cap.2.' },
+  { id:'lg17', name:'Cadeira Abdutora',                         group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Glúteo Médio & Glúteo Mínimo',                  secondary:'Tensor da Fáscia Lata',                    resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Abdutora: glúteo médio trabalha contra resistência máxima no final da abdução (encurtamento). Pausa 1s na abertura máxima para ativação de fibras lentas — Lima & Pinto.' },
+  { id:'lg18', name:'Cadeira Adutora',                          group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Adutores da Coxa (Magno, Longo, Breve)',        secondary:'Grácil',                                   resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Adutora: adutores trabalham contra resistência progressiva até o fechamento (encurtamento). Pausa 1s no fechamento máximo para contração isométrica de adutores.' },
+  { id:'lg19', name:'Glúteo no Cabo (Coiçe / Extensão)',         group:'Pernas',   mechanics:'Isolador', equipment:'Cabo',           primary:'Glúteo Máximo (Isolado)',                       secondary:'Isquiotibiais',                            resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Extensão de quadril no cabo: pico de ativação do glúteo máximo na extensão completa (encurtamento). Cabo mantém tensão em toda ADM. Pausa 1s no topo — Schoenfeld Cap.2.' },
+  { id:'lg20', name:'Panturrilha em Pé na Máquina',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio (Cabeça Medial e Lateral)',        secondary:'Sóleo',                                    resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Panturrilha em pé: joelho estendido maximiza comprimento do gastrocnêmio. Pausa 1s na elevação máxima (encurtamento) + descida de 3s com alongamento completo — Biomec. MI.' },
+  { id:'lg21', name:'Panturrilha Sentado (Gêmeos / Sóleo)',     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Sóleo (Trabalho com Joelho Flexionado)',        secondary:'Gastrocnêmio profundo',                    resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Joelho flexionado inibe o gastrocnêmio e isola o sóleo, com pico de ativação no encurtamento. Par do exercício em pé (que foca gastrocnêmio alongado) — Biomec. MI.' },
+  { id:'lg22', name:'Panturrilha no Leg Press 45°',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio & Sóleo',                          secondary:'Tibial',                                   resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Panturrilha no leg press: carga axial com ADM máxima (plataforma faz naturalmente o alongamento). Pico de tensão passiva no alongamento com joelho estendido — Biomec. MI.' },
 
   // ── OMBROS & TRAPÉZIO ──
-  { id:'sh01', name:'Desenvolvimento Militar em Pé (Overhead)', group:'Ombros',   mechanics:'Composto', equipment:'Barra',          primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps, Trapézio Superior, Core' },
-  { id:'sh02', name:'Desenvolvimento Sentado com Halteres',     group:'Ombros',   mechanics:'Composto', equipment:'Halteres',       primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps Braquial, Trapézio' },
-  { id:'sh03', name:'Desenvolvimento Arnold (Arnold Press)',    group:'Ombros',   mechanics:'Composto', equipment:'Halteres',       primary:'Deltoide Anterior, Medial & Rotação',           secondary:'Tríceps Braquial' },
-  { id:'sh04', name:'Desenvolvimento na Máquina Articulada',    group:'Ombros',   mechanics:'Composto', equipment:'Máquina',        primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps' },
-  { id:'sh05', name:'Desenvolvimento no Smith',                 group:'Ombros',   mechanics:'Composto', equipment:'Smith',          primary:'Deltoide Anterior',                             secondary:'Tríceps, Trapézio' },
-  { id:'sh06', name:'Elevação Lateral com Halteres',            group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Medial (Feixe Acromial / Largura)',    secondary:'Deltoide Anterior, Trapézio Sup.' },
-  { id:'sh07', name:'Elevação Lateral na Polia Baixa (Cabo)',   group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Medial (Tensão Contínua)',             secondary:'Supraespinhal' },
-  { id:'sh08', name:'Elevação Lateral na Máquina',              group:'Ombros',   mechanics:'Isolador', equipment:'Máquina',        primary:'Deltoide Medial',                               secondary:'Trapézio' },
-  { id:'sh09', name:'Elevação Lateral Inclinada no Banco 45°',  group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Medial (Maior Alongamento)',           secondary:'Supraespinhal' },
-  { id:'sh10', name:'Elevação Frontal com Halteres',            group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Anterior (Feixe Clavicular)',          secondary:'Peitoral Superior' },
-  { id:'sh11', name:'Elevação Frontal com Barra',               group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Deltoide Anterior',                             secondary:'Peitoral Superior' },
-  { id:'sh12', name:'Elevação Frontal na Polia com Corda',      group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Anterior',                             secondary:'Peitoral Clavicular' },
-  { id:'sh13', name:'Crucifixo Inverso com Halteres',           group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio Médio' },
-  { id:'sh14', name:'Crucifixo Inverso no Peck Deck (Máquina)', group:'Ombros',   mechanics:'Isolador', equipment:'Máquina',        primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio' },
-  { id:'sh15', name:'Face Pull na Polia com Corda',             group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior & Manguito Rotador',         secondary:'Trapézio Médio/Inf, Romboides' },
-  { id:'sh16', name:'Remada Alta com Barra (Upright Row)',       group:'Ombros',   mechanics:'Composto', equipment:'Barra',          primary:'Deltoide Medial & Trapézio Superior',           secondary:'Bíceps, Braquial' },
-  { id:'sh17', name:'Remada Alta na Polia Baixa',               group:'Ombros',   mechanics:'Composto', equipment:'Cabo',           primary:'Deltoide Medial & Trapézio',                    secondary:'Braquial, Bíceps' },
-  { id:'sh18', name:'Encolhimento com Barra (Shrug)',            group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Trapézio Superior',                             secondary:'Elevador da Escápula' },
-  { id:'sh19', name:'Encolhimento com Halteres',                group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Trapézio Superior (Foco em Contração)',         secondary:'Elevador da Escápula' },
-  { id:'sh20', name:'Encolhimento no Smith por Trás',           group:'Ombros',   mechanics:'Isolador', equipment:'Smith',          primary:'Trapézio Superior & Médio',                     secondary:'Romboides' },
+  // Fonte: Lima & Pinto — Cinesiologia Cap.6 | Schoenfeld Cap.2 (EMG deltoide) | ACSM Cap.7
+  { id:'sh01', name:'Desenvolvimento Militar em Pé (Overhead)', group:'Ombros',   mechanics:'Composto', equipment:'Barra',          primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps, Trapézio Superior, Core',         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'OHP: pico de ativação do deltoide anterior e medial na extensão total do cotovelo (encurtamento). Excêntrico 3s controlado preserva a articulação glenoumeral — ACSM Cap.7.' },
+  { id:'sh02', name:'Desenvolvimento Sentado com Halteres',     group:'Ombros',   mechanics:'Composto', equipment:'Halteres',       primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps Braquial, Trapézio',               resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Desenvolvimendo com halteres: maior ADM que a barra. Pico de ativação do deltoide no encurtamento (cotovelos estendidos). Halteres exigem mais estabilização — ACSM Cap.7.' },
+  { id:'sh03', name:'Desenvolvimento Arnold (Arnold Press)',    group:'Ombros',   mechanics:'Composto', equipment:'Halteres',       primary:'Deltoide Anterior, Medial & Rotação',           secondary:'Tríceps Braquial',                         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Arnold Press: rotação supina no início cria componente de alongamento do deltoide anterior e medial. Sequência única de recrutamento muscular — Lima & Pinto Cap.6.' },
+  { id:'sh04', name:'Desenvolvimento na Máquina Articulada',    group:'Ombros',   mechanics:'Composto', equipment:'Máquina',        primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps',                                  resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Máquina articulada: trajetória guiada com pico de ativação do deltoide no encurtamento (braços estendidos). Ideal para overload progressivo seguro — ACSM Tabela 7-2.' },
+  { id:'sh05', name:'Desenvolvimento no Smith',                 group:'Ombros',   mechanics:'Composto', equipment:'Smith',          primary:'Deltoide Anterior',                             secondary:'Tríceps, Trapézio',                        resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Smith para ombros: guia vertical elimina instabilidade lateral. Pico de ativação do deltoide anterior no encurtamento com overload controlado — ACSM Cap.7.' },
+  { id:'sh06', name:'Elevação Lateral com Halteres',            group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Medial (Feixe Acromial / Largura)',    secondary:'Deltoide Anterior, Trapézio Sup.',         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Elevação lateral: curva de torque do deltoide medial cresce com a abdução, com pico a 90°. 1s isométrico no topo recrutando fibras tipo IIa — Lima & Pinto Cap.6.' },
+  { id:'sh07', name:'Elevação Lateral na Polia Baixa (Cabo)',   group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Medial (Tensão Contínua)',             secondary:'Supraespinhal',                            resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa: o vetor de tração do cabo cria tensão no deltoide ANTES da vertical (posição de maior comprimento), complementando o halter. Par científico do sh06 — Schoenfeld.' },
+  { id:'sh08', name:'Elevação Lateral na Máquina',              group:'Ombros',   mechanics:'Isolador', equipment:'Máquina',        primary:'Deltoide Medial',                               secondary:'Trapézio',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina lateral: resistência guiada com pico no encurtamento (abdução de 90°). Pausa 1s no topo com carga maior que com halteres livres — Lima & Pinto Cap.6.' },
+  { id:'sh09', name:'Elevação Lateral Inclinada no Banco 45°',  group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Medial (Maior Alongamento)',           secondary:'Supraespinhal',                            resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Banco inclinado: o braço de resistência é máximo na posição de repouso (deltoide mais alongado), sendo o par perfeito da elevação lateral normal — Schoenfeld Cap.2.' },
+  { id:'sh10', name:'Elevação Frontal com Halteres',            group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Anterior (Feixe Clavicular)',          secondary:'Peitoral Superior',                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Elevação frontal: pico de ativação do deltoide anterior próximo à horizontal (encurtamento relativo). 1s isométrico a 90° de flexão — Lima & Pinto Cap.6.' },
+  { id:'sh11', name:'Elevação Frontal com Barra',               group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Deltoide Anterior',                             secondary:'Peitoral Superior',                        resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Barra cria maior estabilidade que halteres na elevação frontal. Pico de ativação do deltoide anterior no plano sagital — Lima & Pinto Cap.6.' },
+  { id:'sh12', name:'Elevação Frontal na Polia com Corda',      group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Anterior',                             secondary:'Peitoral Clavicular',                      resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa para elevação frontal: tensão máxima no deltoide anterior na posição mais baixa (maior comprimento). Cabo mantém tensão em toda ADM — Lima & Pinto Cap.6.' },
+  { id:'sh13', name:'Crucifixo Inverso com Halteres',           group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio Médio',                resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Crucifixo inverso: pico de torque do deltoide posterior na abdução horizontal máxima (encurtamento). 1s isométrico no pico máximo de retração — Lima & Pinto Cap.6.' },
+  { id:'sh14', name:'Crucifixo Inverso no Peck Deck (Máquina)', group:'Ombros',   mechanics:'Isolador', equipment:'Máquina',        primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio',                      resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Peck Deck invertido: máquina permite carga maior no deltoide posterior com trajetória controlada. Pico no encurtamento (retração escapular máxima) — Lima & Pinto Cap.6.' },
+  { id:'sh15', name:'Face Pull na Polia com Corda',             group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior & Manguito Rotador',         secondary:'Trapézio Médio/Inf, Romboides',            resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Face pull: pico de ativação do deltoide posterior e rotadores externos na retração escapular máxima (encurtamento). 1s isométrico na posição de cotovelos para trás — Schoenfeld.' },
+  { id:'sh16', name:'Remada Alta com Barra (Upright Row)',       group:'Ombros',   mechanics:'Composto', equipment:'Barra',          primary:'Deltoide Medial & Trapézio Superior',           secondary:'Bíceps, Braquial',                         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Upright row: pico de ativação do deltoide medial e trapézio superior quando o cotovelo ultrapassa a altura do ombro (encurtamento). Pegada aberta (> 45cm) — ACSM Cap.7.' },
+  { id:'sh17', name:'Remada Alta na Polia Baixa',               group:'Ombros',   mechanics:'Composto', equipment:'Cabo',           primary:'Deltoide Medial & Trapézio',                    secondary:'Braquial, Bíceps',                         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Polia baixa na remada alta: tensão do cabo começa com braço estendido (deltoide em maior comprimento). Par do upright row com barra — Lima & Pinto Cap.6.' },
+  { id:'sh18', name:'Encolhimento com Barra (Shrug)',            group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Trapézio Superior',                             secondary:'Elevador da Escápula',                     resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Encolhimento: pico de ativação do trapézio superior na elevação máxima da escápula (encurtamento). 1s isométrico no topo — Lima & Pinto Cap.6.' },
+  { id:'sh19', name:'Encolhimento com Halteres',                group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Trapézio Superior (Foco em Contração)',         secondary:'Elevador da Escápula',                     resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Halteres no encolhimento: maior liberdade de ADM que a barra. Pico do trapézio superior no encurtamento. Excêntrico lento de 3s promove maior dano miofibrilar — Schoenfeld.' },
+  { id:'sh20', name:'Encolhimento no Smith por Trás',           group:'Ombros',   mechanics:'Isolador', equipment:'Smith',          primary:'Trapézio Superior & Médio',                     secondary:'Romboides',                                resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Smith por trás: trajetória controlada para elevação de cargas supramáximas no trapézio superior. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.6.' },
 
   // ── BÍCEPS & ANTEBRAÇO ──
-  { id:'bi01', name:'Rosca Direta com Barra Reta',              group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Cabeça Longa e Curta)',        secondary:'Braquial, Braquiorradial' },
-  { id:'bi02', name:'Rosca Direta com Barra W (EZ Bar)',        group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Menor estresse nos punhos)',   secondary:'Braquial' },
-  { id:'bi03', name:'Rosca Alternada com Halteres (com Supinação)',group:'Bíceps',mechanics:'Isolador',equipment:'Halteres',       primary:'Bíceps Braquial (Pico de Supinação)',           secondary:'Braquial Anterior' },
-  { id:'bi04', name:'Rosca Martelo com Halteres',               group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Braquiorradial & Braquial Anterior',            secondary:'Bíceps Braquial (neutro)' },
-  { id:'bi05', name:'Rosca Martelo na Polia com Corda',         group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Braquiorradial & Braquial',                     secondary:'Bíceps Braquial' },
-  { id:'bi06', name:'Rosca Scott com Barra W (Banco Scott)',    group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Foco Cabeça Curta/Braquial)',  secondary:'Braquial' },
-  { id:'bi07', name:'Rosca Scott Unilateral com Halter',        group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Isolamento Escapular)',        secondary:'Braquial' },
-  { id:'bi08', name:'Rosca Scott na Máquina',                   group:'Bíceps',   mechanics:'Isolador', equipment:'Máquina',        primary:'Bíceps Braquial (Tensão Contínua)',             secondary:'Braquial' },
-  { id:'bi09', name:'Rosca Inclinada no Banco 45° (Halteres)',  group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Cabeça Longa / Alongamento)',  secondary:'Braquial' },
-  { id:'bi10', name:'Rosca Concentrada com Halter (Arnold)',    group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Pico de Contração Máximo)',    secondary:'Braquial' },
-  { id:'bi11', name:'Rosca na Polia Baixa (Cabo / Barra Reta)', group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Bíceps Braquial (Tensão em toda ADM)',          secondary:'Braquial' },
-  { id:'bi12', name:'Rosca Spider no Banco Inclinado',          group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Cabeça Curta)',                secondary:'Braquial' },
-  { id:'bi13', name:'Rosca Hércules / Dupla Polia Alta',        group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Bíceps Braquial (Pico Duplo Bíceps)',           secondary:'Braquial' },
-  { id:'bi14', name:'Rosca 21 com Barra',                       group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Exaustão Metabólica)',         secondary:'Braquial, Braquiorradial' },
-  { id:'bi15', name:'Rosca Inversa com Barra (Pronada)',        group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Braquiorradial & Extensores de Punho',          secondary:'Braquial' },
-  { id:'bi16', name:'Rosca Punho com Barra (Flexão de Punho)',  group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Flexores do Antebraço',                         secondary:'Pronador Redondo' },
+  // Fonte: Schoenfeld Cap.2 (EMG bíceps) | Lima & Pinto — Cinesiologia Cap.7
+  { id:'bi01', name:'Rosca Direta com Barra Reta',              group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Cabeça Longa e Curta)',        secondary:'Braquial, Braquiorradial',                 resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Rosca direta: curva de torque do bíceps relativamente uniforme, com pico levemente antes de 90°. Barra reta exige supinação total (ativa cabeça curta) — Lima & Pinto Cap.7.' },
+  { id:'bi02', name:'Rosca Direta com Barra W (EZ Bar)',        group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Menor estresse nos punhos)',   secondary:'Braquial',                                 resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Barra EZ: reduz o estresse nos punhos com supinação parcial. Recrutamento ligeiramente diferente da barra reta. Curva de torque uniforme — Lima & Pinto Cap.7.' },
+  { id:'bi03', name:'Rosca Alternada com Halteres (com Supinação)',group:'Bíceps',mechanics:'Isolador',equipment:'Halteres',       primary:'Bíceps Braquial (Pico de Supinação)',           secondary:'Braquial Anterior',                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Rosca alternada: supinação do antebraço no topo adiciona componente de encurtamento adicional do bíceps. Pausa 1s com supinação total no pico — Lima & Pinto Cap.7.' },
+  { id:'bi04', name:'Rosca Martelo com Halteres',               group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Braquiorradial & Braquial Anterior',            secondary:'Bíceps Braquial (neutro)',                  resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Rosca martelo: pegada neutra elimina supinação, isolando braquial e braquiorradial. Curva de torque uniforme. Par do bíceps puro — Lima & Pinto Cap.7.' },
+  { id:'bi05', name:'Rosca Martelo na Polia com Corda',         group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Braquiorradial & Braquial',                     secondary:'Bíceps Braquial',                          resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Cabo na posição de maior comprimento: tensão desde o início do movimento (braquiorradial em posição mais estendida). Par complementar ao martelo com halteres — Schoenfeld.' },
+  { id:'bi06', name:'Rosca Scott com Barra W (Banco Scott)',    group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Foco Cabeça Curta/Braquial)',  secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Scott/Preacher: ombro em flexão encurta a cabeça longa, forçando a cabeça curta a compensar. Pico de ativação EMG no encurtamento — Lima & Pinto Cap.7.' },
+  { id:'bi07', name:'Rosca Scott Unilateral com Halter',        group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Isolamento Escapular)',        secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Scott unilateral: maior rotação supina possível no halter. Pico de contração do bíceps no encurtamento. Pausa 1s com supinação máxima — Lima & Pinto Cap.7.' },
+  { id:'bi08', name:'Rosca Scott na Máquina',                   group:'Bíceps',   mechanics:'Isolador', equipment:'Máquina',        primary:'Bíceps Braquial (Tensão Contínua)',             secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina Scott: curva de resistência otimizada para a curva de força do bíceps, com pico no encurtamento. Pausa 1s isométrica no topo — Schoenfeld Cap.3.' },
+  { id:'bi09', name:'Rosca Inclinada no Banco 45° (Halteres)',  group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Cabeça Longa / Alongamento)',  secondary:'Braquial',                                 resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Rosca inclinada 45°: ombro estendido alonga a cabeça longa do bíceps maximamente. Pico de tensão passiva no início do movimento (posição de maior comprimento) — Schoenfeld Cap.2.' },
+  { id:'bi10', name:'Rosca Concentrada com Halter (Arnold)',    group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Pico de Contração Máximo)',    secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Rosca concentrada: cotovelo apoiado cria pico de contração isométrica no encurtamento máximo. 1s isométrico no topo com supinação total — Lima & Pinto Cap.7.' },
+  { id:'bi11', name:'Rosca na Polia Baixa (Cabo / Barra Reta)', group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Bíceps Braquial (Tensão em toda ADM)',          secondary:'Braquial',                                 resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa: tensão do cabo desde a posição de maior comprimento do bíceps (braço estendido). ADM completa com tensão contínua — diferente da barra que perde tensão — Schoenfeld.' },
+  { id:'bi12', name:'Rosca Spider no Banco Inclinado',          group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Cabeça Curta)',                secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Rosca spider: ombro em flexão encurta a cabeça longa e sobrecarrega a cabeça curta, com pico de ativação no encurtamento próximo de 90° — Lima & Pinto Cap.7.' },
+  { id:'bi13', name:'Rosca Hércules / Dupla Polia Alta',        group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Bíceps Braquial (Pico Duplo Bíceps)',           secondary:'Braquial',                                 resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Polia alta bilateral: ombro abduzido a 90° isola o pico de contração do bíceps bilateral. 1s isométrico no pico de supinação — Lima & Pinto Cap.7.' },
+  { id:'bi14', name:'Rosca 21 com Barra',                       group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Exaustão Metabólica)',         secondary:'Braquial, Braquiorradial',                 resistProfile:'uniform',   cadence:'2-0-1-0', cadenceNote:'Rosca 21: protocolo de exaustão metabólica com 3 faixas de ADM. Cadência mais rápida (2-0-1-0) para acúmulo de metabólitos e estresse celular — Schoenfeld Cap.4.' },
+  { id:'bi15', name:'Rosca Inversa com Barra (Pronada)',        group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Braquiorradial & Extensores de Punho',          secondary:'Braquial',                                 resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Rosca inversa pronada: isola o braquiorradial e extensores de punho. Curva de torque uniforme. Suplementar para equilíbrio de antebraço — Lima & Pinto Cap.7.' },
+  { id:'bi16', name:'Rosca Punho com Barra (Flexão de Punho)',  group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Flexores do Antebraço',                         secondary:'Pronador Redondo',                          resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Flexão de punho: isolamento dos flexores superficiais e profundos do antebraço. Pausa 1s na flexão máxima (encurtamento) — Lima & Pinto Cap.7.' },
 
   // ── TRÍCEPS ──
-  { id:'tr01', name:'Tríceps na Polia com Barra Reta (Pushdown)',group:'Tríceps', mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Lateral)',             secondary:'Ancôneo' },
-  { id:'tr02', name:'Tríceps na Polia com Corda',               group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Lateral & Medial)',    secondary:'Ancôneo' },
-  { id:'tr03', name:'Tríceps na Polia Invertido (Supinado)',    group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Medial)',              secondary:'Ancôneo' },
-  { id:'tr04', name:'Tríceps Testa com Barra W (Skull Crusher)',group:'Tríceps',  mechanics:'Isolador', equipment:'Barra',          primary:'Tríceps Braquial (Cabeça Longa & Lateral)',     secondary:'Ancôneo' },
-  { id:'tr05', name:'Tríceps Testa com Halteres',               group:'Tríceps',  mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Unilateral)',                 secondary:'Ancôneo' },
-  { id:'tr06', name:'Tríceps Francês com Halter (Em Pé/Sentado)',group:'Tríceps', mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Cabeça Longa / Alongamento)', secondary:'Cabeça Lateral' },
-  { id:'tr07', name:'Tríceps Francês na Polia com Corda',       group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',           primary:'Tríceps Braquial (Cabeça Longa)',               secondary:'Ancôneo' },
-  { id:'tr08', name:'Supino Fechado com Barra (Close-Grip)',    group:'Tríceps',  mechanics:'Composto', equipment:'Barra',          primary:'Tríceps Braquial (Todas as cabeças)',           secondary:'Peitoral Maior, Deltoide Anterior' },
-  { id:'tr09', name:'Mergulho em Paralelas (Foco Tríceps)',     group:'Tríceps',  mechanics:'Composto', equipment:'Peso Corporal',  primary:'Tríceps Braquial (Tronco reto)',                secondary:'Peitoral Anterior, Deltoide' },
-  { id:'tr10', name:'Mergulho no Banco (Bench Dips)',           group:'Tríceps',  mechanics:'Composto', equipment:'Peso Corporal',  primary:'Tríceps Braquial',                              secondary:'Deltoide Anterior' },
-  { id:'tr11', name:'Tríceps Coice com Halter (Kickback)',      group:'Tríceps',  mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Pico de Extensão Final)',     secondary:'Ancôneo' },
-  { id:'tr12', name:'Tríceps Coice no Cabo (Unilateral)',       group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',           primary:'Tríceps Braquial (Tensão Contínua)',            secondary:'Ancôneo' },
-  { id:'tr13', name:'Tríceps Máquina Articulada (Dip Machine)', group:'Tríceps',  mechanics:'Composto', equipment:'Máquina',        primary:'Tríceps Braquial',                              secondary:'Deltoide Anterior' },
+  // Fonte: Schoenfeld Cap.2 (EMG tríceps) | Lima & Pinto Cap.7 | ACSM Cap.7
+  { id:'tr01', name:'Tríceps na Polia com Barra Reta (Pushdown)',group:'Tríceps', mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Lateral)',             secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Pushdown: pico de ativação EMG da cabeça lateral do tríceps na extensão completa (encurtamento). Cabo mantém tensão constante. 1s isométrico no topo — Schoenfeld Cap.2.' },
+  { id:'tr02', name:'Tríceps na Polia com Corda',               group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Lateral & Medial)',    secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Corda no pushdown: abertura no final ativa a porção medial e lateral bilateralmente. Pico no encurtamento com abertura máxima dos punhos — Lima & Pinto Cap.7.' },
+  { id:'tr03', name:'Tríceps na Polia Invertido (Supinado)',    group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Medial)',              secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Pegada supinada inverte o vetor de tração, isolando a cabeça medial do tríceps. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.7.' },
+  { id:'tr04', name:'Tríceps Testa com Barra W (Skull Crusher)',group:'Tríceps',  mechanics:'Isolador', equipment:'Barra',          primary:'Tríceps Braquial (Cabeça Longa & Lateral)',     secondary:'Ancôneo',                                  resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Skull crusher: ombro em 90° de flexão e cotovelo em flexão máxima alonga a cabeça longa. Pico de tensão passiva no maior comprimento. 1s pausa antes do push — Schoenfeld Cap.2.' },
+  { id:'tr05', name:'Tríceps Testa com Halteres',               group:'Tríceps',  mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Unilateral)',                 secondary:'Ancôneo',                                  resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Testa com halteres: como o skull crusher mas com maior ADM e independência unilateral. Pico de tensão no comprimento máximo da cabeça longa — Lima & Pinto Cap.7.' },
+  { id:'tr06', name:'Tríceps Francês com Halter (Em Pé/Sentado)',group:'Tríceps', mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Cabeça Longa / Alongamento)', secondary:'Cabeça Lateral',                           resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Tríceps francês: ombro em flexão máxima (>90°) cria o maior comprimento possível da cabeça longa do tríceps. Pausa 1s no fundo = pico de tensão passiva — Schoenfeld Cap.2.' },
+  { id:'tr07', name:'Tríceps Francês na Polia com Corda',       group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',           primary:'Tríceps Braquial (Cabeça Longa)',               secondary:'Ancôneo',                                  resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia para francês: tensão do cabo desde a posição de máximo alongamento da cabeça longa. Supera o halter em tensão constante — Lima & Pinto Cap.7.' },
+  { id:'tr08', name:'Supino Fechado com Barra (Close-Grip)',    group:'Tríceps',  mechanics:'Composto', equipment:'Barra',          primary:'Tríceps Braquial (Todas as cabeças)',           secondary:'Peitoral Maior, Deltoide Anterior',        resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Supino fechado: pegada estreita (30-45cm) transfere carga do peitoral para o tríceps. Curva de torque uniforme do tríceps. Exc. 3s controlado — ACSM Tabela 7-2.' },
+  { id:'tr09', name:'Mergulho em Paralelas (Foco Tríceps)',     group:'Tríceps',  mechanics:'Composto', equipment:'Peso Corporal',  primary:'Tríceps Braquial (Tronco reto)',                secondary:'Peitoral Anterior, Deltoide',              resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Dip com tronco vertical: foco no tríceps (pico no encurtamento). Descida de 3s com cotovelos acima de 90° preserva a articulação glenoumeral — Lima & Pinto Cap.7.' },
+  { id:'tr10', name:'Mergulho no Banco (Bench Dips)',           group:'Tríceps',  mechanics:'Composto', equipment:'Peso Corporal',  primary:'Tríceps Braquial',                              secondary:'Deltoide Anterior',                        resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Bench dip: ombro em extensão cria componente de alongamento da cabeça longa. Cuidado com o ângulo de ombro. Excêntrico 3s controlado — Lima & Pinto Cap.7.' },
+  { id:'tr11', name:'Tríceps Coice com Halter (Kickback)',      group:'Tríceps',  mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Pico de Extensão Final)',     secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Kickback: pico de ativação EMG do tríceps no final da extensão do cotovelo (encurtamento). 1s isométrico no topo com ombro perpendicular ao solo — Schoenfeld Cap.2.' },
+  { id:'tr12', name:'Tríceps Coice no Cabo (Unilateral)',       group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',           primary:'Tríceps Braquial (Tensão Contínua)',            secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Kickback no cabo: mantém tensão no tríceps mesmo na posição de extensão máxima (diferente do halter que perde tensão). Pausa 1s no topo — Lima & Pinto Cap.7.' },
+  { id:'tr13', name:'Tríceps Máquina Articulada (Dip Machine)', group:'Tríceps',  mechanics:'Composto', equipment:'Máquina',        primary:'Tríceps Braquial',                              secondary:'Deltoide Anterior',                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina de dip: trajetória guiada com pico de ativação do tríceps no encurtamento. Pausa 1s no topo com sobrecarga supramáxima — ACSM Tabela 7-2.' },
 
   // ── ABDÔMEN & CORE ──
-  { id:'ab01', name:'Abdominal Crunch no Solo / Banco Declinado',group:'Abdômen', mechanics:'Isolador', equipment:'Peso Corporal', primary:'Reto Abdominal (Porção Superior)',            secondary:'Oblíquos' },
-  { id:'ab02', name:'Abdominal na Polia Alta com Corda (Cable Crunch)',group:'Abdômen',mechanics:'Isolador',equipment:'Cabo',     primary:'Reto Abdominal (Carga Progressiva)',            secondary:'Oblíquos' },
-  { id:'ab03', name:'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)',group:'Abdômen',mechanics:'Composto',equipment:'Peso Corporal',primary:'Reto Abdominal (Infra) & Iliopsoas',  secondary:'Oblíquos, Antebraços' },
-  { id:'ab04', name:'Elevação de Pernas na Paralela (Capitão)', group:'Abdômen',  mechanics:'Composto', equipment:'Máquina',        primary:'Reto Abdominal (Infra)',                        secondary:'Flexores de Quadril' },
-  { id:'ab05', name:'Abdominal Rollout (Roda Abdominal)',       group:'Abdômen',  mechanics:'Composto', equipment:'Acessório',      primary:'Core Global, Reto Abdominal & Transverso',      secondary:'Dorsal, Serrátil' },
-  { id:'ab06', name:'Prancha Isométrica no Solo (Plank)',       group:'Abdômen',  mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Transverso do Abdômen & Reto Abdominal',        secondary:'Glúteos, Ombros' },
-  { id:'ab07', name:'Russian Twist com Halter ou Anilha',       group:'Abdômen',  mechanics:'Isolador', equipment:'Halteres',       primary:'Oblíquos Interno e Externo',                    secondary:'Reto Abdominal' },
-  { id:'ab08', name:'Abdominal na Máquina (Machine Crunch)',    group:'Abdômen',  mechanics:'Isolador', equipment:'Máquina',        primary:'Reto Abdominal',                                secondary:'Oblíquos' }
+  // Fonte: ACSM Cap.7 | Lima & Pinto — Cinesiologia Cap.8
+  { id:'ab01', name:'Abdominal Crunch no Solo / Banco Declinado',group:'Abdômen', mechanics:'Isolador', equipment:'Peso Corporal', primary:'Reto Abdominal (Porção Superior)',            secondary:'Oblíquos',                                 resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Crunch: pico de ativação do reto abdominal no encurtamento (flexão de tronco completa). 1s isométrico no topo antes de descer — Lima & Pinto Cap.8.' },
+  { id:'ab02', name:'Abdominal na Polia Alta com Corda (Cable Crunch)',group:'Abdômen',mechanics:'Isolador',equipment:'Cabo',     primary:'Reto Abdominal (Carga Progressiva)',            secondary:'Oblíquos',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Cable crunch: peso adicional do cabo cria sobrecarga progressiva no reto abdominal. Pico no encurtamento com 1s isométrico ajoelhado — ACSM Cap.7.' },
+  { id:'ab03', name:'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)',group:'Abdômen',mechanics:'Composto',equipment:'Peso Corporal',primary:'Reto Abdominal (Infra) & Iliopsoas',  secondary:'Oblíquos, Antebraços',                     resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Hanging leg raise: pico de tensão no reto abdominal inferior na posição de maior comprimento (pernas estendidas abaixo). Excêntrico 3s controlado evita balanço — ACSM Cap.7.' },
+  { id:'ab04', name:'Elevação de Pernas na Paralela (Capitão)', group:'Abdômen',  mechanics:'Composto', equipment:'Máquina',        primary:'Reto Abdominal (Infra)',                        secondary:'Flexores de Quadril',                      resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Capitão: apoio no antebraço estabiliza o tronco enquanto o reto abdominal trabalha no comprimento máximo. Excêntrico 3s — Lima & Pinto Cap.8.' },
+  { id:'ab05', name:'Abdominal Rollout (Roda Abdominal)',       group:'Abdômen',  mechanics:'Composto', equipment:'Acessório',      primary:'Core Global, Reto Abdominal & Transverso',      secondary:'Dorsal, Serrátil',                         resistProfile:'stretched', cadence:'3-0-2-0', cadenceNote:'Rollout: o reto abdominal e o transverso trabalham no comprimento máximo (tronco horizontal). Excêntrico 3s de controle é o mais desafiador — Lima & Pinto Cap.8.' },
+  { id:'ab06', name:'Prancha Isométrica no Solo (Plank)',       group:'Abdômen',  mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Transverso do Abdômen & Reto Abdominal',        secondary:'Glúteos, Ombros',                          resistProfile:'uniform',   cadence:'0-0-0-0', cadenceNote:'Prancha: esforço isométrico contínuo sem fase concêntrica/excêntrica. O tempo sob tensão (30-60s) é o parâmetro de progressão — ACSM Cap.7.' },
+  { id:'ab07', name:'Russian Twist com Halter ou Anilha',       group:'Abdômen',  mechanics:'Isolador', equipment:'Halteres',       primary:'Oblíquos Interno e Externo',                    secondary:'Reto Abdominal',                           resistProfile:'stretched', cadence:'2-0-1-0', cadenceNote:'Russian twist: oblíquos trabalham em maior comprimento na rotação oposta ao braço de resistência. Controle durante toda ADM — Lima & Pinto Cap.8.' },
+  { id:'ab08', name:'Abdominal na Máquina (Machine Crunch)',    group:'Abdômen',  mechanics:'Isolador', equipment:'Máquina',        primary:'Reto Abdominal',                                secondary:'Oblíquos',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina de crunch: carga progressiva com trajetória guiada. Pico de ativação no encurtamento. 1s isométrico no pico de flexão — Lima & Pinto Cap.8.' }
 ];
 
-
+// ════════════════════════════════════════════════════════════════════════════
+// TABELA DE PAREAMENTO DE PERFIS DE RESISTÊNCIA (Engenharia de Curva de Torque)
+// Fonte: Schoenfeld — "Science and Dev. of Muscle Hypertrophy" Cap.2
+//        Lima & Pinto — "Cinesiologia e Musculação" Cap.4-7
+//        Biomecânica Básica dos Exercícios: Membros Inferiores
+// Regra: cada grupo muscular deve ter OBRIGATORIAMENTE um exercício que o desafia
+// na posição de maior comprimento (stretched) E um na posição de encurtamento
+// (shortened) — garantindo estimulação completa da curva de torque.
+// ════════════════════════════════════════════════════════════════════════════
+const PERF_RESISTANCE_PAIRS = {
+  // ── PEITORAL ─────────────────────────────────────────────────────────────
+  // Stretched: Crucifixo com halteres (pico a 90° de abdução — posição de maior comprimento)
+  // Shortened: Peck Deck / Crossover polia baixa (pico na adução máxima — encurtamento)
+  'Peitoral': {
+    stretched:  'pe07', // Crucifixo Reto com Halteres — Schoenfeld Cap.2: maior ADM do peitoral
+    shortened:  'pe13', // Peck Deck — Lima & Pinto Cap.4: pico na adução máxima (encurtamento)
+    uniform:    'pe01'  // Supino Reto com Barra — curva mista com domínio de encurtamento
+  },
+  // ── DORSAIS / LATÍSSIMO ──────────────────────────────────────────────────
+  // Stretched: Puxada aberta (latíssimo em máximo comprimento com braços estendidos)
+  // Shortened: Pulldown braços retos (pico na extensão do ombro — encurtamento)
+  'Dorsal': {
+    stretched:  'do04', // Puxada Frontal Aberta — maior comprimento do lat (Schoenfeld Cap.2)
+    shortened:  'do07', // Pulldown/Puxada Braços Retos — pico no quadril (encurtamento)
+    uniform:    'do08'  // Remada Curvada com Barra — trabalho bilateral de romboides
+  },
+  // ── QUADRÍCEPS ───────────────────────────────────────────────────────────
+  // Stretched: Hack Squat / Agachamento (amplitude máxima alonga reto femoral)
+  // Shortened: Cadeira Extensora (pico de EMG na extensão completa — encurtamento)
+  'Quadríceps': {
+    stretched:  'lg03', // Hack Squat — ADM máxima sem carga axial (Biomec. MI)
+    shortened:  'lg06', // Cadeira Extensora — pico de ativação no topo (Schoenfeld Cap.3)
+    uniform:    'lg01'  // Agachamento Livre — curva quasi-uniforme (Biomec. MI)
+  },
+  // ── ISQUIOTIBIAIS ────────────────────────────────────────────────────────
+  // Stretched: Stiff/RDL (anteversão pélvica — posição de maior comprimento)
+  // Shortened: Cadeira Flexora Sentada (quadril fletido encurta isquiotibiais — pico no encurtamento)
+  'Isquiotibiais': {
+    stretched:  'lg10', // Stiff com Barra — máximo alongamento (Biomec. MI + Schoenfeld)
+    shortened:  'lg13', // Cadeira Flexora Sentada — quadril em flexão encurta o músculo
+    uniform:    'lg12'  // Mesa Flexora Deitada — quadril neutro, curva mais uniforme
+  },
+  // ── GLÚTEO MÁXIMO ────────────────────────────────────────────────────────
+  // Stretched: Agachamento Búlgaro (anteversão pélvica força o glúteo a trabalhar alongado)
+  // Shortened: Hip Thrust (pico de ativação EMG na extensão completa de quadril — encurtamento)
+  'Glúteo': {
+    stretched:  'lg07', // Búlgaro — glúteo em posição de maior comprimento (Biomec. MI)
+    shortened:  'lg15', // Hip Thrust — máxima ativação EMG do glúteo (Schoenfeld Cap.2)
+    uniform:    'lg04'  // Leg Press — ativação de glúteo em ADM parcial
+  },
+  // ── DELTOIDE MEDIAL ──────────────────────────────────────────────────────
+  // Stretched: Elevação Lateral Inclinada 45° (maior comprimento do deltoide medial em repouso)
+  // Shortened: Elevação Lateral com Halteres (pico de torque a 90° — encurtamento relativo)
+  'Deltoides': {
+    stretched:  'sh09', // Elev. Lateral Inclinada 45° — deltoide mais alongado (Schoenfeld Cap.2)
+    shortened:  'sh06', // Elev. Lateral com Halteres — pico a 90° (Lima & Pinto Cap.6)
+    uniform:    'sh07'  // Elev. Lateral Polia Baixa — tensão contínua em toda ADM
+  },
+  // ── BÍCEPS BRAQUIAL ──────────────────────────────────────────────────────
+  // Stretched: Rosca Inclinada 45° (ombro em extensão alonga a cabeça longa do bíceps)
+  // Shortened: Rosca Scott / Concentrada (ombro em flexão — pico de ativação no encurtamento)
+  'Bíceps': {
+    stretched:  'bi09', // Rosca Inclinada 45° — cabeça longa em máx. comprimento (Schoenfeld Cap.2)
+    shortened:  'bi10', // Rosca Concentrada — pico isométrico no encurtamento (Lima & Pinto Cap.7)
+    uniform:    'bi01'  // Rosca Direta Barra — curva de torque mais uniforme
+  },
+  // ── TRÍCEPS BRAQUIAL ─────────────────────────────────────────────────────
+  // Stretched: Tríceps Francês (ombro em flexão >90° alonga a cabeça longa ao máximo)
+  // Shortened: Pushdown Polia (cotovelo em extensão — pico de EMG no encurtamento)
+  'Tríceps': {
+    stretched:  'tr06', // Tríceps Francês — cabeça longa em máx. comprimento (Schoenfeld Cap.2)
+    shortened:  'tr01', // Pushdown Barra Reta — pico de EMG no encurtamento (Lima & Pinto Cap.7)
+    uniform:    'tr08'  // Supino Fechado — todas as cabeças, curva uniforme (ACSM)
+  },
+  // ── PANTURRILHA ──────────────────────────────────────────────────────────
+  // Stretched: Em pé (joelho estendido — gastrocnêmio em máximo comprimento)
+  // Shortened: Sentado (joelho fletido isola o sóleo — pico no encurtamento)
+  'Panturrilha': {
+    stretched:  'lg20', // Panturrilha em Pé — gastrocnêmio máx. comprimento (Biomec. MI)
+    shortened:  'lg21', // Panturrilha Sentado — sóleo isolado, pico no encurtamento
+    uniform:    'lg22'  // Panturrilha Leg Press — ADM máxima com joelho estendido
+  }
+};
 
 // Estado da Agenda Semanal (7 Dias — Sincronizado com a IA e Pilar Nutrição)
 let perfWeeklySchedule = [
@@ -9173,7 +9262,26 @@ function renderPerfWorkoutPlan() {
                                 rpeVal >= 8 ? 'bg-amber-950/80 text-amber-300 border-amber-700/60' :
                                 'bg-blue-950/80 text-blue-300 border-blue-700/60';
 
-          const cadence = dbEx.mechanics === 'Isolador' ? '3-1-1-0 (1s pico)' : '3-0-1-0 (Controlada)';
+          // Cadência científica por exercício (Schoenfeld/ACSM) — lê do objeto ex (propagado pelo makeEx)
+          const cadenceRaw = ex.cadence || dbEx.cadence || (dbEx.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
+          const cadenceLabel = (() => {
+            const c = cadenceRaw.split('-').map(Number);
+            const exc = c[0] || 3, pause1 = c[1] || 0, conc = c[2] || 1, pause2 = c[3] || 0;
+            const notes = [];
+            if (exc >= 4) notes.push(`Exc. ${exc}s (máx. TUT`);
+            else notes.push(`Exc. ${exc}s`);
+            if (pause1 > 0) notes.push(`P.fundo ${pause1}s`);
+            notes.push(`Conc. ${conc}s`);
+            if (pause2 > 0) notes.push(`P.topo ${pause2}s (ISO)`);
+            return `${cadenceRaw} · ${notes.join(' / ')}`;
+          })();
+          const resistProf = ex.resistProfile || dbEx.resistProfile || 'uniform';
+          const resistBadge = resistProf === 'stretched'
+            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700/50" title="Pico de torque na posição de maior comprimento muscular — Schoenfeld Cap.2">🔵 Pico Alongado</span>`
+            : resistProf === 'shortened'
+            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-700/50" title="Pico de torque na posição de encurtamento muscular — Lima & Pinto Cap.4-7">🔴 Pico Encurtado</span>`
+            : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/50" title="Curva de torque relativamente uniforme ao longo da ADM — ACSM Cap.7">⚪ Tensão Uniforme</span>`;
+          const cadenceTooltip = ex.cadenceNote || dbEx.cadenceNote || 'Cadência baseada na mecânica do exercício.';
           const restVal = parseInt(ex.rest) || 60;
           const substitutes = perfGetSubstitutes(resolvedId);
           const subOptionsHtml = substitutes.map(s => {
@@ -9223,7 +9331,8 @@ function renderPerfWorkoutPlan() {
                   <span class="text-zinc-600">•</span>
                   <span>⚡ <strong class="text-zinc-300">Sinérgicos:</strong> ${dbEx.secondary}</span>
                   <span class="text-zinc-600">•</span>
-                  <span class="text-purple-300 font-mono">⏱️ Cadência: ${cadence}</span>
+                   <span class="text-purple-300 font-mono" title="${cadenceTooltip}">â±ï¸ ${cadenceLabel}</span>
+                   ${resistBadge}
                 </div>
               </div>
 
@@ -9476,9 +9585,14 @@ async function handleGenerateAITraining() {
   let auditData = {};
   let generatedWorkoutPlan = [];
 
-  // Helper com criação padronizada de exercícios garantindo exerciseId e rest numérico
-  const makeEx = (id, sets, reps, rpe, rest, obs) => {
-    const ex = PERF_EXERCISE_DB.find(e => e.id === id) || { id, name: id, group: 'Geral', primary: 'Músculo Alvo', mechanics: 'Composto', equipment: 'Livre' };
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // MOTOR DE PRESCRICAO CIENTIFICA - Helper Principal
+  // Propaga: resistProfile, cadencia 4-digitos, nota clinica (Schoenfeld/ACSM)
+  // Hierarquia: cadenceOverride > ex.cadence (DB) > fallback por mechanics
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const makeEx = (id, sets, reps, rpe, rest, obs, cadenceOverride) => {
+    const ex = PERF_EXERCISE_DB.find(e => e.id === id) || { id, name: id, group: 'Geral', primary: 'Musculo Alvo', mechanics: 'Composto', equipment: 'Livre', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: '' };
+    const resolvedCadence = cadenceOverride || ex.cadence || (ex.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
     return {
       ...ex,
       exerciseId: ex.id,
@@ -9487,10 +9601,12 @@ async function handleGenerateAITraining() {
       reps: String(reps),
       rpe: parseInt(rpe) || 8,
       rest: parseInt(rest) || 60,
-      obs: obs || ''
+      obs: obs || '',
+      cadence: resolvedCadence,
+      cadenceNote: ex.cadenceNote || '',
+      resistProfile: ex.resistProfile || 'uniform'
     };
   };
-
   if (isCutting) {
     // ══════════════════════════════════════════════════════════════════════════
     // PERFIL CUTTING / DÉFICIT: Upper/Lower de Alta Tensão Mecânica + Cardio Engine
@@ -9511,58 +9627,57 @@ async function handleGenerateAITraining() {
     generatedWorkoutPlan = [
       {
         id: 'A',
-        name: 'Treino A · Upper Força & Tensão',
-        description: 'Tensão mecânica máxima em empurrar e puxar com preservação miofibrilar.',
+        name: 'Treino A - Upper Forca e Tensao Mecanica',
+        description: 'Alta tensao mecanica em compostos com cadencia 4-0-1-0. Par Stretched+Shortened por grupo.',
         exercises: [
-          makeEx('pe01', 4, '5-8', 8, 120, 'Cadência 3-0-1-0. Pausa de 1s no peito.'),
-          makeEx('do01', 4, '6-8', 8, 120, 'Depressão escapular e puxada completa.'),
-          makeEx('pe05', 3, '8-10', 8, 90, 'Banco a 30-45°, foco em feixe clavicular.'),
-          makeEx('do10', 3, '8-10', 8, 90, 'Tronco estável a 45°, pegada fechada.'),
-          makeEx('sh06', 4, '10-12', 8, 60, 'Plano escapular, cotovelo liderando.'),
-          makeEx('tr01', 3, '10-12', 8, 60, 'Extensão completa com 1s de pico.'),
-          makeEx('bi01', 3, '8-10', 8, 60, 'Sem impulsos na lombar, contração estrita.')
+          makeEx('pe01', 4, '5-8', 8, 120, 'Supino reto: exc. 3s controlado - pico de torque no encurtamento (0-60 graus). Sinal anti-catabÃ³lico.', '3-0-1-0'),
+          makeEx('do01', 4, '5-8', 8, 120, 'Barra fixa: hang completo no fundo - latissimo no max. comprimento. Par do Pulldown bracos retos.', '3-0-1-0'),
+          makeEx('pe05', 3, '8-10', 8, 90, 'Supino inclinado halteres: ADM 20% maior que barra - pico de tensao no alongamento. Schoenfeld Cap.2.', '3-0-1-0'),
+          makeEx('do08', 3, '8-10', 8, 90, 'Remada curvada pronada: pico na retracao escapular (encurtamento de romboides) - Lima & Pinto Cap.5.', '3-0-1-0'),
+          makeEx('sh09', 3, '10-12', 8, 60, 'Elevacao lateral inclinada 45 graus: resistencia maxima no ponto de maior comprimento do deltoide medial.', '3-1-1-0'),
+          makeEx('tr01', 3, '10-12', 8, 60, 'Pushdown: pico de EMG da cabeca lateral no encurtamento - 1s ISO no topo - Schoenfeld Cap.3.', '3-1-1-0'),
+          makeEx('bi01', 3, '8-10', 8, 60, 'Rosca direta: curva de torque uniforme - sem impulsos na lombar - supinacao completa.', '3-0-1-0')
         ]
       },
       {
         id: 'B',
-        name: 'Treino B · Lower Força & Cadeia Posterior',
-        description: 'Carga axial pesada em membros inferiores com preservação de quadríceps e glúteos.',
+        name: 'Treino B - Lower Forca e Cadeia Posterior',
+        description: 'Cadencia 4-0-1-0 em compostos de quadril. Pareamento Stretched/Shortened por grupo.',
         exercises: [
-          makeEx('lg01', 4, '6-8', 8, 150, 'Profundidade paralela, core 100% blindado.'),
-          makeEx('lg10', 4, '6-8', 8, 120, 'Quadril para trás, alongamento de isquiotibiais.'),
-          makeEx('lg04', 3, '8-10', 8, 90, 'Pés médios, amplitude total sem retroversão.'),
-          makeEx('lg12', 3, '10-12', 8, 60, 'Pico de contração de 1s na flexão de joelho.'),
-          makeEx('lg20', 4, '10-12', 9, 60, 'Alongamento máximo na descida e pausa no pico.'),
-          makeEx('ab05', 3, '10-12', 8, 60, 'Rollout com estabilidade pélvica total.')
+          makeEx('lg01', 4, '6-8', 8, 150, 'Agachamento: exc. 4s protege LCA e tendao patelar - profundidade paralela - core 100%.', '4-0-1-0'),
+          makeEx('lg10', 4, '6-8', 8, 120, 'Stiff: anteversao pelvica - exc. 4s = pico de tensao passiva isquiotibiais no comprimento maximo.', '4-0-1-0'),
+          makeEx('lg04', 3, '8-10', 8, 90, 'Leg Press: amplitude total (joelhos acima de 90 graus) - pico de torque do quadriceps no fundo.', '3-0-1-0'),
+          makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada: quadril flexionado = isquiotibiais encurtados - 1s ISO - par cientifico do Stiff.', '3-1-1-0'),
+          makeEx('lg20', 4, '10-12', 9, 60, 'Panturrilha em pe: joelho estendido = gastrocnemio no max. comprimento - descida 3s completa.', '3-1-1-0'),
+          makeEx('ab05', 3, '10-12', 8, 60, 'Rollout: core no comprimento maximo - exc. 3s com controle pelvico total.', '3-0-2-0')
         ]
       },
       {
         id: 'C',
-        name: 'Treino C · Upper Hipertrofia & Densidade',
-        description: 'Volume metabólico complementar com ênfase em deltoides, dorsais e braços.',
+        name: 'Treino C - Upper Hipertrofia e Pareamento Completo',
+        description: 'Volume de isolamento com par Stretched+Shortened por grupo. Pico de contracao com ISO 1s.',
         exercises: [
-          makeEx('pe02', 4, '8-10', 8, 90, 'Supino inclinado com barra para peito superior.'),
-          makeEx('do04', 4, '8-10', 8, 90, 'Puxada alta aberta com contração dorsal.'),
-          makeEx('pe13', 3, '10-12', 8, 60, 'Peck deck com pico de 1s na adução.'),
-          makeEx('do11', 3, '10-12', 8, 75, 'Remada unilateral serrote com grande amplitude.'),
-          makeEx('sh03', 3, '10-12', 8, 75, 'Desenvolvimento Arnold com rotação suave.'),
-          makeEx('sh13', 3, '12-15', 9, 60, 'Crucifixo inverso para deltoide posterior.'),
-          makeEx('tr02', 3, '10-12', 8, 60, 'Tríceps corda abrindo no final da extensão.'),
-          makeEx('bi04', 3, '10-12', 8, 60, 'Rosca martelo com halteres para braquial.')
+          makeEx('pe10', 3, '10-12', 8, 60, 'Crossover polia alta: vetor de tracao desafia peitoral no comprimento maximo. Par do Peck Deck.', '3-1-1-0'),
+          makeEx('pe13', 3, '10-12', 9, 60, 'Peck Deck: pico de torque no encurtamento total - 1s ISO na aducao maxima - Lima & Pinto Cap.4.', '3-1-1-0'),
+          makeEx('do04', 3, '8-10', 8, 90, 'Puxada aberta: latissimo no max. comprimento (bracos estendidos) - par do Pulldown bracos retos.', '3-0-1-0'),
+          makeEx('do07', 3, '10-12', 9, 60, 'Pulldown bracos retos: pico de torque do latissimo na extensao do ombro (encurtamento). Schoenfeld.', '3-1-1-0'),
+          makeEx('sh15', 3, '12-15', 9, 45, 'Face pull: pico do deltoide posterior na retracao escapular - 1s ISO com cotovelos para tras.', '2-1-1-0'),
+          makeEx('bi09', 3, '10-12', 8, 60, 'Rosca inclinada 45 graus: ombro em extensao = cabeca longa do biceps no max. comprimento.', '3-1-1-0'),
+          makeEx('tr06', 3, '10-12', 8, 60, 'Triceps frances: ombro em flexao > 90 graus = cabeca longa no max. comprimento. Par do Pushdown.', '3-1-1-0')
         ]
       },
       {
         id: 'D',
-        name: 'Treino D · Lower Hipertrofia & Isolamento',
-        description: 'Hipertrofia sarcoplasmática e metabólica em quadríceps, adutores e panturrilhas.',
+        name: 'Treino D - Lower Hipertrofia e Gluteo Completo',
+        description: 'Pareamento Stretched/Shortened para gluteo, quadriceps e panturrilha com volume metabolico.',
         exercises: [
-          makeEx('lg03', 4, '8-10', 8, 90, 'Hack machine com descida controlada em 3s.'),
-          makeEx('lg07', 3, '10-12', 8, 90, 'Búlgaro unilateral, foco no quadríceps e glúteo.'),
-          makeEx('lg06', 3, '12-15', 9, 60, 'Cadeira extensora com pico de 1s.'),
-          makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada com tronco firme.'),
-          makeEx('lg17', 3, '15-20', 9, 45, 'Cadeira abdutora para glúteo médio.'),
-          makeEx('lg21', 4, '12-15', 9, 60, 'Panturrilha sentado para sóleo.'),
-          makeEx('ab03', 3, '12-15', 8, 60, 'Elevação de pernas na barra fixa enrolando a pelve.')
+          makeEx('lg03', 3, '8-10', 8, 90, 'Hack Squat: sem carga axial - joelhos avancam = maior ADM do quadriceps - exc. 4s.', '4-0-1-0'),
+          makeEx('lg06', 3, '12-15', 9, 60, 'Cadeira extensora: pico de EMG no encurtamento - 1s ISO no topo. Par do Hack Squat.', '3-1-1-0'),
+          makeEx('lg07', 3, '10-12', 8, 90, 'Bulgaro: pe traseiro elevado = gluteo frontal no max. comprimento. Par do Hip Thrust.', '3-0-1-0'),
+          makeEx('lg15', 3, '10-12', 9, 75, 'Hip Thrust: maxima ativacao EMG do gluteo na extensao completa do quadril - 1s ISO no topo.', '2-1-1-0'),
+          makeEx('lg13', 3, '12-15', 9, 45, 'Cadeira flexora sentada: quadril em flexao = par cientifico do Stiff (encurtamento).', '3-1-1-0'),
+          makeEx('lg21', 3, '15-20', 9, 45, 'Panturrilha sentado: joelho fletido isola o soleo no encurtamento. Par da panturrilha em pe.', '3-1-1-0'),
+          makeEx('ab03', 3, '12-15', 8, 60, 'Elevacao de pernas na barra: core no comprimento maximo - exc. 3s controlado sem balanco.', '3-0-1-0')
         ]
       }
     ];
@@ -9587,71 +9702,71 @@ async function handleGenerateAITraining() {
     generatedWorkoutPlan = [
       {
         id: 'A',
-        name: 'Treino A · Upper Power (Força Bruta)',
-        description: 'Carga máxima em compostos multiarticulares de membros superiores.',
+        name: 'Treino A - Upper Power (Forca Bruta)',
+        description: 'Carga maxima em compostos. Cadencia 4-0-1-0 para tensao mecanica maxima.',
         exercises: [
-          makeEx('pe01', 4, '3-5', 9, 150, 'Supino reto pesado com arco torácico firme.'),
-          makeEx('do08', 4, '5-6', 9, 150, 'Remada curvada com barra pegada pronada.'),
-          makeEx('sh01', 3, '5-6', 8, 120, 'Desenvolvimento militar em pé com barra.'),
-          makeEx('do01', 3, '6-8', 8, 120, 'Barra fixa com sobrecarga se necessário.'),
-          makeEx('bi01', 3, '6-8', 8, 90, 'Rosca direta pesada com barra reta.'),
-          makeEx('tr04', 3, '6-8', 8, 90, 'Tríceps testa barra W com cotovelos fechados.')
+          makeEx('pe01', 5, '3-5', 9, 150, 'Supino reto: exc. 4s = tensao mecanica maxima no peitoral. Arco toracico firme.', '4-0-1-0'),
+          makeEx('do08', 5, '4-6', 9, 150, 'Remada curvada pronada: pico de torque na retracao escapular. Sobrecarga progressiva.', '4-0-1-0'),
+          makeEx('sh01', 3, '4-6', 9, 120, 'OHP em pe: pico do deltoide anterior/medial no encurtamento. Core travado.', '3-0-1-0'),
+          makeEx('do01', 3, '5-8', 8, 120, 'Barra fixa: latissimo no max. comprimento (bracos estendidos). Descida completa.', '3-0-1-0'),
+          makeEx('bi01', 3, '5-8', 8, 90, 'Rosca direta pesada: curva de torque uniforme - zona de forca miofibrilar.', '3-0-1-0'),
+          makeEx('tr04', 3, '5-8', 8, 90, 'Skull crusher: cabeca longa em max. comprimento (ombro 90 graus). 1s pausa.', '3-1-1-0')
         ]
       },
       {
         id: 'B',
-        name: 'Treino B · Lower Power (Força de Pernas)',
-        description: 'Tensão mecânica máxima em agachamento, terra romeno e quadril.',
+        name: 'Treino B - Lower Power (Forca de Pernas)',
+        description: 'Tensao mecanica maxima em agachamento e terra. Cadencia 4-0-1-0.',
         exercises: [
-          makeEx('lg01', 4, '3-5', 9, 180, 'Agachamento livre com base sólida e amplitude.'),
-          makeEx('lg10', 4, '5-6', 9, 150, 'Stiff pesado mantendo a coluna neutra.'),
-          makeEx('lg04', 3, '6-8', 8, 120, 'Leg Press 45 com pés firmes na plataforma.'),
-          makeEx('lg12', 3, '6-8', 8, 90, 'Mesa flexora deitada com carga alta.'),
-          makeEx('lg20', 4, '8-10', 9, 75, 'Panturrilha em pé na máquina com pausa no topo.'),
-          makeEx('ab04', 3, '10-12', 8, 60, 'Elevação de pernas na paralela capitão.')
+          makeEx('lg01', 5, '3-5', 9, 180, 'Agachamento livre: exc. 4s = max. tensao mecanica + protecao LCA/patelar. Base solida.', '4-0-1-0'),
+          makeEx('lg10', 5, '4-6', 9, 150, 'Stiff: exc. 4s com anteversao pelvica = pico de tensao passiva dos isquiotibiais.', '4-0-1-0'),
+          makeEx('lg04', 3, '6-8', 8, 120, 'Leg Press 45 graus: amplitude total (joelhos acima de 90) - par do quadriceps alongado.', '3-0-1-0'),
+          makeEx('lg15', 3, '8-10', 8, 90, 'Hip Thrust: max. ativacao EMG do gluteo na extensao total do quadril - 1s ISO no topo.', '2-1-1-0'),
+          makeEx('lg20', 4, '8-10', 9, 75, 'Panturrilha em pe: gastrocnemio no max. comprimento. Pausa 1s no topo.', '3-1-1-0'),
+          makeEx('ab04', 3, '10-12', 8, 60, 'Elevacao de pernas capitao: reto abdominal no comprimento maximo. Exc. 3s.', '3-0-1-0')
         ]
       },
       {
         id: 'C',
-        name: 'Treino C · Costas & Ombros Hipertrofia',
-        description: 'Isolamento de dorsais, deltóides laterais/posteriores e trapézio.',
+        name: 'Treino C - Costas e Deltoide Hipertrofia',
+        description: 'Pareamento completo Stretched+Shortened para dorsal e deltoide com ISO 1s.',
         exercises: [
-          makeEx('do04', 4, '8-10', 8, 90, 'Puxador frente com barra aberta.'),
-          makeEx('do10', 3, '8-10', 8, 90, 'Remada cavalinho com apoio.'),
-          makeEx('do07', 3, '12-15', 9, 60, 'Pulldown na polia com corda para dorsal.'),
-          makeEx('sh06', 4, '10-12', 9, 60, 'Elevação lateral com halteres.'),
-          makeEx('sh07', 3, '12-15', 9, 45, 'Elevação lateral na polia baixa unilateral.'),
-          makeEx('sh15', 3, '12-15', 9, 60, 'Face pull com corda focando deltóide posterior.'),
-          makeEx('sh18', 4, '10-12', 8, 60, 'Encolhimento com barra para trapézio.')
+          makeEx('do04', 4, '8-10', 8, 90, 'Puxada aberta: latissimo em max. comprimento (bracos estendidos). Par do Pulldown bracos retos.', '3-0-1-0'),
+          makeEx('do07', 3, '10-12', 9, 60, 'Pulldown bracos retos: pico do latissimo na extensao do ombro (encurtamento). 1s ISO.', '3-1-1-0'),
+          makeEx('do10', 3, '8-10', 8, 90, 'Remada cavalinho: retracao escapular (romboides/trap. medio) - exc. 3s controlado.', '3-0-1-0'),
+          makeEx('sh09', 4, '10-12', 9, 60, 'Elevacao lateral inclinada 45 graus: deltoide medial no max. comprimento. Par da elevacao normal.', '3-1-1-0'),
+          makeEx('sh06', 3, '10-12', 9, 45, 'Elevacao lateral halteres: pico de torque a 90 graus (encurtamento) - 1s ISO no topo.', '3-1-1-0'),
+          makeEx('sh15', 3, '12-15', 9, 45, 'Face pull: deltoide posterior + rotadores externos na retracao maxima. 1s ISO.', '2-1-1-0'),
+          makeEx('sh18', 3, '10-12', 8, 60, 'Encolhimento barra: pico do trapezio superior no encurtamento - 1s ISO no topo.', '3-1-1-0')
         ]
       },
       {
         id: 'D',
-        name: 'Treino D · Pernas & Glúteos Hipertrofia',
-        description: 'Volume sarcoplasmático em quadríceps, isquiotibiais e glúteos.',
+        name: 'Treino D - Pernas e Gluteo Hipertrofia Maxima',
+        description: 'Pareamento Stretched/Shortened por grupo + volume metabolico.',
         exercises: [
-          makeEx('lg03', 4, '8-10', 8, 90, 'Hack squat com cadência controlada.'),
-          makeEx('lg07', 3, '10-12', 8, 90, 'Agachamento búlgaro com halteres.'),
-          makeEx('lg06', 4, '12-15', 9, 60, 'Cadeira extensora com drop-set na última.'),
-          makeEx('lg13', 4, '10-12', 9, 60, 'Cadeira flexora sentada com pico de 1s.'),
-          makeEx('lg15', 3, '8-10', 8, 90, 'Elevação pélvica com barra para glúteo máximo.'),
-          makeEx('lg17', 3, '15-20', 9, 45, 'Cadeira abdutora para glúteo médio.'),
-          makeEx('lg21', 4, '12-15', 9, 60, 'Panturrilha sentado com alta queima.')
+          makeEx('lg03', 4, '8-10', 8, 90, 'Hack Squat: maior ADM do quadriceps sem carga axial. Exc. 4s. Par da cadeira extensora.', '4-0-1-0'),
+          makeEx('lg06', 4, '12-15', 9, 60, 'Cadeira extensora: pico de EMG no encurtamento - 1s ISO. Par do Hack Squat. Schoenfeld.', '3-1-1-0'),
+          makeEx('lg07', 3, '10-12', 8, 90, 'Bulgaro: gluteo frontal no max. comprimento (anteversao pelvica). Par do Hip Thrust.', '3-0-1-0'),
+          makeEx('lg15', 4, '8-10', 9, 75, 'Hip Thrust: max. ativacao EMG gluteo na extensao total (encurtamento). 1s ISO.', '2-1-1-0'),
+          makeEx('lg13', 3, '12-15', 9, 60, 'Cadeira flexora sentada: isquiotibiais encurtados. Par cientifico do Stiff.', '3-1-1-0'),
+          makeEx('lg17', 3, '15-20', 9, 45, 'Cadeira abdutora: gluteo medio no encurtamento maximo. 1s ISO na abertura total.', '3-1-1-0'),
+          makeEx('lg21', 4, '12-15', 9, 60, 'Panturrilha sentado: soleo isolado (joelho fletido) no encurtamento. Par da em pe.', '3-1-1-0')
         ]
       },
       {
         id: 'E',
-        name: 'Treino E · Peitoral & Braços Hipertrofia',
-        description: 'Bombeamento de peitoral, bíceps e tríceps com ângulos variados.',
+        name: 'Treino E - Peitoral e Bracos Hipertrofia',
+        description: 'Pareamento Stretched+Shortened completo para peitoral, biceps e triceps com ISO 1s.',
         exercises: [
-          makeEx('pe05', 4, '8-10', 8, 90, 'Supino inclinado com halteres 30°.'),
-          makeEx('pe13', 3, '10-12', 9, 60, 'Peck deck voador com contração máxima.'),
-          makeEx('pe10', 3, '12-15', 9, 60, 'Crossover alto para feixe esternal.'),
-          makeEx('bi06', 3, '8-10', 8, 60, 'Rosca Scott com barra W no banco.'),
-          makeEx('bi09', 3, '10-12', 8, 60, 'Rosca inclinada 45° para cabeça longa.'),
-          makeEx('tr01', 3, '10-12', 8, 60, 'Tríceps polia barra reta com peso controlado.'),
-          makeEx('tr06', 3, '10-12', 8, 60, 'Tríceps francês com halter para cabeça longa.'),
-          makeEx('ab02', 3, '12-15', 8, 60, 'Cable crunch ajoelhado na polia alta.')
+          makeEx('pe05', 4, '8-10', 8, 90, 'Supino inclinado halteres: pico de tensao no alongamento (ADM ampliada). Schoenfeld Cap.2.', '3-0-1-0'),
+          makeEx('pe07', 3, '10-12', 9, 60, 'Crucifixo reto halteres: pico a 90 graus (max. comprimento do peitoral). 1s no fundo.', '3-1-1-0'),
+          makeEx('pe13', 3, '10-12', 9, 60, 'Peck Deck: pico de torque no encurtamento total - 1s ISO. Par do Crucifixo.', '3-1-1-0'),
+          makeEx('bi09', 3, '8-10', 8, 60, 'Rosca inclinada 45 graus: cabeca longa do biceps no max. comprimento. Schoenfeld.', '3-1-1-0'),
+          makeEx('bi06', 3, '10-12', 8, 60, 'Rosca Scott: cabeca curta no encurtamento. 1s ISO no topo. Par da inclinada.', '3-1-1-0'),
+          makeEx('tr06', 3, '10-12', 8, 60, 'Triceps frances: cabeca longa no max. comprimento (ombro em flexao > 90 graus).', '3-1-1-0'),
+          makeEx('tr01', 3, '10-12', 8, 60, 'Pushdown barra reta: pico de EMG no encurtamento - 1s ISO. Par do Triceps frances.', '3-1-1-0'),
+          makeEx('ab02', 3, '12-15', 8, 60, 'Cable crunch: carga progressiva no reto abdominal - 1s ISO no encurtamento.', '3-1-1-0')
         ]
       }
     ];
@@ -9676,44 +9791,44 @@ async function handleGenerateAITraining() {
     generatedWorkoutPlan = [
       {
         id: 'A',
-        name: 'Treino A · Push (Peito, Ombro, Tríceps)',
-        description: 'Cadeia anterior superior com sobrecarga em supino e deltoides.',
+        name: 'Treino A - Push (Peito, Ombro, Triceps)',
+        description: 'Cadeia anterior com pareamento Stretched+Shortened para peitoral, deltoide e triceps.',
         exercises: [
-          makeEx('pe01', 4, '6-8', 8, 120, 'Supino reto com barra.'),
-          makeEx('pe05', 3, '8-10', 8, 90, 'Supino inclinado com halteres.'),
-          makeEx('pe10', 3, '10-12', 8, 60, 'Crossover alto na polia.'),
-          makeEx('sh02', 3, '8-10', 8, 90, 'Desenvolvimento com halteres sentado.'),
-          makeEx('sh06', 4, '10-12', 9, 60, 'Elevação lateral com halteres.'),
-          makeEx('tr01', 3, '10-12', 8, 60, 'Tríceps na polia com barra reta.'),
-          makeEx('tr07', 3, '10-12', 8, 60, 'Tríceps francês na polia com corda.')
+          makeEx('pe01', 4, '6-8', 8, 120, 'Supino reto: exc. 3s - pico no encurtamento. Sinal anabolico com normocalorico.', '3-0-1-0'),
+          makeEx('pe05', 3, '8-10', 8, 90, 'Supino inclinado halteres: pico de tensao no alongamento. Par do Peck Deck.', '3-0-1-0'),
+          makeEx('pe10', 3, '10-12', 8, 60, 'Crossover polia alta: peitoral no comprimento maximo (stretched) - 1s ISO.', '3-1-1-0'),
+          makeEx('sh02', 3, '8-10', 8, 90, 'Desenvolvimento halteres sentado: deltoide anterior/medial no encurtamento.', '3-0-1-0'),
+          makeEx('sh09', 3, '10-12', 9, 60, 'Elevacao lateral inclinada 45 graus: deltoide medial no max. comprimento. Par da elevacao normal.', '3-1-1-0'),
+          makeEx('tr06', 3, '10-12', 8, 60, 'Triceps frances: cabeca longa no max. comprimento (stretched). Par do Pushdown.', '3-1-1-0'),
+          makeEx('tr01', 3, '10-12', 8, 60, 'Pushdown barra reta: pico de EMG no encurtamento (shortened). 1s ISO. Par do Triceps frances.', '3-1-1-0')
         ]
       },
       {
         id: 'B',
-        name: 'Treino B · Pull (Costas, Bíceps, Trapézio, Core)',
-        description: 'Cadeia posterior superior e flexores do cotovelo.',
+        name: 'Treino B - Pull (Costas, Biceps, Trapezio)',
+        description: 'Cadeia posterior com pareamento completo para latissimo e biceps.',
         exercises: [
-          makeEx('do01', 4, '6-8', 8, 120, 'Barra fixa com pegada pronada.'),
-          makeEx('do08', 4, '8-10', 8, 90, 'Remada curvada com barra.'),
-          makeEx('do05', 3, '8-10', 8, 90, 'Puxada alta com triângulo fechado.'),
-          makeEx('sh15', 3, '12-15', 9, 60, 'Face pull na polia com corda.'),
-          makeEx('bi01', 3, '8-10', 8, 75, 'Rosca direta com barra reta.'),
-          makeEx('bi04', 3, '10-12', 8, 60, 'Rosca martelo com halteres.'),
-          makeEx('ab01', 3, '15-20', 8, 45, 'Abdominal crunch no solo com contração.')
+          makeEx('do01', 4, '6-8', 8, 120, 'Barra fixa: latissimo no max. comprimento (bracos estendidos). Par do Pulldown bracos retos.', '3-0-1-0'),
+          makeEx('do08', 4, '6-8', 8, 90, 'Remada curvada: pico na retracao escapular (encurtamento de romboides). Lima & Pinto Cap.5.', '3-0-1-0'),
+          makeEx('do04', 3, '8-10', 8, 90, 'Puxada aberta: latissimo em max. comprimento. Alternativa da barra fixa.', '3-0-1-0'),
+          makeEx('sh15', 3, '12-15', 9, 60, 'Face pull: deltoide posterior + rotadores externos na retracao maxima. 1s ISO.', '2-1-1-0'),
+          makeEx('bi09', 3, '8-10', 8, 75, 'Rosca inclinada 45 graus: cabeca longa em max. comprimento (stretched). Par da Rosca Scott.', '3-1-1-0'),
+          makeEx('bi06', 3, '10-12', 8, 60, 'Rosca Scott: cabeca curta no encurtamento (shortened). 1s ISO. Par da inclinada.', '3-1-1-0'),
+          makeEx('ab01', 3, '15-20', 8, 45, 'Crunch: reto abdominal no encurtamento - 1s ISO no pico. Ritmo controlado.', '2-1-1-0')
         ]
       },
       {
         id: 'C',
-        name: 'Treino C · Legs (Quadríceps, Isquiotibiais, Panturrilhas)',
-        description: 'Membros inferiores completos com estímulo de cadeia anterior e posterior.',
+        name: 'Treino C - Legs (Membros Inferiores Completos)',
+        description: 'Pareamento Stretched/Shortened para quadriceps, isquiotibiais, gluteo e panturrilha.',
         exercises: [
-          makeEx('lg01', 4, '6-8', 8, 150, 'Agachamento livre com barra.'),
-          makeEx('lg04', 3, '8-10', 8, 90, 'Leg press 45 com profundidade.'),
-          makeEx('lg06', 3, '12-15', 9, 60, 'Cadeira extensora com contração de 1s.'),
-          makeEx('lg10', 4, '8-10', 8, 90, 'Stiff com barra para posteriores de coxa.'),
-          makeEx('lg12', 3, '10-12', 8, 60, 'Mesa flexora deitada.'),
-          makeEx('lg20', 4, '12-15', 9, 60, 'Panturrilha em pé na máquina.'),
-          makeEx('ab05', 3, '10-12', 8, 60, 'Abdominal rollout com roda abdominal.')
+          makeEx('lg01', 4, '6-8', 8, 150, 'Agachamento livre: exc. 4s protege LCA/patelar - curva quasi-uniforme. Base do volume.', '4-0-1-0'),
+          makeEx('lg03', 3, '8-10', 8, 90, 'Hack Squat: maior ADM do quadriceps sem carga axial. Par da cadeira extensora.', '4-0-1-0'),
+          makeEx('lg06', 3, '12-15', 9, 60, 'Cadeira extensora: pico de EMG no encurtamento - 1s ISO. Par do Hack Squat.', '3-1-1-0'),
+          makeEx('lg10', 4, '8-10', 8, 90, 'Stiff: anteversao pelvica = isquiotibiais no max. comprimento. Exc. 4s. Par da flexora sentada.', '4-0-1-0'),
+          makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada: isquiotibiais encurtados (quadril em flexao). Par cientifico do Stiff.', '3-1-1-0'),
+          makeEx('lg20', 4, '12-15', 9, 60, 'Panturrilha em pe: gastrocnemio no max. comprimento. Par da panturrilha sentada.', '3-1-1-0'),
+          makeEx('ab05', 3, '10-12', 8, 60, 'Rollout: core global no comprimento maximo. Exc. 3s com controle pelvico.', '3-0-2-0')
         ]
       }
     ];
