@@ -7247,6 +7247,133 @@ function perfSyncNutritionAudit() {
   }
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// MOTOR DE ZONAS CARDIOVASCULARES (TANAKA ET AL. & KARVONEN)
+// ════════════════════════════════════════════════════════════════════════════
+function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
+  // Fórmula de Tanaka et al.: FCM = 208 - (0.7 x Idade)
+  const maxHR = Math.round(208 - (0.7 * age));
+  const reserveHR = maxHR - restingHR;
+
+  // Fórmula de Reserva de Karvonen: FC_Alvo = ((FCM - FCR) x %Intensidade) + FCR
+  const getKarvonen = (pct) => Math.round((reserveHR * pct) + restingHR);
+
+  return {
+    age,
+    restingHR,
+    maxHR,
+    reserveHR,
+    zones: [
+      {
+        zone: 'Z1',
+        name: 'Recuperação Ativa & Fluxo',
+        pctStr: '50% – 60%',
+        bpmTanaka: `${Math.round(maxHR * 0.50)} – ${Math.round(maxHR * 0.60)} bpm`,
+        bpmKarvonen: `${getKarvonen(0.50)} – ${getKarvonen(0.60)} bpm`,
+        rpe: 'RPE 2-3',
+        color: 'border-emerald-500/50 bg-emerald-950/40 text-emerald-300',
+        badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+        desc: 'Depuração de lactato, remoção de metabólitos, restauração do SNA e regeneração pós-treino.'
+      },
+      {
+        zone: 'Z2',
+        name: 'Base Aeróbia & Biogênese',
+        pctStr: '60% – 70%',
+        bpmTanaka: `${Math.round(maxHR * 0.60)} – ${Math.round(maxHR * 0.70)} bpm`,
+        bpmKarvonen: `${getKarvonen(0.60)} – ${getKarvonen(0.70)} bpm`,
+        rpe: 'RPE 4-5',
+        color: 'border-blue-500/50 bg-blue-950/40 text-blue-300',
+        badgeColor: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+        desc: 'Oxidação pura de ácidos graxos, densidade mitocondrial e zero impacto negativo na via anabólica mTOR.'
+      },
+      {
+        zone: 'Z3',
+        name: 'Tempo / Ritmo Moderado',
+        pctStr: '70% – 80%',
+        bpmTanaka: `${Math.round(maxHR * 0.70)} – ${Math.round(maxHR * 0.80)} bpm`,
+        bpmKarvonen: `${getKarvonen(0.70)} – ${getKarvonen(0.80)} bpm`,
+        rpe: 'RPE 6-7',
+        color: 'border-amber-500/50 bg-amber-950/40 text-amber-300',
+        badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+        desc: 'Transição aeróbia-glicolítica, aumento do limiar ventilatório 1 (L1) e sustentação de pace.'
+      },
+      {
+        zone: 'Z4',
+        name: 'Limiar Anaeróbio / HIIT',
+        pctStr: '80% – 90%',
+        bpmTanaka: `${Math.round(maxHR * 0.80)} – ${Math.round(maxHR * 0.90)} bpm`,
+        bpmKarvonen: `${getKarvonen(0.80)} – ${getKarvonen(0.90)} bpm`,
+        rpe: 'RPE 8-9',
+        color: 'border-orange-500/50 bg-orange-950/40 text-orange-300',
+        badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+        desc: 'Tolerância severa à acidose láctica, deslocamento do limiar L2 e potência cardiovascular.'
+      },
+      {
+        zone: 'Z5',
+        name: 'VO₂ Máx & Potência Extrema',
+        pctStr: '90% – 100%',
+        bpmTanaka: `${Math.round(maxHR * 0.90)} – ${maxHR} bpm`,
+        bpmKarvonen: `${getKarvonen(0.90)} – ${maxHR} bpm`,
+        rpe: 'RPE 10',
+        color: 'border-rose-500/50 bg-rose-950/40 text-rose-300',
+        badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
+        desc: 'Fração de ejeção ventricular máxima, recrutamento neuromuscular de fibras Tipo IIx e EPOC.'
+      }
+    ]
+  };
+}
+
+function renderPerfHeartRateZones() {
+  const container = document.getElementById('perf-hr-zones-container');
+  if (!container) return;
+
+  const ageEl = document.getElementById('evalAge');
+  const age = ageEl ? parseInt(ageEl.value) || 30 : 30;
+  
+  const hrData = perfCalculateHeartRateZones(age, 60);
+
+  container.innerHTML = `
+    <div class="hud-card p-5 border-blue-500/40 bg-gradient-to-br from-blue-950/30 via-black/80 to-zinc-950/90 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)] space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <span class="p-2 rounded-xl bg-blue-950/80 border border-blue-600/60 text-blue-400">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+          </span>
+          <div>
+            <h3 class="text-sm md:text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
+              Quadro de Zonas Cardíacas &amp; Fisiologia
+              <span class="text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-700/80 px-2 py-0.5 rounded-full font-bold">Tanaka &amp; Karvonen</span>
+            </h3>
+            <p class="text-xs text-zinc-400">Parâmetros calibrados para <strong>${age} anos</strong> · FCM Estimada: <strong class="text-white">${hrData.maxHR} bpm</strong> · FC Reserva: <strong class="text-white">${hrData.reserveHR} bpm</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grade das 5 Zonas (Z1 a Z5) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        ${hrData.zones.map(z => `
+          <div class="p-3 rounded-xl border ${z.color} space-y-2 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <span class="text-xs font-mono font-bold px-2 py-0.5 rounded border ${z.badgeColor}">${z.zone}</span>
+                <span class="text-[10px] font-mono text-zinc-400">${z.rpe}</span>
+              </div>
+              <h4 class="text-xs font-bold text-white leading-tight">${z.name}</h4>
+              <p class="text-[11px] font-mono font-bold text-amber-300 mt-1">Karvonen: ${z.bpmKarvonen}</p>
+              <p class="text-[9px] font-mono text-zinc-400">Tanaka: ${z.bpmTanaka} (${z.pctStr})</p>
+            </div>
+            <p class="text-[10px] text-zinc-400 leading-snug pt-1 border-t border-zinc-800/60">${z.desc}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+
 function perfRender() {
   const currentPatientName = document.getElementById("headerPatientName")?.innerText?.trim();
   const currentPatientGoal = document.getElementById("headerPatientGoal")?.innerText?.trim();
@@ -7280,6 +7407,7 @@ function perfRender() {
   renderPerfTargetButtons();
   renderPerfWeeklySchedule();
   renderPerfCardioProtocols();
+  renderPerfHeartRateZones();
   renderPerfWorkoutPlan();
   renderPerfPrescribedCardio();
   renderPerfCatalog();
@@ -10724,6 +10852,8 @@ window.perfGetNutritionContext = perfGetNutritionContext;
 window.perfSyncNutritionAudit = perfSyncNutritionAudit;
 window.loadPerformanceForPatient = loadPerformanceForPatient;
 window.savePerformanceForPatient = savePerformanceForPatient;
+window.perfCalculateHeartRateZones = perfCalculateHeartRateZones;
+window.renderPerfHeartRateZones = renderPerfHeartRateZones;
 window.updateAITrainingBanner = updateAITrainingBanner;
 window.approveAITraining = approveAITraining;
 window.perfGetSubstitutes = perfGetSubstitutes;
