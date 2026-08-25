@@ -7249,26 +7249,44 @@ function perfSyncNutritionAudit() {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// MOTOR DE ZONAS CARDIOVASCULARES (TANAKA ET AL. & KARVONEN)
+// MOTOR DE ZONAS CARDIOVASCULARES EDITÁVEIS & ERGOESPIROMETRIA (TANAKA / KARVONEN)
 // ════════════════════════════════════════════════════════════════════════════
-function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
-  // Fórmula de Tanaka et al.: FCM = 208 - (0.7 x Idade)
-  const maxHR = Math.round(208 - (0.7 * age));
-  const reserveHR = maxHR - restingHR;
+let perfCustomHRZones = null; // Custom zones per patient { restingHR, maxHR, isCustom: boolean, zones: [...] }
+let perfHREditMode = false;
 
-  // Fórmula de Reserva de Karvonen: FC_Alvo = ((FCM - FCR) x %Intensidade) + FCR
-  const getKarvonen = (pct) => Math.round((reserveHR * pct) + restingHR);
+function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
+  // Se houver zonas customizadas salvas para este paciente, utiliza-as
+  if (perfCustomHRZones && perfCustomHRZones.isCustom && Array.isArray(perfCustomHRZones.zones) && perfCustomHRZones.zones.length === 5) {
+    return {
+      age: perfCustomHRZones.age || age,
+      restingHR: perfCustomHRZones.restingHR || restingHR,
+      maxHR: perfCustomHRZones.maxHR || Math.round(208 - (0.7 * age)),
+      reserveHR: (perfCustomHRZones.maxHR || Math.round(208 - (0.7 * age))) - (perfCustomHRZones.restingHR || restingHR),
+      isCustom: true,
+      zones: perfCustomHRZones.zones
+    };
+  }
+
+  // Cálculo padrão: Tanaka et al. [208 - (0.7 x Idade)] & Karvonen [((FCM - FCR) x %Int) + FCR]
+  const effectiveAge = (perfCustomHRZones && perfCustomHRZones.age) ? perfCustomHRZones.age : age;
+  const effectiveResting = (perfCustomHRZones && perfCustomHRZones.restingHR) ? perfCustomHRZones.restingHR : restingHR;
+  const maxHR = (perfCustomHRZones && perfCustomHRZones.maxHR) ? perfCustomHRZones.maxHR : Math.round(208 - (0.7 * effectiveAge));
+  const reserveHR = maxHR - effectiveResting;
+  const getKarvonen = (pct) => Math.round((reserveHR * pct) + effectiveResting);
 
   return {
-    age,
-    restingHR,
+    age: effectiveAge,
+    restingHR: effectiveResting,
     maxHR,
     reserveHR,
+    isCustom: false,
     zones: [
       {
         zone: 'Z1',
         name: 'Recuperação Ativa & Fluxo',
         pctStr: '50% – 60%',
+        minBpm: getKarvonen(0.50),
+        maxBpm: getKarvonen(0.60),
         bpmTanaka: `${Math.round(maxHR * 0.50)} – ${Math.round(maxHR * 0.60)} bpm`,
         bpmKarvonen: `${getKarvonen(0.50)} – ${getKarvonen(0.60)} bpm`,
         rpe: 'RPE 2-3',
@@ -7280,17 +7298,21 @@ function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
         zone: 'Z2',
         name: 'Base Aeróbia & Biogênese',
         pctStr: '60% – 70%',
+        minBpm: getKarvonen(0.60),
+        maxBpm: getKarvonen(0.70),
         bpmTanaka: `${Math.round(maxHR * 0.60)} – ${Math.round(maxHR * 0.70)} bpm`,
         bpmKarvonen: `${getKarvonen(0.60)} – ${getKarvonen(0.70)} bpm`,
         rpe: 'RPE 4-5',
         color: 'border-blue-500/50 bg-blue-950/40 text-blue-300',
         badgeColor: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-        desc: 'Oxidação pura de ácidos graxos, densidade mitocondrial e zero impacto negativo na via anabólica mTOR.'
+        desc: 'Oxidação pura de ácidos graxos (FatMax), densidade mitocondrial e zero interferência na via mTOR.'
       },
       {
         zone: 'Z3',
         name: 'Tempo / Ritmo Moderado',
         pctStr: '70% – 80%',
+        minBpm: getKarvonen(0.70),
+        maxBpm: getKarvonen(0.80),
         bpmTanaka: `${Math.round(maxHR * 0.70)} – ${Math.round(maxHR * 0.80)} bpm`,
         bpmKarvonen: `${getKarvonen(0.70)} – ${getKarvonen(0.80)} bpm`,
         rpe: 'RPE 6-7',
@@ -7302,6 +7324,8 @@ function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
         zone: 'Z4',
         name: 'Limiar Anaeróbio / HIIT',
         pctStr: '80% – 90%',
+        minBpm: getKarvonen(0.80),
+        maxBpm: getKarvonen(0.90),
         bpmTanaka: `${Math.round(maxHR * 0.80)} – ${Math.round(maxHR * 0.90)} bpm`,
         bpmKarvonen: `${getKarvonen(0.80)} – ${getKarvonen(0.90)} bpm`,
         rpe: 'RPE 8-9',
@@ -7313,6 +7337,8 @@ function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
         zone: 'Z5',
         name: 'VO₂ Máx & Potência Extrema',
         pctStr: '90% – 100%',
+        minBpm: getKarvonen(0.90),
+        maxBpm: maxHR,
         bpmTanaka: `${Math.round(maxHR * 0.90)} – ${maxHR} bpm`,
         bpmKarvonen: `${getKarvonen(0.90)} – ${maxHR} bpm`,
         rpe: 'RPE 10',
@@ -7324,51 +7350,241 @@ function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
   };
 }
 
+function perfToggleHREditMode() {
+  perfHREditMode = !perfHREditMode;
+  renderPerfHeartRateZones();
+}
+
+async function perfSaveCustomHRZones() {
+  const ageEl = document.getElementById('perf-hr-input-age');
+  const fcrEl = document.getElementById('perf-hr-input-fcr');
+  const fcmEl = document.getElementById('perf-hr-input-fcm');
+
+  const age = ageEl ? parseInt(ageEl.value) || 30 : 30;
+  const restingHR = fcrEl ? parseInt(fcrEl.value) || 60 : 60;
+  const maxHR = fcmEl ? parseInt(fcmEl.value) || Math.round(208 - (0.7 * age)) : Math.round(208 - (0.7 * age));
+
+  const zoneConfigs = [
+    { zone: 'Z1', name: 'Recuperação Ativa & Fluxo', pctStr: '50% – 60%', rpe: 'RPE 2-3', color: 'border-emerald-500/50 bg-emerald-950/40 text-emerald-300', badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', desc: 'Depuração de lactato, remoção de metabólitos e regeneração.' },
+    { zone: 'Z2', name: 'Base Aeróbia & Biogênese', pctStr: '60% – 70%', rpe: 'RPE 4-5', color: 'border-blue-500/50 bg-blue-950/40 text-blue-300', badgeColor: 'bg-blue-500/20 text-blue-400 border-blue-500/40', desc: 'Oxidação pura de ácidos graxos (FatMax) e biogênese mitocondrial.' },
+    { zone: 'Z3', name: 'Tempo / Ritmo Moderado', pctStr: '70% – 80%', rpe: 'RPE 6-7', color: 'border-amber-500/50 bg-amber-950/40 text-amber-300', badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40', desc: 'Transição aeróbia-glicolítica e limiar ventilatório 1 (L1).' },
+    { zone: 'Z4', name: 'Limiar Anaeróbio / HIIT', pctStr: '80% – 90%', rpe: 'RPE 8-9', color: 'border-orange-500/50 bg-orange-950/40 text-orange-300', badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40', desc: 'Tolerância à acidose láctica e deslocamento do limiar L2.' },
+    { zone: 'Z5', name: 'VO₂ Máx & Potência Extrema', pctStr: '90% – 100%', rpe: 'RPE 10', color: 'border-rose-500/50 bg-rose-950/40 text-rose-300', badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40', desc: 'Fração de ejeção máxima e recrutamento neuromuscular extremo.' }
+  ];
+
+  const customZones = zoneConfigs.map(zc => {
+    const minInput = document.getElementById(`perf-hr-${zc.zone}-min`);
+    const maxInput = document.getElementById(`perf-hr-${zc.zone}-max`);
+    const minVal = minInput ? parseInt(minInput.value) || 0 : 0;
+    const maxVal = maxInput ? parseInt(maxInput.value) || 0 : 0;
+    return {
+      ...zc,
+      minBpm: minVal,
+      maxBpm: maxVal,
+      bpmKarvonen: `${minVal} – ${maxVal} bpm`,
+      bpmTanaka: `${minVal} – ${maxVal} bpm`
+    };
+  });
+
+  perfCustomHRZones = {
+    age,
+    restingHR,
+    maxHR,
+    isCustom: true,
+    zones: customZones,
+    savedAt: new Date().toISOString()
+  };
+
+  perfHREditMode = false;
+  await savePerformanceForPatient(activePatientId);
+  renderPerfHeartRateZones();
+
+  const toast = document.getElementById('perf-ai-toast');
+  if (toast) {
+    toast.style.display = 'flex';
+    toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+      <div>Zonas Cardíacas e Limiares do paciente <strong>salvos com sucesso</strong>!</div>`;
+    if (window.lucide) window.lucide.createIcons();
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
+  }
+}
+
+async function perfResetCustomHRZones() {
+  if (confirm("Deseja restaurar o cálculo automático de zonas cardíacas baseado em Tanaka e Karvonen para este paciente?")) {
+    perfCustomHRZones = null;
+    perfHREditMode = false;
+    await savePerformanceForPatient(activePatientId);
+    renderPerfHeartRateZones();
+  }
+}
+
+function perfAutoFillCalculatedHR() {
+  const ageEl = document.getElementById('perf-hr-input-age');
+  const fcrEl = document.getElementById('perf-hr-input-fcr');
+  const fcmEl = document.getElementById('perf-hr-input-fcm');
+
+  const age = ageEl ? parseInt(ageEl.value) || 30 : 30;
+  const restingHR = fcrEl ? parseInt(fcrEl.value) || 60 : 60;
+  const maxHR = Math.round(208 - (0.7 * age));
+  const reserveHR = maxHR - restingHR;
+  const getKarvonen = (pct) => Math.round((reserveHR * pct) + restingHR);
+
+  if (fcmEl) fcmEl.value = maxHR;
+
+  const zRanges = [
+    { zone: 'Z1', min: getKarvonen(0.50), max: getKarvonen(0.60) },
+    { zone: 'Z2', min: getKarvonen(0.60), max: getKarvonen(0.70) },
+    { zone: 'Z3', min: getKarvonen(0.70), max: getKarvonen(0.80) },
+    { zone: 'Z4', min: getKarvonen(0.80), max: getKarvonen(0.90) },
+    { zone: 'Z5', min: getKarvonen(0.90), max: maxHR }
+  ];
+
+  zRanges.forEach(zr => {
+    const minInput = document.getElementById(`perf-hr-${zr.zone}-min`);
+    const maxInput = document.getElementById(`perf-hr-${zr.zone}-max`);
+    if (minInput) minInput.value = zr.min;
+    if (maxInput) maxInput.value = zr.max;
+  });
+}
+
 function renderPerfHeartRateZones() {
   const container = document.getElementById('perf-hr-zones-container');
   if (!container) return;
 
   const ageEl = document.getElementById('evalAge');
-  const age = ageEl ? parseInt(ageEl.value) || 30 : 30;
+  const defaultAge = ageEl ? parseInt(ageEl.value) || 30 : 30;
   
-  const hrData = perfCalculateHeartRateZones(age, 60);
+  const hrData = perfCalculateHeartRateZones(defaultAge, 60);
 
-  container.innerHTML = `
-    <div class="hud-card p-5 border-blue-500/40 bg-gradient-to-br from-blue-950/30 via-black/80 to-zinc-950/90 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)] space-y-4">
-      <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
-        <div class="flex items-center gap-2">
-          <span class="p-2 rounded-xl bg-blue-950/80 border border-blue-600/60 text-blue-400">
-            <i data-lucide="activity" class="w-5 h-5"></i>
-          </span>
-          <div>
-            <h3 class="text-sm md:text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
-              Quadro de Zonas Cardíacas &amp; Fisiologia
-              <span class="text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-700/80 px-2 py-0.5 rounded-full font-bold">Tanaka &amp; Karvonen</span>
-            </h3>
-            <p class="text-xs text-zinc-400">Parâmetros calibrados para <strong>${age} anos</strong> · FCM Estimada: <strong class="text-white">${hrData.maxHR} bpm</strong> · FC Reserva: <strong class="text-white">${hrData.reserveHR} bpm</strong></p>
+  // 1. MODO DE EDIÇÃO
+  if (perfHREditMode) {
+    container.innerHTML = `
+      <div class="hud-card p-5 border-amber-500/60 bg-gradient-to-br from-amber-950/40 via-black/95 to-zinc-950/90 rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.2)] space-y-4">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="p-2 rounded-xl bg-amber-950/80 border border-amber-600/60 text-amber-400">
+              <i data-lucide="sliders" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <h3 class="text-sm md:text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                Editar Zonas Cardíacas &amp; Ergoespirometria
+                <span class="text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-700/80 px-2 py-0.5 rounded-full font-bold">Personalização Clínica</span>
+              </h3>
+              <p class="text-xs text-zinc-400">Edite a FC de Repouso, FCM ou insira os limiares de BPM direto do teste ergométrico/VO₂ Máx.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="perfAutoFillCalculatedHR()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 flex items-center gap-1">
+              <i data-lucide="calculator" class="w-3.5 h-3.5 text-blue-400"></i> Auto-Calcular
+            </button>
+            <button onclick="perfSaveCustomHRZones()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)] flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar Zonas
+            </button>
+            <button onclick="perfToggleHREditMode()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800">
+              Cancelar
+            </button>
           </div>
         </div>
-      </div>
 
-      <!-- Grade das 5 Zonas (Z1 a Z5) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        ${hrData.zones.map(z => `
-          <div class="p-3 rounded-xl border ${z.color} space-y-2 flex flex-col justify-between">
-            <div>
+        <!-- Parâmetros Base do Paciente -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-black/60 border border-zinc-800">
+          <div>
+            <label class="block text-[11px] font-mono text-zinc-400 mb-1">Idade do Paciente:</label>
+            <input type="number" id="perf-hr-input-age" value="${hrData.age}" min="10" max="100" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono font-bold focus:border-amber-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono text-zinc-400 mb-1">FC de Repouso (FCR):</label>
+            <input type="number" id="perf-hr-input-fcr" value="${hrData.restingHR}" min="30" max="120" placeholder="ex: 58 bpm" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:border-amber-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono text-zinc-400 mb-1">FC Máxima (FCM):</label>
+            <input type="number" id="perf-hr-input-fcm" value="${hrData.maxHR}" min="100" max="230" placeholder="ex: 188 bpm" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-amber-400 font-mono font-bold focus:border-amber-500 outline-none" />
+          </div>
+        </div>
+
+        <!-- Campos das 5 Zonas (Min e Max BPM) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          ${hrData.zones.map(z => `
+            <div class="p-3 rounded-xl border ${z.color} space-y-2">
               <div class="flex items-center justify-between gap-1 mb-1">
                 <span class="text-xs font-mono font-bold px-2 py-0.5 rounded border ${z.badgeColor}">${z.zone}</span>
                 <span class="text-[10px] font-mono text-zinc-400">${z.rpe}</span>
               </div>
               <h4 class="text-xs font-bold text-white leading-tight">${z.name}</h4>
-              <p class="text-[11px] font-mono font-bold text-amber-300 mt-1">Karvonen: ${z.bpmKarvonen}</p>
-              <p class="text-[9px] font-mono text-zinc-400">Tanaka: ${z.bpmTanaka} (${z.pctStr})</p>
+              
+              <div class="space-y-1 pt-1">
+                <div class="flex items-center justify-between gap-1 text-[11px] font-mono">
+                  <span class="text-zinc-400">Min:</span>
+                  <input type="number" id="perf-hr-${z.zone}-min" value="${z.minBpm || parseInt(z.bpmKarvonen) || 100}" class="w-20 bg-zinc-900 border border-zinc-700 rounded px-1.5 py-0.5 text-xs text-white text-right font-mono font-bold focus:border-amber-500 outline-none" />
+                  <span class="text-zinc-400">bpm</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 text-[11px] font-mono">
+                  <span class="text-zinc-400">Max:</span>
+                  <input type="number" id="perf-hr-${z.zone}-max" value="${z.maxBpm || parseInt(z.bpmKarvonen.split('–')[1]) || 120}" class="w-20 bg-zinc-900 border border-zinc-700 rounded px-1.5 py-0.5 text-xs text-white text-right font-mono font-bold focus:border-amber-500 outline-none" />
+                  <span class="text-zinc-400">bpm</span>
+                </div>
+              </div>
             </div>
-            <p class="text-[10px] text-zinc-400 leading-snug pt-1 border-t border-zinc-800/60">${z.desc}</p>
-          </div>
-        `).join('')}
+          `).join('')}
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
+  // 2. MODO DE VISUALIZAÇÃO PADRÃO
+  else {
+    const isCustomized = hrData.isCustom;
+    container.innerHTML = `
+      <div class="hud-card p-5 border-blue-500/40 bg-gradient-to-br from-blue-950/30 via-black/80 to-zinc-950/90 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)] space-y-4">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="p-2 rounded-xl bg-blue-950/80 border border-blue-600/60 text-blue-400">
+              <i data-lucide="activity" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <h3 class="text-sm md:text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                Quadro de Zonas Cardíacas &amp; Fisiologia
+                ${isCustomized 
+                  ? '<span class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700/80 px-2 py-0.5 rounded-full font-bold">Personalizado / Ergoespirometria</span>'
+                  : '<span class="text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-700/80 px-2 py-0.5 rounded-full font-bold">Tanaka &amp; Karvonen</span>'
+                }
+              </h3>
+              <p class="text-xs text-zinc-400">Parâmetros calibrados para <strong>${hrData.age} anos</strong> · FCM: <strong class="text-white">${hrData.maxHR} bpm</strong> · FCR: <strong class="text-white">${hrData.restingHR} bpm</strong></p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="perfToggleHREditMode()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white shadow-[0_0_8px_rgba(59,130,246,0.3)] flex items-center gap-1.5 transition-all">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Zonas
+            </button>
+            ${isCustomized ? `
+              <button onclick="perfResetCustomHRZones()" title="Restaurar cálculo automático padrão" class="px-2 py-1.5 text-xs font-bold rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 flex items-center gap-1 transition-all">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-400"></i> Padrão
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Grade das 5 Zonas (Z1 a Z5) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          ${hrData.zones.map(z => `
+            <div class="p-3 rounded-xl border ${z.color} space-y-2 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <span class="text-xs font-mono font-bold px-2 py-0.5 rounded border ${z.badgeColor}">${z.zone}</span>
+                  <span class="text-[10px] font-mono text-zinc-400">${z.rpe}</span>
+                </div>
+                <h4 class="text-xs font-bold text-white leading-tight">${z.name}</h4>
+                <p class="text-[11px] font-mono font-bold text-amber-300 mt-1">${z.minBpm && z.maxBpm ? `${z.minBpm} – ${z.maxBpm} bpm` : z.bpmKarvonen}</p>
+                <p class="text-[9px] font-mono text-zinc-400">${z.pctStr ? z.pctStr : ''}</p>
+              </div>
+              <p class="text-[10px] text-zinc-400 leading-snug pt-1 border-t border-zinc-800/60">${z.desc}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
 
   if (window.lucide) window.lucide.createIcons();
 }
@@ -9524,6 +9740,7 @@ async function savePerformanceForPatient(patientId = activePatientId) {
     workoutPlan: perfWorkoutPlan,
     weeklySchedule: perfWeeklySchedule,
     prescribedCardioId: perfPrescribedCardioId,
+    heartRateZones: perfCustomHRZones,
     auditData: perfAuditData,
     meta: perfWorkoutMeta,
     lastUpdated: new Date().toISOString()
@@ -9585,6 +9802,7 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       : perfBuildWeeklySchedule(perfActiveSplit);
     perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
     perfAuditData = saved.auditData || null;
+    perfCustomHRZones = saved.heartRateZones || null;
     perfWorkoutMeta = saved.meta || {
       isAIGenerated: !!saved.isAIGenerated,
       isClinicallyValidated: !!saved.isClinicallyValidated,
@@ -10854,6 +11072,10 @@ window.loadPerformanceForPatient = loadPerformanceForPatient;
 window.savePerformanceForPatient = savePerformanceForPatient;
 window.perfCalculateHeartRateZones = perfCalculateHeartRateZones;
 window.renderPerfHeartRateZones = renderPerfHeartRateZones;
+window.perfToggleHREditMode = perfToggleHREditMode;
+window.perfSaveCustomHRZones = perfSaveCustomHRZones;
+window.perfResetCustomHRZones = perfResetCustomHRZones;
+window.perfAutoFillCalculatedHR = perfAutoFillCalculatedHR;
 window.updateAITrainingBanner = updateAITrainingBanner;
 window.approveAITraining = approveAITraining;
 window.perfGetSubstitutes = perfGetSubstitutes;
