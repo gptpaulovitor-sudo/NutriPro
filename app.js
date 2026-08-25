@@ -9331,7 +9331,7 @@ function renderPerfWorkoutPlan() {
                   <span class="text-zinc-600">•</span>
                   <span>⚡ <strong class="text-zinc-300">Sinérgicos:</strong> ${dbEx.secondary}</span>
                   <span class="text-zinc-600">•</span>
-                   <span class="text-purple-300 font-mono" title="${cadenceTooltip}">â±ï¸ ${cadenceLabel}</span>
+                   <span class="text-purple-300 font-mono" title="${cadenceTooltip}">⏱️ ${cadenceLabel}</span>
                    ${resistBadge}
                 </div>
               </div>
@@ -9585,11 +9585,11 @@ async function handleGenerateAITraining() {
   let auditData = {};
   let generatedWorkoutPlan = [];
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -------------------------------------------------------------------------
   // MOTOR DE PRESCRICAO CIENTIFICA - Helper Principal
   // Propaga: resistProfile, cadencia 4-digitos, nota clinica (Schoenfeld/ACSM)
   // Hierarquia: cadenceOverride > ex.cadence (DB) > fallback por mechanics
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -------------------------------------------------------------------------
   const makeEx = (id, sets, reps, rpe, rest, obs, cadenceOverride) => {
     const ex = PERF_EXERCISE_DB.find(e => e.id === id) || { id, name: id, group: 'Geral', primary: 'Musculo Alvo', mechanics: 'Composto', equipment: 'Livre', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: '' };
     const resolvedCadence = cadenceOverride || ex.cadence || (ex.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
