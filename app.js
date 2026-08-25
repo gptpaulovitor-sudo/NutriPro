@@ -9022,53 +9022,45 @@ let perfFocusedCardioId = null;
 
 function renderPerfCardioProtocols(targetFocusId = null) {
   if (targetFocusId) perfFocusedCardioId = targetFocusId;
-  const container = document.getElementById('perf-cardio-cards-container');
+  const container = document.getElementById("perf-cardio-cards-container");
   if (!container) return;
 
-  const quaCardioId = perfWeeklySchedule.find(d => d.dayKey === 'qua' && d.type === 'Cardio')?.cardioId || 'cardio_01';
-  const d3CardioId = perfWeeklySchedule.find(d => d.dayKey === 'd3' && d.type === 'Cardio')?.cardioId || 'cardio_01';
-  const d6CardioId = perfWeeklySchedule.find(d => d.dayKey === 'd6' && d.type === 'Cardio')?.cardioId || 'cardio_02';
-
   const filtered = PERF_CARDIO_DB.filter(c => {
-    if (perfCardioActiveFilter === 'Todos') return true;
-    if (perfCardioActiveFilter === 'Compromised') return c.category === 'Compromised';
-    if (perfCardioActiveFilter === 'Engine') return c.category === 'Engine';
-    if (perfCardioActiveFilter === 'Zona 2') return c.category === 'Zona 2';
+    if (perfCardioActiveFilter === "Todos") return true;
+    if (perfCardioActiveFilter === "Compromised") return c.category === "Compromised";
+    if (perfCardioActiveFilter === "Engine") return c.category === "Engine";
+    if (perfCardioActiveFilter === "Zona 2") return c.category === "Zona 2";
     return true;
   });
 
   container.innerHTML = filtered.map((c, idx) => {
-    const isCompromised = c.category === 'Compromised';
-    const isZ2 = c.category === 'Zona 2';
+    const isCompromised = c.category === "Compromised";
+    const isZ2 = c.category === "Zona 2";
     
-    let badgeBorder = isCompromised ? 'border-amber-500/60 bg-amber-950/60 text-amber-300' :
-                      isZ2 ? 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300' :
-                      'border-purple-500/60 bg-purple-950/60 text-purple-300';
+    let badgeBorder = isCompromised ? "border-amber-500/60 bg-amber-950/60 text-amber-300" :
+                      isZ2 ? "border-emerald-500/60 bg-emerald-950/60 text-emerald-300" :
+                      "border-purple-500/60 bg-purple-950/60 text-purple-300";
 
-    const isPrescribedD3 = c.id === d3CardioId;
-    const isPrescribedD6 = c.id === d6CardioId;
+    // Identifica com precisão cirúrgica em quais dias este cardio está realmente prescrito na agenda semanal
+    const activePrescribedDays = perfWeeklySchedule
+      .filter(d => d.type === "Cardio" && d.cardioId === c.id)
+      .map(d => d.dayName || `Dia ${d.dayKey.replace("d", "")}`);
+
+    const isPrescribed = activePrescribedDays.length > 0;
     const isFocused = c.id === perfFocusedCardioId;
 
-    let dayBadge = '';
-    if (isPrescribedD3 && isPrescribedD6) {
+    let dayBadge = "";
+    if (isPrescribed) {
       dayBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/60 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
-        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito: Dia 3 &amp; Dia 6
-      </span>`;
-    } else if (isPrescribedD3) {
-      dayBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/60 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
-        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito para Dia 3
-      </span>`;
-    } else if (isPrescribedD6) {
-      dayBadge = `<span class="bg-blue-500/20 text-blue-300 border border-blue-500/60 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(59,130,246,0.3)]">
-        <i data-lucide="calendar" class="w-3 h-3 text-blue-400"></i> Prescrito para Dia 6
+        <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i> Prescrito: ${activePrescribedDays.join(" & ")}
       </span>`;
     }
 
     const cardHighlight = isFocused
-      ? 'border-amber-400 ring-2 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.4)] bg-gradient-to-b from-amber-950/40 via-black to-zinc-950'
-      : (isPrescribedD3 || isPrescribedD6)
-      ? 'border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-black/80'
-      : 'border-zinc-800/90 bg-black/70';
+      ? "border-amber-400 ring-2 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.4)] bg-gradient-to-b from-amber-950/40 via-black to-zinc-950"
+      : isPrescribed
+      ? "border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-black/80"
+      : "border-zinc-800/90 bg-black/70";
 
     return `
       <div id="cardio-card-${c.id}" class="hud-card p-5 space-y-3.5 transition-all flex flex-col justify-between ${cardHighlight} rounded-2xl">
