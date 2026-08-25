@@ -4639,7 +4639,7 @@ async function renderResultsSynergy(patientId = activePatientId) {
 
   const cardioDesc = document.getElementById("synergy-cardio-desc");
   if (cardioDesc) {
-    cardioDesc.innerHTML = `A sessão semanal de <strong class="text-white">Zona 2 Base Aeróbica</strong> (Quarta-feira) aprimora a biogênese mitocondrial e a sensibilidade insulínica, direcionando o superávit para a hipertrofia muscular.`;
+    cardioDesc.innerHTML = `A sessão semanal de <strong class="text-white">Zona 2 Base Aeróbica</strong> (Dia 3) aprimora a biogênese mitocondrial e a sensibilidade insulínica, direcionando o superávit para a hipertrofia muscular.`;
   }
 
   const eaBadge = document.getElementById("synergy-ea-badge");
@@ -5060,7 +5060,7 @@ async function exportImpactReportPDF(patientId = activePatientId) {
             <ul style="padding-left: 14px; color: #334155; line-height: 1.5;">
               <li>Divisão de Treino: <strong>${splitName}</strong></li>
               <li>Volume Muscular: <strong>33 Séries Semanais de Sobrecarga</strong></li>
-              <li>Cardio Prescrito: <strong>${cardioDays} Sessão Semanal (Quarta · Zona 2 Base Aeróbica, 45 min)</strong></li>
+              <li>Cardio Prescrito: <strong>${cardioDays} Sessão Semanal (Dia 3 · Zona 2 Base Aeróbica, 45 min)</strong></li>
             </ul>
           </div>
         </div>
@@ -6317,13 +6317,13 @@ const PERF_EXERCISE_DB = [
 
 // Estado da Agenda Semanal (7 Dias — Sincronizado com a IA e Pilar Nutrição)
 let perfWeeklySchedule = [
-  { dayKey: 'seg', dayName: 'Segunda', routineId: 'A', title: 'Treino A · Push', focus: 'Peitoral & Deltoides', type: 'Treino', nutrtip: 'Carbo moderado pré-treino' },
-  { dayKey: 'ter', dayName: 'Terça',   routineId: 'B', title: 'Treino B · Pull', focus: 'Dorsal & Bíceps',       type: 'Treino', nutrtip: 'Alta hidratação (4.0L)' },
-  { dayKey: 'qua', dayName: 'Quarta',  routineId: null,title: 'Cardio / Descanso',focus: 'Recuperação Ativa',    type: 'Cardio', nutrtip: 'Déficit calórico mantido' },
-  { dayKey: 'qui', dayName: 'Quinta',  routineId: 'C', title: 'Treino C · Legs', focus: 'Quadríceps & Glúteos',  type: 'Treino', nutrtip: 'Carboidratos complexos' },
-  { dayKey: 'sex', dayName: 'Sexta',   routineId: 'A', title: 'Treino A · Push', focus: 'Hipertrofia Ombros',    type: 'Treino', nutrtip: 'Aporte proteico 2.0g/kg' },
-  { dayKey: 'sab', dayName: 'Sábado',  routineId: 'B', title: 'Treino B · Pull', focus: 'Densidade & Trapézio',  type: 'Treino', nutrtip: 'Refeição livre planejada' },
-  { dayKey: 'dom', dayName: 'Domingo', routineId: null,title: 'Descanso Total', focus: 'Regeneração Muscular',  type: 'Off',    nutrtip: 'Sono reparador & Eletrólitos' },
+  { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push', focus: 'Peitoral & Deltoides', type: 'Treino', nutrtip: 'Carbo moderado pré-treino' },
+  { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull', focus: 'Dorsal & Bíceps',       type: 'Treino', nutrtip: 'Alta hidratação (4.0L)' },
+  { dayKey: 'd3', dayName: 'Dia 3', routineId: null,title: 'Cardio / Descanso',focus: 'Recuperação Ativa',    type: 'Cardio', nutrtip: 'Déficit calórico mantido' },
+  { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs', focus: 'Quadríceps & Glúteos',  type: 'Treino', nutrtip: 'Carboidratos complexos' },
+  { dayKey: 'd5', dayName: 'Dia 5', routineId: 'A', title: 'Treino A · Push', focus: 'Hipertrofia Ombros',    type: 'Treino', nutrtip: 'Aporte proteico 2.0g/kg' },
+  { dayKey: 'd6', dayName: 'Dia 6', routineId: 'B', title: 'Treino B · Pull', focus: 'Densidade & Trapézio',  type: 'Treino', nutrtip: 'Refeição livre planejada' },
+  { dayKey: 'd7', dayName: 'Dia 7', routineId: null,title: 'Descanso Total', focus: 'Regeneração Muscular',  type: 'Off',    nutrtip: 'Sono reparador & Eletrólitos' },
 ];
 
 // Banco de Dados de Protocolos Cardio & Compromised Running (Engine)
@@ -6622,6 +6622,29 @@ function perfGetNutritionContext() {
   };
 }
 
+function perfNormalizeWeeklySchedule(schedule) {
+  if (!Array.isArray(schedule) || schedule.length === 0) {
+    return perfBuildWeeklySchedule(typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PPL');
+  }
+  const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+  return schedule.map((d, idx) => {
+    const num = idx + 1;
+    const defaultKey = `d${num}`;
+    const defaultName = `Dia ${num}`;
+
+    let dayKey = d.dayKey;
+    if (!dayKey || legacyKeys.includes(dayKey)) {
+      dayKey = defaultKey;
+    }
+
+    return {
+      ...d,
+      dayKey,
+      dayName: defaultName
+    };
+  });
+}
+
 function perfBuildWeeklySchedule(splitKey) {
   const ctx = perfGetNutritionContext();
   const protStr = `${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia)`;
@@ -6817,15 +6840,18 @@ function renderPerfWeeklySchedule() {
   const container2 = document.getElementById('perf-prescription-weekly-grid');
   if (!container1 && !container2) return;
 
-  // Garante que o schedule contenha todas as diretrizes completas
+  // Garante que o schedule contenha todas as diretrizes completas e formato numérico (Dia 1 a Dia 7)
   if (!perfWeeklySchedule || !perfWeeklySchedule[0] || !perfWeeklySchedule[0].carboTip) {
     perfWeeklySchedule = perfBuildWeeklySchedule(perfActiveSplit);
+  } else {
+    perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
   }
 
-  const html = perfWeeklySchedule.map(day => {
+  const html = perfWeeklySchedule.map((day, idx) => {
     const isTreino = day.type === 'Treino';
     const isCardio = day.type === 'Cardio';
     const isOff = day.type === 'Off';
+    const dayLabel = `DIA ${idx + 1}`;
 
     let borderClass = isTreino ? 'border-blue-700/60 bg-gradient-to-b from-blue-950/40 via-black to-zinc-950 hover:border-blue-400' :
                       isCardio ? 'border-amber-600/60 bg-gradient-to-b from-amber-950/40 via-black to-zinc-950 hover:border-amber-400' :
@@ -6841,9 +6867,9 @@ function renderPerfWeeklySchedule() {
       <div onclick="perfFocusDay('${day.dayKey}')"
         class="hud-card p-3.5 rounded-xl border ${borderClass} transition-all cursor-pointer space-y-2.5 shadow-[0_0_15px_rgba(0,0,0,0.4)] group hover:scale-[1.01]">
         
-        <!-- Header do Dia -->
+        <!-- Header do Dia (Numérico) -->
         <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
-          <span class="text-xs font-mono font-bold text-white uppercase tracking-wider">${day.dayName}</span>
+          <span class="text-xs font-mono font-bold text-white uppercase tracking-wider">${dayLabel}</span>
           <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${badgeClass} flex items-center gap-1">
             <i data-lucide="${icon}" class="w-3 h-3"></i> ${day.type}
           </span>
@@ -8907,6 +8933,7 @@ async function savePerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
   if (!pId) return;
 
+  perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
   const record = {
     id: pId,
     patientId: pId,
@@ -8971,7 +8998,7 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     perfActiveSplit = saved.activeSplit || 'PPL';
     perfWorkoutPlan = saved.workoutPlan;
     perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7)
-      ? saved.weeklySchedule
+      ? perfNormalizeWeeklySchedule(saved.weeklySchedule)
       : perfBuildWeeklySchedule(perfActiveSplit);
     perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
     perfAuditData = saved.auditData || null;
@@ -9885,7 +9912,7 @@ function perfGeneratePDF() {
     const isCardio = d.type === 'Cardio';
     const typeColor = isTrain ? '#1e40af' : isCardio ? '#b45309' : '#6b7280';
     const typeBg = isTrain ? '#eff6ff' : isCardio ? '#fffbeb' : '#f9fafb';
-    const dayLabel = d.dayName ? d.dayName.toUpperCase() : `DIA ${idx + 1}`;
+    const dayLabel = `DIA ${idx + 1}`;
 
     return `
       <div style="flex: 1; min-width: 90px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; background: ${typeBg}; font-size: 10px;">
@@ -9910,9 +9937,9 @@ function perfGeneratePDF() {
   
   let cardioSectionsHtml = '';
   if (cardioDays.length > 0) {
-    cardioSectionsHtml = cardioDays.map(cd => {
+    cardioSectionsHtml = cardioDays.map((cd, idx) => {
       const cProto = PERF_CARDIO_DB.find(c => c.id === cd.cardioId) ||
-                     (cd.dayKey === 'sab' ? PERF_CARDIO_DB.find(c => c.id === 'cardio_02') : PERF_CARDIO_DB[0]);
+                     (cd.dayKey === 'd6' || cd.dayKey === 'sab' ? PERF_CARDIO_DB.find(c => c.id === 'cardio_02') : PERF_CARDIO_DB[0]);
       
       const cBlocksHtml = cProto.blocks.map(b => `
         <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px; font-size: 11px;">
@@ -9923,12 +9950,14 @@ function perfGeneratePDF() {
         </div>
       `).join('');
 
+      const cDayLabel = (cd.dayKey && cd.dayKey.startsWith('d')) ? `DIA ${cd.dayKey.replace('d','')}` : (cd.dayName && cd.dayName.startsWith('Dia ')) ? cd.dayName.toUpperCase() : `DIA ${idx + 1}`;
+
       return `
         <div style="page-break-inside: avoid; border: 1px solid #f97316; border-radius: 8px; background: #fff7ed; padding: 12px; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #fed7aa; padding-bottom: 6px; margin-bottom: 8px;">
             <div>
               <span style="background: #ea580c; color: #ffffff; font-size: 9.5px; font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px;">
-                Cardio &amp; Engine · ${cd.dayName.toUpperCase()}
+                Cardio &amp; Engine · ${cDayLabel}
               </span>
               <strong style="font-size: 13px; color: #9a3412; margin-left: 6px;">${cProto.title}</strong>
               <span style="font-size: 11px; color: #c2410c; margin-left: 4px;">(${cProto.subtitle})</span>
@@ -10151,6 +10180,7 @@ window.perfOpenExerciseGuide = perfOpenExerciseGuide;
 window.perfCloseExerciseGuide = perfCloseExerciseGuide;
 window.perfHandleGifError = perfHandleGifError;
 window.perfBuildWeeklySchedule = perfBuildWeeklySchedule;
+window.perfNormalizeWeeklySchedule = perfNormalizeWeeklySchedule;
 window.renderPerfWeeklySchedule = renderPerfWeeklySchedule;
 window.perfGetNutritionContext = perfGetNutritionContext;
 window.perfSyncNutritionAudit = perfSyncNutritionAudit;
