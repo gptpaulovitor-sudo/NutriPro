@@ -9511,470 +9511,483 @@ function perfSetSearch(value) {
 // CO-PILOTO BIOMECÂNICO — Inteligência Cruzada com o Pilar Nutrição & Banco Completo
 // ════════════════════════════════════════════════════════════════════════════
 async function handleGenerateAITraining() {
-  const btn = document.getElementById('perf-btn-generate-ai');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="brain-circuit" class="w-4 h-4 animate-pulse text-cyan-300"></i> Analisando Biomecânica & Curva de Torque...`;
-    if (window.lucide) lucide.createIcons();
-  }
-
-  // 1. LEITURA DE DADOS CLÍNICOS, ANTROPOMÉTRICOS & COMPOSIÇÃO CORPORAL
-  const patientSelect = document.getElementById('activePatientSelect');
-  const patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
-                      document.getElementById("perfPatientName")?.innerText?.trim() ||
-                      (patientSelect ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paciente Avaliado');
-
-  // Objetivo Clínico
-  let objective = 'Perda de peso';
-  const anamneseObjEl = document.getElementById('anamneseObjective') || document.getElementById('newPatientObjective');
-  if (anamneseObjEl && anamneseObjEl.value) objective = anamneseObjEl.value;
-
-  // Peso Atual
-  const weightEl = document.getElementById('evalWeight') || document.getElementById('anamneseUsualWeight') || document.getElementById('dashWeight');
-  const currentWeight = weightEl ? parseFloat(weightEl.value || weightEl.innerText) || 75 : 75;
-
-  // Gênero
-  const genderEl = document.getElementById('evalGender');
-  const gender = genderEl ? genderEl.value : 'Masculino';
-
-  // % de Gordura Atual (leitura do DOM com estimativa de segurança)
-  const bfEl = document.getElementById('resBodyFat') || document.getElementById('evalModalFatPercent') || document.getElementById('dashBodyFat');
-  let currentBF = bfEl ? parseFloat(bfEl.value || bfEl.innerText) : NaN;
-  if (isNaN(currentBF) || currentBF <= 0) {
-    if (objective.toLowerCase().includes('hipertrofia') || objective.toLowerCase().includes('massa')) {
-      currentBF = gender === 'Masculino' ? 14.0 : 20.0;
-    } else if (objective.toLowerCase().includes('recomposição')) {
-      currentBF = gender === 'Masculino' ? 19.0 : 25.0;
-    } else {
-      currentBF = gender === 'Masculino' ? 24.0 : 29.0;
-    }
-  }
-
-  // % de Gordura Alvo (leitura do DOM com estimativa clínica)
-  const targetBFEl = document.getElementById('evalTargetFatPercent');
-  let targetBF = targetBFEl ? parseFloat(targetBFEl.value || targetBFEl.innerText) : NaN;
-  if (isNaN(targetBF) || targetBF <= 0) {
-    if (objective.toLowerCase().includes('hipertrofia')) {
-      targetBF = gender === 'Masculino' ? 12.0 : 18.0;
-    } else if (objective.toLowerCase().includes('recomposição')) {
-      targetBF = gender === 'Masculino' ? 12.0 : 20.0;
-    } else {
-      targetBF = gender === 'Masculino' ? 10.0 : 18.0;
-    }
-  }
-
-  // Metas Energéticas & Balanço Calórico
-  const tmbEl = document.getElementById('dashTmb');
-  const tmb = tmbEl ? parseInt(tmbEl.innerText) || 1800 : 1800;
-  
-  const caloricTargetEl = document.getElementById('dashCaloricTarget');
-  const caloricTarget = caloricTargetEl ? parseInt(caloricTargetEl.innerText) || 2000 : 2000;
-  
-  const energyBalance = caloricTarget - tmb; // Balanço Energético Diário
-
-  // Aporte de Macronutrientes
-  let proteinGKg = 2.0;
-  const protInput = document.getElementById('prescProtGKg');
-  if (protInput && protInput.value) proteinGKg = parseFloat(protInput.value) || 2.0;
-  const totalProteinG = Math.round(currentWeight * proteinGKg);
-
-  let carbGKg = 3.0;
-  const carbInput = document.getElementById('prescCarbGKg');
-  if (carbInput && carbInput.value) carbGKg = parseFloat(carbInput.value) || 3.0;
-
-  // Hidratação
-  const waterTargetMl = Math.round(currentWeight * 40);
-
-  // Simula latência do motor de prescrição biomecânica
-  await new Promise(r => setTimeout(r, 800));
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // MOTOR DE CALIBRAÇÃO POR OBJETIVO CLÍNICO & COMPOSIÇÃO CORPORAL
-  // ══════════════════════════════════════════════════════════════════════════
-  const objLower = objective.toLowerCase();
-  
-  // 1. Hipertrofia (Bulking Limpo)
-  const isBulking = objLower.includes('hipertrofia') || 
-                    objLower.includes('massa') || 
-                    objLower.includes('bulking') || 
-                    objLower.includes('superávit') || 
-                    energyBalance > 200;
-
-  // 2. Perda de Peso (Cutting) / Recomposição
-  const isCuttingOrRecomp = !isBulking && (
-    objLower.includes('perda') || 
-    objLower.includes('emagrecimento') || 
-    objLower.includes('defini') || 
-    objLower.includes('cutting') || 
-    objLower.includes('déficit') || 
-    objLower.includes('gordura') || 
-    objLower.includes('recomposi') || 
-    energyBalance < -150 || 
-    (currentBF > targetBF + 2.5)
-  );
-
-  // 3. Performance Esportiva / Manutenção
-  const isPerformance = !isBulking && !isCuttingOrRecomp;
-
-  let chosenSplit = 'PPL';
-  let chosenCardioId = 'cardio_01';
-  let auditData = {};
-  let generatedWorkoutPlan = [];
-
-  // Helper de Construção Padronizada de Exercícios com Curva de Torque & Cadência
-  const makeEx = (id, sets, reps, rpe, rest, obs, cadenceOverride) => {
-    const ex = PERF_EXERCISE_DB.find(e => e.id === id) || { 
-      id, name: id, group: 'Geral', primary: 'Músculo Alvo', 
-      mechanics: 'Composto', equipment: 'Livre', resistProfile: 'uniform', 
-      cadence: '3-0-1-0', cadenceNote: '' 
-    };
-    const resolvedCadence = cadenceOverride || ex.cadence || (ex.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
-    return {
-      ...ex,
-      exerciseId: ex.id,
-      id: ex.id,
-      sets: parseInt(sets) || 3,
-      reps: String(reps),
-      rpe: parseFloat(rpe) || 8,
-      rest: parseInt(rest) || 60,
-      obs: obs || '',
-      cadence: resolvedCadence,
-      cadenceNote: ex.cadenceNote || '',
-      resistProfile: ex.resistProfile || 'uniform'
-    };
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // REGRA 1: HIPERTROFIA (BULKING LIMPO)
-  // - Divisão DUP / PHAT (5 Dias) com Tensão Mecânica + Hipertrofia Sarcoplasmática
-  // - Volume Ótimo: 16 a 22 séries semanais por grupo muscular primário
-  // - Descanso Longo em Multiarticulares (120-180s) para maximizar tonelagem
-  // - RPE: 8-9.5
-  // ══════════════════════════════════════════════════════════════════════════
-  if (isBulking) {
-    chosenSplit = 'PHAT';
-    chosenCardioId = 'cardio_04';
-    const cardioProto = PERF_CARDIO_DB.find(c => c.id === chosenCardioId) || PERF_CARDIO_DB[0];
-
-    auditData = {
-      obj: `Hipertrofia & Bulking Limpo · ${patientName}`,
-      cals: `Superávit Calórico (${caloricTarget} kcal / Balanço: +${Math.abs(energyBalance)} kcal)`,
-      prot: `${proteinGKg.toFixed(1)} g/kg (${totalProteinG}g/dia · Síntese Proteica Otimizada)`,
-      guideline: 'Divisão PHAT / DUP (ABCDE - 5 Dias) · Volume Alto (16-22 séries/sem) + Cardio Z2',
-      explanation: `Com peso de ${currentWeight}kg e BF atual de ${currentBF.toFixed(1)}% (Meta: ${targetBF.toFixed(1)}%), a IA prescreveu a periodização PHAT/DUP (5 dias). Volume calibrado na faixa de 16 a 22 séries semanais por grupo, com descansos de 120-180s em multiarticulares para maximizar a tonelagem total e o recrutamento de unidades motoras de alto limiar (Schoenfeld/ACSM).`
-    };
-
-    generatedWorkoutPlan = [
-      {
-        id: 'A',
-        name: 'Treino A · Upper Power (Tensão Mecânica & Força)',
-        description: 'Multiarticulares pesados com descansos longos (120-180s) e cadência 4-0-1-0 para máxima tonelagem.',
-        exercises: [
-          makeEx('pe01', 5, '3-5', 9, 150, 'Supino reto barra: exc. 4s · pausa 1s no peito · descanso 150s para recuperação plena de ATP-CP.', '4-0-1-0'),
-          makeEx('do08', 5, '4-6', 9, 150, 'Remada curvada barra: pegada pronada · pico na retração escapular · descanso 150s.', '4-0-1-0'),
-          makeEx('sh01', 3, '4-6', 8.5, 120, 'Desenvolvimento militar em pé (OHP): core blindado · descanso 120s.', '3-0-1-0'),
-          makeEx('do01', 3, '5-8', 8.5, 120, 'Barra fixa pronada: latíssimo no comprimento máximo · hang completo · descanso 120s.', '3-0-1-0'),
-          makeEx('bi01', 3, '5-8', 8.5, 90, 'Rosca direta com barra: tensão contínua · sem impulso lombar · descanso 90s.', '3-0-1-0'),
-          makeEx('tr04', 3, '5-8', 8.5, 90, 'Tríceps testa barra W: cabeça longa em máximo comprimento · 1s pausa antes do press.', '3-1-1-0')
-        ]
-      },
-      {
-        id: 'B',
-        name: 'Treino B · Lower Power (Força de Membros Inferiores)',
-        description: 'Carga axial pesada com descanso de 150-180s. Cadência 4-0-1-0 protege joelhos e maximiza torque.',
-        exercises: [
-          makeEx('lg01', 5, '3-5', 9, 180, 'Agachamento livre: exc. 4s protege LCA/tendão patelar · profundidade paralela · descanso 180s.', '4-0-1-0'),
-          makeEx('lg10', 5, '4-6', 9, 150, 'Stiff com barra: anteversão pélvica · exc. 4s maximiza tensão passiva dos isquiotibiais · descanso 150s.', '4-0-1-0'),
-          makeEx('lg04', 3, '6-8', 8.5, 120, 'Leg Press 45°: amplitude máxima sem retroversão · descanso 120s.', '3-0-1-0'),
-          makeEx('lg15', 3, '8-10', 8.5, 90, 'Hip Thrust com barra: pico de ativação EMG do glúteo na extensão completa · 1s ISO.', '2-1-1-0'),
-          makeEx('lg20', 4, '8-10', 9, 75, 'Panturrilha em pé: joelho estendido = gastrocnêmio em máximo comprimento · pausa 1s no topo.', '3-1-1-0'),
-          makeEx('ab04', 3, '10-12', 8, 60, 'Elevação de pernas na paralela capitão: flexão pélvica estrita · exc. 3s.', '3-0-1-0')
-        ]
-      },
-      {
-        id: 'C',
-        name: 'Treino C · Costas & Ombros Hipertrofia (Volume Metabólico)',
-        description: 'Pareamento Stretched+Shortened para dorsal e deltoides com ISO 1s e 16-20 séries totais.',
-        exercises: [
-          makeEx('do04', 4, '8-10', 8.5, 90, 'Puxada aberta: latíssimo no comprimento máximo (Stretched) · par do Pulldown.', '3-0-1-0'),
-          makeEx('do07', 3, '10-12', 9, 60, 'Pulldown braços retos: pico do latíssimo na extensão do ombro (Shortened) · 1s ISO no quadril.', '3-1-1-0'),
-          makeEx('do10', 3, '8-10', 8.5, 90, 'Remada cavalinho: retração escapular para romboides e trapézio médio.', '3-0-1-0'),
-          makeEx('sh09', 4, '10-12', 9, 60, 'Elevação lateral inclinada 45°: deltoide medial em máximo comprimento (Stretched).', '3-1-1-0'),
-          makeEx('sh06', 3, '10-12', 9, 45, 'Elevação lateral halteres: pico de torque a 90° (Shortened) · 1s ISO no topo.', '3-1-1-0'),
-          makeEx('sh15', 3, '12-15', 9, 45, 'Face pull com corda: deltoide posterior + manguito rotador na retração máxima · 1s ISO.', '2-1-1-0'),
-          makeEx('sh18', 3, '10-12', 8, 60, 'Encolhimento com barra: pico do trapézio superior no encurtamento · 1s ISO no topo.', '3-1-1-0')
-        ]
-      },
-      {
-        id: 'D',
-        name: 'Treino D · Pernas & Glúteos Hipertrofia (Volume Metabólico)',
-        description: 'Pareamento completo para quadríceps, isquiotibiais e glúteos somando 18-22 séries semanais.',
-        exercises: [
-          makeEx('lg03', 4, '8-10', 8.5, 90, 'Hack Squat: sem carga axial · maior ADM de quadríceps · exc. 4s · par da cadeira extensora.', '4-0-1-0'),
-          makeEx('lg06', 4, '12-15', 9, 60, 'Cadeira extensora: pico de EMG no encurtamento total · 1s ISO · par do Hack Squat.', '3-1-1-0'),
-          makeEx('lg07', 3, '10-12', 8.5, 90, 'Agachamento búlgaro: glúteo em máximo comprimento (Stretched) · par do Hip Thrust.', '3-0-1-0'),
-          makeEx('lg15', 4, '8-10', 9, 75, 'Hip Thrust: máxima ativação EMG do glúteo no encurtamento · 1s ISO no topo.', '2-1-1-0'),
-          makeEx('lg13', 3, '12-15', 9, 60, 'Cadeira flexora sentada: quadril flexionado = isquiotibiais encurtados · par do Stiff.', '3-1-1-0'),
-          makeEx('lg17', 3, '15-20', 9, 45, 'Cadeira abdutora: glúteo médio no encurtamento máximo · 1s ISO na abertura total.', '3-1-1-0'),
-          makeEx('lg21', 4, '12-15', 9, 60, 'Panturrilha sentado: sóleo isolado (joelho fletido) no encurtamento.', '3-1-1-0')
-        ]
-      },
-      {
-        id: 'E',
-        name: 'Treino E · Peitoral & Braços Hipertrofia (Volume Metabólico)',
-        description: 'Pareamento Stretched+Shortened para peitoral, bíceps e tríceps completando 18 séries/grupo.',
-        exercises: [
-          makeEx('pe05', 4, '8-10', 8.5, 90, 'Supino inclinado halteres: pico de tensão no alongamento (ADM ampliada) · feixe clavicular.', '3-0-1-0'),
-          makeEx('pe07', 3, '10-12', 9, 60, 'Crucifixo reto halteres: pico a 90° (máximo comprimento do peitoral) · 1s pausa no fundo.', '3-1-1-0'),
-          makeEx('pe13', 3, '10-12', 9, 60, 'Peck Deck: pico de torque no encurtamento total · 1s ISO na adução · par do Crucifixo.', '3-1-1-0'),
-          makeEx('bi09', 3, '8-10', 8.5, 60, 'Rosca inclinada 45°: cabeça longa do bíceps no comprimento máximo (Stretched).', '3-1-1-0'),
-          makeEx('bi06', 3, '10-12', 8.5, 60, 'Rosca Scott com barra W: cabeça curta no encurtamento · 1s ISO no topo · par da inclinada.', '3-1-1-0'),
-          makeEx('tr06', 3, '10-12', 8.5, 60, 'Tríceps francês com halter: cabeça longa em máximo comprimento (ombro > 90°).', '3-1-1-0'),
-          makeEx('tr01', 3, '10-12', 8.5, 60, 'Pushdown barra reta: pico de EMG no encurtamento · 1s ISO · par do francês.', '3-1-1-0'),
-          makeEx('ab02', 3, '12-15', 8, 60, 'Cable crunch na polia alta: carga progressiva no reto abdominal · 1s ISO.', '3-1-1-0')
-        ]
-      }
-    ];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // REGRA 2: PERDA DE PESO (CUTTING) / RECOMPOSIÇÃO
-  // - Divisão Upper/Lower (ABCD - 4 Dias) com alta tensão mecânica anti-catabólica
-  // - Volume Moderado: 10 a 14 séries semanais por grupo muscular
-  // - RPE Controlado (7-8.5): Segurança articular e integridade neuromuscular em déficit
-  // - Descanso: 90-120s em compostos, 60s em isoladores
-  // ══════════════════════════════════════════════════════════════════════════
-  } else if (isCuttingOrRecomp) {
-    chosenSplit = 'UpperLower';
-    chosenCardioId = 'cardio_01';
-    const cardioProto = PERF_CARDIO_DB.find(c => c.id === chosenCardioId) || PERF_CARDIO_DB[0];
-
-    auditData = {
-      obj: `Perda de Peso & Recomposição · ${patientName}`,
-      cals: `Déficit Calórico (${caloricTarget} kcal / Balanço: ${energyBalance >= 0 ? '+'+energyBalance : energyBalance} kcal)`,
-      prot: `${proteinGKg.toFixed(1)} g/kg (${totalProteinG}g/dia · Preservação Anti-catabólica Máxima)`,
-      guideline: 'Divisão Upper/Lower (ABCD - 4 Dias) · Volume Moderado (10-14 séries/sem) + Cardio Engine',
-      explanation: `Com peso de ${currentWeight}kg e BF de ${currentBF.toFixed(1)}% (Meta: ${targetBF.toFixed(1)}%), a IA prescreveu a divisão Upper/Lower de 4 dias. Volume moderado (10 a 14 séries semanais/grupo) e RPE controlado (7-8.5), priorizando a manutenção de cargas altas em compostos para sinalização anti-catabólica estrita com total segurança articular.`
-    };
-
-    generatedWorkoutPlan = [
-      {
-        id: 'A',
-        name: 'Treino A · Upper Força & Tensão Mecânica',
-        description: 'Cargas altas em compostos com cadência 4-0-1-0 e RPE 7.5-8. Sinal anti-catabólico estrito.',
-        exercises: [
-          makeEx('pe01', 4, '5-8', 8, 120, 'Supino reto barra: exc. 3s · pico de torque no encurtamento · sinal anti-catabólico primário.', '3-0-1-0'),
-          makeEx('do01', 4, '5-8', 8, 120, 'Barra fixa: hang completo no fundo · latíssimo no comprimento máximo · puxada potente.', '3-0-1-0'),
-          makeEx('pe05', 3, '8-10', 8, 90, 'Supino inclinado halteres: halteres ampliam ADM · pico de tensão no alongamento.', '3-0-1-0'),
-          makeEx('do08', 3, '8-10', 8, 90, 'Remada curvada pronada: retração escapular para romboides e trapézio médio.', '3-0-1-0'),
-          makeEx('sh09', 3, '10-12', 8, 60, 'Elevação lateral inclinada 45°: deltoide medial em máximo comprimento.', '3-1-1-0'),
-          makeEx('tr01', 3, '10-12', 8, 60, 'Pushdown barra reta: pico de EMG no encurtamento · 1s ISO no topo.', '3-1-1-0'),
-          makeEx('bi01', 3, '8-10', 8, 60, 'Rosca direta barra: curva de torque uniforme · supinação estrita.', '3-0-1-0')
-        ]
-      },
-      {
-        id: 'B',
-        name: 'Treino B · Lower Força & Cadeia Posterior',
-        description: 'Cadência 4-0-1-0 protege LCA e patela. Volume controlado (12-14 séries) com RPE 7.5-8.',
-        exercises: [
-          makeEx('lg01', 4, '6-8', 8, 150, 'Agachamento livre: exc. 4s protege LCA/patela · profundidade paralela · core 100%.', '4-0-1-0'),
-          makeEx('lg10', 4, '6-8', 8, 120, 'Stiff com barra: anteversão pélvica · exc. 4s = pico de tensão passiva dos isquiotibiais.', '4-0-1-0'),
-          makeEx('lg04', 3, '8-10', 8, 90, 'Leg Press 45°: amplitude máxima sem retroversão pélvica · joelhos > 90°.', '3-0-1-0'),
-          makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada: quadril flexionado = isquiotibiais encurtados · 1s ISO · par do Stiff.', '3-1-1-0'),
-          makeEx('lg20', 4, '10-12', 8.5, 60, 'Panturrilha em pé: joelho estendido = gastrocnêmio em máximo comprimento.', '3-1-1-0'),
-          makeEx('ab05', 3, '10-12', 8, 60, 'Abdominal rollout: core no comprimento máximo · controle pélvico total.', '3-0-2-0')
-        ]
-      },
-      {
-        id: 'C',
-        name: 'Treino C · Upper Hipertrofia & Pareamento Completo',
-        description: 'Volume de isolamento com par Stretched+Shortened por grupo muscular e RPE 8.',
-        exercises: [
-          makeEx('pe10', 3, '10-12', 8, 60, 'Crossover polia alta: vetor de tração desafia peitoral no comprimento máximo (Stretched).', '3-1-1-0'),
-          makeEx('pe13', 3, '10-12', 8.5, 60, 'Peck Deck: pico de torque no encurtamento total · 1s ISO na adução máxima.', '3-1-1-0'),
-          makeEx('do04', 3, '8-10', 8, 90, 'Puxada aberta: latíssimo em máximo comprimento (braços estendidos).', '3-0-1-0'),
-          makeEx('do07', 3, '10-12', 8.5, 60, 'Pulldown braços retos: pico do latíssimo na extensão do ombro (Shortened).', '3-1-1-0'),
-          makeEx('sh15', 3, '12-15', 8.5, 45, 'Face pull com corda: deltoide posterior + manguito rotador · 1s ISO na retração.', '2-1-1-0'),
-          makeEx('bi09', 3, '10-12', 8, 60, 'Rosca inclinada 45°: cabeça longa do bíceps em máximo comprimento.', '3-1-1-0'),
-          makeEx('tr06', 3, '10-12', 8, 60, 'Tríceps francês halter: cabeça longa em máximo comprimento (ombro > 90°).', '3-1-1-0')
-        ]
-      },
-      {
-        id: 'D',
-        name: 'Treino D · Lower Hipertrofia & Glúteo Completo',
-        description: 'Pareamento Stretched/Shortened para glúteo, quadríceps e panturrilha com total controle articular.',
-        exercises: [
-          makeEx('lg03', 3, '8-10', 8, 90, 'Hack Squat: maior ADM sem carga axial · exc. 4s protege tendão patelar.', '4-0-1-0'),
-          makeEx('lg06', 3, '12-15', 8.5, 60, 'Cadeira extensora: pico de EMG no encurtamento total · 1s ISO no topo.', '3-1-1-0'),
-          makeEx('lg07', 3, '10-12', 8, 90, 'Agachamento búlgaro: glúteo em máximo comprimento (Stretched) · par do Hip Thrust.', '3-0-1-0'),
-          makeEx('lg15', 3, '10-12', 8.5, 75, 'Hip Thrust: máxima ativação EMG do glúteo na extensão completa do quadril.', '2-1-1-0'),
-          makeEx('lg13', 3, '12-15', 8.5, 45, 'Cadeira flexora sentada: isquiotibiais encurtados · 1s ISO.', '3-1-1-0'),
-          makeEx('lg21', 3, '15-20', 8.5, 45, 'Panturrilha sentado: sóleo isolado (joelho fletido) no encurtamento.', '3-1-1-0'),
-          makeEx('ab03', 3, '12-15', 8, 60, 'Elevação de pernas na barra: core no comprimento máximo sem balanço.', '3-0-1-0')
-        ]
-      }
-    ];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // REGRA 3: PERFORMANCE ESPORTIVA / MANUTENÇÃO
-  // - Divisão PPL Performance / Transferência Biomecânica (3 a 6 Dias)
-  // - Exercícios com Alta Transferência Biomecânica (Cadeia Fechada, Tripla Extensão, RFD)
-  // - Descanso Amplo (180 a 300s / 3-5 min em compostos pesados de potência)
-  // - RPE Controlado (7-8): Controle rigoroso de fadiga central (SNC) e preservação neuromuscular
-  // ══════════════════════════════════════════════════════════════════════════
-  } else {
-    chosenSplit = 'PPL';
-    chosenCardioId = 'cardio_05';
-    const cardioProto = PERF_CARDIO_DB.find(c => c.id === chosenCardioId) || PERF_CARDIO_DB[0];
-
-    auditData = {
-      obj: `Performance Esportiva & Manutenção · ${patientName}`,
-      cals: `Normocalórica (${caloricTarget} kcal / Balanço Neutro de Manutenção)`,
-      prot: `${proteinGKg.toFixed(1)} g/kg (${totalProteinG}g/dia · Equilíbrio Neuromuscular & Recuperação)`,
-      guideline: 'Divisão PPL Performance · Transferência Biomecânica + Descanso Amplo (3-5 min) + RPE 7-8',
-      explanation: `Com peso de ${currentWeight}kg e BF de ${currentBF.toFixed(1)}% (Meta: ${targetBF.toFixed(1)}%), a IA prescreveu a divisão PPL focada em Alta Transferência Biomecânica. Intervalos amplos de descanso (180-300s em multiarticulares) e controle estrito de fadiga central (RPE 7-8) para maximizar a taxa de desenvolvimento de força (RFD) e a potência neuromuscular contínua.`
-    };
-
-    generatedWorkoutPlan = [
-      {
-        id: 'A',
-        name: 'Treino A · Push Performance (Transferência de Potência Anterior)',
-        description: 'Multiarticulares livres com descansos de 180-240s (3-4 min) e RPE 7.5 para evitar fadiga central.',
-        exercises: [
-          makeEx('pe01', 4, '4-6', 7.5, 180, 'Supino reto barra: explosão concêntrica (RFD) · controle excêntrico · descanso 180s (3 min) para restauração plena de ATP-CP.', '3-0-1-0'),
-          makeEx('sh01', 4, '4-6', 7.5, 180, 'Desenvolvimento militar em pé (OHP): alta transferência cinética tronco-ombro · descanso 180s (3 min).', '3-0-1-0'),
-          makeEx('pe05', 3, '6-8', 8, 120, 'Supino inclinado halteres: estabilização glenoumeral e feixe clavicular · descanso 120s.', '3-0-1-0'),
-          makeEx('sh09', 3, '10-12', 8, 75, 'Elevação lateral inclinada 45°: deltoide medial em máximo comprimento (Stretched).', '3-1-1-0'),
-          makeEx('tr08', 3, '6-8', 7.5, 120, 'Supino fechado barra: extensão potente de cotovelo com alta transferência esportiva · descanso 120s.', '3-0-1-0'),
-          makeEx('tr06', 3, '10-12', 8, 60, 'Tríceps francês halter: cabeça longa em máximo comprimento (ombro em flexão > 90°).', '3-1-1-0')
-        ]
-      },
-      {
-        id: 'B',
-        name: 'Treino B · Pull Performance (Tração Funcional & Cadeia Posterior)',
-        description: 'Tração em cadeia cinética fechada com descansos amplos (180s) e foco neuromuscular.',
-        exercises: [
-          makeEx('do01', 4, '5-8', 7.5, 180, 'Barra fixa com peso corporal/sobrecarga: alta transferência esportiva de tração · descanso 180s (3 min).', '3-0-1-0'),
-          makeEx('do08', 4, '5-8', 7.5, 180, 'Remada curvada barra: estabilidade lombar isométrica e potência dorsal · descanso 180s (3 min).', '3-0-1-0'),
-          makeEx('do04', 3, '8-10', 8, 90, 'Puxada frontal aberta: latíssimo no comprimento máximo com controle de ritmo.', '3-0-1-0'),
-          makeEx('sh15', 3, '12-15', 8, 60, 'Face pull com corda: estabilidade de escápulas e proteção do manguito rotador.', '2-1-1-0'),
-          makeEx('bi01', 3, '6-8', 7.5, 90, 'Rosca direta barra: flexão pura de cotovelo sem sobrecarga lombar.', '3-0-1-0'),
-          makeEx('bi09', 3, '8-10', 8, 75, 'Rosca inclinada 45°: cabeça longa do bíceps em máximo comprimento.', '3-1-1-0'),
-          makeEx('ab05', 3, '10-12', 8, 60, 'Abdominal rollout: estabilidade anti-extensão do core para transferência esportiva.', '3-0-2-0')
-        ]
-      },
-      {
-        id: 'C',
-        name: 'Treino C · Legs Performance (Tripla Extensão & Potência de Quadril)',
-        description: 'Tripla extensão de quadril/joelho com descanso de 180-300s (3-5 min) para máxima taxa de força.',
-        exercises: [
-          makeEx('lg01', 4, '4-6', 7.5, 240, 'Agachamento livre: padrão motor primário de tripla extensão · descanso 240s (4 min) para evitar fadiga central.', '3-0-1-0'),
-          makeEx('lg10', 4, '5-8', 7.5, 180, 'Stiff com barra (Hinge puro): potência da cadeia posterior (glúteos/isquiotibiais) · descanso 180s (3 min).', '4-0-1-0'),
-          makeEx('lg07', 3, '8-10', 8, 120, 'Agachamento búlgaro: força unilateral e estabilidade pélvica de alta transferência esportiva.', '3-0-1-0'),
-          makeEx('lg06', 3, '10-12', 8, 60, 'Cadeira extensora: pico de ativação no encurtamento do reto femoral.', '3-1-1-0'),
-          makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada: proteção de isquiotibiais e equilíbrio agonista-antagonista.', '3-1-1-0'),
-          makeEx('lg20', 4, '10-12', 8, 60, 'Panturrilha em pé: rigidez do tendão de Aquiles e potência do gastrocnêmio.', '3-1-1-0')
-        ]
-      }
-    ];
-  }
-
-  // 3. APLICA O PLANO GERADO À MEMÓRIA DO SISTEMA E PERSISTE NO BANCO DE DADOS
-  perfActiveSplit = chosenSplit;
-  perfPrescribedCardioId = chosenCardioId;
-  perfWorkoutPlan = generatedWorkoutPlan;
-  perfTargetRoutine = generatedWorkoutPlan[0]?.id || 'A';
-  perfAuditData = auditData;
-  perfWorkoutMeta = {
-    isAIGenerated: true,
-    isClinicallyValidated: false,
-    generatedAt: new Date().toISOString(),
-    validatedAt: null
-  };
-
-  const selectEl = document.getElementById('perf-split-select');
-  if (selectEl) selectEl.value = chosenSplit;
-
-  const prescribedCardio = PERF_CARDIO_DB.find(c => c.id === chosenCardioId);
-  const cardioShortTitle = prescribedCardio ? prescribedCardio.title.replace('Circuito ','').replace('Protocolo ','') : 'Cardio Engine';
-
-  // 4. GERA AGENDA SEMANAL DINÂMICA COM SINERGIA NUTRICIONAL COMPLETA (4 PILARES)
-  perfWeeklySchedule = perfBuildWeeklySchedule(chosenSplit);
-
-  // 5. PERSISTÊNCIA NO DEXIE.JS (INDEXEDDB) PARA O PACIENTE ATIVO
-  await savePerformanceForPatient(activePatientId);
-
-  // 6. ATUALIZA CABEÇALHO DO MICROCICLO (DIA 1 A DIA 7)
-  const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-  perfWeeklySchedule.forEach((d, idx) => {
-    const num = idx + 1;
-    const btn = document.getElementById(`day-btn-d${num}`) || document.getElementById(`day-btn-${legacyKeys[idx]}`) || document.getElementById(`day-btn-${d.dayKey}`);
-    if (btn) {
-      const colorClass = d.type === 'Treino' ? 'text-blue-400' : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
-      const titleShort = (d.title || '').replace('Treino ','');
-      btn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
-    }
+  const allGenBtns = document.querySelectorAll('#perf-btn-generate-ai, #perf-ai-btn, [onclick*="handleGenerateAITraining"]');
+  allGenBtns.forEach(b => {
+    try {
+      b.disabled = true;
+      b.dataset.origHtml = b.dataset.origHtml || b.innerHTML;
+      b.innerHTML = '<i data-lucide="brain-circuit" class="w-4 h-4 animate-pulse text-cyan-300 inline-block align-middle mr-1"></i> Analisando Biomecânica & Curva de Torque...';
+    } catch(e){}
   });
+  if (window.lucide) lucide.createIcons();
 
-  // 7. ATUALIZA O CARD DE AUDITORIA NUTRICIONAL
-  if (auditCard) {
-    auditCard.style.display = 'block';
-    const aObj = document.getElementById('audit-obj');
-    const aCals = document.getElementById('audit-cals');
-    const aProt = document.getElementById('audit-prot');
-    const aGuide = document.getElementById('audit-guideline');
-    const aExpl = document.getElementById('audit-explanation');
+  try {
+    // 1. LEITURA DE DADOS CLÍNICOS, ANTROPOMÉTRICOS & COMPOSIÇÃO CORPORAL
+    const patientSelect = document.getElementById('activePatientSelect');
+    const patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
+                        document.getElementById("perfPatientName")?.innerText?.trim() ||
+                        (patientSelect ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paciente Avaliado');
 
-    if (aObj) aObj.textContent = auditData.obj;
-    if (aCals) aCals.textContent = auditData.cals;
-    if (aProt) aProt.textContent = auditData.prot;
-    if (aGuide) aGuide.textContent = auditData.guideline;
-    if (aExpl) aExpl.textContent = auditData.explanation;
-  }
+    // Objetivo Clínico
+    let objective = 'Perda de peso';
+    const anamneseObjEl = document.getElementById('anamneseObjective') || document.getElementById('newPatientObjective');
+    if (anamneseObjEl && anamneseObjEl.value) objective = anamneseObjEl.value;
 
-  // 8. ATUALIZA O PAINEL DE RACIONAL BIOMECÂNICO & METAS
-  const ratTitle = document.getElementById('perf-rationale-title');
-  if (ratTitle) {
-    ratTitle.textContent = `Periodização ${chosenSplit} · Alvo: ${auditData.obj}`;
-  }
-  const goalEl = document.getElementById('perf-meta-goal');
-  const goalDescEl = document.getElementById('perf-meta-goal-desc');
-  if (goalEl) goalEl.textContent = isCutting ? 'Preservação de Massa Magra & Queima Visceral' : isBulking ? 'Hipertrofia Miofibrilar & Sobrecarga' : 'Recomposição Dinâmica & Performance';
-  if (goalDescEl) goalDescEl.textContent = auditData.explanation;
+    // Peso Atual
+    const weightEl = document.getElementById('evalWeight') || document.getElementById('anamneseUsualWeight') || document.getElementById('dashWeight');
+    const currentWeight = weightEl ? parseFloat(weightEl.value || weightEl.innerText) || 75 : 75;
 
-  const volEl = document.getElementById('perf-meta-volume');
-  const volDescEl = document.getElementById('perf-meta-volume-desc');
-  if (volEl) volEl.textContent = isCutting ? '12 a 16 Séries / Grupo / Semana (MEV-MAV)' : isBulking ? '16 a 22 Séries / Grupo / Semana (MRV)' : '14 a 18 Séries / Grupo / Semana (MAV)';
-  if (volDescEl) volDescEl.textContent = `Frequência balanceada para manter síntese proteica sob aporte de ${proteinGKg.toFixed(1)}g/kg (${totalProteinG}g/dia) de proteína.`;
+    // Gênero
+    const genderEl = document.getElementById('evalGender');
+    const gender = genderEl ? genderEl.value : 'Masculino';
 
-  const intEl = document.getElementById('perf-meta-intensity');
-  const intDescEl = document.getElementById('perf-meta-intensity-desc');
-  if (intEl) intEl.textContent = isCutting ? 'RPE 7 a 8 (1-2 RIR) · Tensão Constante' : isBulking ? 'RPE 8 a 9 (0-1 RIR) · Sobrecarga Máxima' : 'RPE 7 a 9 (1-2 RIR) · Variação Ondulatória';
-  if (intDescEl) intDescEl.textContent = 'Treino estruturado com 1 a 2 repetições em reserva para recrutar unidades motoras de alto limiar sem sobrecarga no SNC.';
+    // % de Gordura Atual (leitura do DOM com estimativa de segurança)
+    const bfEl = document.getElementById('resBodyFat') || document.getElementById('evalModalFatPercent') || document.getElementById('dashBodyFat');
+    let currentBF = bfEl ? parseFloat(bfEl.value || bfEl.innerText) : NaN;
+    if (isNaN(currentBF) || currentBF <= 0) {
+      if (objective.toLowerCase().includes('hipertrofia') || objective.toLowerCase().includes('massa')) {
+        currentBF = gender === 'Masculino' ? 14.0 : 20.0;
+      } else if (objective.toLowerCase().includes('recomposição')) {
+        currentBF = gender === 'Masculino' ? 19.0 : 25.0;
+      } else {
+        currentBF = gender === 'Masculino' ? 24.0 : 29.0;
+      }
+    }
 
-  // Atualiza banner IA
-  updateAITrainingBanner();
+    // % de Gordura Alvo (leitura do DOM com estimativa clínica)
+    const targetBFEl = document.getElementById('evalTargetFatPercent');
+    let targetBF = targetBFEl ? parseFloat(targetBFEl.value || targetBFEl.innerText) : NaN;
+    if (isNaN(targetBF) || targetBF <= 0) {
+      if (objective.toLowerCase().includes('hipertrofia')) {
+        targetBF = gender === 'Masculino' ? 12.0 : 18.0;
+      } else if (objective.toLowerCase().includes('recomposição')) {
+        targetBF = gender === 'Masculino' ? 12.0 : 20.0;
+      } else {
+        targetBF = gender === 'Masculino' ? 10.0 : 18.0;
+      }
+    }
 
-  // Restaura botão
-  btn.disabled = false;
-  btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-violet-200"></i> Gerar Treino via IA (Co-piloto Biomecânico)`;
-  if (window.lucide) window.lucide.createIcons();
+    // Metas Energéticas & Balanço Calórico
+    const tmbEl = document.getElementById('dashTmb');
+    const tmb = tmbEl ? parseInt(tmbEl.innerText) || 1800 : 1800;
+    
+    const caloricTargetEl = document.getElementById('dashCaloricTarget');
+    const caloricTarget = caloricTargetEl ? parseInt(caloricTargetEl.innerText) || 2000 : 2000;
+    
+    const energyBalance = caloricTarget - tmb; // Balanço Energético Diário
 
-  // Mostra toast de sucesso personalizado
-  if (toast) {
-    toast.style.display = 'flex';
-    toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 shrink-0 text-emerald-400"></i>
-      <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Co-piloto IA · Rotinas de ${patientName} Prescritas e Salvas</strong>
-      Divisão <strong>${chosenSplit}</strong> + <strong>${prescribedCardio ? prescribedCardio.title : 'Cardio'}</strong> (${prescribedCardio ? prescribedCardio.calEst : ''}) salva no prontuário do paciente.</div>`;
+    // Aporte de Macronutrientes
+    let proteinGKg = 2.0;
+    const protInput = document.getElementById('prescProtGKg');
+    if (protInput && protInput.value) proteinGKg = parseFloat(protInput.value) || 2.0;
+    const totalProteinG = Math.round(currentWeight * proteinGKg);
+
+    let carbGKg = 3.0;
+    const carbInput = document.getElementById('prescCarbGKg');
+    if (carbInput && carbInput.value) carbGKg = parseFloat(carbInput.value) || 3.0;
+
+    // Hidratação
+    const waterTargetMl = Math.round(currentWeight * 40);
+
+    // Simula latência do motor de prescrição biomecânica
+    await new Promise(r => setTimeout(r, 600));
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // MOTOR DE CALIBRAÇÃO POR OBJETIVO CLÍNICO & COMPOSIÇÃO CORPORAL
+    // ══════════════════════════════════════════════════════════════════════════
+    const objLower = objective.toLowerCase();
+    
+    // 1. Hipertrofia (Bulking Limpo)
+    const isBulking = objLower.includes('hipertrofia') || 
+                      objLower.includes('massa') || 
+                      objLower.includes('bulking') || 
+                      objLower.includes('superávit') || 
+                      energyBalance > 200;
+
+    // 2. Perda de Peso (Cutting) / Recomposição
+    const isCuttingOrRecomp = !isBulking && (
+      objLower.includes('perda') || 
+      objLower.includes('emagrecimento') || 
+      objLower.includes('defini') || 
+      objLower.includes('cutting') || 
+      objLower.includes('déficit') || 
+      objLower.includes('gordura') || 
+      objLower.includes('recomposi') || 
+      energyBalance < -150 || 
+      (currentBF > targetBF + 2.5)
+    );
+
+    const isCutting = isCuttingOrRecomp;
+
+    // 3. Performance Esportiva / Manutenção
+    const isPerformance = !isBulking && !isCuttingOrRecomp;
+
+    let chosenSplit = 'PPL';
+    let chosenCardioId = 'cardio_01';
+    let auditData = {};
+    let generatedWorkoutPlan = [];
+
+    // Helper de Construção Padronizada de Exercícios com Curva de Torque & Cadência
+    const makeEx = (id, sets, reps, rpe, rest, obs, cadenceOverride) => {
+      const ex = PERF_EXERCISE_DB.find(e => e.id === id) || { 
+        id, name: id, group: 'Geral', primary: 'Músculo Alvo', 
+        mechanics: 'Composto', equipment: 'Livre', resistProfile: 'uniform', 
+        cadence: '3-0-1-0', cadenceNote: '' 
+      };
+      const resolvedCadence = cadenceOverride || ex.cadence || (ex.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
+      return {
+        ...ex,
+        exerciseId: ex.id,
+        id: ex.id,
+        sets: parseInt(sets) || 3,
+        reps: String(reps),
+        rpe: parseFloat(rpe) || 8,
+        rest: parseInt(rest) || 60,
+        obs: obs || '',
+        cadence: resolvedCadence,
+        cadenceNote: ex.cadenceNote || '',
+        resistProfile: ex.resistProfile || 'uniform'
+      };
+    };
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // REGRA 1: HIPERTROFIA (BULKING LIMPO)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (isBulking) {
+      chosenSplit = 'PHAT';
+      chosenCardioId = 'cardio_04';
+      const cardioProto = PERF_CARDIO_DB.find(c => c.id === chosenCardioId) || PERF_CARDIO_DB[0];
+
+      auditData = {
+        obj: `Hipertrofia & Bulking Limpo · ${patientName}`,
+        cals: `Superávit Calórico (${caloricTarget} kcal / Balanço: +${Math.abs(energyBalance)} kcal)`,
+        prot: `${proteinGKg.toFixed(1)} g/kg (${totalProteinG}g/dia · Síntese Proteica Otimizada)`,
+        guideline: 'Divisão PHAT / DUP (ABCDE - 5 Dias) · Volume Alto (16-22 séries/sem) + Cardio Z2',
+        explanation: `Com peso de ${currentWeight}kg e BF atual de ${currentBF.toFixed(1)}% (Meta: ${targetBF.toFixed(1)}%), a IA prescreveu a periodização PHAT/DUP (5 dias). Volume calibrado na faixa de 16 a 22 séries semanais por grupo, com descansos de 120-180s em multiarticulares para maximizar a tonelagem total e o recrutamento de unidades motoras de alto limiar (Schoenfeld/ACSM).`
+      };
+
+      generatedWorkoutPlan = [
+        {
+          id: 'A',
+          name: 'Treino A · Upper Power (Tensão Mecânica & Força)',
+          description: 'Multiarticulares pesados com descansos longos (120-180s) e cadência 4-0-1-0 para máxima tonelagem.',
+          exercises: [
+            makeEx('pe01', 5, '3-5', 9, 150, 'Supino reto barra: exc. 4s · pausa 1s no peito · descanso 150s para recuperação plena de ATP-CP.', '4-0-1-0'),
+            makeEx('do08', 5, '4-6', 9, 150, 'Remada curvada barra: pegada pronada · pico na retração escapular · descanso 150s.', '4-0-1-0'),
+            makeEx('sh01', 3, '4-6', 8.5, 120, 'Desenvolvimento militar em pé (OHP): core blindado · descanso 120s.', '3-0-1-0'),
+            makeEx('do01', 3, '5-8', 8.5, 120, 'Barra fixa pronada: latíssimo no comprimento máximo · hang completo · descanso 120s.', '3-0-1-0'),
+            makeEx('bi01', 3, '5-8', 8.5, 90, 'Rosca direta com barra: tensão contínua · sem impulso lombar · descanso 90s.', '3-0-1-0'),
+            makeEx('tr04', 3, '5-8', 8.5, 90, 'Tríceps testa barra W: cabeça longa em máximo comprimento · 1s pausa antes do press.', '3-1-1-0')
+          ]
+        },
+        {
+          id: 'B',
+          name: 'Treino B · Lower Power (Força de Membros Inferiores)',
+          description: 'Carga axial pesada com descanso de 150-180s. Cadência 4-0-1-0 protege joelhos e maximiza torque.',
+          exercises: [
+            makeEx('lg01', 5, '3-5', 9, 180, 'Agachamento livre: exc. 4s protege LCA/tendão patelar · profundidade paralela · descanso 180s.', '4-0-1-0'),
+            makeEx('lg10', 5, '4-6', 9, 150, 'Stiff com barra: anteversão pélvica · exc. 4s maximiza tensão passiva dos isquiotibiais · descanso 150s.', '4-0-1-0'),
+            makeEx('lg04', 3, '6-8', 8.5, 120, 'Leg Press 45°: amplitude máxima sem retroversão · descanso 120s.', '3-0-1-0'),
+            makeEx('lg15', 3, '8-10', 8.5, 90, 'Hip Thrust com barra: pico de ativação EMG do glúteo na extensão completa · 1s ISO.', '2-1-1-0'),
+            makeEx('lg20', 4, '8-10', 9, 75, 'Panturrilha em pé: joelho estendido = gastrocnêmio em máximo comprimento · pausa 1s no topo.', '3-1-1-0'),
+            makeEx('ab04', 3, '10-12', 8, 60, 'Elevação de pernas na paralela capitão: flexão pélvica estrita · exc. 3s.', '3-0-1-0')
+          ]
+        },
+        {
+          id: 'C',
+          name: 'Treino C · Costas & Ombros Hipertrofia (Volume Metabólico)',
+          description: 'Pareamento Stretched+Shortened para dorsal e deltoides com ISO 1s e 16-20 séries totais.',
+          exercises: [
+            makeEx('do04', 4, '8-10', 8.5, 90, 'Puxada aberta: latíssimo no comprimento máximo (Stretched) · par do Pulldown.', '3-0-1-0'),
+            makeEx('do07', 3, '10-12', 9, 60, 'Pulldown braços retos: pico do latíssimo na extensão do ombro (Shortened) · 1s ISO no quadril.', '3-1-1-0'),
+            makeEx('do10', 3, '8-10', 8.5, 90, 'Remada cavalinho: retração escapular para romboides e trapézio médio.', '3-0-1-0'),
+            makeEx('sh09', 4, '10-12', 9, 60, 'Elevação lateral inclinada 45°: deltoide medial em máximo comprimento (Stretched).', '3-1-1-0'),
+            makeEx('sh06', 3, '10-12', 9, 45, 'Elevação lateral halteres: pico de torque a 90° (Shortened) · 1s ISO no topo.', '3-1-1-0'),
+            makeEx('sh15', 3, '12-15', 9, 45, 'Face pull com corda: deltoide posterior + manguito rotador na retração máxima · 1s ISO.', '2-1-1-0'),
+            makeEx('sh18', 3, '10-12', 8, 60, 'Encolhimento com barra: pico do trapézio superior no encurtamento · 1s ISO no topo.', '3-1-1-0')
+          ]
+        },
+        {
+          id: 'D',
+          name: 'Treino D · Pernas & Glúteos Hipertrofia (Volume Metabólico)',
+          description: 'Pareamento completo para quadríceps, isquiotibiais e glúteos somando 18-22 séries semanais.',
+          exercises: [
+            makeEx('lg03', 4, '8-10', 8.5, 90, 'Hack Squat: sem carga axial · maior ADM de quadríceps · exc. 4s · par da cadeira extensora.', '4-0-1-0'),
+            makeEx('lg06', 4, '12-15', 9, 60, 'Cadeira extensora: pico de EMG no encurtamento total · 1s ISO · par do Hack Squat.', '3-1-1-0'),
+            makeEx('lg07', 3, '10-12', 8.5, 90, 'Agachamento búlgaro: glúteo em máximo comprimento (Stretched) · par do Hip Thrust.', '3-0-1-0'),
+            makeEx('lg15', 4, '8-10', 9, 75, 'Hip Thrust: máxima ativação EMG do glúteo no encurtamento · 1s ISO no topo.', '2-1-1-0'),
+            makeEx('lg13', 3, '12-15', 9, 60, 'Cadeira flexora sentada: quadril flexionado = isquiotibiais encurtados · par do Stiff.', '3-1-1-0'),
+            makeEx('lg17', 3, '15-20', 9, 45, 'Cadeira abdutora: glúteo médio no encurtamento máximo · 1s ISO na abertura total.', '3-1-1-0'),
+            makeEx('lg21', 4, '12-15', 9, 60, 'Panturrilha sentado: sóleo isolado (joelho fletido) no encurtamento.', '3-1-1-0')
+          ]
+        },
+        {
+          id: 'E',
+          name: 'Treino E · Peitoral & Braços Hipertrofia (Volume Metabólico)',
+          description: 'Pareamento Stretched+Shortened para peitoral, bíceps e tríceps completando 18 séries/grupo.',
+          exercises: [
+            makeEx('pe05', 4, '8-10', 8.5, 90, 'Supino inclinado halteres: pico de tensão no alongamento (ADM ampliada) · feixe clavicular.', '3-0-1-0'),
+            makeEx('pe07', 3, '10-12', 9, 60, 'Crucifixo reto halteres: pico a 90° (máximo comprimento do peitoral) · 1s pausa no fundo.', '3-1-1-0'),
+            makeEx('pe13', 3, '10-12', 9, 60, 'Peck Deck: pico de torque no encurtamento total · 1s ISO na adução · par do Crucifixo.', '3-1-1-0'),
+            makeEx('bi09', 3, '8-10', 8.5, 60, 'Rosca inclinada 45°: cabeça longa do bíceps no comprimento máximo (Stretched).', '3-1-1-0'),
+            makeEx('bi06', 3, '10-12', 8.5, 60, 'Rosca Scott com barra W: cabeça curta no encurtamento · 1s ISO no topo · par da inclinada.', '3-1-1-0'),
+            makeEx('tr06', 3, '10-12', 8.5, 60, 'Tríceps francês com halter: cabeça longa em máximo comprimento (ombro > 90°).', '3-1-1-0'),
+            makeEx('tr01', 3, '10-12', 8.5, 60, 'Pushdown barra reta: pico de EMG no encurtamento · 1s ISO · par do francês.', '3-1-1-0'),
+            makeEx('ab02', 3, '12-15', 8, 60, 'Cable crunch na polia alta: carga progressiva no reto abdominal · 1s ISO.', '3-1-1-0')
+          ]
+        }
+      ];
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // REGRA 2: PERDA DE PESO (CUTTING) / RECOMPOSIÇÃO
+    // ══════════════════════════════════════════════════════════════════════════
+    } else if (isCuttingOrRecomp) {
+      chosenSplit = 'UpperLower';
+      chosenCardioId = 'cardio_01';
+      const cardioProto = PERF_CARDIO_DB.find(c => c.id === chosenCardioId) || PERF_CARDIO_DB[0];
+
+      auditData = {
+        obj: `Perda de Peso & Recomposição · ${patientName}`,
+        cals: `Déficit Calórico (${caloricTarget} kcal / Balanço: ${energyBalance >= 0 ? '+'+energyBalance : energyBalance} kcal)`,
+        prot: `${proteinGKg.toFixed(1)} g/kg (${totalProteinG}g/dia · Preservação Anti-catabólica Máxima)`,
+        guideline: 'Divisão Upper/Lower (ABCD - 4 Dias) · Volume Moderado (10-14 séries/sem) + Cardio Engine',
+        explanation: `Com peso de ${currentWeight}kg e BF de ${currentBF.toFixed(1)}% (Meta: ${targetBF.toFixed(1)}%), a IA prescreveu a divisão Upper/Lower de 4 dias. Volume moderado (10 a 14 séries semanais/grupo) e RPE controlado (7-8.5), priorizando a manutenção de cargas altas em compostos para sinalização anti-catabólica estrita com total segurança articular.`
+      };
+
+      generatedWorkoutPlan = [
+        {
+          id: 'A',
+          name: 'Treino A · Upper Força & Tensão Mecânica',
+          description: 'Cargas altas em compostos com cadência 4-0-1-0 e RPE 7.5-8. Sinal anti-catabólico estrito.',
+          exercises: [
+            makeEx('pe01', 4, '5-8', 8, 120, 'Supino reto barra: exc. 3s · pico de torque no encurtamento · sinal anti-catabólico primário.', '3-0-1-0'),
+            makeEx('do01', 4, '5-8', 8, 120, 'Barra fixa: hang completo no fundo · latíssimo no comprimento máximo · puxada potente.', '3-0-1-0'),
+            makeEx('pe05', 3, '8-10', 8, 90, 'Supino inclinado halteres: halteres ampliam ADM · pico de tensão no alongamento.', '3-0-1-0'),
+            makeEx('do08', 3, '8-10', 8, 90, 'Remada curvada pronada: retração escapular para romboides e trapézio médio.', '3-0-1-0'),
+            makeEx('sh09', 3, '10-12', 8, 60, 'Elevação lateral inclinada 45°: deltoide medial em máximo comprimento.', '3-1-1-0'),
+            makeEx('tr01', 3, '10-12', 8, 60, 'Pushdown barra reta: pico de EMG no encurtamento · 1s ISO no topo.', '3-1-1-0'),
+            makeEx('bi01', 3, '8-10', 8, 60, 'Rosca direta barra: curva de torque uniforme · supinação estrita.', '3-0-1-0')
+          ]
+        },
+        {
+          id: 'B',
+          name: 'Treino B · Lower Força & Cadeia Posterior',
+          description: 'Cadência 4-0-1-0 protege LCA e patela. Volume controlado (12-14 séries) com RPE 7.5-8.',
+          exercises: [
+            makeEx('lg01', 4, '6-8', 8, 150, 'Agachamento livre: exc. 4s protege LCA/patela · profundidade paralela · core 100%.', '4-0-1-0'),
+            makeEx('lg10', 4, '6-8', 8, 120, 'Stiff com barra: anteversão pélvica · exc. 4s = pico de tensão passiva dos isquiotibiais.', '4-0-1-0'),
+            makeEx('lg04', 3, '8-10', 8, 90, 'Leg Press 45°: amplitude máxima sem retroversão pélvica · joelhos > 90°.', '3-0-1-0'),
+            makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada: quadril flexionado = isquiotibiais encurtados · 1s ISO · par do Stiff.', '3-1-1-0'),
+            makeEx('lg20', 4, '10-12', 8.5, 60, 'Panturrilha em pé: joelho estendido = gastrocnêmio em máximo comprimento.', '3-1-1-0'),
+            makeEx('ab05', 3, '10-12', 8, 60, 'Abdominal rollout: core no comprimento máximo · controle pélvico total.', '3-0-2-0')
+          ]
+        },
+        {
+          id: 'C',
+          name: 'Treino C · Upper Hipertrofia & Pareamento Completo',
+          description: 'Volume de isolamento com par Stretched+Shortened por grupo muscular e RPE 8.',
+          exercises: [
+            makeEx('pe10', 3, '10-12', 8, 60, 'Crossover polia alta: vetor de tração desafia peitoral no comprimento máximo (Stretched).', '3-1-1-0'),
+            makeEx('pe13', 3, '10-12', 8.5, 60, 'Peck Deck: pico de torque no encurtamento total · 1s ISO na adução máxima.', '3-1-1-0'),
+            makeEx('do04', 3, '8-10', 8, 90, 'Puxada aberta: latíssimo em máximo comprimento (braços estendidos).', '3-0-1-0'),
+            makeEx('do07', 3, '10-12', 8.5, 60, 'Pulldown braços retos: pico do latíssimo na extensão do ombro (Shortened).', '3-1-1-0'),
+            makeEx('sh15', 3, '12-15', 8.5, 45, 'Face pull com corda: deltoide posterior + manguito rotador · 1s ISO na retração.', '2-1-1-0'),
+            makeEx('bi09', 3, '10-12', 8, 60, 'Rosca inclinada 45°: cabeça longa do bíceps em máximo comprimento.', '3-1-1-0'),
+            makeEx('tr06', 3, '10-12', 8, 60, 'Tríceps francês halter: cabeça longa em máximo comprimento (ombro > 90°).', '3-1-1-0')
+          ]
+        },
+        {
+          id: 'D',
+          name: 'Treino D · Lower Hipertrofia & Glúteo Completo',
+          description: 'Pareamento Stretched/Shortened para glúteo, quadríceps e panturrilha com total controle articular.',
+          exercises: [
+            makeEx('lg03', 3, '8-10', 8, 90, 'Hack Squat: maior ADM sem carga axial · exc. 4s protege tendão patelar.', '4-0-1-0'),
+            makeEx('lg06', 3, '12-15', 8.5, 60, 'Cadeira extensora: pico de EMG no encurtamento total · 1s ISO no topo.', '3-1-1-0'),
+            makeEx('lg07', 3, '10-12', 8, 90, 'Agachamento búlgaro: glúteo em máximo comprimento (Stretched) · par do Hip Thrust.', '3-0-1-0'),
+            makeEx('lg15', 3, '10-12', 8.5, 75, 'Hip Thrust: máxima ativação EMG do glúteo na extensão completa do quadril.', '2-1-1-0'),
+            makeEx('lg13', 3, '12-15', 8.5, 45, 'Cadeira flexora sentada: isquiotibiais encurtados · 1s ISO.', '3-1-1-0'),
+            makeEx('lg21', 3, '15-20', 8.5, 45, 'Panturrilha sentado: sóleo isolado (joelho fletido) no encurtamento.', '3-1-1-0'),
+            makeEx('ab03', 3, '12-15', 8, 60, 'Elevação de pernas na barra: core no comprimento máximo sem balanço.', '3-0-1-0')
+          ]
+        }
+      ];
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // REGRA 3: PERFORMANCE ESPORTIVA / MANUTENÇÃO
+    // ══════════════════════════════════════════════════════════════════════════
+    } else {
+      chosenSplit = 'PPL';
+      chosenCardioId = 'cardio_05';
+      const cardioProto = PERF_CARDIO_DB.find(c => c.id === chosenCardioId) || PERF_CARDIO_DB[0];
+
+      auditData = {
+        obj: `Performance Esportiva & Manutenção · ${patientName}`,
+        cals: `Normocalórica (${caloricTarget} kcal / Balanço Neutro de Manutenção)`,
+        prot: `${proteinGKg.toFixed(1)} g/kg (${totalProteinG}g/dia · Equilíbrio Neuromuscular & Recuperação)`,
+        guideline: 'Divisão PPL Performance · Transferência Biomecânica + Descanso Amplo (3-5 min) + RPE 7-8',
+        explanation: `Com peso de ${currentWeight}kg e BF de ${currentBF.toFixed(1)}% (Meta: ${targetBF.toFixed(1)}%), a IA prescreveu a divisão PPL focada em Alta Transferência Biomecânica. Intervalos amplos de descanso (180-300s em multiarticulares) e controle estrito de fadiga central (RPE 7-8) para maximizar a taxa de desenvolvimento de força (RFD) e a potência neuromuscular contínua.`
+      };
+
+      generatedWorkoutPlan = [
+        {
+          id: 'A',
+          name: 'Treino A · Push Performance (Transferência de Potência Anterior)',
+          description: 'Multiarticulares livres com descansos de 180-240s (3-4 min) e RPE 7.5 para evitar fadiga central.',
+          exercises: [
+            makeEx('pe01', 4, '4-6', 7.5, 180, 'Supino reto barra: explosão concêntrica (RFD) · controle excêntrico · descanso 180s (3 min) para restauração plena de ATP-CP.', '3-0-1-0'),
+            makeEx('sh01', 4, '4-6', 7.5, 180, 'Desenvolvimento militar em pé (OHP): alta transferência cinética tronco-ombro · descanso 180s (3 min).', '3-0-1-0'),
+            makeEx('pe05', 3, '6-8', 8, 120, 'Supino inclinado halteres: estabilização glenoumeral e feixe clavicular · descanso 120s.', '3-0-1-0'),
+            makeEx('sh09', 3, '10-12', 8, 75, 'Elevação lateral inclinada 45°: deltoide medial em máximo comprimento (Stretched).', '3-1-1-0'),
+            makeEx('tr08', 3, '6-8', 7.5, 120, 'Supino fechado barra: extensão potente de cotovelo com alta transferência esportiva · descanso 120s.', '3-0-1-0'),
+            makeEx('tr06', 3, '10-12', 8, 60, 'Tríceps francês halter: cabeça longa em máximo comprimento (ombro em flexão > 90°).', '3-1-1-0')
+          ]
+        },
+        {
+          id: 'B',
+          name: 'Treino B · Pull Performance (Tração Funcional & Cadeia Posterior)',
+          description: 'Tração em cadeia cinética fechada com descansos amplos (180s) e foco neuromuscular.',
+          exercises: [
+            makeEx('do01', 4, '5-8', 7.5, 180, 'Barra fixa com peso corporal/sobrecarga: alta transferência esportiva de tração · descanso 180s (3 min).', '3-0-1-0'),
+            makeEx('do08', 4, '5-8', 7.5, 180, 'Remada curvada barra: estabilidade lombar isométrica e potência dorsal · descanso 180s (3 min).', '3-0-1-0'),
+            makeEx('do04', 3, '8-10', 8, 90, 'Puxada frontal aberta: latíssimo no comprimento máximo com controle de ritmo.', '3-0-1-0'),
+            makeEx('sh15', 3, '12-15', 8, 60, 'Face pull com corda: estabilidade de escápulas e proteção do manguito rotador.', '2-1-1-0'),
+            makeEx('bi01', 3, '6-8', 7.5, 90, 'Rosca direta barra: flexão pura de cotovelo sem sobrecarga lombar.', '3-0-1-0'),
+            makeEx('bi09', 3, '8-10', 8, 75, 'Rosca inclinada 45°: cabeça longa do bíceps em máximo comprimento.', '3-1-1-0'),
+            makeEx('ab05', 3, '10-12', 8, 60, 'Abdominal rollout: estabilidade anti-extensão do core para transferência esportiva.', '3-0-2-0')
+          ]
+        },
+        {
+          id: 'C',
+          name: 'Treino C · Legs Performance (Tripla Extensão & Potência de Quadril)',
+          description: 'Tripla extensão de quadril/joelho com descanso de 180-300s (3-5 min) para máxima taxa de força.',
+          exercises: [
+            makeEx('lg01', 4, '4-6', 7.5, 240, 'Agachamento livre: padrão motor primário de tripla extensão · descanso 240s (4 min) para evitar fadiga central.', '3-0-1-0'),
+            makeEx('lg10', 4, '5-8', 7.5, 180, 'Stiff com barra (Hinge puro): potência da cadeia posterior (glúteos/isquiotibiais) · descanso 180s (3 min).', '4-0-1-0'),
+            makeEx('lg07', 3, '8-10', 8, 120, 'Agachamento búlgaro: força unilateral e estabilidade pélvica de alta transferência esportiva.', '3-0-1-0'),
+            makeEx('lg06', 3, '10-12', 8, 60, 'Cadeira extensora: pico de ativação no encurtamento do reto femoral.', '3-1-1-0'),
+            makeEx('lg13', 3, '10-12', 8, 60, 'Cadeira flexora sentada: proteção de isquiotibiais e equilíbrio agonista-antagonista.', '3-1-1-0'),
+            makeEx('lg20', 4, '10-12', 8, 60, 'Panturrilha em pé: rigidez do tendão de Aquiles e potência do gastrocnêmio.', '3-1-1-0')
+          ]
+        }
+      ];
+    }
+
+    // 3. APLICA O PLANO GERADO À MEMÓRIA DO SISTEMA E PERSISTE NO BANCO DE DADOS
+    perfActiveSplit = chosenSplit;
+    perfPrescribedCardioId = chosenCardioId;
+    perfWorkoutPlan = generatedWorkoutPlan;
+    perfTargetRoutine = generatedWorkoutPlan[0]?.id || 'A';
+    perfAuditData = auditData;
+    perfWorkoutMeta = {
+      isAIGenerated: true,
+      isClinicallyValidated: false,
+      generatedAt: new Date().toISOString(),
+      validatedAt: null
+    };
+
+    const selectEl = document.getElementById('perf-split-select');
+    if (selectEl) selectEl.value = chosenSplit;
+
+    const prescribedCardio = PERF_CARDIO_DB.find(c => c.id === chosenCardioId);
+    const cardioShortTitle = prescribedCardio ? prescribedCardio.title.replace('Circuito ','').replace('Protocolo ','') : 'Cardio Engine';
+
+    // 4. GERA AGENDA SEMANAL DINÂMICA COM SINERGIA NUTRICIONAL COMPLETA (4 PILARES)
+    perfWeeklySchedule = perfBuildWeeklySchedule(chosenSplit);
+
+    // 5. PERSISTÊNCIA NO DEXIE.JS (INDEXEDDB) PARA O PACIENTE ATIVO
+    try {
+      await savePerformanceForPatient(activePatientId);
+    } catch(e) {
+      console.warn('Persistência IndexedDB:', e);
+    }
+
+    // 6. ATUALIZA CABEÇALHO DO MICROCICLO (DIA 1 A DIA 7)
+    const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    perfWeeklySchedule.forEach((d, idx) => {
+      const num = idx + 1;
+      const dayBtn = document.getElementById(`day-btn-d${num}`) || document.getElementById(`day-btn-${legacyKeys[idx]}`) || document.getElementById(`day-btn-${d.dayKey}`);
+      if (dayBtn) {
+        const colorClass = d.type === 'Treino' ? 'text-blue-400' : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
+        const titleShort = (d.title || '').replace('Treino ','');
+        dayBtn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
+      }
+    });
+
+    // 7. ATUALIZA O CARD DE AUDITORIA NUTRICIONAL
+    const auditCard = document.getElementById('perf-audit-card');
+    if (auditCard) {
+      auditCard.style.display = 'block';
+      const aObj = document.getElementById('audit-obj');
+      const aCals = document.getElementById('audit-cals');
+      const aProt = document.getElementById('audit-prot');
+      const aGuide = document.getElementById('audit-guideline');
+      const aExpl = document.getElementById('audit-explanation');
+
+      if (aObj) aObj.textContent = auditData.obj;
+      if (aCals) aCals.textContent = auditData.cals;
+      if (aProt) aProt.textContent = auditData.prot;
+      if (aGuide) aGuide.textContent = auditData.guideline;
+      if (aExpl) aExpl.textContent = auditData.explanation;
+    }
+
+    // 8. ATUALIZA O PAINEL DE RACIONAL BIOMECÂNICO & METAS
+    const ratTitle = document.getElementById('perf-rationale-title');
+    if (ratTitle) {
+      ratTitle.textContent = `Periodização ${chosenSplit} · Alvo: ${auditData.obj}`;
+    }
+    const goalEl = document.getElementById('perf-meta-goal');
+    const goalDescEl = document.getElementById('perf-meta-goal-desc');
+    if (goalEl) goalEl.textContent = isCutting ? 'Preservação de Massa Magra & Queima Visceral' : isBulking ? 'Hipertrofia Miofibrilar & Sobrecarga' : 'Recomposição Dinâmica & Performance';
+    if (goalDescEl) goalDescEl.textContent = auditData.explanation;
+
+    const volEl = document.getElementById('perf-meta-volume');
+    const volDescEl = document.getElementById('perf-meta-volume-desc');
+    if (volEl) volEl.textContent = isCutting ? '10 a 14 Séries / Grupo / Semana (MEV-MAV)' : isBulking ? '16 a 22 Séries / Grupo / Semana (MRV)' : '12 a 16 Séries / Grupo / Semana (MAV)';
+    if (volDescEl) volDescEl.textContent = `Frequência balanceada para manter síntese proteica sob aporte de ${proteinGKg.toFixed(1)}g/kg (${totalProteinG}g/dia) de proteína.`;
+
+    const intEl = document.getElementById('perf-meta-intensity');
+    const intDescEl = document.getElementById('perf-meta-intensity-desc');
+    if (intEl) intEl.textContent = isCutting ? 'RPE 7 a 8.5 (1-3 RIR) · Tensão Constante Anti-catabólica' : isBulking ? 'RPE 8 a 9.5 (0-1 RIR) · Sobrecarga Progressiva' : 'RPE 7 a 8 (2-3 RIR) · Controle Rigoroso de Fadiga Central';
+    if (intDescEl) intDescEl.textContent = isPerformance ? 'Intervalos amplos de descanso (3-5 min) para restauração neuroquímica e máxima potência (RFD).' : 'Treino estruturado com repetições em reserva calibradas para recrutar unidades motoras de alto limiar sem estresse desnecessário no SNC.';
+
+    // 9. ATUALIZA BANNER IA SE EXISTIR
+    if (typeof updateAITrainingBanner === 'function') {
+      updateAITrainingBanner();
+    }
+
+    // 10. MOSTRA TOAST DE SUCESSO
+    const toast = document.getElementById('perf-toast');
+    if (toast) {
+      toast.style.display = 'flex';
+      toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+        <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Co-piloto IA · Rotinas de ${patientName} Prescritas e Salvas</strong>
+        Divisão <strong>${chosenSplit}</strong> + <strong>${prescribedCardio ? prescribedCardio.title : 'Cardio'}</strong> (${prescribedCardio ? prescribedCardio.calEst : ''}) calibrada e sincronizada.</div>`;
+      if (window.lucide) window.lucide.createIcons();
+      setTimeout(() => { if (toast) toast.style.display = 'none'; }, 6000);
+    }
+
+    // 11. RENDERIZA SUBVIEW DE PRESCRIÇÃO
+    if (typeof perfSwitchView === 'function') {
+      perfSwitchView('prescription', false);
+    }
+    if (typeof perfRender === 'function') {
+      perfRender();
+    }
+
+  } catch(err) {
+    console.error('Erro ao gerar treino via IA:', err);
+    alert('Erro no processamento do motor de treino: ' + err.message);
+  } finally {
+    allGenBtns.forEach(b => {
+      try {
+        b.disabled = false;
+        b.innerHTML = b.dataset.origHtml || '<i data-lucide="sparkles" class="w-4 h-4 text-violet-200 inline-block align-middle mr-1"></i> Gerar Treino via IA (Co-piloto Biomecânico)';
+      } catch(e){}
+    });
     if (window.lucide) window.lucide.createIcons();
-    setTimeout(() => { if(toast) toast.style.display='none'; }, 6000);
   }
-
-  // Renderiza subview de prescrição com os novos dados
-  perfSwitchView('prescription', false);
-  perfRender();
 }
 
-// ════════════════════════════════════════════════════════════════════════════
 // GERADOR DE PDF DE TREINAMENTO COMPLETO DA SEMANA (FICHA CLÍNICA & BIOMECÂNICA)
 // ════════════════════════════════════════════════════════════════════════════
 function perfGeneratePDF() {
