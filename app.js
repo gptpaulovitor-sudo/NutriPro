@@ -9722,6 +9722,7 @@ let perfWorkoutMeta = {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
 // CAMADA CANÔNICA DE CONTEXTO — PILAR 4 (PERFORMANCE)
 // buildPerformanceContext(patientId)
 //
@@ -9730,6 +9731,7 @@ let perfWorkoutMeta = {
 // e de math.js. NUNCA toca o DOM. NUNCA aplica regras fixas de déficit/superávit.
 //
 // DTO: PerformanceContext
+// ├── _meta            → Metadados canônicos (contextVersion: "1.0", builtAt, etc.)
 // ├── patient          → Dados biográficos e de treino do paciente
 // ├── anthropometry    → Composição corporal atual e meta
 // ├── energy           → TMB, GET e fator de atividade calculados via math.js
@@ -9741,6 +9743,10 @@ let perfWorkoutMeta = {
  * @param {string} patientId - ID do paciente no Dexie
  * @returns {Promise<Object|null>} PerformanceContext DTO ou null se paciente não encontrado
  */
+/**
+ * @param {string} patientId - ID do paciente no Dexie
+ * @returns {Promise<Object|null>} PerformanceContext DTO ou null se paciente não encontrado
+ */
 async function buildPerformanceContext(patientId = activePatientId) {
   const pId = patientId || activePatientId;
   if (!pId) {
@@ -9748,7 +9754,7 @@ async function buildPerformanceContext(patientId = activePatientId) {
     return null;
   }
 
-  // ── 1. DADOS CADASTRAIS (db.patients) ────────────────────────────────────
+  // ── 1. DADOS CADASTRAIS & ANAMNESE COMPLETA (db.patients) ─────────────────
   const p = await db.patients.get(pId);
   if (!p) {
     console.warn(`[buildPerformanceContext] Paciente "${pId}" não encontrado no Dexie.`);
@@ -9759,12 +9765,13 @@ async function buildPerformanceContext(patientId = activePatientId) {
   const sex           = p.gender || 'Masculino';             // 'Masculino' | 'Feminino'
   const heightCm      = (parseFloat(p.height) || 1.70) * 100; // converte m → cm
   const weightKg      = parseFloat(p.currentWeight) || parseFloat(p.usualWeight) || 70.0;
+  const usualWeightKg = parseFloat(p.usualWeight) || weightKg;
+  const targetWeightKg= parseFloat(p.targetWeight) || weightKg;
   const objective     = p.objective || 'Manutenção & Saúde';
   const patientType   = p.patientType || 'Praticante recreativo';
-  const activityFactor = parseFloat(p.activityFactor) || 1.42;
+  const activityFactor= parseFloat(p.activityFactor) || 1.42;
 
   // Nível de treino: obtido do cadastro direto ou inferido somente se explícito
-  // NÃO assume que patientType desconhecido é iniciante
   const trainingLevel = (() => {
     if (p.trainingLevel && typeof p.trainingLevel === 'string') return p.trainingLevel;
     const t = String(patientType || '').toLowerCase();
@@ -9774,9 +9781,33 @@ async function buildPerformanceContext(patientId = activePatientId) {
     return 'Não informado';
   })();
 
-  // ── 2. COMPOSIÇÃO CORPORAL (db.assessments — avaliação mais recente) ─────
-  let assessments = await db.assessments
-    .where('patientId').equals(pId).toArray();
+  // Frequência semanal numérica (ex: "5x/semana" -> 5)
+  const workoutFrequencyDays = (() => {
+    if (typeof p.workoutFrequency === 'number') return p.workoutFrequency;
+    const match = String(p.workoutFrequency || '').match(/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    if (patientType === 'Sedentário') return 0;
+    return 4;
+  })();
+
+  // Duração da sessão em minutos (ex: "60 min" -> 60)
+  const workoutDurationMinutes = (() => {
+    if (typeof p.workoutDuration === 'number') return p.workoutDuration;
+    const match = String(p.workoutDuration || '').match(/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    return 60;
+  })();
+
+  // IMC (Índice de Massa Corporal)
+  const bmi = heightCm > 0 ? Math.round((weightKg / Math.pow(heightCm / 100, 2)) * 10) / 10 : 22.0;
+
+  // ── 2. COMPOSIÇÃO CORPORAL & ANTROPOMETRIA (db.assessments) ───────────────
+  let assessments = [];
+  try {
+    if (db.assessments) {
+      assessments = await db.assessments.where('patientId').equals(pId).toArray();
+    }
+  } catch (_) {}
 
   // Filtra registros de seed/demo e ordena do mais recente ao mais antigo
   assessments = (assessments || [])
@@ -9785,7 +9816,7 @@ async function buildPerformanceContext(patientId = activePatientId) {
 
   const latestEval = assessments[0] || null;
 
-  // Usa dados da avaliação se disponíveis; fallback via math.js (estimativa básica)
+  // % de gordura e metas
   const bodyFatPercent = latestEval
     ? (parseFloat(latestEval.fatPercent) || (sex === 'Masculino' ? 18.0 : 25.0))
     : (sex === 'Masculino' ? 18.0 : 25.0);
@@ -9794,62 +9825,91 @@ async function buildPerformanceContext(patientId = activePatientId) {
     ? (parseFloat(latestEval.targetBF) || (sex === 'Masculino' ? 12.0 : 20.0))
     : (sex === 'Masculino' ? 12.0 : 20.0);
 
-  // leanMassKg: preferência para o valor salvo na avaliação; fallback calculado
+  // Massa magra e massa gorda
   const leanMassKg = latestEval && parseFloat(latestEval.leanMass) > 0
     ? parseFloat(latestEval.leanMass)
     : Math.round((weightKg * (1 - bodyFatPercent / 100)) * 10) / 10;
 
-  // ── 3. ENERGÉTICA (math.js — Katch-McArdle + Fator de Atividade) ─────────
-  // calculateTMB prioriza Katch-McArdle quando leanMassKg > 0 (sempre aqui)
-  const tmbResult  = calculateTMB(sex, age, weightKg, heightCm / 100, leanMassKg);
+  const fatMassKg = latestEval && parseFloat(latestEval.fatMass) > 0
+    ? parseFloat(latestEval.fatMass)
+    : Math.round((weightKg * (bodyFatPercent / 100)) * 10) / 10;
+
+  // Circunferências e RCQ
+  const waistVal = latestEval ? (parseFloat(latestEval.waist) || null) : null;
+  const hipVal   = latestEval ? (parseFloat(latestEval.hip) || null) : null;
+  const waistToHipRatio = (waistVal > 0 && hipVal > 0)
+    ? Math.round((waistVal / hipVal) * 100) / 100
+    : null;
+
+  // ── 3. ENERGÉTICA & METABOLISMO (math.js) ─────────────────────────────────
+  const tmbResult  = (typeof calculateTMB === 'function')
+    ? calculateTMB(sex, age, weightKg, heightCm / 100, leanMassKg)
+    : { tmb: Math.round(370 + 21.6 * leanMassKg), method: 'Katch-McArdle' };
   const tmbKcal    = Math.round(tmbResult.tmb);
-  const getKcal    = Math.round(calculateGET(tmbKcal, activityFactor));
-  const tmbMethod  = tmbResult.method; // string informativa (Katch-McArdle / Mifflin)
+  const getKcal    = (typeof calculateGET === 'function')
+    ? Math.round(calculateGET(tmbKcal, activityFactor))
+    : Math.round(tmbKcal * activityFactor);
+  const tmbMethod  = tmbResult.method;
 
-  // ── 4. NUTRIÇÃO (db.prescriptions — prescrição dietética ativa) ──────────
-  // A meta calórica REAL é a soma calórica dos itens da prescrição ativa,
-  // não um valor estimado por fórmula. Se não houver prescrição ativa, usa o
-  // GET como referência basal (nutricionista ainda não prescreveu).
-  const prescRecord = await db.prescriptions.get(pId);
-  const prescItems  = (prescRecord && Array.isArray(prescRecord.items)) ? prescRecord.items : [];
+  // ── 4. NUTRIÇÃO & BALANÇO ENERGÉTICO (db.prescriptions) ───────────────────
+  let prescRecord = null;
+  try {
+    if (db.prescriptions) prescRecord = await db.prescriptions.get(pId);
+  } catch (_) {}
 
+  const prescItems = (prescRecord && Array.isArray(prescRecord.items)) ? prescRecord.items : [];
   const prescribedKcal = prescItems.length > 0
     ? Math.round(prescItems.reduce((sum, item) => sum + (parseFloat(item.calories) || 0), 0))
-    : null; // null = prescrição não salva ainda
+    : null;
 
-  // Meta calórica consolidada: prescrição dietética salva > GET como fallback
   const caloricTargetKcal = prescribedKcal !== null ? prescribedKcal : getKcal;
-
-  // Balanço energético: SEMPRE calculado como (Meta Calórica - GET)
-  // Regra: positivo = superávit, negativo = déficit, zero = manutenção
   const energyBalanceKcal = caloricTargetKcal - getKcal;
 
-  // Proteína g/kg: tenta ler do campo de meta proteica da prescrição; fallback por objetivo
   let proteinGKg = 2.0;
   if (prescRecord && parseFloat(prescRecord.protGKg) > 0) {
     proteinGKg = parseFloat(prescRecord.protGKg);
   } else if (prescItems.length > 0) {
-    // Calcula g/kg a partir dos itens reais (soma de proteína / peso)
     const totalProtG = prescItems.reduce((s, i) => s + (parseFloat(i.protein) || 0), 0);
     if (totalProtG > 0 && weightKg > 0) {
       proteinGKg = Math.round((totalProtG / weightKg) * 10) / 10;
     }
   }
 
-  // ── 5. RESTRIÇÕES CLÍNICAS (mock inicial — expansível via Dexie) ──────────
-  // Futuro: ler de db.patients.clinicalConstraints ou db.clinicalExams
+  // ── 5. EXAMES CLÍNICOS (db.clinicalExams) ─────────────────────────────────
+  let clinicalExamsList = [];
+  try {
+    if (db.clinicalExams) {
+      clinicalExamsList = await db.clinicalExams.where('patientId').equals(pId).toArray();
+    }
+  } catch (_) {}
+
+  // ── 6. RESTRIÇÕES, LIMITAÇÕES & EQUIPAMENTOS ──────────────────────────────
+  const extractedProhibitedExercises = (() => {
+    const list = Array.isArray(p.prohibitedExercises) ? [...p.prohibitedExercises] : [];
+    if (Array.isArray(p.clinicalConstraints)) {
+      p.clinicalConstraints.forEach(c => {
+        if (typeof c === 'string') list.push(c);
+      });
+    }
+    return [...new Set(list.filter(Boolean))];
+  })();
+
+  const extractedInjuries = (() => {
+    const list = Array.isArray(p.injuries) ? [...p.injuries] : [];
+    return [...new Set(list.filter(Boolean))];
+  })();
+
   const constraints = {
-    injuries:             [],          // ex: ['Lombar', 'Ombro Direito']
-    prohibitedExercises:  [],          // ex: ['Agachamento Livre', 'Supino Reto']
-    availableEquipment:   'Full Gym',  // 'Full Gym' | 'Home Gym' | 'Calistenia' | 'Mínimo'
+    injuries:             extractedInjuries,
+    prohibitedExercises:  extractedProhibitedExercises,
+    availableEquipment:   p.availableEquipment || 'Full Gym',
     prescribedCardioId:   typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
   };
 
-  // ── 6. MONTAGEM DO DTO CANÔNICO ───────────────────────────────────────────
+  // ── 7. MONTAGEM DO DTO CANÔNICO CONSOLIDADO ───────────────────────────────
   const context = {
-    // Metadados de auditoria do DTO
     _meta: {
-      contextVersion:   '1.0',
+      contextVersion:   '1.1',
       builtAt:          new Date().toISOString(),
       patientId:        pId,
       hasAssessment:    latestEval !== null,
@@ -9862,83 +9922,126 @@ async function buildPerformanceContext(patientId = activePatientId) {
       age,
       sex,                   // 'Masculino' | 'Feminino'
       weightKg,              // peso atual (kg)
-      heightCm,              // altura (cm) — 196.0, não 1.96
-      objective,             // string do Dexie: 'Hipertrofia & Recomposição', 'Perda de peso', etc.
+      usualWeightKg,         // peso habitual (kg)
+      targetWeightKg,        // peso meta/alvo (kg)
+      heightCm,              // altura (cm)
+      bmi,                   // IMC calculado
+      objective,             // string do Dexie
       trainingLevel,         // 'Iniciante' | 'Intermediário' | 'Avançado' | 'Não informado'
-      patientType,           // 'Praticante recreativo', 'Atleta', etc.
+      patientType,           // 'Praticante recreativo', 'Atleta', 'Sedentário', etc.
+    },
+
+    trainingProfile: {
+      mainModality:     p.mainModality || p.workoutType || 'Musculação',
+      workoutType:      p.workoutType || 'Musculação / Força',
+      frequencyWeekly:  workoutFrequencyDays,
+      frequencyLabel:   p.workoutFrequency || `${workoutFrequencyDays}x/semana`,
+      durationMinutes:  workoutDurationMinutes,
+      durationLabel:    p.workoutDuration || `${workoutDurationMinutes} min`,
+      intensity:        p.workoutIntensity || 'Moderada',
+      workoutTime:      p.workoutTime || '',
+      neatRoutine:      p.neatRoutine || 'Moderado',
+      trainingLevel,
+      patientType,
+      isMinor:          age < 18,
     },
 
     anthropometry: {
-      bodyFatPercent,        // % de gordura atual (Jackson-Pollock ou avaliação salva)
-      targetBodyFatPercent,  // meta de %gordura (campo targetBF na avaliação)
-      leanMassKg,            // massa magra (kg) — chave para Katch-McArdle
+      bodyFatPercent,        // % de gordura atual
+      targetBodyFatPercent,  // meta de % gordura
+      leanMassKg,            // massa magra (kg)
+      fatMassKg,             // massa gorda (kg)
+      bmi,                   // IMC
+      circumferences: {
+        waist:          waistVal,
+        hip:            hipVal,
+        abdomen:        latestEval ? (parseFloat(latestEval.circAbdomen) || null) : null,
+        arm:            latestEval ? (parseFloat(latestEval.arm) || null) : null,
+        thigh:          latestEval ? (parseFloat(latestEval.circThigh) || null) : null,
+        chest:          latestEval ? (parseFloat(latestEval.circChest) || null) : null,
+        armRelaxed:     latestEval ? (parseFloat(latestEval.circArmRelaxed) || null) : null,
+        forearm:        latestEval ? (parseFloat(latestEval.circForearm) || null) : null,
+        calf:           latestEval ? (parseFloat(latestEval.circCalf) || null) : null,
+        neck:           latestEval ? (parseFloat(latestEval.circNeck) || null) : null,
+        waistToHipRatio
+      },
+      skinfolds: {
+        chest:          latestEval ? (parseFloat(latestEval.skChest) || null) : null,
+        axillary:       latestEval ? (parseFloat(latestEval.skAxillary) || null) : null,
+        triceps:        latestEval ? (parseFloat(latestEval.skTriceps) || null) : null,
+        biceps:         latestEval ? (parseFloat(latestEval.skBiceps) || null) : null,
+        subscapular:    latestEval ? (parseFloat(latestEval.skSubscapular) || null) : null,
+        abdominal:      latestEval ? (parseFloat(latestEval.skAbdominal) || null) : null,
+        suprailiac:     latestEval ? (parseFloat(latestEval.skSuprailiac) || null) : null,
+        thigh:          latestEval ? (parseFloat(latestEval.skThigh) || null) : null,
+        calfFold:       latestEval ? (parseFloat(latestEval.skCalfFold) || null) : null
+      }
     },
 
     energy: {
-      tmbKcal,               // Taxa Metabólica Basal via Katch-McArdle (kcal/dia)
+      tmbKcal,               // Taxa Metabólica Basal (kcal/dia)
       getKcal,               // Gasto Energético Total = TMB × FA (kcal/dia)
       activityFactor,        // fator de atividade (ex: 1.42)
+      tmbMethod
     },
 
     nutrition: {
-      caloricTargetKcal,     // meta calórica REAL da prescrição ativa (ou GET como fallback)
+      caloricTargetKcal,     // meta calórica REAL da prescrição ativa
       energyBalanceKcal,     // = caloricTargetKcal - getKcal (positivo = superávit)
       proteinGKg,            // aporte proteico (g/kg peso)
       prescriptionSource:    prescItems.length > 0 ? 'prescribed' : 'estimated_from_get',
     },
 
-    constraints,
+    lifestyle: {
+      sleepHours:           parseFloat(p.sleepHours) || 7.5,
+      sleepQuality:         p.sleepQuality || 'Boa',
+      stressLevel:          p.stressLevel || 'Moderado',
+      hydrationLiters:      parseFloat(p.hydrationLiters) || (Math.round(weightKg * 0.035 * 10) / 10),
+      neatRoutine:          p.neatRoutine || 'Moderado',
+      cookingAvailability:  p.cookingAvailability || 'Moderada',
+      mealPreparer:         p.mealPreparer || 'O próprio paciente',
+      bowelHabit:           p.bowelHabit || 'Regular (1x a 2x/dia)'
+    },
+
+    clinical: {
+      clinicalNotes:        p.clinicalNotes || '',
+      dietaryRestrictions:  p.dietaryRestrictions || '',
+      foodAversions:        p.foodAversions || '',
+      preferredFoods:       p.preferredFoods || '',
+      exams:                clinicalExamsList || []
+    },
+
+    constraints
   };
 
   console.info('[buildPerformanceContext] DTO construído:', JSON.stringify({
-    patientId:        context._meta.patientId,
-    contextVersion:   context._meta.contextVersion,
-    hasAssessment:    context._meta.hasAssessment,
-    hasPrescription:  context._meta.hasPrescription,
-    tmbKcal:          context.energy.tmbKcal,
-    getKcal:          context.energy.getKcal,
-    caloricTargetKcal: context.nutrition.caloricTargetKcal,
-    energyBalanceKcal: context.nutrition.energyBalanceKcal,
-    leanMassKg:       context.anthropometry.leanMassKg,
-    bodyFatPercent:   context.anthropometry.bodyFatPercent,
+    patientId:            context._meta.patientId,
+    contextVersion:       context._meta.contextVersion,
+    hasAssessment:        context._meta.hasAssessment,
+    hasPrescription:      context._meta.hasPrescription,
+    frequencyWeekly:      context.trainingProfile.frequencyWeekly,
+    durationMinutes:      context.trainingProfile.durationMinutes,
+    tmbKcal:              context.energy.tmbKcal,
+    getKcal:              context.energy.getKcal,
+    caloricTargetKcal:    context.nutrition.caloricTargetKcal,
+    energyBalanceKcal:    context.nutrition.energyBalanceKcal,
+    leanMassKg:           context.anthropometry.leanMassKg,
+    bodyFatPercent:       context.anthropometry.bodyFatPercent,
     targetBodyFatPercent: context.anthropometry.targetBodyFatPercent,
   }, null, 2));
 
   return context;
 }
 
+
 // ════════════════════════════════════════════════════════════════════════════
-// CAMADA 2 — VALIDAÇÃO ESTRUTURAL DA RESPOSTA DA IA
+// CAMADA 2 — VALIDAÇÃO ESTRUTURAL DA RESPOSTA DA IA (WHITELIST & TIPAGEM)
 // validateAIPrescription(aiResponse)
 //
-// Verifica se o JSON retornado pela IA possui os campos obrigatórios e tipos
-// corretos antes de qualquer validação clínica.
-// Nunca lança exceção — sempre retorna o objeto padronizado.
-//
-// Contrato de entrada esperado da IA:
-// {
-//   frequency: <number>,         // dias de treino por semana (1-7)
-//   routines: [                  // array de rotinas (não vazio)
-//     {
-//       id: <string>,            // identificador da rotina (ex: "A", "Push")
-//       name: <string>,          // nome descritivo
-//       exercises: [             // array de exercícios (não vazio)
-//         {
-//           name: <string>,      // nome do exercício
-//           sets: <number>,      // séries (>0)
-//           reps: <string>,      // ex: "8-12", "10", "1"
-//           rpe: <number>,       // 1-10
-//         }
-//       ]
-//     }
-//   ]
-// }
+// Garante tipo estrito de cada campo, filtra payloads malformados ou hostis
+// e monta um objeto estritamente limpo segundo o contrato da aplicação.
 // ════════════════════════════════════════════════════════════════════════════
 
-/**
- * @param {*} aiResponse - Saída bruta da IA (pode ser qualquer tipo)
- * @returns {{ status: "PASS"|"REJECT", data: Object|null, errors: string[] }}
- */
 function validateAIPrescription(aiResponse) {
   const errors = [];
 
@@ -9947,16 +10050,16 @@ function validateAIPrescription(aiResponse) {
     return { status: 'REJECT', data: null, errors: ['A resposta da IA deve ser um objeto JSON.'] };
   }
 
-  // ── frequency ─────────────────────────────────────────────────────────────
-  const freq = aiResponse.frequency;
-  if (typeof freq !== 'number' || !Number.isFinite(freq) || freq < 1 || freq > 7) {
-    errors.push(`Campo "frequency" inválido: esperado número inteiro entre 1 e 7, recebido "${freq}".`);
+  // ── frequency (deve ser estritamente inteiro entre 1 e 7) ──────────────────
+  const rawFreq = aiResponse.frequency;
+  const isFreqInt = typeof rawFreq === 'number' && Number.isInteger(rawFreq);
+  if (!isFreqInt || rawFreq < 1 || rawFreq > 7) {
+    errors.push(`Campo "frequency" inválido: esperado número inteiro entre 1 e 7, recebido "${rawFreq}".`);
   }
 
   // ── routines ──────────────────────────────────────────────────────────────
   if (!Array.isArray(aiResponse.routines) || aiResponse.routines.length === 0) {
     errors.push('Campo "routines" deve ser um array não vazio.');
-    // Sem rotinas não é possível validar exercícios — encerra aqui
     return { status: 'REJECT', data: null, errors };
   }
 
@@ -9988,16 +10091,32 @@ function validateAIPrescription(aiResponse) {
       if (typeof ex.name !== 'string' || ex.name.trim() === '') {
         errors.push(`${eLabel}.name: deve ser uma string não vazia.`);
       }
-      const sets = parseFloat(ex.sets);
-      if (!Number.isFinite(sets) || sets < 1) {
-        errors.push(`${eLabel}.sets: deve ser um número >= 1, recebido "${ex.sets}".`);
+
+      // sets deve ser número inteiro >= 1 (rejeita 0, -1, 2.5)
+      const rawSets = ex.sets;
+      const numSets = typeof rawSets === 'number' ? rawSets : (typeof rawSets === 'string' && !rawSets.includes('.') ? parseInt(rawSets, 10) : NaN);
+      if (!Number.isInteger(numSets) || numSets < 1) {
+        errors.push(`${eLabel}.sets: deve ser um número inteiro >= 1, recebido "${ex.sets}".`);
       }
+
+      // reps deve ser string não vazia
       if (typeof ex.reps !== 'string' || ex.reps.trim() === '') {
         errors.push(`${eLabel}.reps: deve ser uma string (ex: "8-12"), recebido "${ex.reps}".`);
       }
-      const rpe = parseFloat(ex.rpe);
-      if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) {
+
+      // rpe deve ser número entre 1 e 10 (rejeita 0, 11, aceita 8.5)
+      const rawRpe = typeof ex.rpe === 'number' ? ex.rpe : (typeof ex.rpe === 'string' && ex.rpe.trim() !== '' ? parseFloat(ex.rpe) : NaN);
+      if (typeof rawRpe !== 'number' || Number.isNaN(rawRpe) || rawRpe < 1 || rawRpe > 10) {
         errors.push(`${eLabel}.rpe: deve ser número entre 1 e 10, recebido "${ex.rpe}".`);
+      }
+
+      // rest / restSeconds (se informado) deve ser número inteiro >= 0 (rejeita -30, 2.5)
+      const rawRest = ex.rest !== undefined && ex.rest !== null ? ex.rest : (ex.restSeconds !== undefined && ex.restSeconds !== null ? ex.restSeconds : undefined);
+      if (rawRest !== undefined) {
+        const numRest = typeof rawRest === 'number' ? rawRest : (typeof rawRest === 'string' && !rawRest.includes('.') ? parseInt(rawRest, 10) : NaN);
+        if (!Number.isInteger(numRest) || numRest < 0) {
+          errors.push(`${eLabel}.rest: deve ser um número inteiro de segundos >= 0, recebido "${rawRest}".`);
+        }
       }
     });
   });
@@ -10006,21 +10125,25 @@ function validateAIPrescription(aiResponse) {
     return { status: 'REJECT', data: null, errors };
   }
 
-  // ── Objeto limpo (sem campos desconhecidos propagados) ────────────────────
+  // ── Objeto limpo (sem campos desconhecidos propagados — Whitelist rígida) ───
   const cleanData = {
     frequency: Math.round(aiResponse.frequency),
     routines: aiResponse.routines.map(r => ({
       id:   String(r.id).trim(),
       name: String(r.name).trim(),
-      exercises: r.exercises.map(ex => ({
-        name: String(ex.name).trim(),
-        sets: Math.round(parseFloat(ex.sets)),
-        reps: String(ex.reps).trim(),
-        rpe:  parseFloat(ex.rpe),
-        // Campos opcionais — copiados somente se presentes e do tipo correto
-        ...(typeof ex.rest === 'number' && { rest: ex.rest }),
-        ...(typeof ex.obs  === 'string' && { obs:  ex.obs }),
-      }))
+      exercises: r.exercises.map(ex => {
+        const rawRest = ex.rest !== undefined && ex.rest !== null ? ex.rest : (ex.restSeconds !== undefined && ex.restSeconds !== null ? ex.restSeconds : undefined);
+        const hasValidRest = rawRest !== undefined && Number.isInteger(typeof rawRest === 'number' ? rawRest : parseInt(rawRest, 10));
+        return {
+          name: String(ex.name).trim(),
+          sets: Math.round(typeof ex.sets === 'number' ? ex.sets : parseInt(ex.sets, 10)),
+          reps: String(ex.reps).trim(),
+          rpe:  typeof ex.rpe === 'number' ? ex.rpe : parseFloat(ex.rpe),
+          // Campos opcionais — copiados somente se presentes e válidos
+          ...(hasValidRest ? { rest: Math.round(typeof rawRest === 'number' ? rawRest : parseInt(rawRest, 10)) } : {}),
+          ...(typeof ex.obs  === 'string' && ex.obs.trim() !== '' ? { obs: ex.obs.trim() } : {}),
+        };
+      })
     }))
   };
 
@@ -10063,18 +10186,18 @@ function validatePrescriptionAgainstContext(prescription, performanceContext) {
     .flatMap(r => Array.isArray(r.exercises) ? r.exercises : []);
 
   // ── R1 — REJECT: Exercícios proibidos ────────────────────────────────────
-  // Comparação case-insensitive, substring match
-  const prohibited = Array.isArray(performanceContext.constraints?.prohibitedExercises)
-    ? performanceContext.constraints.prohibitedExercises
+  const prohibitedList = Array.isArray(performanceContext.constraints?.prohibitedExercises)
+    ? performanceContext.constraints.prohibitedExercises.map(s => String(s).toLowerCase().trim())
     : [];
 
   allExercises.forEach(ex => {
-    const exNameLower = String(ex.name || '').toLowerCase();
-    prohibited.forEach(term => {
-      if (exNameLower.includes(String(term).toLowerCase())) {
-        errors.push(`Exercício proibido encontrado: ${ex.name}`);
-      }
-    });
+    const exNameLower = String(ex.name || '').toLowerCase().trim();
+    const isProhibited = prohibitedList.some(prohibited =>
+      prohibited !== '' && (exNameLower === prohibited || exNameLower.includes(prohibited))
+    );
+    if (isProhibited) {
+      errors.push(`Exercício proibido detectado na prescrição: "${ex.name}".`);
+    }
   });
 
   // ── R2 — REJECT: Frequência incompatível com nível iniciante ─────────────
@@ -10183,6 +10306,18 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
     };
   }
 
+  // ── Cópia defensiva / snapshot imutável em profundidade do contexto ──────
+  const deepFreeze = (obj) => {
+    if (obj && typeof obj === 'object') {
+      Object.freeze(obj);
+      Object.keys(obj).forEach(k => {
+        if (obj[k] && typeof obj[k] === 'object' && !Object.isFrozen(obj[k])) deepFreeze(obj[k]);
+      });
+    }
+    return obj;
+  };
+  const contextSnapshot = deepFreeze(JSON.parse(JSON.stringify(performanceContext)));
+
   // ── ETAPA 2-5: Loop com circuit breaker ───────────────────────────────────
   let attempt       = 0;
   let previousErrors = [];
@@ -10195,7 +10330,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
     let aiRawResponse;
     try {
       // Na primeira tentativa previousErrors é []; nas subsequentes leva os erros da anterior
-      aiRawResponse = await aiGenerator(performanceContext, previousErrors);
+      aiRawResponse = await aiGenerator(contextSnapshot, previousErrors);
     } catch (genErr) {
       console.error(`[generateAndValidateWorkout] Tentativa ${attempt}: erro na chamada da IA:`, genErr);
       previousErrors = [`Erro na chamada da IA: ${String(genErr.message || genErr)}`];
@@ -10213,7 +10348,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
         status:       'REJECT',
         fatal:        false,
         attempt,
-        context:      performanceContext,
+        context:      contextSnapshot,
         prescription: null,
         warnings:     [],
         errors:       structural.errors
@@ -10222,7 +10357,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
     }
 
     // ── Etapa 4: Validação de coerência clínica ────────────────────────────
-    const coherence = validatePrescriptionAgainstContext(structural.data, performanceContext);
+    const coherence = validatePrescriptionAgainstContext(structural.data, contextSnapshot);
 
     if (coherence.status === 'REJECT') {
       console.warn(`[generateAndValidateWorkout] Tentativa ${attempt}: falha de coerência:`, coherence.errors);
@@ -10232,7 +10367,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
         status:       'REJECT',
         fatal:        false,
         attempt,
-        context:      performanceContext,
+        context:      contextSnapshot,
         prescription: null,
         warnings:     coherence.warnings,
         errors:       coherence.errors
@@ -10247,7 +10382,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       status:             coherence.status,   // "PASS" | "WARNING"
       fatal:              false,
       attempt,
-      context:            performanceContext,
+      context:            contextSnapshot,
       prescription:       structural.data,    // dados limpos, sem campos da IA fora do contrato
       warnings:           coherence.warnings,
       errors:             [],
@@ -10264,19 +10399,24 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
     fatal:                    true,
     requiresManualPrescription: true,
     attempt:                  MAX_ATTEMPTS,
-    context:                  performanceContext,
+    context:                  contextSnapshot,
     prescription:             null,
     warnings:                 lastResult?.warnings || [],
-    errors: [
-      'Não foi possível gerar uma prescrição compatível após 3 tentativas. É necessária prescrição manual ou revisão profissional.',
-      ...(lastResult?.errors || [])
-    ]
+    errors: (lastResult && lastResult.errors && lastResult.errors.length > 0)
+      ? lastResult.errors
+      : (previousErrors && previousErrors.length > 0
+          ? previousErrors
+          : ['Não foi possível gerar uma prescrição compatível após 3 tentativas. É necessária prescrição manual ou revisão profissional.'])
   };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 // GERADOR DE TREINO IA PADRÃO (DETERMINÍSTICO E CANÔNICO)
 // defaultPerformanceAIGenerator(context, previousErrors)
+//
+// ⚠️ DEVELOPMENT MOCK — NÃO É MOTOR CLÍNICO DE PRODUÇÃO.
+// Utilizado para prototipação, validação estrutural da arquitetura e testes
+// automatizados antes da integração com a API externa do provedor de LLM.
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -10285,6 +10425,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
  * @returns {Promise<Object>} Proposta estruturada de prescrição
  */
 async function defaultPerformanceAIGenerator(context, previousErrors = []) {
+  // DEVELOPMENT MOCK — NÃO É MOTOR CLÍNICO DE PRODUÇÃO
   // Simula latência de processamento
   await new Promise(r => setTimeout(r, 300));
 
@@ -10336,6 +10477,236 @@ async function defaultPerformanceAIGenerator(context, previousErrors = []) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// GERADOR REAL DE PRESCRIÇÃO VIA GOOGLE GEMINI (PILAR DE PERFORMANCE)
+// geminiPerformanceAIGenerator(context, previousErrors)
+// ════════════════════════════════════════════════════════════════════════════
+
+const GEMINI_MODEL = 'gemini-3.6-flash';
+
+/**
+ * Gerador de prescrição de treino utilizando a API do Google Gemini.
+ * Responsável exclusivamente por gerar o candidato estruturado e individualizado a partir do contexto.
+ * Não realiza validações de regras de negócio, não altera e não persiste dados.
+ *
+ * @param {Object} context - PerformanceContext DTO canônico
+ * @param {string[]} previousErrors - Lista de erros da tentativa anterior (se houver)
+ * @returns {Promise<Object>} Objeto JSON bruto da prescrição gerada
+ */
+async function geminiPerformanceAIGenerator(context, previousErrors = []) {
+  // 1. Obter chave da API exclusivamente do localStorage
+  const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
+  if (!apiKey) {
+    throw new Error('Chave da API Gemini não configurada. Configure GEMINI_API_KEY no localStorage.');
+  }
+
+  // 2. Montar o prompt de sistema e instruções especializadas
+  let prompt = `Você é um especialista em Fisiologia do Exercício, Biomecânica, Prescrição do Treinamento de Força, Performance Humana e Periodização.
+
+Sua função neste sistema é gerar uma PRESCRIÇÃO DE TREINO CANDIDATA ALTAMENTE INDIVIDUALIZADA e EXCLUSIVA para o paciente informado no DTO canônico.
+
+=== REGRA DE INDIVIDUALIZAÇÃO ABSOLUTA E NÃO-CÓPIA ===
+- A prescrição DEVE ser estritamente individualizada para o paciente representado pelo contexto fornecido.
+- NÃO reutilize, copie ou reproduza automaticamente uma prescrição genérica ou de outro paciente.
+- NÃO produza um treino padrão quando existirem dados específicos (anamnese, antropometria, rotina, energia) capazes de orientar a prescrição.
+- Cada decisão de treinamento (divisão de treino, número de rotinas, escolha de exercícios, volume de séries, faixa de repetições, RPE e intervalos de descanso) DEVE ser justificada e compatível com o contexto do paciente.
+
+=== HIERARQUIA DE PRIORIDADES OBRIGATÓRIA ===
+
+[PRIORIDADE 1 — SEGURANÇA, LESÕES E RESTRIÇÕES]
+- Respeite rigorosamente todas as restrições articulares, lesões e exercícios proibidos informados em constraints.prohibitedExercises, constraints.injuries e clinical.clinicalNotes.
+- JAMAIS prescreva exercícios contidos na lista de proibidos ou que sobrecarreguem estruturas lesionadas. Substitua por alternativas biomecanicamente seguras.
+
+[PRIORIDADE 2 — OBJETIVO CENTRAL DO PACIENTE]
+- O objetivo declarado (patient.objective) é o eixo central do estímulo neuromuscular:
+  * Hipertrofia: Priorizar faixas de 6 a 12 repetições, volume moderado a alto (10 a 20 séries/semana por grupamento principal), RPE 7 a 9, descanso suficiente para recuperação do SNC e ATP-CP (60-120s).
+  * Emagrecimento / Perda de Gordura: Preservar massa magra, manter intensidade mecânica (RPE 7 a 8.5), com volume sustentável sem excesso de fadiga central.
+  * Força Máxima / Performance: Foco em padrões básicos multiarticulares, repetições mais baixas (4 a 6 reps ou 6 a 8 reps), descansos completos (120 a 180s) e progressão de carga.
+  * Saúde / Manutenção / Recomposição: Equilíbrio postural, amplitude completa, prevenção de lesões e distribuição harmônica de volume.
+
+[PRIORIDADE 3 — CAPACIDADE, PERFIL E DISPONIBILIDADE REAL]
+- FREQUÊNCIA SEMANAL E DIVISÃO DE ROTINAS:
+  * O número de rotinas no array "routines" e o valor do campo "frequency" DEVEM corresponder à frequência declarada do paciente (trainingProfile.frequencyWeekly ou workoutFrequency).
+  * Exemplo: Se frequência = 3x/semana → frequency = 3, gerar exatamente 3 rotinas (A, B, C) (ex: Push/Pull/Legs ou Full Body A/B/C).
+  * Exemplo: Se frequência = 4x/semana → frequency = 4, gerar exatamente 4 rotinas (A, B, C, D) (ex: Upper/Lower A/B ou ABCD).
+  * Exemplo: Se frequência = 5x/semana → frequency = 5, gerar exatamente 5 rotinas (A, B, C, D, E) (ex: ABCDE ou PPLUL).
+- DURAÇÃO DA SESSÃO:
+  * O número de exercícios e séries DEVE caber no tempo disponível informado (trainingProfile.durationMinutes).
+  * Sessão de 30-45 min: 3 a 5 exercícios no total (volume compacto, 10-15 séries totais por sessão).
+  * Sessão de 60 min: 5 a 6 exercícios no total (15-20 séries totais por sessão).
+  * Sessão de 75-90 min: 6 a 7 exercícios no total (20-24 séries totais por sessão).
+- EQUIPAMENTOS DISPONÍVEIS:
+  * Prescreva apenas exercícios viáveis nos equipamentos declarados em constraints.availableEquipment (ex: 'Full Gym', 'Home Gym', 'Calistenia', 'Mínimo').
+- PACIENTES MENORES DE IDADE (patient.age < 18):
+  * Se o paciente for menor de 18 anos, priorize o aprendizado motor, execução técnica impecável, faixas de repetições controladas (8 a 15 reps) e RPE moderado (6 a 8), evitando cargas axiais máximas sem suporte.
+
+[PRIORIDADE 4 — ESTADO CORPORAL E ANTROPOMETRIA]
+- Utilize o percentual de gordura (bodyFatPercent), massa magra (leanMassKg) e circunferências/dobras para modular a priorização de grupamentos musculares e a resposta adaptativa.
+
+[PRIORIDADE 5 — CONTEXTO ENERGÉTICO E METABÓLICO]
+- DÉFICIT CALÓRICO (nutrition.energyBalanceKcal < 0): O paciente está em restrição calórica. O volume de treino deve ser dosado para evitar overreaching/overtraining. Evite volumes extremos (> 90 séries semanais totais).
+- SUPERÁVIT CALÓRICO (nutrition.energyBalanceKcal > 0): O ambiente energético favorece hipertrofia e regeneração. O volume pode ser progressivo e desafiador.
+- HORAS DE SONO (lifestyle.sleepHours): Se o sono for curto (< 6h) ou de qualidade ruim, atente-se à recuperação sistêmica.
+
+[PRIORIDADE 6 — OTIMIZAÇÃO E ESTRUTURAÇÃO BIOMECÂNICA]
+- Variedade de planos e vetores articulares (empurrar horizontal/vertical, puxar horizontal/vertical, dominante de joelho/quadril).
+- Indique tempos de descanso (rest) condizentes com a complexidade do movimento.
+- Utilize o campo "obs" para orientações biomecânicas objetivas (cadência, ponto de contração, pegada, amplitude).
+
+RESPONDA EXCLUSIVAMENTE COM JSON VÁLIDO.
+NÃO UTILIZE MARKDOWN.
+NÃO UTILIZE \`\`\`json.
+NÃO ADICIONE EXPLICAÇÕES.
+NÃO ADICIONE TEXTO ANTES OU DEPOIS DO JSON.
+
+=== TrainingPrescriptionSchema (CONTRATO ESTRUTURAL OBRIGATÓRIO) ===
+{
+  "frequency": <número inteiro entre 1 e 7>,
+  "routines": [
+    {
+      "id": "<string identificadora, ex: 'A', 'B', 'C'>",
+      "name": "<string com nome da rotina, ex: 'Treino A · Push Biomecânico'>",
+      "exercises": [
+        {
+          "name": "<string com o nome do exercício>",
+          "sets": <número inteiro >= 1>,
+          "reps": "<string com a faixa de repetições, ex: '6-8', '8-10', '10-12'>",
+          "rpe": <número entre 1 e 10, ex: 8, 7.5, 8.5>,
+          "rest": <número inteiro de segundos >= 0, ex: 60, 90, 120>,
+          "obs": "<string opcional com orientação técnica/biomecânica>"
+        }
+      ]
+    }
+  ]
+}
+
+=== DTO CANÔNICO DO CONTEXTO ===
+${JSON.stringify(context, null, 2)}`;
+
+  // 3. Retroalimentação de erros de tentativas anteriores (se houver)
+  if (Array.isArray(previousErrors) && previousErrors.length > 0) {
+    prompt += `\n\n=== ALERTA CRÍTICO — TENTATIVA ANTERIOR REJEITADA ===
+
+A tentativa anterior foi REJEITADA pelo sistema determinístico.
+
+Você DEVE corrigir os problemas identificados abaixo.
+
+ERROS DA TENTATIVA ANTERIOR:
+${previousErrors.join('\n')}
+
+Não repita os erros anteriores.
+Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e do TrainingPrescriptionSchema.`;
+  }
+
+  // 4. Configuração do Endpoint e Timeout via AbortController (30s)
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.2
+        }
+      }),
+      signal: controller.signal
+    });
+  } catch (fetchErr) {
+    if (fetchErr.name === 'AbortError') {
+      throw new Error('Falha na API do Gemini: requisição excedeu o limite de 30 segundos (timeout).');
+    }
+    throw new Error(`Falha de conexão com a API do Gemini: ${fetchErr.message || fetchErr}`);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  // 5. Tratamento de Erros HTTP
+  if (!response.ok) {
+    let errorDetails = '';
+    try {
+      const errJson = await response.json();
+      if (errJson && errJson.error && errJson.error.message) {
+        errorDetails = errJson.error.message;
+      } else if (errJson && errJson.message) {
+        errorDetails = errJson.message;
+      }
+    } catch (_) {
+      try {
+        const errText = await response.text();
+        if (errText) errorDetails = errText;
+      } catch (__) {}
+    }
+
+    const detailSuffix = errorDetails ? ` Detalhes: ${errorDetails}` : '';
+
+    if (response.status === 400) {
+      throw new Error(`Falha na API do Gemini (HTTP 400 - Requisição ou parâmetros inválidos).${detailSuffix}`);
+    } else if (response.status === 401) {
+      throw new Error(`Falha na API do Gemini (HTTP 401 - Chave de API não autenticada ou inválida).${detailSuffix}`);
+    } else if (response.status === 403) {
+      throw new Error(`Falha na API do Gemini (HTTP 403 - Acesso negado ou sem permissão para o modelo/chave).${detailSuffix}`);
+    } else if (response.status === 429) {
+      throw new Error(`Falha na API do Gemini (HTTP 429 - Limite de requisições ou quota excedida).${detailSuffix}`);
+    } else if (response.status >= 500) {
+      throw new Error(`Falha na API do Gemini (HTTP ${response.status} - Erro interno ou indisponibilidade do serviço Gemini).${detailSuffix}`);
+    } else {
+      throw new Error(`Falha na API do Gemini (HTTP ${response.status}).${detailSuffix}`);
+    }
+  }
+
+  // 6. Extração da resposta
+  let resData;
+  try {
+    resData = await response.json();
+  } catch (jsonErr) {
+    throw new Error('Falha na API do Gemini: a resposta da API não é um JSON válido.');
+  }
+
+  const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+    throw new Error('Falha na API do Gemini: resposta vazia ou sem conteúdo textual utilizável.');
+  }
+
+  // 7. Sanitização do JSON (JSON puro ou dentro de blocos Markdown ```json)
+  let cleanedText = rawText.trim();
+  if (cleanedText.startsWith('```json')) {
+    cleanedText = cleanedText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+  } else if (cleanedText.startsWith('```')) {
+    cleanedText = cleanedText.replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+  }
+  cleanedText = cleanedText.trim();
+
+  // 8. JSON.parse e retorno
+  let prescription;
+  try {
+    prescription = JSON.parse(cleanedText);
+  } catch (parseErr) {
+    throw new Error('Falha na API do Gemini: a resposta recebida não contém JSON válido.');
+  }
+
+  if (!prescription || typeof prescription !== 'object') {
+    throw new Error('Falha na API do Gemini: a resposta recebida não é um objeto JSON válido.');
+  }
+
+  return prescription;
+}
+
+
 // SUITE DE TESTES — Motor de Coerência, Orquestrador e Segurança de Persistência
 // runPerformanceAITests()
 //
@@ -10590,6 +10961,634 @@ async function runPerformanceAITests() {
   return { total: results.length, passed, failed: failed.length, details: results };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// SUITE DE TESTES ESPECÍFICOS DO GEMINI — Testes A a I
+// runGeminiPerformanceAITests()
+//
+// Execute no console do browser: runGeminiPerformanceAITests()
+// ════════════════════════════════════════════════════════════════════════════
+
+async function runGeminiPerformanceAITests() {
+  'use strict';
+
+  const results = [];
+  function assert(testId, description, condition, detail = '') {
+    const passed = !(!condition);
+    results.push({ testId, description, passed, detail });
+    console.log('  [' + testId + '] ' + (passed ? '✅ PASS' : '❌ FAIL') + ' — ' + description + (detail ? ' → ' + detail : ''));
+  }
+
+  console.group('🧪 runGeminiPerformanceAITests — Testes Unitários e Isolados do Gerador Gemini');
+
+  const dummyCtx = {
+    _meta: { patientId: 'test-pt', tmbMethod: 'Katch-McArdle' },
+    patient: { age: 28, sex: 'Masculino', weightKg: 75, heightCm: 178, objective: 'Hipertrofia', trainingLevel: 'Intermediário' },
+    anthropometry: { bodyFatPercent: 14, targetBodyFatPercent: 11, leanMassKg: 64.5 },
+    energy: { tmbKcal: 2100, getKcal: 2900, activityFactor: 1.38 },
+    nutrition: { caloricTargetKcal: 3200, energyBalanceKcal: 300, proteinGKg: 2.0, prescriptionSource: 'prescribed' },
+    constraints: { injuries: [], prohibitedExercises: ['supino reto'], availableEquipment: 'Full Gym' }
+  };
+
+  const lsObj = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null);
+  const origGetItem = lsObj ? lsObj.getItem.bind(lsObj) : () => null;
+
+  const getActiveFetch = () => (typeof window !== 'undefined' && window.fetch) ? window.fetch : (typeof fetch !== 'undefined' ? fetch : null);
+  const origFetch = getActiveFetch();
+
+  const setMockFetch = (fn) => {
+    if (typeof window !== 'undefined') window.fetch = fn;
+    if (typeof globalThis !== 'undefined') globalThis.fetch = fn;
+  };
+
+  const setMockStorage = (fn) => {
+    if (lsObj) lsObj.getItem = fn;
+    if (typeof window !== 'undefined' && window.localStorage) window.localStorage.getItem = fn;
+  };
+
+  // ── Teste A: Ausência da chave da API ──────────────────────────────────────
+  await (async () => {
+    let thrown = null;
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? null : origGetItem(key));
+      await geminiPerformanceAIGenerator(dummyCtx);
+    } catch (e) {
+      thrown = e;
+    } finally {
+      setMockStorage(origGetItem);
+    }
+    const isExactMsg = thrown && thrown.message === 'Chave da API Gemini não configurada. Configure GEMINI_API_KEY no localStorage.';
+    assert('Teste A', 'Ausência da chave → lança erro com mensagem exata', isExactMsg, thrown ? thrown.message : 'Nenhum erro lançado');
+  })();
+
+  // ── Teste B: Chave configurada, Endpoint e Modelo ──────────────────────────
+  await (async () => {
+    let capturedUrl = '';
+    let capturedBody = null;
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY_SECRET' : origGetItem(key));
+      setMockFetch(async (url, options) => {
+        capturedUrl = url;
+        capturedBody = JSON.parse(options.body);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            candidates: [{
+              content: {
+                parts: [{ text: JSON.stringify({ frequency: 3, routines: [{ id: 'A', name: 'Push', exercises: [{ name: 'Desenvolvimento', sets: 3, reps: '8-10', rpe: 8 }] }] }) }]
+              }
+            }]
+          })
+        };
+      });
+      await geminiPerformanceAIGenerator(dummyCtx);
+    } catch (e) {
+      // Ignora
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+
+    const correctUrl = capturedUrl.includes('models/' + GEMINI_MODEL + ':generateContent?key=TEST_KEY_SECRET');
+    const correctConfig = capturedBody && capturedBody.generationConfig && capturedBody.generationConfig.responseMimeType === 'application/json' && capturedBody.generationConfig.temperature === 0.2;
+    assert('Teste B', 'Chave configurada → usa GEMINI_MODEL (' + GEMINI_MODEL + ') e endpoint correto', correctUrl && correctConfig, 'url=' + capturedUrl);
+  })();
+
+  // ── Teste C: previousErrors vazio → sem bloco de alerta ───────────────────
+  await (async () => {
+    let capturedPrompt = '';
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+      setMockFetch(async (url, options) => {
+        const body = JSON.parse(options.body);
+        capturedPrompt = (body && body.contents && body.contents[0] && body.contents[0].parts && body.contents[0].parts[0] && body.contents[0].parts[0].text) || '';
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }]
+          })
+        };
+      });
+      await geminiPerformanceAIGenerator(dummyCtx, []);
+    } catch (e) {
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+    const hasAlert = capturedPrompt.includes('=== ALERTA CRÍTICO — TENTATIVA ANTERIOR REJEITADA ===');
+    assert('Teste C', 'previousErrors vazio → não inclui bloco de alerta crítico', !hasAlert);
+  })();
+
+  // ── Teste D: previousErrors preenchido → inclui bloco corretivo ───────────
+  await (async () => {
+    let capturedPrompt = '';
+    const errList = ['Exercício proibido detectado: Supino Reto', 'Frequência incompatível'];
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+      setMockFetch(async (url, options) => {
+        const body = JSON.parse(options.body);
+        capturedPrompt = (body && body.contents && body.contents[0] && body.contents[0].parts && body.contents[0].parts[0] && body.contents[0].parts[0].text) || '';
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }]
+          })
+        };
+      });
+      await geminiPerformanceAIGenerator(dummyCtx, errList);
+    } catch (e) {
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+    const hasAlert = capturedPrompt.includes('=== ALERTA CRÍTICO — TENTATIVA ANTERIOR REJEITADA ===');
+    const hasErr1 = capturedPrompt.includes('Exercício proibido detectado: Supino Reto');
+    const hasErr2 = capturedPrompt.includes('Frequência incompatível');
+    assert('Teste D', 'previousErrors preenchido → inclui bloco com todos os erros', hasAlert && hasErr1 && hasErr2);
+  })();
+
+  // ── Teste E: JSON puro retornado ──────────────────────────────────────────
+  await (async () => {
+    let resObj = null;
+    const testObj = { frequency: 4, routines: [{ id: 'A', name: 'Push', exercises: [] }] };
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+      setMockFetch(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: JSON.stringify(testObj) }] } }]
+        })
+      }));
+      resObj = await geminiPerformanceAIGenerator(dummyCtx);
+    } catch (e) {
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+    assert('Teste E', 'JSON puro retornado → faz parse para objeto JS válido', resObj && resObj.frequency === 4);
+  })();
+
+  // ── Teste F: JSON encapsulado em Markdown ```json ─────────────────────────
+  await (async () => {
+    let resObj = null;
+    const testObj = { frequency: 5, routines: [{ id: 'B', name: 'Pull', exercises: [] }] };
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+      setMockFetch(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: '```json\n' + JSON.stringify(testObj, null, 2) + '\n```' }] } }]
+        })
+      }));
+      resObj = await geminiPerformanceAIGenerator(dummyCtx);
+    } catch (e) {
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+    assert('Teste F', 'JSON em bloco Markdown ```json → sanitiza e faz parse com sucesso', resObj && resObj.frequency === 5);
+  })();
+
+  // ── Teste G: JSON inválido ────────────────────────────────────────────────
+  await (async () => {
+    let thrown = null;
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+      setMockFetch(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: 'Este é apenas um texto sem nenhum JSON.' }] } }]
+        })
+      }));
+      await geminiPerformanceAIGenerator(dummyCtx);
+    } catch (e) {
+      thrown = e;
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+    const isJsonErr = thrown && thrown.message.includes('não contém JSON válido');
+    assert('Teste G', 'Texto sem JSON → lança erro controlado', isJsonErr, thrown ? thrown.message : '');
+  })();
+
+  // ── Teste H: Erros HTTP (400, 401, 403, 429, 500) ─────────────────────────
+  for (const status of [400, 401, 403, 429, 500]) {
+    await (async () => {
+      let thrown = null;
+      try {
+        setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+        setMockFetch(async () => ({
+          ok: false,
+          status,
+          statusText: 'Error',
+          json: async () => ({ error: { message: 'Simulated error for status ' + status } })
+        }));
+        await geminiPerformanceAIGenerator(dummyCtx);
+      } catch (e) {
+        thrown = e;
+      } finally {
+        setMockStorage(origGetItem);
+        setMockFetch(origFetch);
+      }
+      const hasStatusMsg = thrown && thrown.message.includes('HTTP ' + status);
+      assert('Teste H (' + status + ')', 'HTTP ' + status + ' → lança erro específico para status ' + status, hasStatusMsg, thrown ? thrown.message : '');
+    })();
+  }
+
+  // ── Teste I: Timeout via AbortError ───────────────────────────────────────
+  await (async () => {
+    let thrown = null;
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+      setMockFetch(async () => {
+        const abortErr = new Error('The user aborted a request.');
+        abortErr.name = 'AbortError';
+        throw abortErr;
+      });
+      await geminiPerformanceAIGenerator(dummyCtx);
+    } catch (e) {
+      thrown = e;
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+    const isTimeoutMsg = thrown && thrown.message.includes('limite de 30 segundos (timeout)');
+    assert('Teste I', 'Timeout da requisição → lança erro de tempo limite excedido', isTimeoutMsg, thrown ? thrown.message : '');
+  })();
+
+  console.groupEnd();
+  const passed = results.filter(r => r.passed).length;
+  const failed = results.filter(r => !r.passed);
+  console.info('\n📊 Resultado Testes Gemini: ' + passed + '/' + results.length + ' passaram.');
+  return { total: results.length, passed, failed: failed.length, details: results };
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUITE DE TESTES DE PERSONALIZAÇÃO, SENSIBILIDADE E NÃO-CONTAMINAÇÃO
+// runPersonalizationPerformanceTests()
+//
+// Execute no console do browser: runPersonalizationPerformanceTests()
+// ════════════════════════════════════════════════════════════════════════════
+
+async function runPersonalizationPerformanceTests() {
+  'use strict';
+
+  const results = [];
+  function assert(testId, description, condition, detail = '') {
+    const passed = !(!condition);
+    results.push({ testId, description, passed, detail });
+    console.log('  [' + testId + '] ' + (passed ? '✅ PASS' : '❌ FAIL') + ' — ' + description + (detail ? ' → ' + detail : ''));
+  }
+
+  console.group('🧪 runPersonalizationPerformanceTests — Testes de Personalização, Sensibilidade e Não-Contaminação');
+
+  const lsObj = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null);
+  const origGetItem = lsObj ? lsObj.getItem.bind(lsObj) : () => null;
+  const setMockStorage = (fn) => {
+    if (lsObj) lsObj.getItem = fn;
+    if (typeof window !== 'undefined' && window.localStorage) window.localStorage.getItem = fn;
+  };
+
+  const getActiveFetch = () => (typeof window !== 'undefined' && window.fetch) ? window.fetch : (typeof fetch !== 'undefined' ? fetch : null);
+  const origFetch = getActiveFetch();
+  const setMockFetch = (fn) => {
+    if (typeof window !== 'undefined') window.fetch = fn;
+    if (typeof globalThis !== 'undefined') globalThis.fetch = fn;
+  };
+
+  // ── TESTE 1: Diferenciação Real entre Pacientes Distintos ─────────────────
+  await (async () => {
+    // Paciente Jovem Iniciante (15 anos, 3x/sem, 45 min, Hipertrofia)
+    const ctxJovem = {
+      _meta: { patientId: 'pt-jovem-15', contextVersion: '1.1' },
+      patient: { age: 15, sex: 'Masculino', weightKg: 62, heightCm: 172, bmi: 21.0, objective: 'Hipertrofia', trainingLevel: 'Iniciante', patientType: 'Praticante recreativo' },
+      trainingProfile: { frequencyWeekly: 3, frequencyLabel: '3x/semana', durationMinutes: 45, durationLabel: '45 min', intensity: 'Moderada', isMinor: true, trainingLevel: 'Iniciante' },
+      anthropometry: { bodyFatPercent: 12, targetBodyFatPercent: 10, leanMassKg: 54.5, fatMassKg: 7.5 },
+      energy: { tmbKcal: 1650, getKcal: 2350, activityFactor: 1.42 },
+      nutrition: { caloricTargetKcal: 2650, energyBalanceKcal: 300, proteinGKg: 2.0 },
+      constraints: { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym' }
+    };
+
+    // Paciente Adulto Avançado (39 anos, 5x/sem, 60 min, Emagrecimento em déficit)
+    const ctxAdulto = {
+      _meta: { patientId: 'pt-adulto-39', contextVersion: '1.1' },
+      patient: { age: 39, sex: 'Masculino', weightKg: 92, heightCm: 180, bmi: 28.4, objective: 'Emagrecimento', trainingLevel: 'Avançado', patientType: 'Atleta' },
+      trainingProfile: { frequencyWeekly: 5, frequencyLabel: '5x/semana', durationMinutes: 60, durationLabel: '60 min', intensity: 'Alta', isMinor: false, trainingLevel: 'Avançado' },
+      anthropometry: { bodyFatPercent: 24, targetBodyFatPercent: 14, leanMassKg: 70.0, fatMassKg: 22.0 },
+      energy: { tmbKcal: 1950, getKcal: 2900, activityFactor: 1.55 },
+      nutrition: { caloricTargetKcal: 2300, energyBalanceKcal: -600, proteinGKg: 2.2 },
+      constraints: { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym' }
+    };
+
+    let promptJovem = '';
+    let promptAdulto = '';
+
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+
+      setMockFetch(async (url, opts) => {
+        const body = JSON.parse(opts.body);
+        promptJovem = body?.contents?.[0]?.parts?.[0]?.text || '';
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            candidates: [{
+              content: {
+                parts: [{
+                  text: JSON.stringify({
+                    frequency: 3,
+                    routines: [
+                      { id: 'A', name: 'Treino A · Full Body Jovem', exercises: [{ name: 'Leg Press 45°', sets: 3, reps: '10-12', rpe: 7, rest: 60 }, { name: 'Puxada Frontal', sets: 3, reps: '10-12', rpe: 7, rest: 60 }] },
+                      { id: 'B', name: 'Treino B · Full Body Jovem', exercises: [{ name: 'Supino com Halteres', sets: 3, reps: '10-12', rpe: 7, rest: 60 }, { name: 'Mesa Flexora', sets: 3, reps: '10-12', rpe: 7, rest: 60 }] },
+                      { id: 'C', name: 'Treino C · Full Body Jovem', exercises: [{ name: 'Desenvolvimento Halteres', sets: 3, reps: '10-12', rpe: 7, rest: 60 }, { name: 'Remada Baixa', sets: 3, reps: '10-12', rpe: 7, rest: 60 }] }
+                    ]
+                  })
+                }]
+              }
+            }]
+          })
+        };
+      });
+      const prescJovem = await geminiPerformanceAIGenerator(ctxJovem);
+
+      setMockFetch(async (url, opts) => {
+        const body = JSON.parse(opts.body);
+        promptAdulto = body?.contents?.[0]?.parts?.[0]?.text || '';
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            candidates: [{
+              content: {
+                parts: [{
+                  text: JSON.stringify({
+                    frequency: 5,
+                    routines: [
+                      { id: 'A', name: 'Treino A · Push', exercises: [{ name: 'Supino Reto', sets: 4, reps: '6-8', rpe: 8.5, rest: 90 }] },
+                      { id: 'B', name: 'Treino B · Pull', exercises: [{ name: 'Remada Curvada', sets: 4, reps: '6-8', rpe: 8.5, rest: 90 }] },
+                      { id: 'C', name: 'Treino C · Legs', exercises: [{ name: 'Agachamento Livre', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 }] },
+                      { id: 'D', name: 'Treino D · Upper', exercises: [{ name: 'Desenvolvimento Militar', sets: 4, reps: '8-10', rpe: 8, rest: 90 }] },
+                      { id: 'E', name: 'Treino E · Lower', exercises: [{ name: 'Stiff com Barra', sets: 4, reps: '8-10', rpe: 8, rest: 90 }] }
+                    ]
+                  })
+                }]
+              }
+            }]
+          })
+        };
+      });
+      const prescAdulto = await geminiPerformanceAIGenerator(ctxAdulto);
+
+      const hasDiffFreq = prescJovem.frequency === 3 && prescAdulto.frequency === 5;
+      const hasDiffRoutines = prescJovem.routines.length === 3 && prescAdulto.routines.length === 5;
+      const promptHasMinorRule = promptJovem.includes('patient.age < 18') || promptJovem.includes('menor de 18 anos');
+      const promptHasEnergyDiff = promptJovem.includes('2650') && promptAdulto.includes('2300');
+
+      assert('Teste 1.1', 'Diferenciação: Prescrições possuem frequências e rotinas distintas (3 vs 5)', hasDiffFreq && hasDiffRoutines, `Jovem=${prescJovem.frequency}x, Adulto=${prescAdulto.frequency}x`);
+      assert('Teste 1.2', 'Diferenciação: Prompt do jovem inclui diretriz de menores de idade', promptHasMinorRule);
+      assert('Teste 1.3', 'Diferenciação: Prompts refletem contextos energéticos e calóricos individuais', promptHasEnergyDiff);
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+  })();
+
+  // ── TESTE 2: Testes de Sensibilidade a Variáveis Isoladas ─────────────────
+  await (async () => {
+    // 2.1 Sensibilidade à Frequência (3x vs 5x)
+    const baseCtx = {
+      _meta: { patientId: 'pt-sens', contextVersion: '1.1' },
+      patient: { age: 28, sex: 'Masculino', weightKg: 78, heightCm: 178, objective: 'Hipertrofia', trainingLevel: 'Intermediário' },
+      trainingProfile: { frequencyWeekly: 3, durationMinutes: 60, intensity: 'Moderada', trainingLevel: 'Intermediário' },
+      anthropometry: { bodyFatPercent: 15, targetBodyFatPercent: 12, leanMassKg: 66.3 },
+      energy: { tmbKcal: 1800, getKcal: 2600, activityFactor: 1.45 },
+      nutrition: { caloricTargetKcal: 2900, energyBalanceKcal: 300, proteinGKg: 2.0 },
+      constraints: { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym' }
+    };
+
+    let promptFreq3 = '';
+    let promptFreq5 = '';
+
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+
+      // Teste com freq 3
+      setMockFetch(async (url, opts) => {
+        promptFreq3 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, frequencyWeekly: 3 } });
+
+      // Teste com freq 5
+      setMockFetch(async (url, opts) => {
+        promptFreq5 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 5, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, frequencyWeekly: 5 } });
+
+      assert('Teste 2.1', 'Sensibilidade à Frequência: prompt reflete 3x vs 5x', promptFreq3.includes('"frequencyWeekly": 3') && promptFreq5.includes('"frequencyWeekly": 5'));
+
+      // 2.2 Sensibilidade ao Objetivo (Hipertrofia vs Emagrecimento)
+      let promptObjHip = '';
+      let promptObjEma = '';
+
+      setMockFetch(async (url, opts) => {
+        promptObjHip = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator({ ...baseCtx, patient: { ...baseCtx.patient, objective: 'Hipertrofia' } });
+
+      setMockFetch(async (url, opts) => {
+        promptObjEma = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator({ ...baseCtx, patient: { ...baseCtx.patient, objective: 'Emagrecimento' } });
+
+      assert('Teste 2.2', 'Sensibilidade ao Objetivo: prompt reflete Hipertrofia vs Emagrecimento', promptObjHip.includes('"objective": "Hipertrofia"') && promptObjEma.includes('"objective": "Emagrecimento"'));
+
+      // 2.3 Sensibilidade à Duração (30 min vs 60 min)
+      let promptDur30 = '';
+      let promptDur60 = '';
+
+      setMockFetch(async (url, opts) => {
+        promptDur30 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, durationMinutes: 30 } });
+
+      setMockFetch(async (url, opts) => {
+        promptDur60 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, durationMinutes: 60 } });
+
+      assert('Teste 2.3', 'Sensibilidade à Duração: prompt reflete 30 min vs 60 min', promptDur30.includes('"durationMinutes": 30') && promptDur60.includes('"durationMinutes": 60'));
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+  })();
+
+  // ── TESTE 3: Não Contaminação entre Pacientes (Ordem A→B vs B→A) ───────────
+  await (async () => {
+    const ptA = {
+      _meta: { patientId: 'pt-A-isolation', contextVersion: '1.1' },
+      patient: { age: 25, sex: 'Feminino', weightKg: 58, heightCm: 165, objective: 'Hipertrofia' },
+      trainingProfile: { frequencyWeekly: 4, durationMinutes: 50 },
+      constraints: { prohibitedExercises: ['elevação pélvica'] }
+    };
+    const ptB = {
+      _meta: { patientId: 'pt-B-isolation', contextVersion: '1.1' },
+      patient: { age: 45, sex: 'Masculino', weightKg: 85, heightCm: 175, objective: 'Saúde & Manutenção' },
+      trainingProfile: { frequencyWeekly: 3, durationMinutes: 45 },
+      constraints: { prohibitedExercises: ['supino reto'] }
+    };
+
+    let promptOrder1_A = '', promptOrder1_B = '';
+    let promptOrder2_B = '', promptOrder2_A = '';
+
+    try {
+      setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
+
+      // Ordem 1: A depois B
+      setMockFetch(async (u, o) => {
+        promptOrder1_A = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator(ptA);
+
+      setMockFetch(async (u, o) => {
+        promptOrder1_B = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator(ptB);
+
+      // Ordem 2: B depois A
+      setMockFetch(async (u, o) => {
+        promptOrder2_B = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator(ptB);
+
+      setMockFetch(async (u, o) => {
+        promptOrder2_A = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
+        return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
+      });
+      await geminiPerformanceAIGenerator(ptA);
+
+      const isA_Identical = promptOrder1_A === promptOrder2_A;
+      const isB_Identical = promptOrder1_B === promptOrder2_B;
+      const noLeakB_in_A = !promptOrder1_A.includes('supino reto') && !promptOrder2_A.includes('supino reto');
+      const noLeakA_in_B = !promptOrder1_B.includes('elevação pélvica') && !promptOrder2_B.includes('elevação pélvica');
+
+      assert('Teste 3.1', 'Não Contaminação: Paciente A gera prompt idêntico independentemente da ordem', isA_Identical);
+      assert('Teste 3.2', 'Não Contaminação: Paciente B gera prompt idêntico independentemente da ordem', isB_Identical);
+      assert('Teste 3.3', 'Não Contaminação: Restrições de A não vazam para B e vice-versa', noLeakB_in_A && noLeakA_in_B);
+    } finally {
+      setMockStorage(origGetItem);
+      setMockFetch(origFetch);
+    }
+  })();
+
+  // ── TESTE 4: Integridade do Contexto Canônico Expandido ───────────────────
+  await (async () => {
+    // Mock completo de paciente no Dexie
+    const originalPatientsGet = (typeof db !== 'undefined' && db.patients) ? db.patients.get : null;
+    const originalAssessmentsWhere = (typeof db !== 'undefined' && db.assessments) ? db.assessments.where : null;
+
+    try {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async (id) => ({
+          id: id || 'pt-full-audit',
+          name: 'Paciente Completo Auditoria',
+          age: 32,
+          gender: 'Masculino',
+          height: 1.82,
+          currentWeight: 84.5,
+          usualWeight: 83.0,
+          targetWeight: 80.0,
+          objective: 'Hipertrofia & Definição',
+          patientType: 'Praticante recreativo',
+          activityFactor: 1.48,
+          workoutType: 'Musculação / Força',
+          workoutFrequency: '4x/semana',
+          workoutDuration: '60 min',
+          workoutIntensity: 'Alta',
+          workoutTime: '06:30',
+          neatRoutine: 'Moderado',
+          sleepHours: 8.0,
+          sleepQuality: 'Boa',
+          stressLevel: 'Baixo',
+          hydrationLiters: 3.5,
+          cookingAvailability: 'Alta',
+          mealPreparer: 'O próprio paciente',
+          bowelHabit: 'Regular (1x a 2x/dia)',
+          clinicalNotes: 'Histórico de dor no ombro direito',
+          dietaryRestrictions: 'Sem glúten',
+          prohibitedExercises: ['desenvolvimento nuca']
+        });
+
+        db.assessments.where = () => ({
+          equals: () => ({
+            toArray: async () => [{
+              id: 'eval_audit_1',
+              patientId: 'pt-full-audit',
+              date: '2026-08-20',
+              fatPercent: 14.5,
+              targetBF: 11.0,
+              leanMass: 72.2,
+              fatMass: 12.3,
+              waist: 82.0,
+              hip: 100.0,
+              circAbdomen: 85.0,
+              arm: 38.0,
+              circThigh: 60.0,
+              skChest: 10,
+              skTriceps: 8,
+              skSubscapular: 12,
+              skAbdominal: 16,
+              skSuprailiac: 11,
+              skThigh: 14
+            }]
+          })
+        });
+
+        const builtCtx = await buildPerformanceContext('pt-full-audit');
+        const hasAllSections = builtCtx &&
+          builtCtx.patient && builtCtx.patient.targetWeightKg === 80.0 &&
+          builtCtx.trainingProfile && builtCtx.trainingProfile.frequencyWeekly === 4 && builtCtx.trainingProfile.durationMinutes === 60 &&
+          builtCtx.anthropometry && builtCtx.anthropometry.leanMassKg === 72.2 && builtCtx.anthropometry.circumferences && builtCtx.anthropometry.circumferences.waist === 82.0 &&
+          builtCtx.lifestyle && builtCtx.lifestyle.sleepHours === 8.0 &&
+          builtCtx.clinical && builtCtx.clinical.clinicalNotes.includes('ombro direito') &&
+          builtCtx.constraints && builtCtx.constraints.prohibitedExercises.includes('desenvolvimento nuca');
+
+        assert('Teste 4.1', 'Integridade: buildPerformanceContext popula 100% dos dados da Anamnese, Antropometria e Restrições', !!hasAllSections);
+      }
+    } finally {
+      if (typeof db !== 'undefined' && originalPatientsGet) db.patients.get = originalPatientsGet;
+      if (typeof db !== 'undefined' && originalAssessmentsWhere) db.assessments.where = originalAssessmentsWhere;
+    }
+  })();
+
+  console.groupEnd();
+  const passed = results.filter(r => r.passed).length;
+  const failed = results.filter(r => !r.passed);
+  console.info('\n📊 Resultado Testes Personalização: ' + passed + '/' + results.length + ' passaram.');
+  return { total: results.length, passed, failed: failed.length, details: results };
+}
+
+
 async function savePerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
   if (!pId) return;
@@ -10628,6 +11627,11 @@ async function savePerformanceForPatient(patientId = activePatientId) {
 async function loadPerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
   if (!pId) return;
+
+  // Se houver validação de IA pendente para outro paciente, limpa o estado pendente
+  if (perfPendingAIValidation && perfPendingAIValidation.patientId !== pId) {
+    perfPendingAIValidation = null;
+  }
 
   let saved = null;
 
@@ -10754,11 +11758,23 @@ async function approveAITraining(patientId, validatedPrescription, contextSnapsh
     return { status: 'REJECT', errors: ['patientId ausente.'] };
   }
 
-  // PASSO 4: Verificação de consistência entre a operação e o paciente aprovado
+  // PASSO 4: Verificação de consistência estrita entre o paciente aprovado, o contexto e os metadados
   if (perfPendingAIValidation && perfPendingAIValidation.patientId && perfPendingAIValidation.patientId !== pId) {
     console.error(`[approveAITraining] Inconsistência de paciente: esperado "${perfPendingAIValidation.patientId}", recebido "${pId}".`);
     alert('❌ Inconsistência: O paciente da aprovação não corresponde ao paciente para o qual o treino foi gerado.');
     return { status: 'REJECT', errors: ['Inconsistência de paciente entre geração e aprovação.'] };
+  }
+
+  if (snapshot && snapshot._meta?.patientId && snapshot._meta.patientId !== pId) {
+    console.error(`[approveAITraining] Inconsistência de snapshot: contexto pertence a "${snapshot._meta.patientId}", mas tentativa de aprovação para "${pId}".`);
+    alert('❌ Inconsistência: O contexto clínico fornecido pertence a outro paciente.');
+    return { status: 'REJECT', errors: ['Inconsistência entre contexto do paciente e paciente da aprovação.'] };
+  }
+
+  if (perfWorkoutMeta && perfWorkoutMeta.patientId && perfWorkoutMeta.patientId !== pId) {
+    console.error(`[approveAITraining] Inconsistência de metadados: treino em memória pertence a "${perfWorkoutMeta.patientId}", mas tentativa de aprovação para "${pId}".`);
+    alert('❌ Inconsistência: O treino em tela pertence a outro paciente.');
+    return { status: 'REJECT', errors: ['Inconsistência entre metadados do treino e paciente da aprovação.'] };
   }
 
   // PASSO 8: Proteção contra contexto obsoleto (Stale Context)
@@ -11175,12 +12191,44 @@ function perfSetSearch(value) {
 // CO-PILOTO BIOMECÂNICO — Pipeline Segura de IA (Pilar de Performance)
 // handleGenerateAITraining()
 // ════════════════════════════════════════════════════════════════════════════
-async function handleGenerateAITraining() {
+function resetGenAiButtons() {
   const allGenBtns = document.querySelectorAll('#perf-btn-generate-ai, #perf-ai-btn, [onclick*="handleGenerateAITraining"]');
   allGenBtns.forEach(b => {
     try {
+      b.disabled = false;
+      delete b.dataset.origHtml;
+      if (b.id === 'perf-ai-btn') {
+        b.innerHTML = '<i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-200"></i><span>Gerar Treino via IA (Co-piloto Biomecânico)</span>';
+      } else if (b.classList && b.classList.contains('hud-tab-btn')) {
+        b.innerHTML = '<i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-300"></i> Gerar Treino via IA';
+      } else {
+        b.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4 text-violet-300"></i><span>Gerar Treino Completo via IA</span>';
+      }
+    } catch(e){}
+  });
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function handleGenerateAITraining() {
+  const allGenBtns = document.querySelectorAll('#perf-btn-generate-ai, #perf-ai-btn, [onclick*="handleGenerateAITraining"]');
+
+  // 1. Verificação proativa da chave da API Gemini no localStorage
+  let apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
+  if (!apiKey) {
+    const inputKey = window.prompt('🔑 Chave da API Gemini não configurada.\n\nPor favor, insira sua chave da API do Google Gemini (ela será salva com segurança no seu navegador):');
+    if (inputKey && inputKey.trim()) {
+      localStorage.setItem('GEMINI_API_KEY', inputKey.trim());
+      apiKey = inputKey.trim();
+    } else {
+      resetGenAiButtons();
+      alert('❌ Chave da API Gemini não configurada.\n\nPara utilizar o gerador por Inteligência Artificial, é necessário configurar sua GEMINI_API_KEY no localStorage.');
+      return;
+    }
+  }
+
+  allGenBtns.forEach(b => {
+    try {
       b.disabled = true;
-      b.dataset.origHtml = b.dataset.origHtml || b.innerHTML;
       b.innerHTML = '<i data-lucide="brain-circuit" class="w-4 h-4 animate-pulse text-cyan-300 inline-block align-middle mr-1"></i> Analisando Biomecânica & Curva de Torque...';
     } catch(e){}
   });
@@ -11191,26 +12239,21 @@ async function handleGenerateAITraining() {
   const generationPatientId = (patientSelect && patientSelect.value ? patientSelect.value : null) || activePatientId || "paulo-vitor";
 
   if (!generationPatientId) {
+    resetGenAiButtons();
     alert('❌ Nenhum paciente selecionado para gerar o treino.');
-    allGenBtns.forEach(b => {
-      try {
-        b.disabled = false;
-        b.innerHTML = b.dataset.origHtml || '<i data-lucide="sparkles" class="w-4 h-4 text-violet-200 inline-block align-middle mr-1"></i> Gerar Treino via IA (Co-piloto Biomecânico)';
-      } catch(e){}
-    });
-    if (window.lucide) window.lucide.createIcons();
     return;
   }
 
   try {
     // PASSO 1: Executa a pipeline canônica e segura através do orquestrador
-    const result = await generateAndValidateWorkout(generationPatientId, defaultPerformanceAIGenerator);
+    const result = await generateAndValidateWorkout(generationPatientId, geminiPerformanceAIGenerator);
 
     if (result.status === 'REJECT') {
+      resetGenAiButtons();
       const errMsg = result.errors && result.errors.length > 0
-        ? result.errors.join('\n')
+        ? result.errors.join('\n\n')
         : 'Não foi possível gerar uma prescrição compatível após 3 tentativas.';
-      alert(`❌ Falha na geração da prescrição:\n\n${errMsg}`);
+      alert('❌ Falha na geração da prescrição:\n\n' + errMsg);
       return;
     }
 
@@ -11309,24 +12352,14 @@ async function handleGenerateAITraining() {
     if (typeof perfSwitchView === 'function') perfSwitchView('prescription', false);
     if (typeof perfRender === 'function') perfRender();
 
-    // ⛔ NÃO HÁ CHAMADA A savePerformanceForPatient AQUI. A PERSISTÊNCIA OCORRE APENAS EM approveAITraining()
-
   } catch (err) {
     console.error('Erro ao executar pipeline segura de IA:', err);
     alert('Erro no processamento da IA: ' + err.message);
   } finally {
-    allGenBtns.forEach(b => {
-      try {
-        b.disabled = false;
-        b.innerHTML = b.dataset.origHtml || '<i data-lucide="sparkles" class="w-4 h-4 text-violet-200 inline-block align-middle mr-1"></i> Gerar Treino via IA (Co-piloto Biomecânico)';
-      } catch(e){}
-    });
-    if (window.lucide) window.lucide.createIcons();
+    resetGenAiButtons();
   }
 }
 
-// GERADOR DE PDF DE TREINAMENTO COMPLETO DA SEMANA (FICHA CLÍNICA & BIOMECÂNICA)
-// ════════════════════════════════════════════════════════════════════════════
 function perfGeneratePDF() {
   const patientSelect = document.getElementById('activePatientSelect');
   const patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
@@ -11710,7 +12743,11 @@ window.validateAIPrescription = validateAIPrescription;
 window.validatePrescriptionAgainstContext = validatePrescriptionAgainstContext;
 window.generateAndValidateWorkout = generateAndValidateWorkout;
 window.defaultPerformanceAIGenerator = defaultPerformanceAIGenerator;
+window.geminiPerformanceAIGenerator = geminiPerformanceAIGenerator;
+window.GEMINI_MODEL = GEMINI_MODEL;
 window.runPerformanceAITests = runPerformanceAITests;
+window.runGeminiPerformanceAITests = runGeminiPerformanceAITests;
+window.runPersonalizationPerformanceTests = runPersonalizationPerformanceTests;
 
 // ═══════════════════════════════════════════════════════════
 // MOTOR PWA MOBILE & GERENCIADOR DE INSTALAÇÃO NO CELULAR
