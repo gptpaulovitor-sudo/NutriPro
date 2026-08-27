@@ -1,4 +1,4 @@
-﻿// app.js - Application Controller, Per-Patient Cloud Sync & Bidirectional Engine
+// app.js - Application Controller, Per-Patient Cloud Sync & Bidirectional Engine
 // v2026.08.18-1323 — Drive list com botões + seletor atualiza após importar
 
 // Google Apps Script Web App Endpoint URL Configuration

@@ -3407,8 +3407,6 @@
           </div>
         </div>
 
-  </div>
-
   </section>
 
   <!-- 4.1 ADHERENCE & COMPLIANCE TAB (ABA 06) -->
@@ -3754,91 +3752,90 @@
   </section>
 
   <!-- 7. BACKUP TAB (GOOGLE DRIVE CLOUD ENGINE) -->
-  <section id="tab-backup" class="max-w-2xl mx-auto space-y-6 w-full hidden">
+  <section id="tab-backup" class="max-w-5xl mx-auto space-y-6 w-full hidden">
 
     <!-- Card Principal de Sincronização Google Drive -->
     <div
-      class="hud-card p-5 md:p-6 border border-emerald-800/80 bg-gradient-to-br from-emerald-950/50 via-zinc-950 to-black space-y-5 rounded-3xl shadow-[0_0_35px_rgba(16,185,129,0.18)]">
+      class="hud-card p-5 md:p-7 border border-emerald-800/80 bg-gradient-to-br from-emerald-950/60 via-zinc-950 to-black space-y-6 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.22)]">
 
       <!-- Header da Aba de Backup -->
-      <div class="flex items-center justify-between border-b border-zinc-800 pb-4 flex-wrap gap-2">
-        <div class="flex items-center gap-3">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-5 flex-wrap gap-3">
+        <div class="flex items-center gap-3.5">
           <div
-            class="w-12 h-12 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-700/60 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.35)] shrink-0">
-            <i data-lucide="cloud-upload" class="w-6 h-6 text-emerald-400"></i>
+            class="w-14 h-14 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-700/80 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] shrink-0">
+            <i data-lucide="cloud-upload" class="w-7 h-7 text-emerald-400"></i>
           </div>
           <div>
             <h1 class="text-xl md:text-2xl font-black text-white flex items-center gap-2">
               Drive Backup &amp; Sincronização
               <span
-                class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">Google
+                class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700 px-2.5 py-0.5 rounded-full font-bold uppercase shadow-sm">Google
                 Drive</span>
             </h1>
-            <p class="text-xs text-zinc-400">Armazenamento em nuvem individualizado por paciente com sincronização
-              bidirecional.</p>
+            <p class="text-xs text-zinc-400 mt-0.5">Armazenamento em nuvem individualizado por paciente com sincronização bidirecional completa.</p>
           </div>
         </div>
-        <span
-          class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[11px] font-mono text-zinc-300 font-bold">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Nuvem Ativa
-        </span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/70 text-xs font-mono text-emerald-300 font-bold flex items-center gap-1.5 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Paciente: <span id="backupActivePatientDisplay" class="text-white font-bold">Paulo Vitor</span>
+          </span>
+        </div>
       </div>
 
       <!-- Botões Principais de Ação Rápida (Mobile & Desktop) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <!-- Botão 1: Carregar da Nuvem -->
         <button onclick="loadPatientFromCloud(activePatientId, true)"
-          class="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 to-zinc-900 hover:from-emerald-900 hover:to-zinc-800 border-2 border-emerald-600/80 text-white font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.25)] flex flex-col items-start gap-1 group active:scale-95 text-left">
+          class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950 to-zinc-900 hover:from-emerald-900 hover:to-zinc-800 border-2 border-emerald-600/80 text-white font-bold transition-all shadow-[0_0_25px_rgba(16,185,129,0.25)] flex flex-col items-start gap-1.5 group active:scale-95 text-left cursor-pointer">
           <div class="flex items-center justify-between w-full">
-            <span class="text-sm font-black text-emerald-300 flex items-center gap-2">
+            <span class="text-sm md:text-base font-black text-emerald-300 flex items-center gap-2">
               <i data-lucide="cloud-download" class="w-5 h-5 text-emerald-400 group-hover:animate-bounce"></i>
               📥 Carregar Dados do Drive
             </span>
             <span
-              class="text-[10px] bg-emerald-900/80 text-emerald-200 px-2 py-0.5 rounded font-mono font-bold">BAIXAR</span>
+              class="text-[10px] bg-emerald-900/90 text-emerald-200 border border-emerald-700/60 px-2 py-0.5 rounded font-mono font-bold">BAIXAR</span>
           </div>
-          <p class="text-[11px] text-zinc-300 mt-1">
-            Baixa a dieta, treinos, histórico e dados do paciente ativo diretamente do Google Drive para este celular.
+          <p class="text-xs text-zinc-300">
+            Baixa a dieta, treinos, histórico e prontuário completo do paciente ativo diretamente do Google Drive para este dispositivo.
           </p>
         </button>
 
         <!-- Botão 2: Salvar na Nuvem -->
         <button onclick="savePatientToCloud(activePatientId)"
-          class="p-4 rounded-2xl btn-nax-primary text-white font-bold transition-all shadow-[0_0_20px_rgba(239,68,68,0.35)] flex flex-col items-start gap-1 group active:scale-95 text-left">
+          class="p-5 rounded-2xl btn-nax-primary text-white font-bold transition-all shadow-[0_0_25px_rgba(239,68,68,0.4)] flex flex-col items-start gap-1.5 group active:scale-95 text-left cursor-pointer">
           <div class="flex items-center justify-between w-full">
-            <span class="text-sm font-black text-white flex items-center gap-2">
+            <span class="text-sm md:text-base font-black text-white flex items-center gap-2">
               <i data-lucide="cloud-upload" class="w-5 h-5 text-white"></i>
               🚀 Salvar Paciente no Drive
             </span>
-            <span class="text-[10px] bg-red-950 text-red-200 px-2 py-0.5 rounded font-mono font-bold">ENVIAR</span>
+            <span class="text-[10px] bg-red-950 text-red-200 border border-red-800 px-2 py-0.5 rounded font-mono font-bold">ENVIAR</span>
           </div>
-          <p class="text-[11px] text-red-100/80 mt-1">
-            Envia as alterações de prescrição, avaliações e logs atuais para o arquivo na sua nuvem Google Drive.
+          <p class="text-xs text-red-100/90">
+            Envia as alterações de prescrição, cardápios, exames, avaliações e logs para o backup em nuvem no seu Google Drive.
           </p>
         </button>
       </div>
 
       <!-- Ações Secundárias & Configurações da API -->
-      <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 space-y-3">
-        <div class="flex items-center justify-between">
+      <div class="p-4 md:p-5 rounded-2xl bg-black/70 border border-zinc-800 space-y-3.5">
+        <div class="flex items-center justify-between flex-wrap gap-2">
           <span class="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-            <i data-lucide="settings" class="w-3.5 h-3.5 text-zinc-400"></i> Configuração do Google Apps Script
+            <i data-lucide="settings" class="w-4 h-4 text-zinc-400"></i> Configuração do Web App Google Apps Script
           </span>
           <button onclick="listDrivePatients()"
-            class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs flex items-center gap-1.5 transition-all">
+            class="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs flex items-center gap-1.5 border border-zinc-700 hover:border-emerald-500/50 transition-all cursor-pointer">
             <i data-lucide="folder-search" class="w-3.5 h-3.5 text-emerald-400"></i> Consultar Arquivos no Drive
           </button>
         </div>
 
         <div class="space-y-1.5">
-          <label class="block text-[11px] font-bold text-zinc-400">URL do Web App Google Script
-            (GOOGLE_SCRIPT_URL):</label>
+          <label class="block text-[11px] font-bold text-zinc-400 font-mono uppercase tracking-wider">URL do Web App Google Script (GOOGLE_SCRIPT_URL):</label>
           <div class="flex flex-col sm:flex-row gap-2">
             <input id="googleScriptUrlInput" type="text" placeholder="https://script.google.com/macros/s/.../exec"
               value="https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec"
               class="flex-1 p-2.5 bg-zinc-950 border border-zinc-700 rounded-xl text-zinc-200 focus:ring-2 focus:ring-emerald-500 font-mono text-xs" />
             <button onclick="saveGoogleScriptUrl()"
-              class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all shrink-0">
+              class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-all shrink-0 cursor-pointer shadow-sm">
               Salvar URL
             </button>
           </div>
@@ -3848,10 +3845,10 @@
       <!-- Painel de Status e Logs da Sincronização -->
       <div class="space-y-2">
         <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i> Log da Sincronização
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i> Log da Sincronização em Tempo Real
         </span>
         <div id="syncStatusMessage"
-          class="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 text-xs min-h-[48px] max-h-80 overflow-y-auto font-mono text-zinc-300 leading-relaxed">
+          class="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 text-xs min-h-[56px] max-h-80 overflow-y-auto font-mono text-zinc-300 leading-relaxed">
           Aguardando comando de sincronização com o Google Drive...
         </div>
       </div>
@@ -4617,8 +4614,6 @@
       </div>
     </div>
   </div>
-  </main>
-  </div>
 
   <!-- ═══ MODAL HUD: GUIA BIOMECÂNICO & GIF DE EXECUÇÃO (GIFDOTREINO.COM) ═══ -->
   <div id="modal-exercise-guide"
@@ -4760,6 +4755,8 @@
           Fechar Guia
         </button>
       </div>
+    </div>
+  </div>
 
       <!-- ═══════════════════════════════════════════════════════════
        MOBILE BOTTOM NAVIGATION BAR (FIXA PARA SMARTPHONES)
@@ -5339,10 +5336,10 @@
       </div>
 
       <!-- Custom Scripts -->
-      <script src="foodsData.js?v=20260824_numeric_schedule"></script>
-      <script src="db.js?v=20260824_numeric_schedule"></script>
-      <script src="math.js?v=20260824_numeric_schedule"></script>
-      <script src="app.js?v=20260824_numeric_schedule"></script>
+      <script src="foodsData.js?v=20260827_drive_fix"></script>
+      <script src="db.js?v=20260827_drive_fix"></script>
+      <script src="math.js?v=20260827_drive_fix"></script>
+      <script src="app.js?v=20260827_drive_fix"></script>
 </body>
 
 </html>
