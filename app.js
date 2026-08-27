@@ -9720,6 +9720,187 @@ let perfWorkoutMeta = {
   validatedAt: null
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+// CAMADA CANÔNICA DE CONTEXTO — PILAR 4 (PERFORMANCE)
+// buildPerformanceContext(patientId)
+//
+// Fonte única de verdade para o motor de geração de treinos e cardio da IA.
+// Lê exclusivamente do Dexie (db.patients + db.assessments + db.prescriptions)
+// e de math.js. NUNCA toca o DOM. NUNCA aplica regras fixas de déficit/superávit.
+//
+// DTO: PerformanceContext
+// ├── patient          → Dados biográficos e de treino do paciente
+// ├── anthropometry    → Composição corporal atual e meta
+// ├── energy           → TMB, GET e fator de atividade calculados via math.js
+// ├── nutrition        → Meta calórica real da prescrição ativa + balanço
+// └── constraints      → Restrições clínicas (mock inicial, expansível)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * @param {string} patientId - ID do paciente no Dexie
+ * @returns {Promise<Object|null>} PerformanceContext DTO ou null se paciente não encontrado
+ */
+async function buildPerformanceContext(patientId = activePatientId) {
+  const pId = patientId || activePatientId;
+  if (!pId) {
+    console.warn('[buildPerformanceContext] Nenhum patientId fornecido.');
+    return null;
+  }
+
+  // ── 1. DADOS CADASTRAIS (db.patients) ────────────────────────────────────
+  const p = await db.patients.get(pId);
+  if (!p) {
+    console.warn(`[buildPerformanceContext] Paciente "${pId}" não encontrado no Dexie.`);
+    return null;
+  }
+
+  const age           = parseInt(p.age) || 30;
+  const sex           = p.gender || 'Masculino';             // 'Masculino' | 'Feminino'
+  const heightCm      = (parseFloat(p.height) || 1.70) * 100; // converte m → cm
+  const weightKg      = parseFloat(p.currentWeight) || parseFloat(p.usualWeight) || 70.0;
+  const objective     = p.objective || 'Manutenção & Saúde';
+  const patientType   = p.patientType || 'Praticante recreativo';
+  const activityFactor = parseFloat(p.activityFactor) || 1.42;
+
+  // Nível de treino: inferido do patientType + workoutFrequency
+  const trainingLevel = (() => {
+    const t = String(patientType).toLowerCase();
+    if (t.includes('atleta') || t.includes('alto rendimento')) return 'Avançado';
+    if (t.includes('intermediário') || t.includes('intermediario')) return 'Intermediário';
+    return 'Iniciante/Recreativo';
+  })();
+
+  // ── 2. COMPOSIÇÃO CORPORAL (db.assessments — avaliação mais recente) ─────
+  let assessments = await db.assessments
+    .where('patientId').equals(pId).toArray();
+
+  // Filtra registros de seed/demo e ordena do mais recente ao mais antigo
+  assessments = (assessments || [])
+    .filter(e => e && !String(e.id).startsWith('eval_pv_'))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const latestEval = assessments[0] || null;
+
+  // Usa dados da avaliação se disponíveis; fallback via math.js (estimativa básica)
+  const bodyFatPercent = latestEval
+    ? (parseFloat(latestEval.fatPercent) || (sex === 'Masculino' ? 18.0 : 25.0))
+    : (sex === 'Masculino' ? 18.0 : 25.0);
+
+  const targetBodyFatPercent = latestEval
+    ? (parseFloat(latestEval.targetBF) || (sex === 'Masculino' ? 12.0 : 20.0))
+    : (sex === 'Masculino' ? 12.0 : 20.0);
+
+  // leanMassKg: preferência para o valor salvo na avaliação; fallback calculado
+  const leanMassKg = latestEval && parseFloat(latestEval.leanMass) > 0
+    ? parseFloat(latestEval.leanMass)
+    : Math.round((weightKg * (1 - bodyFatPercent / 100)) * 10) / 10;
+
+  // ── 3. ENERGÉTICA (math.js — Katch-McArdle + Fator de Atividade) ─────────
+  // calculateTMB prioriza Katch-McArdle quando leanMassKg > 0 (sempre aqui)
+  const tmbResult  = calculateTMB(sex, age, weightKg, heightCm / 100, leanMassKg);
+  const tmbKcal    = Math.round(tmbResult.tmb);
+  const getKcal    = Math.round(calculateGET(tmbKcal, activityFactor));
+  const tmbMethod  = tmbResult.method; // string informativa (Katch-McArdle / Mifflin)
+
+  // ── 4. NUTRIÇÃO (db.prescriptions — prescrição dietética ativa) ──────────
+  // A meta calórica REAL é a soma calórica dos itens da prescrição ativa,
+  // não um valor estimado por fórmula. Se não houver prescrição ativa, usa o
+  // GET como referência basal (nutricionista ainda não prescreveu).
+  const prescRecord = await db.prescriptions.get(pId);
+  const prescItems  = (prescRecord && Array.isArray(prescRecord.items)) ? prescRecord.items : [];
+
+  const prescribedKcal = prescItems.length > 0
+    ? Math.round(prescItems.reduce((sum, item) => sum + (parseFloat(item.calories) || 0), 0))
+    : null; // null = prescrição não salva ainda
+
+  // Meta calórica consolidada: prescrição dietética salva > GET como fallback
+  const caloricTargetKcal = prescribedKcal !== null ? prescribedKcal : getKcal;
+
+  // Balanço energético: SEMPRE calculado como (Meta Calórica - GET)
+  // Regra: positivo = superávit, negativo = déficit, zero = manutenção
+  const energyBalanceKcal = caloricTargetKcal - getKcal;
+
+  // Proteína g/kg: tenta ler do campo de meta proteica da prescrição; fallback por objetivo
+  let proteinGKg = 2.0;
+  if (prescRecord && parseFloat(prescRecord.protGKg) > 0) {
+    proteinGKg = parseFloat(prescRecord.protGKg);
+  } else if (prescItems.length > 0) {
+    // Calcula g/kg a partir dos itens reais (soma de proteína / peso)
+    const totalProtG = prescItems.reduce((s, i) => s + (parseFloat(i.protein) || 0), 0);
+    if (totalProtG > 0 && weightKg > 0) {
+      proteinGKg = Math.round((totalProtG / weightKg) * 10) / 10;
+    }
+  }
+
+  // ── 5. RESTRIÇÕES CLÍNICAS (mock inicial — expansível via Dexie) ──────────
+  // Futuro: ler de db.patients.clinicalConstraints ou db.clinicalExams
+  const constraints = {
+    injuries:             [],          // ex: ['Lombar', 'Ombro Direito']
+    prohibitedExercises:  [],          // ex: ['Agachamento Livre', 'Supino Reto']
+    availableEquipment:   'Full Gym',  // 'Full Gym' | 'Home Gym' | 'Calistenia' | 'Mínimo'
+    prescribedCardioId:   typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
+  };
+
+  // ── 6. MONTAGEM DO DTO CANÔNICO ───────────────────────────────────────────
+  const context = {
+    // Metadados de auditoria do DTO
+    _meta: {
+      builtAt:          new Date().toISOString(),
+      patientId:        pId,
+      hasAssessment:    latestEval !== null,
+      assessmentDate:   latestEval ? latestEval.date : null,
+      hasPrescription:  prescItems.length > 0,
+      tmbMethod,
+    },
+
+    patient: {
+      age,
+      sex,                   // 'Masculino' | 'Feminino'
+      weightKg,              // peso atual (kg)
+      heightCm,              // altura (cm) — 196.0, não 1.96
+      objective,             // string do Dexie: 'Hipertrofia & Recomposição', 'Perda de peso', etc.
+      trainingLevel,         // 'Iniciante/Recreativo' | 'Intermediário' | 'Avançado'
+      patientType,           // 'Praticante recreativo', 'Atleta', etc.
+    },
+
+    anthropometry: {
+      bodyFatPercent,        // % de gordura atual (Jackson-Pollock ou avaliação salva)
+      targetBodyFatPercent,  // meta de %gordura (campo targetBF na avaliação)
+      leanMassKg,            // massa magra (kg) — chave para Katch-McArdle
+    },
+
+    energy: {
+      tmbKcal,               // Taxa Metabólica Basal via Katch-McArdle (kcal/dia)
+      getKcal,               // Gasto Energético Total = TMB × FA (kcal/dia)
+      activityFactor,        // fator de atividade (ex: 1.42)
+    },
+
+    nutrition: {
+      caloricTargetKcal,     // meta calórica REAL da prescrição ativa (ou GET como fallback)
+      energyBalanceKcal,     // = caloricTargetKcal - getKcal (positivo = superávit)
+      proteinGKg,            // aporte proteico (g/kg peso)
+      prescriptionSource:    prescItems.length > 0 ? 'prescribed' : 'estimated_from_get',
+    },
+
+    constraints,
+  };
+
+  console.info('[buildPerformanceContext] DTO construído:', JSON.stringify({
+    patientId:        context._meta.patientId,
+    hasAssessment:    context._meta.hasAssessment,
+    hasPrescription:  context._meta.hasPrescription,
+    tmbKcal:          context.energy.tmbKcal,
+    getKcal:          context.energy.getKcal,
+    caloricTargetKcal: context.nutrition.caloricTargetKcal,
+    energyBalanceKcal: context.nutrition.energyBalanceKcal,
+    leanMassKg:       context.anthropometry.leanMassKg,
+    bodyFatPercent:   context.anthropometry.bodyFatPercent,
+    targetBodyFatPercent: context.anthropometry.targetBodyFatPercent,
+  }, null, 2));
+
+  return context;
+}
+
 async function savePerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
   if (!pId) return;
