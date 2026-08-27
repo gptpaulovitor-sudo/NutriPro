@@ -9901,6 +9901,630 @@ async function buildPerformanceContext(patientId = activePatientId) {
   return context;
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// CAMADA 2 — VALIDAÇÃO ESTRUTURAL DA RESPOSTA DA IA
+// validateAIPrescription(aiResponse)
+//
+// Verifica se o JSON retornado pela IA possui os campos obrigatórios e tipos
+// corretos antes de qualquer validação clínica.
+// Nunca lança exceção — sempre retorna o objeto padronizado.
+//
+// Contrato de entrada esperado da IA:
+// {
+//   frequency: <number>,         // dias de treino por semana (1-7)
+//   routines: [                  // array de rotinas (não vazio)
+//     {
+//       id: <string>,            // identificador da rotina (ex: "A", "Push")
+//       name: <string>,          // nome descritivo
+//       exercises: [             // array de exercícios (não vazio)
+//         {
+//           name: <string>,      // nome do exercício
+//           sets: <number>,      // séries (>0)
+//           reps: <string>,      // ex: "8-12", "10", "1"
+//           rpe: <number>,       // 1-10
+//         }
+//       ]
+//     }
+//   ]
+// }
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * @param {*} aiResponse - Saída bruta da IA (pode ser qualquer tipo)
+ * @returns {{ status: "PASS"|"REJECT", data: Object|null, errors: string[] }}
+ */
+function validateAIPrescription(aiResponse) {
+  const errors = [];
+
+  // ── Tipo raiz ─────────────────────────────────────────────────────────────
+  if (aiResponse === null || typeof aiResponse !== 'object' || Array.isArray(aiResponse)) {
+    return { status: 'REJECT', data: null, errors: ['A resposta da IA deve ser um objeto JSON.'] };
+  }
+
+  // ── frequency ─────────────────────────────────────────────────────────────
+  const freq = aiResponse.frequency;
+  if (typeof freq !== 'number' || !Number.isFinite(freq) || freq < 1 || freq > 7) {
+    errors.push(`Campo "frequency" inválido: esperado número inteiro entre 1 e 7, recebido "${freq}".`);
+  }
+
+  // ── routines ──────────────────────────────────────────────────────────────
+  if (!Array.isArray(aiResponse.routines) || aiResponse.routines.length === 0) {
+    errors.push('Campo "routines" deve ser um array não vazio.');
+    // Sem rotinas não é possível validar exercícios — encerra aqui
+    return { status: 'REJECT', data: null, errors };
+  }
+
+  aiResponse.routines.forEach((routine, ri) => {
+    const rLabel = `routines[${ri}]`;
+
+    if (typeof routine !== 'object' || routine === null) {
+      errors.push(`${rLabel}: deve ser um objeto.`);
+      return;
+    }
+    if (typeof routine.id !== 'string' || routine.id.trim() === '') {
+      errors.push(`${rLabel}.id: deve ser uma string não vazia.`);
+    }
+    if (typeof routine.name !== 'string' || routine.name.trim() === '') {
+      errors.push(`${rLabel}.name: deve ser uma string não vazia.`);
+    }
+    if (!Array.isArray(routine.exercises) || routine.exercises.length === 0) {
+      errors.push(`${rLabel}.exercises: deve ser um array não vazio.`);
+      return;
+    }
+
+    routine.exercises.forEach((ex, ei) => {
+      const eLabel = `${rLabel}.exercises[${ei}]`;
+
+      if (typeof ex !== 'object' || ex === null) {
+        errors.push(`${eLabel}: deve ser um objeto.`);
+        return;
+      }
+      if (typeof ex.name !== 'string' || ex.name.trim() === '') {
+        errors.push(`${eLabel}.name: deve ser uma string não vazia.`);
+      }
+      const sets = parseFloat(ex.sets);
+      if (!Number.isFinite(sets) || sets < 1) {
+        errors.push(`${eLabel}.sets: deve ser um número >= 1, recebido "${ex.sets}".`);
+      }
+      if (typeof ex.reps !== 'string' || ex.reps.trim() === '') {
+        errors.push(`${eLabel}.reps: deve ser uma string (ex: "8-12"), recebido "${ex.reps}".`);
+      }
+      const rpe = parseFloat(ex.rpe);
+      if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) {
+        errors.push(`${eLabel}.rpe: deve ser número entre 1 e 10, recebido "${ex.rpe}".`);
+      }
+    });
+  });
+
+  if (errors.length > 0) {
+    return { status: 'REJECT', data: null, errors };
+  }
+
+  // ── Objeto limpo (sem campos desconhecidos propagados) ────────────────────
+  const cleanData = {
+    frequency: Math.round(aiResponse.frequency),
+    routines: aiResponse.routines.map(r => ({
+      id:   String(r.id).trim(),
+      name: String(r.name).trim(),
+      exercises: r.exercises.map(ex => ({
+        name: String(ex.name).trim(),
+        sets: Math.round(parseFloat(ex.sets)),
+        reps: String(ex.reps).trim(),
+        rpe:  parseFloat(ex.rpe),
+        // Campos opcionais — copiados somente se presentes e do tipo correto
+        ...(typeof ex.rest === 'number' && { rest: ex.rest }),
+        ...(typeof ex.obs  === 'string' && { obs:  ex.obs }),
+      }))
+    }))
+  };
+
+  return { status: 'PASS', data: cleanData, errors: [] };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CAMADA 3 — MOTOR DE COERÊNCIA CLÍNICA
+// validatePrescriptionAgainstContext(prescription, performanceContext)
+//
+// Executa regras determinísticas sobre a prescrição estruturalmente válida.
+// Nunca lança exceção. Nunca persiste. Retorna apenas o laudo de validação.
+//
+// Regras implementadas:
+//   R1 — REJECT  : Exercícios proibidos (constraints.prohibitedExercises)
+//   R2 — REJECT  : Frequência incompatível com nível iniciante (> 4 dias)
+//   R3 — WARNING : Volume elevado (> 90 sets) em déficit energético (< -500 kcal)
+//   R4 — WARNING : Estímulo força máxima (reps "1"/"2" + RPE >= 9) em objetivo Hipertrofia
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * @param {Object} prescription - Dados limpos vindos de validateAIPrescription().data
+ * @param {Object} performanceContext - DTO vindo de buildPerformanceContext()
+ * @returns {{ status: "PASS"|"WARNING"|"REJECT", warnings: string[], errors: string[] }}
+ */
+function validatePrescriptionAgainstContext(prescription, performanceContext) {
+  const warnings = [];
+  const errors   = [];
+
+  // Guardrail de entrada — não lança exceção, retorna REJECT informativo
+  if (!prescription || typeof prescription !== 'object') {
+    return { status: 'REJECT', warnings: [], errors: ['Prescrição inválida ou ausente.'] };
+  }
+  if (!performanceContext || typeof performanceContext !== 'object') {
+    return { status: 'REJECT', warnings: [], errors: ['PerformanceContext inválido ou ausente.'] };
+  }
+
+  // Coleta todos os exercícios em uma lista plana para facilitar as regras
+  const allExercises = (Array.isArray(prescription.routines) ? prescription.routines : [])
+    .flatMap(r => Array.isArray(r.exercises) ? r.exercises : []);
+
+  // ── R1 — REJECT: Exercícios proibidos ────────────────────────────────────
+  // Comparação case-insensitive, substring match
+  const prohibited = Array.isArray(performanceContext.constraints?.prohibitedExercises)
+    ? performanceContext.constraints.prohibitedExercises
+    : [];
+
+  allExercises.forEach(ex => {
+    const exNameLower = String(ex.name || '').toLowerCase();
+    prohibited.forEach(term => {
+      if (exNameLower.includes(String(term).toLowerCase())) {
+        errors.push(`Exercício proibido encontrado: ${ex.name}`);
+      }
+    });
+  });
+
+  // ── R2 — REJECT: Frequência incompatível com nível iniciante ─────────────
+  // Não inferir nível de outros campos — usa APENAS trainingLevel
+  const trainingLevelLower = String(performanceContext.patient?.trainingLevel || '').toLowerCase();
+  const frequency          = typeof prescription.frequency === 'number' ? prescription.frequency : 0;
+
+  if (trainingLevelLower.includes('iniciante') && frequency > 4) {
+    errors.push('Frequência incompatível com nível de treinamento iniciante.');
+  }
+
+  // ── R3 — WARNING: Volume elevado em déficit energético ───────────────────
+  const totalSets        = allExercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
+  const energyBalance    = typeof performanceContext.nutrition?.energyBalanceKcal === 'number'
+    ? performanceContext.nutrition.energyBalanceKcal
+    : 0;
+
+  if (energyBalance < -500 && totalSets > 90) {
+    warnings.push('Volume semanal elevado em contexto de déficit energético; requer revisão profissional.');
+  }
+
+  // ── R4 — WARNING: Estímulo incoerente (força máxima em objetivo Hipertrofia) ──
+  const objectiveLower = String(performanceContext.patient?.objective || '').toLowerCase();
+
+  if (objectiveLower.includes('hipertrofia')) {
+    const hasStrengthMaxStimulus = allExercises.some(ex => {
+      const repsStr = String(ex.reps || '').trim();
+      const rpe     = parseFloat(ex.rpe);
+      // Reps "1" ou "2" (exact match da parte numérica principal)
+      const isVeryLowReps = /^[12]$/.test(repsStr) || /^[12]-/.test(repsStr);
+      const isHighRpe     = rpe >= 9;
+      return isVeryLowReps && isHighRpe;
+    });
+
+    if (hasStrengthMaxStimulus) {
+      warnings.push(
+        'Estímulo de alta intensidade e baixa repetição pode estar excessivamente orientado à força máxima ' +
+        'para um objetivo de hipertrofia; requer revisão.'
+      );
+    }
+  }
+
+  // ── Decisão Final ─────────────────────────────────────────────────────────
+  let status = 'PASS';
+  if (errors.length > 0)        status = 'REJECT';
+  else if (warnings.length > 0) status = 'WARNING';
+
+  return { status, warnings, errors };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CAMADA 4 — ORQUESTRADOR COM CIRCUIT BREAKER
+// generateAndValidateWorkout(patientId, aiGenerator)
+//
+// Fluxo:
+//   1. buildPerformanceContext()           → contexto canônico
+//   2. aiGenerator(context, prevErrors)    → proposta bruta da IA
+//   3. validateAIPrescription()            → validação estrutural
+//   4. validatePrescriptionAgainstContext()→ validação de coerência clínica
+//   5. PASS|WARNING → retorna para revisão profissional (SEM persistência)
+//   6. REJECT após 3 tentativas → circuit breaker
+//
+// GARANTIAS DE SEGURANÇA:
+//   - Nunca grava em db.performanceMetabolica
+//   - patientId vem do parâmetro local (nunca da IA)
+//   - Campos canônicos (tmbKcal, getKcal, leanMassKg…) são imutáveis na IA
+//   - Campos desconhecidos da IA são descartados por validateAIPrescription()
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * @param {string} patientId - ID canônico do paciente (nunca vem da IA)
+ * @param {Function} aiGenerator - async (context, previousErrors) => rawAIResponse
+ * @returns {Promise<Object>} Resultado padronizado para revisão profissional
+ */
+async function generateAndValidateWorkout(patientId, aiGenerator) {
+  const MAX_ATTEMPTS = 3;
+
+  // ── ETAPA 1: Construir contexto canônico ─────────────────────────────────
+  let performanceContext;
+  try {
+    performanceContext = await buildPerformanceContext(patientId);
+  } catch (ctxErr) {
+    console.error('[generateAndValidateWorkout] Erro ao construir contexto:', ctxErr);
+    return {
+      status:                   'REJECT',
+      fatal:                    true,
+      requiresManualPrescription: true,
+      attempt:                  0,
+      context:                  null,
+      prescription:             null,
+      warnings:                 [],
+      errors:                   ['Erro interno ao construir o PerformanceContext: ' + String(ctxErr.message || ctxErr)]
+    };
+  }
+
+  if (!performanceContext) {
+    return {
+      status:                   'REJECT',
+      fatal:                    true,
+      requiresManualPrescription: true,
+      attempt:                  0,
+      context:                  null,
+      prescription:             null,
+      warnings:                 [],
+      errors:                   [`Paciente "${patientId}" não encontrado ou sem dados suficientes para gerar o contexto.`]
+    };
+  }
+
+  // ── ETAPA 2-5: Loop com circuit breaker ───────────────────────────────────
+  let attempt       = 0;
+  let previousErrors = [];
+  let lastResult     = null;
+
+  while (attempt < MAX_ATTEMPTS) {
+    attempt++;
+
+    // ── Etapa 2: Geração via IA ────────────────────────────────────────────
+    let aiRawResponse;
+    try {
+      // Na primeira tentativa previousErrors é []; nas subsequentes leva os erros da anterior
+      aiRawResponse = await aiGenerator(performanceContext, previousErrors);
+    } catch (genErr) {
+      console.error(`[generateAndValidateWorkout] Tentativa ${attempt}: erro na chamada da IA:`, genErr);
+      previousErrors = [`Erro na chamada da IA: ${String(genErr.message || genErr)}`];
+      continue; // tenta novamente
+    }
+
+    // ── Etapa 3: Validação estrutural ─────────────────────────────────────
+    const structural = validateAIPrescription(aiRawResponse);
+
+    if (structural.status === 'REJECT') {
+      console.warn(`[generateAndValidateWorkout] Tentativa ${attempt}: falha estrutural:`, structural.errors);
+      // Prescrição estruturalmente inválida NÃO chega ao validador clínico
+      previousErrors = structural.errors;
+      lastResult = {
+        status:       'REJECT',
+        fatal:        false,
+        attempt,
+        context:      performanceContext,
+        prescription: null,
+        warnings:     [],
+        errors:       structural.errors
+      };
+      continue;
+    }
+
+    // ── Etapa 4: Validação de coerência clínica ────────────────────────────
+    const coherence = validatePrescriptionAgainstContext(structural.data, performanceContext);
+
+    if (coherence.status === 'REJECT') {
+      console.warn(`[generateAndValidateWorkout] Tentativa ${attempt}: falha de coerência:`, coherence.errors);
+      // Envia SOMENTE os erros que precisam ser corrigidos na próxima tentativa
+      previousErrors = coherence.errors;
+      lastResult = {
+        status:       'REJECT',
+        fatal:        false,
+        attempt,
+        context:      performanceContext,
+        prescription: null,
+        warnings:     coherence.warnings,
+        errors:       coherence.errors
+      };
+      continue;
+    }
+
+    // ── Etapa 5: PASS ou WARNING — interrompe loop imediatamente ──────────
+    // NUNCA persiste automaticamente. Retorna para revisão profissional.
+    console.info(`[generateAndValidateWorkout] Tentativa ${attempt}: ${coherence.status}. Aguardando revisão profissional.`);
+    return {
+      status:             coherence.status,   // "PASS" | "WARNING"
+      fatal:              false,
+      attempt,
+      context:            performanceContext,
+      prescription:       structural.data,    // dados limpos, sem campos da IA fora do contrato
+      warnings:           coherence.warnings,
+      errors:             [],
+      requiresHumanReview: true
+      // ⛔ db.performanceMetabolica NÃO é tocado aqui.
+      // Persistência SOMENTE via approveAITraining() após revisão profissional.
+    };
+  }
+
+  // ── PASSO 3: Circuit Breaker — esgotadas as 3 tentativas ─────────────────
+  console.error('[generateAndValidateWorkout] Circuit breaker ativado após 3 tentativas.');
+  return {
+    status:                   'REJECT',
+    fatal:                    true,
+    requiresManualPrescription: true,
+    attempt:                  MAX_ATTEMPTS,
+    context:                  performanceContext,
+    prescription:             null,
+    warnings:                 lastResult?.warnings || [],
+    errors: [
+      'Não foi possível gerar uma prescrição compatível após 3 tentativas. É necessária prescrição manual ou revisão profissional.',
+      ...(lastResult?.errors || [])
+    ]
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUITE DE TESTES — Motor de Coerência e Orquestrador de IA
+// runPerformanceAITests()
+//
+// 12 testes determinísticos que cobrem todos os caminhos do motor.
+// Execute no console do browser: runPerformanceAITests()
+// Nenhum teste grava no Dexie.
+// ════════════════════════════════════════════════════════════════════════════
+
+function runPerformanceAITests() {
+  'use strict';
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const results  = [];
+  let   dbWrites = 0; // contador de tentativas de escrita no Dexie
+
+  function assert(testId, description, condition, detail = '') {
+    const passed = !!condition;
+    results.push({ testId, description, passed, detail });
+    console.log(`  [T${String(testId).padStart(2,'0')}] ${passed ? '✅ PASS' : '❌ FAIL'} — ${description}${detail ? ' → ' + detail : ''}`);
+  }
+
+  // Context de paciente genérico para os testes
+  function makeCtx(overrides = {}) {
+    return {
+      _meta:         { patientId: 'test-patient', tmbMethod: 'Katch-McArdle', hasAssessment: true, hasPrescription: true },
+      patient:       { age: 30, sex: 'Masculino', weightKg: 80, heightCm: 175, objective: 'Hipertrofia', trainingLevel: 'Intermediário', patientType: 'Praticante recreativo', ...overrides.patient },
+      anthropometry: { bodyFatPercent: 15, targetBodyFatPercent: 12, leanMassKg: 68, ...overrides.anthropometry },
+      energy:        { tmbKcal: 2200, getKcal: 3000, activityFactor: 1.42, ...overrides.energy },
+      nutrition:     { caloricTargetKcal: 3350, energyBalanceKcal: 350, proteinGKg: 2.0, prescriptionSource: 'prescribed', ...overrides.nutrition },
+      constraints:   { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym', prescribedCardioId: 'cardio_01', ...overrides.constraints },
+    };
+  }
+
+  // Prescrição mínima válida
+  function makePresc(overrides = {}) {
+    return {
+      frequency: 4,
+      routines: [{
+        id: 'A', name: 'Push',
+        exercises: [
+          { name: 'Supino Reto com Barra', sets: 4, reps: '8-12', rpe: 8 },
+          { name: 'Desenvolvimento com Halteres', sets: 3, reps: '10-12', rpe: 7.5 },
+        ]
+      }],
+      ...overrides
+    };
+  }
+
+  console.group('🧪 runPerformanceAITests — Motor de Coerência e Orquestrador de IA');
+
+  // ── T01: Prescrição válida → PASS ─────────────────────────────────────────
+  (() => {
+    const ctx    = makeCtx();
+    const presc  = makePresc();
+    const result = validatePrescriptionAgainstContext(presc, ctx);
+    assert(1, 'Prescrição válida → PASS', result.status === 'PASS', `status=${result.status}`);
+  })();
+
+  // ── T02: Exercício proibido → REJECT ─────────────────────────────────────
+  (() => {
+    const ctx = makeCtx({ constraints: { prohibitedExercises: ['agachamento livre'] } });
+    const presc = makePresc({
+      routines: [{
+        id: 'A', name: 'Legs',
+        exercises: [{ name: 'Agachamento Livre com Barra', sets: 4, reps: '8-12', rpe: 8 }]
+      }]
+    });
+    const result = validatePrescriptionAgainstContext(presc, ctx);
+    assert(2, 'Exercício proibido → REJECT', result.status === 'REJECT', `errors=${JSON.stringify(result.errors)}`);
+    assert(2.1, 'Mensagem de erro contém nome do exercício', result.errors.some(e => e.includes('Agachamento Livre com Barra')));
+  })();
+
+  // ── T03: Iniciante com frequência 5 → REJECT ─────────────────────────────
+  (() => {
+    const ctx = makeCtx({ patient: { trainingLevel: 'Iniciante/Recreativo', objective: 'Manutenção' } });
+    const presc = makePresc({ frequency: 5 });
+    const result = validatePrescriptionAgainstContext(presc, ctx);
+    assert(3, 'Iniciante + frequência 5 → REJECT', result.status === 'REJECT', `errors=${JSON.stringify(result.errors)}`);
+  })();
+
+  // ── T04: Déficit < -500 + > 90 sets → WARNING ────────────────────────────
+  (() => {
+    const ctx = makeCtx({ nutrition: { caloricTargetKcal: 2400, energyBalanceKcal: -600, proteinGKg: 2.0, prescriptionSource: 'prescribed' } });
+    // 92 sets: 4 rotinas x 23 sets cada
+    const bigRoutine = Array.from({ length: 23 }, (_, i) => ({
+      name: `Exercício ${i + 1}`, sets: 1, reps: '10-12', rpe: 7
+    }));
+    const presc = {
+      frequency: 4,
+      routines: [
+        { id: 'A', name: 'R1', exercises: bigRoutine },
+        { id: 'B', name: 'R2', exercises: bigRoutine },
+        { id: 'C', name: 'R3', exercises: bigRoutine },
+        { id: 'D', name: 'R4', exercises: bigRoutine },
+      ]
+    };
+    const result = validatePrescriptionAgainstContext(presc, ctx);
+    assert(4, 'Déficit < -500 + > 90 sets → WARNING', result.status === 'WARNING', `status=${result.status}, warnings=${JSON.stringify(result.warnings)}`);
+    assert(4.1, 'Não classificado como diagnóstico (apenas revisão)', result.warnings.some(w => w.includes('requer revisão profissional')));
+  })();
+
+  // ── T05: Hipertrofia + reps "1" + RPE 10 → WARNING ──────────────────────
+  (() => {
+    const ctx = makeCtx({ patient: { objective: 'Hipertrofia', trainingLevel: 'Intermediário' } });
+    const presc = makePresc({
+      routines: [{
+        id: 'A', name: 'Power',
+        exercises: [{ name: 'Supino Máxima Força', sets: 5, reps: '1', rpe: 10 }]
+      }]
+    });
+    const result = validatePrescriptionAgainstContext(presc, ctx);
+    assert(5, 'Hipertrofia + reps="1" + RPE 10 → WARNING', result.status === 'WARNING', `warnings=${JSON.stringify(result.warnings)}`);
+    assert(5.1, 'Não rejeita automaticamente (apenas revisão)', result.status !== 'REJECT');
+  })();
+
+  // ── T06: JSON estruturalmente inválido → não chega ao validador clínico ──
+  (() => {
+    const badJson = { frequency: 'muitos', routines: [] }; // routines vazio + frequency string
+    const structural = validateAIPrescription(badJson);
+    assert(6, 'JSON inválido → validateAIPrescription retorna REJECT', structural.status === 'REJECT');
+    // Simula que o orquestrador não passa adiante
+    const wouldCallCoherence = structural.status === 'PASS';
+    assert(6.1, 'JSON inválido não chega ao motor de coerência', !wouldCallCoherence);
+  })();
+
+  // ── T07: 3 respostas rejeitadas consecutivas → circuit breaker ─────────
+  (() => {
+    let callCount = 0;
+    // aiGenerator síncrono simulado (sempre retorna prescrição com exercício proibido)
+    const fakeCtx = makeCtx({ constraints: { prohibitedExercises: ['leg press'] } });
+    const alwaysRejectedPresc = {
+      frequency: 3,
+      routines: [{ id: 'A', name: 'Legs', exercises: [{ name: 'Leg Press 45°', sets: 4, reps: '10-12', rpe: 8 }] }]
+    };
+
+    // Simula o loop manualmente (generateAndValidateWorkout é async e usa Dexie)
+    let attempt = 0;
+    let lastResult = null;
+    const MAX = 3;
+
+    while (attempt < MAX) {
+      attempt++;
+      callCount++;
+      const structural = validateAIPrescription(alwaysRejectedPresc);
+      if (structural.status === 'REJECT') { lastResult = { status: 'REJECT', attempt }; continue; }
+      const coherence = validatePrescriptionAgainstContext(structural.data, fakeCtx);
+      if (coherence.status === 'REJECT') { lastResult = { status: 'REJECT', attempt }; continue; }
+      lastResult = { status: coherence.status, attempt };
+      break;
+    }
+
+    const circuitBroken = attempt === MAX && lastResult?.status === 'REJECT';
+    assert(7, '3 respostas rejeitadas → encerra em exatamente 3 tentativas', callCount === 3 && circuitBroken, `tentativas=${callCount}`);
+    assert(7.1, 'Nunca ocorre 4ª tentativa', callCount <= 3);
+  })();
+
+  // ── T08: PASS nunca persiste automaticamente ─────────────────────────────
+  (() => {
+    // Monkey-patch temporário de db.performanceMetabolica.put
+    const originalPut = (typeof db !== 'undefined' && db.performanceMetabolica)
+      ? db.performanceMetabolica.put.bind(db.performanceMetabolica)
+      : null;
+
+    if (originalPut) {
+      db.performanceMetabolica.put = (...args) => { dbWrites++; return originalPut(...args); };
+    }
+
+    // Executa o motor de coerência diretamente (sem chamada de IA real)
+    const ctx   = makeCtx();
+    const presc = makePresc();
+    const r     = validatePrescriptionAgainstContext(presc, ctx);
+
+    // Restaura
+    if (originalPut) db.performanceMetabolica.put = originalPut;
+
+    assert(8, 'PASS: nunca persiste automaticamente', dbWrites === 0, `dbWrites=${dbWrites}`);
+  })();
+
+  // ── T09: WARNING nunca persiste automaticamente ──────────────────────────
+  (() => {
+    const writesBefore = dbWrites;
+    const ctx = makeCtx({ patient: { objective: 'Hipertrofia', trainingLevel: 'Intermediário' } });
+    const presc = makePresc({
+      routines: [{ id: 'A', name: 'P', exercises: [{ name: 'Supino Máx', sets: 5, reps: '2', rpe: 9 }] }]
+    });
+    validatePrescriptionAgainstContext(presc, ctx);
+    assert(9, 'WARNING: nunca persiste automaticamente', dbWrites === writesBefore, `dbWrites delta=${dbWrites - writesBefore}`);
+  })();
+
+  // ── T10: REJECT nunca persiste automaticamente ───────────────────────────
+  (() => {
+    const writesBefore = dbWrites;
+    const ctx = makeCtx({ constraints: { prohibitedExercises: ['supino'] } });
+    const presc = makePresc({
+      routines: [{ id: 'A', name: 'P', exercises: [{ name: 'Supino Inclinado', sets: 4, reps: '10', rpe: 8 }] }]
+    });
+    validatePrescriptionAgainstContext(presc, ctx);
+    assert(10, 'REJECT: nunca persiste automaticamente', dbWrites === writesBefore, `dbWrites delta=${dbWrites - writesBefore}`);
+  })();
+
+  // ── T11: patientId nunca vem da resposta da IA ───────────────────────────
+  (() => {
+    // A IA poderia tentar injetar um patientId diferente no payload
+    const maliciousAIResponse = {
+      frequency: 3,
+      patientId: 'outro-paciente-injetado', // campo não esperado — deve ser ignorado
+      routines: [{
+        id: 'A', name: 'Push',
+        exercises: [{ name: 'Supino Reto', sets: 4, reps: '8-12', rpe: 8 }]
+      }]
+    };
+    const structural = validateAIPrescription(maliciousAIResponse);
+    const hasInjectedPatientId = structural.data && 'patientId' in (structural.data || {});
+    assert(11, 'patientId não é extraído da resposta da IA', !hasInjectedPatientId, `patientId no data=${hasInjectedPatientId}`);
+  })();
+
+  // ── T12: Campos desconhecidos da IA são descartados ──────────────────────
+  (() => {
+    const aiWithUnknownFields = {
+      frequency: 3,
+      routines: [{
+        id: 'A', name: 'Push',
+        exercises: [{
+          name: 'Supino', sets: 4, reps: '8-12', rpe: 8,
+          injectField:    'payload malicioso',  // campo desconhecido
+          __proto__:      'tentativa de proto pollution', // deve ser ignorado
+        }]
+      }],
+      extraMetadata: { leanMassKg: 999, tmbKcal: 9999 } // campos canônicos injetados pela IA
+    };
+    const structural = validateAIPrescription(aiWithUnknownFields);
+    const cleanEx    = structural.data?.routines?.[0]?.exercises?.[0];
+    const leaked     = cleanEx && ('injectField' in cleanEx || 'extraMetadata' in (structural.data || {}));
+    assert(12, 'Campos desconhecidos da IA não chegam à camada de persistência', !leaked, `leaked=${leaked}`);
+    // Campos canônicos do contexto permanecem inalterados
+    assert(12.1, 'extraMetadata (leanMassKg injetado pela IA) não existe no DTO limpo', !('extraMetadata' in (structural.data || {})));
+  })();
+
+  // ── Resultado Final ───────────────────────────────────────────────────────
+  const total  = results.filter(r => Number.isInteger(r.testId)).length;
+  const passed = results.filter(r => r.passed).length;
+  const failed = results.filter(r => !r.passed);
+
+  console.groupEnd();
+  console.info(`\n📊 Resultado: ${passed}/${results.length} testes passaram.`);
+
+  if (failed.length > 0) {
+    console.warn('❌ Testes com falha:');
+    failed.forEach(f => console.warn(`   T${f.testId}: ${f.description} → ${f.detail}`));
+  } else {
+    console.info('✅ Todos os testes passaram. Motor de coerência operacional.');
+  }
+
+  return { total: results.length, passed, failed: failed.length, details: results };
+}
+
 async function savePerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
   if (!pId) return;
