@@ -166,6 +166,72 @@ option {
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(216, 180, 254, 0.3) !important;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   CLASSES DE ALTERNÂNCIA DE TREINO (AZUL VS ROXO)
+═══════════════════════════════════════════════════════════ */
+
+/* Tema 1: Azul Cobalto (Treinos Ímpares: A, C, E...) */
+.workout-theme-blue-badge {
+  background: rgba(30, 58, 138, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.7) !important;
+  color: #93c5fd !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.workout-theme-blue-btn {
+  background: rgba(30, 58, 138, 0.7) !important;
+  border: 1px solid rgba(59, 130, 246, 0.8) !important;
+  color: #bfdbfe !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.workout-theme-blue-btn:hover {
+  background: rgba(37, 99, 235, 0.9) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
+}
+
+.workout-theme-blue-active-card {
+  border: 1px solid rgba(59, 130, 246, 0.85) !important;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.25) !important;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, rgba(9, 9, 11, 0.95) 100%) !important;
+}
+
+.workout-theme-blue-header {
+  background: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* Tema 2: Roxo Elétrico (Treinos Pares: B, D, F...) */
+.workout-theme-purple-badge {
+  background: rgba(88, 28, 135, 0.85) !important;
+  border: 1px solid rgba(168, 85, 247, 0.7) !important;
+  color: #e9d5ff !important;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3) !important;
+}
+
+.workout-theme-purple-btn {
+  background: rgba(88, 28, 135, 0.7) !important;
+  border: 1px solid rgba(168, 85, 247, 0.8) !important;
+  color: #f3e8ff !important;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3) !important;
+}
+
+.workout-theme-purple-btn:hover {
+  background: rgba(147, 51, 234, 0.9) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.6) !important;
+}
+
+.workout-theme-purple-active-card {
+  border: 1px solid rgba(168, 85, 247, 0.85) !important;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.25) !important;
+  background: linear-gradient(180deg, rgba(30, 11, 43, 0.6) 0%, rgba(9, 9, 11, 0.95) 100%) !important;
+}
+
+.workout-theme-purple-header {
+  background: rgba(30, 11, 43, 0.6) !important;
+}
+
 /* Pilar 4: Performance (Azul Cobalto / Cyan) */
 .hud-card-blue {
   background: linear-gradient(135deg, #091326 0%, #060b14 100%) !important;

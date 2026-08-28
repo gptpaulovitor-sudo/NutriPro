@@ -7114,6 +7114,41 @@ function perfBuildWeeklySchedule(splitKey) {
   }
 }
 
+function perfIsRoutineColor2(routineOrDay, fallbackIdx = 0) {
+  if (!routineOrDay) return (fallbackIdx % 2 === 1);
+  const idStr = String(routineOrDay.routineId || routineOrDay.id || routineOrDay.dayKey || routineOrDay.title || routineOrDay.name || '').trim();
+  
+  // Se for letra simples ex: 'A', 'B', 'C', 'D'
+  if (/^[A-Z]$/i.test(idStr)) {
+    const code = idStr.toUpperCase().charCodeAt(0) - 65;
+    return (code % 2 === 1);
+  }
+  
+  // Se contiver 'Treino A', 'Treino B', etc.
+  const tMatch = idStr.match(/Treino\s+([A-Z0-9])/i);
+  if (tMatch) {
+    const char = tMatch[1].toUpperCase();
+    if (char >= 'A' && char <= 'Z') return (char.charCodeAt(0) - 65) % 2 === 1;
+    if (!isNaN(parseInt(char))) return parseInt(char) % 2 === 1;
+  }
+
+  // Se contiver 'd1', 'd2', 'Dia 1', 'Dia 2'
+  const dMatch = idStr.match(/d(?:ia)?\s*([0-9]+)/i);
+  if (dMatch) {
+    const num = parseInt(dMatch[1]);
+    return (num - 1) % 2 === 1;
+  }
+
+  // Se tiver letra A-Z isolada no início ou final
+  const clean = idStr.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  if (clean.endsWith('A') || clean.endsWith('C') || clean.endsWith('E') || clean.endsWith('G')) return false;
+  if (clean.endsWith('B') || clean.endsWith('D') || clean.endsWith('F') || clean.endsWith('H')) return true;
+  if (clean.startsWith('A') || clean.startsWith('C') || clean.startsWith('E')) return false;
+  if (clean.startsWith('B') || clean.startsWith('D') || clean.startsWith('F')) return true;
+
+  return (fallbackIdx % 2 === 1);
+}
+
 function renderPerfWeeklySchedule() {
   const container1 = document.getElementById('perf-weekly-days-grid');
   const container2 = document.getElementById('perf-prescription-weekly-grid');
@@ -7135,12 +7170,7 @@ function renderPerfWeeklySchedule() {
 
     let isColor2 = false;
     if (isTreino) {
-      if (day.routineId) {
-        const charCode = day.routineId.toUpperCase().charCodeAt(0) - 65;
-        isColor2 = (charCode >= 0 ? charCode % 2 === 1 : trainingIndex % 2 === 1);
-      } else {
-        isColor2 = (trainingIndex % 2 === 1);
-      }
+      isColor2 = day.routineId ? perfIsRoutineColor2({ id: day.routineId }, trainingIndex) : (trainingIndex % 2 === 1);
       trainingIndex++;
     }
 
@@ -7153,18 +7183,18 @@ function renderPerfWeeklySchedule() {
     if (isTreino) {
       if (isColor2) {
         // Cor 2: Roxo / Violeta Elétrico
-        borderClass = 'border-purple-600/70 bg-gradient-to-b from-purple-950/40 via-black to-zinc-950 hover:border-purple-400';
-        badgeClass = 'bg-purple-900/80 text-purple-200 border-purple-500/60 shadow-[0_0_8px_rgba(168,85,247,0.3)]';
+        borderClass = 'workout-theme-purple-active-card border-purple-600/70 bg-gradient-to-b from-purple-950/40 via-black to-zinc-950 hover:border-purple-400';
+        badgeClass = 'workout-theme-purple-badge bg-purple-900/80 text-purple-200 border-purple-500/60 shadow-[0_0_8px_rgba(168,85,247,0.3)]';
         titleHoverClass = 'group-hover:text-purple-300';
         dayNumColor = 'text-purple-400';
-        shadowGlow = 'shadow-[0_0_15px_rgba(168,85,247,0.12)]';
+        shadowGlow = 'shadow-[0_0_15px_rgba(168,85,247,0.15)]';
       } else {
         // Cor 1: Azul Cobalto / Cyan
-        borderClass = 'border-blue-600/70 bg-gradient-to-b from-blue-950/40 via-black to-zinc-950 hover:border-blue-400';
-        badgeClass = 'bg-blue-900/80 text-blue-200 border-blue-500/60 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+        borderClass = 'workout-theme-blue-active-card border-blue-600/70 bg-gradient-to-b from-blue-950/40 via-black to-zinc-950 hover:border-blue-400';
+        badgeClass = 'workout-theme-blue-badge bg-blue-900/80 text-blue-200 border-blue-500/60 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
         titleHoverClass = 'group-hover:text-blue-300';
         dayNumColor = 'text-blue-400';
-        shadowGlow = 'shadow-[0_0_15px_rgba(59,130,246,0.12)]';
+        shadowGlow = 'shadow-[0_0_15px_rgba(59,130,246,0.15)]';
       }
     } else if (isCardio) {
       borderClass = 'border-amber-600/60 bg-gradient-to-b from-amber-950/40 via-black to-zinc-950 hover:border-amber-400';
@@ -12171,15 +12201,14 @@ function renderPerfTargetButtons() {
 
   container.innerHTML = perfWorkoutPlan.map((routine, rIdx) => {
     const isTarget = routine.id === perfTargetRoutine;
-    const charCode = routine.id ? routine.id.toUpperCase().charCodeAt(0) - 65 : rIdx;
-    const isColor2 = (charCode >= 0 ? charCode % 2 === 1 : rIdx % 2 === 1);
+    const isColor2 = perfIsRoutineColor2(routine, rIdx);
 
     const activeStyle = isColor2 
-      ? 'bg-purple-600 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
-      : 'bg-blue-600 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]';
+      ? 'workout-theme-purple-btn bg-purple-600 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
+      : 'workout-theme-blue-btn bg-blue-600 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]';
     const inactiveStyle = isColor2
-      ? 'text-zinc-400 hover:text-purple-300 bg-zinc-900 border-zinc-800 hover:border-purple-600/50'
-      : 'text-zinc-400 hover:text-blue-300 bg-zinc-900 border-zinc-800 hover:border-blue-600/50';
+      ? 'text-purple-300 hover:text-white bg-zinc-900 border-zinc-800 hover:border-purple-600/60'
+      : 'text-blue-300 hover:text-white bg-zinc-900 border-zinc-800 hover:border-blue-600/60';
 
     return `
       <button id="perf-target-${routine.id}" onclick="perfSetTarget('${routine.id}')"
@@ -12207,39 +12236,38 @@ function renderPerfWorkoutPlan() {
   perfWorkoutPlan.forEach((routine, rIdx) => {
     const isTarget = routine.id === perfTargetRoutine;
     const totalSets = routine.exercises.reduce((s,e)=>s + (parseInt(e.sets) || 0), 0);
-    const charCode = routine.id ? routine.id.toUpperCase().charCodeAt(0) - 65 : rIdx;
-    const isColor2 = (charCode >= 0 ? charCode % 2 === 1 : rIdx % 2 === 1);
+    const isColor2 = perfIsRoutineColor2(routine, rIdx);
 
     const activeBorder = isColor2
-      ? 'border-purple-500/90 shadow-[0_0_25px_rgba(168,85,247,0.25)] bg-gradient-to-b from-purple-950/25 via-black/80 to-zinc-950/90'
-      : 'border-blue-500/90 shadow-[0_0_25px_rgba(59,130,246,0.25)] bg-gradient-to-b from-blue-950/20 via-black/80 to-zinc-950/90';
+      ? 'workout-theme-purple-active-card border-purple-500/90 shadow-[0_0_25px_rgba(168,85,247,0.3)] bg-gradient-to-b from-purple-950/30 via-black/80 to-zinc-950/90'
+      : 'workout-theme-blue-active-card border-blue-500/90 shadow-[0_0_25px_rgba(59,130,246,0.3)] bg-gradient-to-b from-blue-950/25 via-black/80 to-zinc-950/90';
     const inactiveBorder = isColor2
-      ? 'border-zinc-800/90 bg-black/60 hover:border-purple-700/50'
-      : 'border-zinc-800/90 bg-black/60 hover:border-blue-700/50';
+      ? 'border-zinc-800/90 bg-black/60 hover:border-purple-700/60'
+      : 'border-zinc-800/90 bg-black/60 hover:border-blue-700/60';
 
     const card = document.createElement('div');
     card.className = `hud-card overflow-hidden transition-all rounded-2xl ${isTarget ? activeBorder : inactiveBorder}`;
 
     const badgeRoutine = isColor2
-      ? 'bg-purple-900/60 border-purple-700/60 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.3)]'
-      : 'bg-blue-900/60 border-blue-700/60 text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+      ? 'workout-theme-purple-badge bg-purple-900/80 border-purple-600/70 text-purple-200 shadow-[0_0_8px_rgba(168,85,247,0.4)]'
+      : 'workout-theme-blue-badge bg-blue-900/80 border-blue-600/70 text-blue-200 shadow-[0_0_8px_rgba(59,130,246,0.4)]';
     const targetPill = isColor2
       ? '<span class="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(168,85,247,0.6)] shrink-0">Alvo Ativo</span>'
       : '<span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(59,130,246,0.6)] shrink-0">Alvo Ativo</span>';
-    const headerBg = isTarget ? (isColor2 ? 'bg-purple-950/40' : 'bg-blue-950/40') : 'bg-black/40';
+    const headerBg = isColor2 ? 'workout-theme-purple-header bg-purple-950/35' : 'workout-theme-blue-header bg-blue-950/35';
     const btnTargetActive = isColor2
-      ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)] border-purple-500'
-      : 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)] border-blue-500';
+      ? 'workout-theme-purple-btn bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)] border border-purple-500'
+      : 'workout-theme-blue-btn bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)] border border-blue-500';
     const btnTargetInactive = isColor2
-      ? 'bg-zinc-800 text-zinc-400 hover:text-white hover:border-purple-500/50 border border-zinc-700'
-      : 'bg-zinc-800 text-zinc-400 hover:text-white hover:border-blue-500/50 border border-zinc-700';
+      ? 'bg-zinc-800 text-purple-300 hover:text-white hover:border-purple-500/50 border border-zinc-700'
+      : 'bg-zinc-800 text-blue-300 hover:text-white hover:border-blue-500/50 border border-zinc-700';
     const textVolume = isColor2 ? 'text-purple-400' : 'text-blue-400';
     const textAddEx = isColor2 ? 'text-purple-400 hover:text-purple-300' : 'text-blue-400 hover:text-blue-300';
-    const exRowHover = isColor2 ? 'hover:bg-purple-950/15' : 'hover:bg-blue-950/15';
-    const exNumBadge = isColor2 ? 'text-purple-300 bg-purple-950/80 border-purple-800/60' : 'text-blue-300 bg-blue-950/80 border-blue-800/60';
+    const exRowHover = isColor2 ? 'hover:bg-purple-950/20' : 'hover:bg-blue-950/20';
+    const exNumBadge = isColor2 ? 'workout-theme-purple-badge text-purple-200 bg-purple-950/90 border-purple-700/70' : 'workout-theme-blue-badge text-blue-200 bg-blue-950/90 border-blue-700/70';
     const gifBtn = isColor2 
-      ? 'text-purple-300 bg-purple-950/80 hover:bg-purple-900 border-purple-700/70 shadow-[0_0_8px_rgba(168,85,247,0.25)] hover:shadow-[0_0_12px_rgba(168,85,247,0.5)]'
-      : 'text-blue-300 bg-blue-950/80 hover:bg-blue-900 border-blue-700/70 shadow-[0_0_8px_rgba(59,130,246,0.25)] hover:shadow-[0_0_12px_rgba(59,130,246,0.5)]';
+      ? 'workout-theme-purple-btn text-purple-200 bg-purple-950/80 hover:bg-purple-900 border-purple-700/70 shadow-[0_0_8px_rgba(168,85,247,0.3)]'
+      : 'workout-theme-blue-btn text-blue-200 bg-blue-950/80 hover:bg-blue-900 border-blue-700/70 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
     const focusBorder = isColor2 ? 'focus:border-purple-500' : 'focus:border-blue-500';
 
     const exercisesHtml = routine.exercises.length === 0
@@ -12735,8 +12763,7 @@ function perfGeneratePDF() {
   // Monta HTML das Rotinas (com Alternância de 2 Cores: Azul / Roxo)
   const routinesHtml = perfWorkoutPlan.map((routine, rIdx) => {
     const routineSets = routine.exercises.reduce((s,e) => s + e.sets, 0);
-    const charCode = routine.id ? routine.id.toUpperCase().charCodeAt(0) - 65 : rIdx;
-    const isColor2 = (charCode >= 0 ? charCode % 2 === 1 : rIdx % 2 === 1);
+    const isColor2 = perfIsRoutineColor2(routine, rIdx);
     
     const headerBg = isColor2 ? '#581c87' : '#1e3a8a';
     const indexColColor = isColor2 ? '#7e22ce' : '#1e40af';
