@@ -8875,18 +8875,94 @@ function perfHandleGifError(imgEl) {
   }
 }
 
+const GROUP_DEFAULT_GIFS = {
+  'Peitoral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+  'Dorsal': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif',
+  'Pernas': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif',
+  'Ombros': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/dumbbell-seated-shoulder-press.gif',
+  'Bíceps': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
+  'Tríceps': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif',
+  'Braços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
+  'Abdômen': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
+  'Geral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif'
+};
+
+function perfFindExercise(idOrName, fallbackName = '') {
+  if (!idOrName && !fallbackName) return null;
+
+  // 1. Busca direta por ID
+  if (idOrName && typeof idOrName === 'string') {
+    const cleanId = idOrName.trim().toLowerCase();
+    if (cleanId && cleanId !== 'geral') {
+      const byId = PERF_EXERCISE_DB.find(e => e.id.toLowerCase() === cleanId);
+      if (byId) return byId;
+    }
+  }
+
+  const rawTarget = String(fallbackName || idOrName || '').trim();
+  if (!rawTarget || rawTarget.toLowerCase() === 'geral') return null;
+
+  const normalize = (str) => String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const normTarget = normalize(rawTarget);
+  if (!normTarget) return null;
+
+  // 2. Busca exata por nome normalizado
+  let match = PERF_EXERCISE_DB.find(e => normalize(e.name) === normTarget);
+  if (match) return match;
+
+  // 3. Busca por substring
+  match = PERF_EXERCISE_DB.find(e => {
+    const n = normalize(e.name);
+    return (normTarget.length >= 4 && n.includes(normTarget)) || (n.length >= 4 && normTarget.includes(n));
+  });
+  if (match) return match;
+
+  // 4. Pontuação por tokens
+  const targetTokens = normTarget.split(' ').filter(t => t.length > 2);
+  let bestScore = 0;
+  let bestMatch = null;
+
+  PERF_EXERCISE_DB.forEach(e => {
+    const eTokens = normalize(e.name).split(' ').filter(t => t.length > 2);
+    let score = 0;
+    targetTokens.forEach(t => {
+      if (eTokens.includes(t)) {
+        score += 3;
+      } else if (eTokens.some(et => et.includes(t) || t.includes(et))) {
+        score += 1.5;
+      }
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = e;
+    }
+  });
+
+  if (bestScore >= 3 && bestMatch) return bestMatch;
+
+  return null;
+}
+
 function perfGetExerciseGuideData(ex) {
   const custom = PERF_EXERCISE_GUIDE_MAP[ex.id] || {};
   const mechanics = ex.mechanics || 'Composto';
-  const cadence = mechanics === 'Isolador' ? '3-1-1-0 (1s pico)' : '3-0-1-0 (Controlada)';
+  const cadence = ex.cadence || (mechanics === 'Isolador' ? '3-1-1-0 (1s pico)' : '3-0-1-0 (Controlada)');
 
-  // Prioriza o caminho verificado de gifdotreino.com
-  let gifUrl = custom.gif || 'https://www.gifdotreino.com/Exercicios/Peitoral/Supino%20Reto%20com%20Barra.gif';
+  // Prioriza GIF mapeado ou usa o GIF em CDN oficial do grupo
+  let gifUrl = custom.gif || GROUP_DEFAULT_GIFS[ex.group] || GROUP_DEFAULT_GIFS['Geral'];
   
   const steps = custom.steps || [
     `Ajuste a pegada e a posição mantendo a base estável e o core ativado.`,
     `Inicie a fase excêntrica de forma controlada (3 segundos) mantendo alinhamento articular.`,
-    `Na fase concêntrica, produza aceleração compensatória focando na contração máxima de ${ex.primary}.`,
+    `Na fase concêntrica, produza aceleração compensatória focando na contração máxima de ${ex.primary || 'músculo alvo'}.`,
     `Mantenha a postura e evite compensações com musculaturas sinergistas.`
   ];
 
@@ -8910,11 +8986,7 @@ function perfGetExerciseGuideData(ex) {
 
 function perfGetSubstitutes(exerciseId) {
   if (!exerciseId) return [];
-  let dbEx = PERF_EXERCISE_DB.find(e => e.id === exerciseId);
-  if (!dbEx) {
-    const clean = String(exerciseId).trim().toLowerCase();
-    dbEx = PERF_EXERCISE_DB.find(e => e.name.toLowerCase() === clean || e.name.toLowerCase().includes(clean));
-  }
+  const dbEx = perfFindExercise(exerciseId);
   if (!dbEx) return [];
 
   // Retorna todos os outros exercícios do mesmo grupo muscular
@@ -8964,31 +9036,50 @@ function perfSwapExercise(routineId, oldExerciseId, newExerciseId) {
   }
 }
 
-function perfOpenExerciseGuide(exerciseId, routineId = null) {
+function perfOpenExerciseGuide(exerciseId, routineId = null, explicitName = '') {
+  let decodedName = '';
+  try {
+    if (explicitName) decodedName = decodeURIComponent(explicitName);
+  } catch (e) {
+    decodedName = explicitName || '';
+  }
+
   let ex = null;
   if (typeof exerciseId === 'object' && exerciseId !== null) {
     ex = exerciseId;
-  } else if (exerciseId) {
-    ex = PERF_EXERCISE_DB.find(e => e.id === exerciseId);
-    if (!ex) {
-      const clean = String(exerciseId).trim().toLowerCase();
-      ex = PERF_EXERCISE_DB.find(e => e.name.toLowerCase() === clean || e.name.toLowerCase().includes(clean));
-    }
+  } else {
+    ex = perfFindExercise(exerciseId, decodedName);
   }
 
   if (!ex) {
+    const rawName = decodedName || (exerciseId && exerciseId !== 'geral' ? exerciseId : 'Exercício Biomecânico');
+    const norm = rawName.toLowerCase();
+    let group = 'Geral';
+    let fallbackId = 'pe01';
+    if (/supino|crucifixo|peito|peitoral|flexao|dip|voador|peck/i.test(norm)) { group = 'Peitoral'; fallbackId = 'pe01'; }
+    else if (/costas|dorsal|puxada|remada|pulldown|barra fixa/i.test(norm)) { group = 'Dorsal'; fallbackId = 'do04'; }
+    else if (/agachamento|leg|extensora|flexora|stiff|gemeos|panturrilha|gluteo|avanco|bulgaro|hack/i.test(norm)) { group = 'Pernas'; fallbackId = 'lg01'; }
+    else if (/desenvolvimento|elevacao|ombro|deltoide|arnold|lateral/i.test(norm)) { group = 'Ombros'; fallbackId = 'sh02'; }
+    else if (/biceps|rosca|scott/i.test(norm)) { group = 'Braços'; fallbackId = 'bi01'; }
+    else if (/triceps|testa|frances|corda/i.test(norm)) { group = 'Braços'; fallbackId = 'tr01'; }
+    else if (/abdominal|prancha|crunch|infra|supra/i.test(norm)) { group = 'Abdômen'; fallbackId = 'ab01'; }
+
+    const fallbackDb = PERF_EXERCISE_DB.find(e => e.id === fallbackId) || PERF_EXERCISE_DB[0];
     ex = {
-      id: exerciseId || 'geral',
-      name: exerciseId || 'Exercício Biomecânico',
-      group: 'Geral',
-      mechanics: 'Composto',
-      equipment: 'Livre',
-      primary: 'Músculo Alvo',
-      secondary: 'Sinergistas'
+      id: fallbackDb.id,
+      name: rawName,
+      group: group !== 'Geral' ? group : fallbackDb.group,
+      mechanics: fallbackDb.mechanics,
+      equipment: fallbackDb.equipment,
+      primary: fallbackDb.primary,
+      secondary: fallbackDb.secondary
     };
   }
 
   const data = perfGetExerciseGuideData(ex);
+  if (decodedName && decodedName !== 'geral' && decodedName !== 'Exercício Biomecânico') {
+    data.name = decodedName;
+  }
 
   const modal = document.getElementById('modal-exercise-guide');
   if (!modal) return;
@@ -9057,7 +9148,7 @@ function perfOpenExerciseGuide(exerciseId, routineId = null) {
             <div class="text-[10px] text-zinc-400 font-mono mt-0.5">${sub.mechanics} ${sub.secondary ? `· Sinérgicos: ${sub.secondary}` : ''}</div>
           </div>
           <div class="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800/80">
-            <button onclick="perfOpenExerciseGuide('${sub.id}', '${routineId || ''}')"
+            <button onclick="perfOpenExerciseGuide('${sub.id}', '${routineId || ''}', '${encodeURIComponent(sub.name)}')"
               class="flex-1 px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center justify-center gap-1">
               <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> Ver GIF
             </button>
@@ -12276,24 +12367,18 @@ function renderPerfWorkoutPlan() {
           <p class="text-xs mt-1 text-zinc-500">Selecione esta rotina e acesse o menu <strong>"Catálogo Biomecânico"</strong> no topo para adicionar exercícios.</p>
         </div>`
       : routine.exercises.map((ex, idx) => {
-          const exId = ex.exerciseId || ex.id || '';
-          let dbEx = PERF_EXERCISE_DB.find(e => e.id === exId);
-          if (!dbEx && ex.name) {
-            dbEx = PERF_EXERCISE_DB.find(e => e.name.toLowerCase() === ex.name.toLowerCase());
-          }
-          if (!dbEx) {
-            dbEx = {
-              id: exId || 'geral',
-              name: ex.name || 'Exercício Biomecânico',
-              group: ex.group || 'Geral',
-              mechanics: ex.mechanics || 'Composto',
-              equipment: ex.equipment || 'Barra/Halter',
-              primary: ex.primary || 'Músculo Alvo',
-              secondary: ex.secondary || 'Estabilizadores'
-            };
-          }
+          const dbEx = perfFindExercise(ex.exerciseId || ex.id, ex.name) || {
+            id: ex.exerciseId || ex.id || 'pe01',
+            name: ex.name || 'Exercício Biomecânico',
+            group: ex.group || 'Geral',
+            mechanics: ex.mechanics || 'Composto',
+            equipment: ex.equipment || 'Barra/Halter',
+            primary: ex.primary || 'Músculo Alvo',
+            secondary: ex.secondary || 'Estabilizadores'
+          };
 
-          const resolvedId = dbEx.id || exId;
+          const resolvedId = dbEx.id || ex.exerciseId || ex.id || 'pe01';
+          const exDisplayName = ex.name || dbEx.name;
           const rpeVal = parseInt(ex.rpe) || 8;
           const rpeRir = rpeVal >= 9 ? '1 RIR (Máxima)' : rpeVal >= 8 ? '2 RIR (Ótima)' : '3 RIR (Técnica)';
 
@@ -12334,8 +12419,8 @@ function renderPerfWorkoutPlan() {
                   <span class="text-xs font-mono font-bold ${exNumBadge} px-2 py-0.5 rounded-md">
                     #${idx+1}
                   </span>
-                  <h4 class="text-sm md:text-base font-bold text-white tracking-tight break-words">${ex.name || dbEx.name}</h4>
-                  <button onclick="perfOpenExerciseGuide('${resolvedId}', '${routine.id}')"
+                  <h4 class="text-sm md:text-base font-bold text-white tracking-tight break-words">${exDisplayName}</h4>
+                  <button onclick="perfOpenExerciseGuide('${resolvedId}', '${routine.id}', '${encodeURIComponent(exDisplayName)}')"
                     class="px-2 py-0.5 rounded-md text-[10px] font-bold ${gifBtn} flex items-center gap-1 transition-all cursor-pointer"
                     title="Ver GIF animado e guia biomecânico de execução">
                     <i data-lucide="play-circle" class="w-3.5 h-3.5 ${isColor2 ? 'text-purple-400' : 'text-blue-400'}"></i>
