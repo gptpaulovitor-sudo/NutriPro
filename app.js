@@ -11604,6 +11604,10 @@ async function savePerformanceForPatient(patientId = activePatientId) {
     heartRateZones: perfCustomHRZones,
     auditData: perfAuditData,
     meta: perfWorkoutMeta,
+    // Persiste o estado pendente de aprovação da IA para que sobreviva ao reload
+    pendingAIValidation: (perfPendingAIValidation && perfPendingAIValidation.patientId === pId)
+      ? perfPendingAIValidation
+      : null,
     lastUpdated: new Date().toISOString()
   };
 
@@ -11676,6 +11680,21 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       validatedAt: saved.validatedAt || null
     };
     perfTargetRoutine = (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
+
+    // Restaura estado pendente de aprovação da IA (gerado mas ainda não aprovado)
+    if (
+      perfWorkoutMeta.isAIGenerated &&
+      !perfWorkoutMeta.isClinicallyValidated &&
+      saved.pendingAIValidation &&
+      saved.pendingAIValidation.patientId === pId
+    ) {
+      perfPendingAIValidation = saved.pendingAIValidation;
+    } else {
+      // Limpa pendentes obsoletos (aprovado ou de outro paciente)
+      if (!perfWorkoutMeta.isAIGenerated || perfWorkoutMeta.isClinicallyValidated) {
+        perfPendingAIValidation = null;
+      }
+    }
   } else {
     perfActiveSplit = 'PPL';
     perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
@@ -11689,10 +11708,22 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       validatedAt: null
     };
     perfTargetRoutine = 'A';
+    perfPendingAIValidation = null;
   }
 
   const selectEl = document.getElementById('perf-split-select');
   if (selectEl) selectEl.value = perfActiveSplit;
+
+  // Reconecta botão de aprovação se treino IA pendente foi restaurado
+  if (perfPendingAIValidation) {
+    const btnApprove = document.getElementById('btnApproveAITraining');
+    if (btnApprove) {
+      const pendingPid   = perfPendingAIValidation.patientId;
+      const pendingPresc = perfPendingAIValidation.prescription;
+      const pendingCtx   = perfPendingAIValidation.context;
+      btnApprove.onclick = () => approveAITraining(pendingPid, pendingPresc, pendingCtx);
+    }
+  }
 
   updateAITrainingBanner();
   perfRender();
@@ -12337,6 +12368,10 @@ async function handleGenerateAITraining() {
     }
     updateAITrainingBanner();
 
+    // PERSISTÊNCIA DO TREINO GERADO — salva imediatamente para sobreviver a reloads
+    // (flag isClinicallyValidated: false indica que ainda aguarda aprovação do profissional)
+    await savePerformanceForPatient(generationPatientId);
+
     // Notificação Toast informativa
     const toast = document.getElementById('perf-toast');
     if (toast) {
@@ -12344,7 +12379,7 @@ async function handleGenerateAITraining() {
       const warningText = result.warnings.length > 0 ? `<br><span class="text-amber-300">⚠️ Alertas clínicos: ${result.warnings.join('; ')}</span>` : '';
       toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 shrink-0 text-cyan-400"></i>
         <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Treino Gerado pela IA · REQUER APROVAÇÃO</strong>
-        Divisão <strong>${chosenSplit}</strong> (${result.prescription.routines.length} rotinas) pronta para sua revisão. Nenhuma alteração foi salva no banco ainda.${warningText}</div>`;
+        Divisão <strong>${chosenSplit}</strong> (${result.prescription.routines.length} rotinas) salva para revisão. Aprovação do profissional necessária para validação clínica.${warningText}</div>`;
       if (window.lucide) window.lucide.createIcons();
       setTimeout(() => { if (toast) toast.style.display = 'none'; }, 7000);
     }
