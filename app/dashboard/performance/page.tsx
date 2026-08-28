@@ -514,24 +514,26 @@ export default function PerformanceDashboard() {
           </div>
         )}
 
-        {/* Lista de Rotinas — scrollável */}
+        {/* Lista de Rotinas — scrollável (com Alternância de 2 Cores) */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {workoutPlan.map((routine) => (
+          {workoutPlan.map((routine, rIdx) => {
+            const isColor2 = rIdx % 2 === 1;
+            return (
             <div
               key={routine.id}
               className={`bg-slate-900 border rounded-xl overflow-hidden shadow-lg transition-all ${
                 targetRoutineId === routine.id
-                  ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.12)]'
-                  : 'border-slate-800'
+                  ? (isColor2 ? 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]')
+                  : 'border-slate-800 hover:border-slate-700'
               }`}
             >
               {/* Cabeçalho da Rotina */}
               <div className="flex justify-between items-center px-5 py-3 bg-slate-900 border-b border-slate-800">
                 <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2.5">
-                  <Dumbbell className="w-4 h-4 text-blue-500" />
+                  <Dumbbell className={`w-4 h-4 ${isColor2 ? 'text-purple-400' : 'text-blue-500'}`} />
                   {routine.name}
                   {targetRoutineId === routine.id && (
-                    <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    <span className={`text-[10px] ${isColor2 ? 'bg-purple-600' : 'bg-blue-600'} text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider`}>
                       Alvo
                     </span>
                   )}
@@ -687,7 +689,7 @@ export default function PerformanceDashboard() {
               <div className="px-5 py-3 bg-slate-900/50 border-t border-slate-800/60 flex items-center justify-between">
                 <button
                   onClick={() => setTargetRoutineId(routine.id)}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+                  className={`text-xs ${isColor2 ? 'text-purple-400 hover:text-purple-300' : 'text-blue-400 hover:text-blue-300'} font-semibold transition-colors`}
                 >
                   Definir como alvo de adição →
                 </button>
@@ -697,7 +699,8 @@ export default function PerformanceDashboard() {
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {/* Botão salvar periodização */}
           <button className="w-full py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all mt-2 text-sm tracking-wide">

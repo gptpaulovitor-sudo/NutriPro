@@ -7126,29 +7126,72 @@ function renderPerfWeeklySchedule() {
     perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
   }
 
+  let trainingIndex = 0;
   const html = perfWeeklySchedule.map((day, idx) => {
     const isTreino = day.type === 'Treino';
     const isCardio = day.type === 'Cardio';
     const isOff = day.type === 'Off';
     const dayLabel = `DIA ${idx + 1}`;
 
-    let borderClass = isTreino ? 'border-blue-700/60 bg-gradient-to-b from-blue-950/40 via-black to-zinc-950 hover:border-blue-400' :
-                      isCardio ? 'border-amber-600/60 bg-gradient-to-b from-amber-950/40 via-black to-zinc-950 hover:border-amber-400' :
-                      'border-zinc-800 bg-black/60 hover:border-zinc-700';
+    let isColor2 = false;
+    if (isTreino) {
+      if (day.routineId) {
+        const charCode = day.routineId.toUpperCase().charCodeAt(0) - 65;
+        isColor2 = (charCode >= 0 ? charCode % 2 === 1 : trainingIndex % 2 === 1);
+      } else {
+        isColor2 = (trainingIndex % 2 === 1);
+      }
+      trainingIndex++;
+    }
 
-    let badgeClass = isTreino ? 'bg-blue-900/80 text-blue-300 border-blue-600/60' :
-                     isCardio ? 'bg-amber-900/80 text-amber-300 border-amber-600/60' :
-                     'bg-zinc-800 text-zinc-400 border-zinc-700';
+    let borderClass = '';
+    let badgeClass = '';
+    let titleHoverClass = '';
+    let dayNumColor = '';
+    let shadowGlow = '';
+
+    if (isTreino) {
+      if (isColor2) {
+        // Cor 2: Roxo / Violeta Elétrico
+        borderClass = 'border-purple-600/70 bg-gradient-to-b from-purple-950/40 via-black to-zinc-950 hover:border-purple-400';
+        badgeClass = 'bg-purple-900/80 text-purple-200 border-purple-500/60 shadow-[0_0_8px_rgba(168,85,247,0.3)]';
+        titleHoverClass = 'group-hover:text-purple-300';
+        dayNumColor = 'text-purple-400';
+        shadowGlow = 'shadow-[0_0_15px_rgba(168,85,247,0.12)]';
+      } else {
+        // Cor 1: Azul Cobalto / Cyan
+        borderClass = 'border-blue-600/70 bg-gradient-to-b from-blue-950/40 via-black to-zinc-950 hover:border-blue-400';
+        badgeClass = 'bg-blue-900/80 text-blue-200 border-blue-500/60 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+        titleHoverClass = 'group-hover:text-blue-300';
+        dayNumColor = 'text-blue-400';
+        shadowGlow = 'shadow-[0_0_15px_rgba(59,130,246,0.12)]';
+      }
+    } else if (isCardio) {
+      borderClass = 'border-amber-600/60 bg-gradient-to-b from-amber-950/40 via-black to-zinc-950 hover:border-amber-400';
+      badgeClass = 'bg-amber-900/80 text-amber-300 border-amber-600/60 shadow-[0_0_8px_rgba(245,158,11,0.2)]';
+      titleHoverClass = 'group-hover:text-amber-300';
+      dayNumColor = 'text-amber-400';
+      shadowGlow = 'shadow-[0_0_15px_rgba(245,158,11,0.1)]';
+    } else {
+      borderClass = 'border-zinc-800 bg-black/60 hover:border-zinc-700';
+      badgeClass = 'bg-zinc-800 text-zinc-400 border-zinc-700';
+      titleHoverClass = 'group-hover:text-zinc-300';
+      dayNumColor = 'text-zinc-400';
+      shadowGlow = 'shadow-[0_0_15px_rgba(0,0,0,0.4)]';
+    }
 
     let icon = isTreino ? 'dumbbell' : isCardio ? 'flame' : 'coffee';
 
     return `
       <div onclick="perfFocusDay('${day.dayKey}')"
-        class="hud-card p-3.5 rounded-xl border ${borderClass} transition-all cursor-pointer space-y-2.5 shadow-[0_0_15px_rgba(0,0,0,0.4)] group hover:scale-[1.01]">
+        class="hud-card p-3.5 rounded-xl border ${borderClass} transition-all cursor-pointer space-y-2.5 ${shadowGlow} group hover:scale-[1.01]">
         
-        <!-- Header do Dia (Numérico) -->
+        <!-- Header do Dia (Numérico com Cor Alternada) -->
         <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
-          <span class="text-xs font-mono font-bold text-white uppercase tracking-wider">${dayLabel}</span>
+          <span class="text-xs font-mono font-bold ${dayNumColor} uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full ${isTreino ? (isColor2 ? 'bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]' : 'bg-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.8)]') : (isCardio ? 'bg-amber-400' : 'bg-zinc-600')}"></span>
+            ${dayLabel}
+          </span>
           <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${badgeClass} flex items-center gap-1">
             <i data-lucide="${icon}" class="w-3 h-3"></i> ${day.type}
           </span>
@@ -7156,7 +7199,7 @@ function renderPerfWeeklySchedule() {
 
         <!-- Identificação do Treino / Atividade -->
         <div>
-          <h4 class="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">${day.title}</h4>
+          <h4 class="text-sm font-bold text-white ${titleHoverClass} transition-colors">${day.title}</h4>
           <p class="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">${day.focus}</p>
         </div>
 
@@ -7602,14 +7645,27 @@ function perfRender() {
   const selectEl = document.getElementById('perf-split-select');
   if (selectEl && selectEl.value !== perfActiveSplit) selectEl.value = perfActiveSplit;
 
-  // Atualiza botões do microciclo no topo do prontuário (Dia 1 a Dia 7)
+  // Atualiza botões do microciclo no topo do prontuário (Dia 1 a Dia 7 com Alternância de 2 Cores)
   if (Array.isArray(perfWeeklySchedule) && perfWeeklySchedule.length >= 7) {
     const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    let trainCount = 0;
     perfWeeklySchedule.forEach((d, idx) => {
       const num = idx + 1;
       const btn = document.getElementById(`day-btn-d${num}`) || document.getElementById(`day-btn-${legacyKeys[idx]}`) || document.getElementById(`day-btn-${d.dayKey}`);
       if (btn) {
-        const colorClass = d.type === 'Treino' ? 'text-blue-400' : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
+        let isColor2 = false;
+        if (d.type === 'Treino') {
+          if (d.routineId) {
+            const charCode = d.routineId.toUpperCase().charCodeAt(0) - 65;
+            isColor2 = (charCode >= 0 ? charCode % 2 === 1 : trainCount % 2 === 1);
+          } else {
+            isColor2 = (trainCount % 2 === 1);
+          }
+          trainCount++;
+        }
+        const colorClass = d.type === 'Treino' 
+          ? (isColor2 ? 'text-purple-400' : 'text-blue-400') 
+          : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
         const titleShort = (d.title || '').replace('Treino ','');
         btn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
       }
@@ -9196,7 +9252,16 @@ function perfFocusDay(dayKey) {
   const activeBtn = document.getElementById('day-btn-' + day.dayKey) || document.getElementById('day-btn-' + normalizedKey) || document.getElementById('day-btn-' + dayKey);
   if (activeBtn) {
     activeBtn.classList.add('active');
-    activeBtn.style.boxShadow = '0 0 10px rgba(59,130,246,0.5)';
+    let isColor2 = false;
+    if (day.type === 'Treino') {
+      if (day.routineId) {
+        const charCode = day.routineId.toUpperCase().charCodeAt(0) - 65;
+        isColor2 = charCode >= 0 && charCode % 2 === 1;
+      }
+    }
+    activeBtn.style.boxShadow = day.type === 'Treino' 
+      ? (isColor2 ? '0 0 12px rgba(168,85,247,0.65)' : '0 0 12px rgba(59,130,246,0.65)')
+      : (day.type === 'Cardio' ? '0 0 12px rgba(245,158,11,0.65)' : '0 0 10px rgba(113,113,122,0.4)');
   }
 
   if (day.routineId) {
@@ -12104,11 +12169,21 @@ function renderPerfTargetButtons() {
   const container = document.getElementById('perf-target-buttons-container');
   if (!container) return;
 
-  container.innerHTML = perfWorkoutPlan.map(routine => {
+  container.innerHTML = perfWorkoutPlan.map((routine, rIdx) => {
     const isTarget = routine.id === perfTargetRoutine;
+    const charCode = routine.id ? routine.id.toUpperCase().charCodeAt(0) - 65 : rIdx;
+    const isColor2 = (charCode >= 0 ? charCode % 2 === 1 : rIdx % 2 === 1);
+
+    const activeStyle = isColor2 
+      ? 'bg-purple-600 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
+      : 'bg-blue-600 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]';
+    const inactiveStyle = isColor2
+      ? 'text-zinc-400 hover:text-purple-300 bg-zinc-900 border-zinc-800 hover:border-purple-600/50'
+      : 'text-zinc-400 hover:text-blue-300 bg-zinc-900 border-zinc-800 hover:border-blue-600/50';
+
     return `
       <button id="perf-target-${routine.id}" onclick="perfSetTarget('${routine.id}')"
-        class="px-2.5 py-1 text-xs rounded-lg font-bold transition-all ${isTarget ? 'bg-blue-600 text-white shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800'}">
+        class="px-2.5 py-1 text-xs rounded-lg font-bold transition-all border ${isTarget ? activeStyle : inactiveStyle}">
         ${routine.id}
       </button>
     `;
@@ -12129,12 +12204,43 @@ function renderPerfWorkoutPlan() {
   if (!container) return;
   container.innerHTML = '';
 
-  perfWorkoutPlan.forEach(routine => {
+  perfWorkoutPlan.forEach((routine, rIdx) => {
     const isTarget = routine.id === perfTargetRoutine;
     const totalSets = routine.exercises.reduce((s,e)=>s + (parseInt(e.sets) || 0), 0);
+    const charCode = routine.id ? routine.id.toUpperCase().charCodeAt(0) - 65 : rIdx;
+    const isColor2 = (charCode >= 0 ? charCode % 2 === 1 : rIdx % 2 === 1);
+
+    const activeBorder = isColor2
+      ? 'border-purple-500/90 shadow-[0_0_25px_rgba(168,85,247,0.25)] bg-gradient-to-b from-purple-950/25 via-black/80 to-zinc-950/90'
+      : 'border-blue-500/90 shadow-[0_0_25px_rgba(59,130,246,0.25)] bg-gradient-to-b from-blue-950/20 via-black/80 to-zinc-950/90';
+    const inactiveBorder = isColor2
+      ? 'border-zinc-800/90 bg-black/60 hover:border-purple-700/50'
+      : 'border-zinc-800/90 bg-black/60 hover:border-blue-700/50';
 
     const card = document.createElement('div');
-    card.className = `hud-card overflow-hidden transition-all rounded-2xl ${isTarget ? 'border-blue-500/90 shadow-[0_0_25px_rgba(59,130,246,0.25)] bg-gradient-to-b from-blue-950/20 via-black/80 to-zinc-950/90' : 'border-zinc-800/90 bg-black/60'}`;
+    card.className = `hud-card overflow-hidden transition-all rounded-2xl ${isTarget ? activeBorder : inactiveBorder}`;
+
+    const badgeRoutine = isColor2
+      ? 'bg-purple-900/60 border-purple-700/60 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.3)]'
+      : 'bg-blue-900/60 border-blue-700/60 text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+    const targetPill = isColor2
+      ? '<span class="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(168,85,247,0.6)] shrink-0">Alvo Ativo</span>'
+      : '<span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(59,130,246,0.6)] shrink-0">Alvo Ativo</span>';
+    const headerBg = isTarget ? (isColor2 ? 'bg-purple-950/40' : 'bg-blue-950/40') : 'bg-black/40';
+    const btnTargetActive = isColor2
+      ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)] border-purple-500'
+      : 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)] border-blue-500';
+    const btnTargetInactive = isColor2
+      ? 'bg-zinc-800 text-zinc-400 hover:text-white hover:border-purple-500/50 border border-zinc-700'
+      : 'bg-zinc-800 text-zinc-400 hover:text-white hover:border-blue-500/50 border border-zinc-700';
+    const textVolume = isColor2 ? 'text-purple-400' : 'text-blue-400';
+    const textAddEx = isColor2 ? 'text-purple-400 hover:text-purple-300' : 'text-blue-400 hover:text-blue-300';
+    const exRowHover = isColor2 ? 'hover:bg-purple-950/15' : 'hover:bg-blue-950/15';
+    const exNumBadge = isColor2 ? 'text-purple-300 bg-purple-950/80 border-purple-800/60' : 'text-blue-300 bg-blue-950/80 border-blue-800/60';
+    const gifBtn = isColor2 
+      ? 'text-purple-300 bg-purple-950/80 hover:bg-purple-900 border-purple-700/70 shadow-[0_0_8px_rgba(168,85,247,0.25)] hover:shadow-[0_0_12px_rgba(168,85,247,0.5)]'
+      : 'text-blue-300 bg-blue-950/80 hover:bg-blue-900 border-blue-700/70 shadow-[0_0_8px_rgba(59,130,246,0.25)] hover:shadow-[0_0_12px_rgba(59,130,246,0.5)]';
+    const focusBorder = isColor2 ? 'focus:border-purple-500' : 'focus:border-blue-500';
 
     const exercisesHtml = routine.exercises.length === 0
       ? `<div class="m-6 text-center py-10 border border-dashed border-zinc-700/60 rounded-2xl text-zinc-500 text-sm">
@@ -12162,9 +12268,6 @@ function renderPerfWorkoutPlan() {
           const resolvedId = dbEx.id || exId;
           const rpeVal = parseInt(ex.rpe) || 8;
           const rpeRir = rpeVal >= 9 ? '1 RIR (Máxima)' : rpeVal >= 8 ? '2 RIR (Ótima)' : '3 RIR (Técnica)';
-          const rpeBadgeClass = rpeVal >= 9 ? 'bg-red-950/80 text-red-300 border-red-700/60' :
-                                rpeVal >= 8 ? 'bg-amber-950/80 text-amber-300 border-amber-700/60' :
-                                'bg-blue-950/80 text-blue-300 border-blue-700/60';
 
           // Cadência científica por exercício (Schoenfeld/ACSM) — lê do objeto ex (propagado pelo makeEx)
           const cadenceRaw = ex.cadence || dbEx.cadence || (dbEx.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
@@ -12194,20 +12297,20 @@ function renderPerfWorkoutPlan() {
           }).join('');
           
           return `
-          <div class="p-3 sm:p-4 border-b border-zinc-800/60 hover:bg-blue-950/15 transition-all">
+          <div class="p-3 sm:p-4 border-b border-zinc-800/60 ${exRowHover} transition-all">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               
               <!-- Bloco 1: Identificação & Biomecânica do Exercício -->
               <div class="flex-1 min-w-0 space-y-1.5">
                 <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  <span class="text-xs font-mono font-bold text-blue-400 bg-blue-950/80 border border-blue-800/60 px-2 py-0.5 rounded-md">
+                  <span class="text-xs font-mono font-bold ${exNumBadge} px-2 py-0.5 rounded-md">
                     #${idx+1}
                   </span>
                   <h4 class="text-sm md:text-base font-bold text-white tracking-tight break-words">${ex.name || dbEx.name}</h4>
                   <button onclick="perfOpenExerciseGuide('${resolvedId}', '${routine.id}')"
-                    class="px-2 py-0.5 rounded-md text-[10px] font-bold text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/70 flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(59,130,246,0.25)] hover:shadow-[0_0_12px_rgba(59,130,246,0.5)] cursor-pointer"
+                    class="px-2 py-0.5 rounded-md text-[10px] font-bold ${gifBtn} flex items-center gap-1 transition-all cursor-pointer"
                     title="Ver GIF animado e guia biomecânico de execução">
-                    <i data-lucide="play-circle" class="w-3.5 h-3.5 text-blue-400"></i>
+                    <i data-lucide="play-circle" class="w-3.5 h-3.5 ${isColor2 ? 'text-purple-400' : 'text-blue-400'}"></i>
                     <span>GIF &amp; Execução</span>
                   </button>
 
@@ -12224,7 +12327,7 @@ function renderPerfWorkoutPlan() {
                   <span class="text-[9px] sm:text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
                     ${dbEx.group}
                   </span>
-                  <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-900/60">
+                  <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded ${isColor2 ? 'bg-purple-950/60 text-purple-300 border-purple-900/60' : 'bg-blue-950/60 text-blue-300 border-blue-900/60'}">
                     ${dbEx.equipment} · ${dbEx.mechanics}
                   </span>
                 </div>
@@ -12249,7 +12352,7 @@ function renderPerfWorkoutPlan() {
                     <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Séries</span>
                     <input type="number" min="1" max="10" value="${parseInt(ex.sets) || 3}"
                       onchange="perfUpdateField('${routine.id}','${resolvedId}','sets',+this.value)"
-                      class="w-full sm:w-12 p-1 text-center font-bold text-xs sm:text-sm text-white rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                      class="w-full sm:w-12 p-1 text-center font-bold text-xs sm:text-sm text-white rounded bg-zinc-900 border border-zinc-700 ${focusBorder} outline-none">
                   </div>
 
                   <!-- Repetições -->
@@ -12257,7 +12360,7 @@ function renderPerfWorkoutPlan() {
                     <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider">Reps</span>
                     <input type="text" value="${ex.reps || '8-12'}"
                       onchange="perfUpdateField('${routine.id}','${resolvedId}','reps',this.value)"
-                      class="w-full sm:w-16 p-1 text-center font-bold text-xs sm:text-sm text-white rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                      class="w-full sm:w-16 p-1 text-center font-bold text-xs sm:text-sm text-white rounded bg-zinc-900 border border-zinc-700 ${focusBorder} outline-none">
                   </div>
 
                   <!-- RPE / RIR -->
@@ -12265,7 +12368,7 @@ function renderPerfWorkoutPlan() {
                     <span class="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-wider" title="Rating of Perceived Exertion">RPE</span>
                     <input type="number" min="1" max="10" value="${rpeVal}"
                       onchange="perfUpdateField('${routine.id}','${resolvedId}','rpe',+this.value)"
-                      class="w-full sm:w-10 p-1 text-center font-black text-xs sm:text-sm rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                      class="w-full sm:w-10 p-1 text-center font-black text-xs sm:text-sm rounded bg-zinc-900 border border-zinc-700 ${focusBorder} outline-none">
                   </div>
 
                   <!-- Pausa em Segundos -->
@@ -12274,7 +12377,7 @@ function renderPerfWorkoutPlan() {
                     <div class="flex items-center justify-center w-full">
                       <input type="number" min="0" step="15" value="${restVal}"
                         onchange="perfUpdateField('${routine.id}','${resolvedId}','rest',+this.value)"
-                        class="w-full sm:w-12 p-1 text-center font-semibold text-xs sm:text-sm text-zinc-300 rounded bg-zinc-900 border border-zinc-700 focus:border-blue-500 outline-none">
+                        class="w-full sm:w-12 p-1 text-center font-semibold text-xs sm:text-sm text-zinc-300 rounded bg-zinc-900 border border-zinc-700 ${focusBorder} outline-none">
                     </div>
                   </div>
                 </div>
@@ -12293,15 +12396,15 @@ function renderPerfWorkoutPlan() {
         }).join('');
 
     card.innerHTML = `
-      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3.5 sm:px-5 sm:py-4 border-b border-zinc-800 gap-2.5 ${isTarget ? 'bg-blue-950/40' : 'bg-black/40'}">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3.5 sm:px-5 sm:py-4 border-b border-zinc-800 gap-2.5 ${headerBg}">
         <div class="flex items-center gap-2.5 min-w-0">
-          <span class="w-8 h-8 rounded-xl bg-blue-900/60 border border-blue-700/60 flex items-center justify-center font-bold text-blue-300 text-sm shadow-[0_0_8px_rgba(59,130,246,0.3)] shrink-0">
+          <span class="w-8 h-8 rounded-xl ${badgeRoutine} flex items-center justify-center font-bold text-sm shrink-0">
             ${routine.id}
           </span>
           <div class="min-w-0 flex-1">
             <h3 class="text-sm md:text-base font-bold text-white flex items-center gap-2 flex-wrap">
               <span>${routine.name}</span>
-              ${isTarget ? '<span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(59,130,246,0.6)] shrink-0">Alvo Ativo</span>' : ''}
+              ${isTarget ? targetPill : ''}
             </h3>
             <span class="text-[11px] text-zinc-400 font-mono block">${routine.exercises.length} exercícios estruturados</span>
           </div>
@@ -12309,10 +12412,10 @@ function renderPerfWorkoutPlan() {
 
         <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0">
           <span class="text-[11px] font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg">
-            Volume: <strong class="text-blue-400 font-bold">${totalSets} sets</strong>
+            Volume: <strong class="${textVolume} font-bold">${totalSets} sets</strong>
           </span>
           <button onclick="perfSetTarget('${routine.id}')"
-            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${isTarget ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-800 text-zinc-400 hover:text-white'}">
+            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${isTarget ? btnTargetActive : btnTargetInactive}">
             ${isTarget ? '✓ Rotina Alvo' : 'Definir Alvo'}
           </button>
         </div>
@@ -12325,7 +12428,7 @@ function renderPerfWorkoutPlan() {
           <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
           <span class="text-[11px] leading-tight">Progressão: <strong>+1 rep por série</strong> antes de subir a carga.</span>
         </div>
-        <button onclick="perfSwitchView('catalog', true)" class="text-blue-400 hover:text-blue-300 font-bold transition-colors flex items-center gap-1 text-[11px] sm:text-xs">
+        <button onclick="perfSwitchView('catalog', true)" class="${textAddEx} font-bold transition-colors flex items-center gap-1 text-[11px] sm:text-xs">
           <span>+ Adicionar Exercício nesta Rotina</span>
         </button>
       </div>`;
@@ -12340,7 +12443,12 @@ function perfSetTarget(routineId) {
   perfTargetRoutine = routineId;
   renderPerfTargetButtons();
   const label = document.getElementById('perf-target-label');
-  if (label) label.textContent = `Treino ${routineId}`;
+  if (label) {
+    label.textContent = `Treino ${routineId}`;
+    const charCode = routineId ? routineId.toUpperCase().charCodeAt(0) - 65 : 0;
+    const isColor2 = charCode >= 0 && charCode % 2 === 1;
+    label.className = `font-bold ${isColor2 ? 'text-purple-400' : 'text-blue-400'}`;
+  }
   renderPerfWorkoutPlan();
 }
 
@@ -12527,13 +12635,24 @@ async function handleGenerateAITraining() {
     const selectEl = document.getElementById('perf-split-select');
     if (selectEl) selectEl.value = chosenSplit;
 
-    // Atualiza cabeçalho do microciclo
+    // Atualiza cabeçalho do microciclo (com alternância de 2 cores)
     const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    let trainCountAI = 0;
     perfWeeklySchedule.forEach((d, idx) => {
       const num = idx + 1;
       const dayBtn = document.getElementById(`day-btn-d${num}`) || document.getElementById(`day-btn-${legacyKeys[idx]}`) || document.getElementById(`day-btn-${d.dayKey}`);
       if (dayBtn) {
-        const colorClass = d.type === 'Treino' ? 'text-blue-400' : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
+        let isColor2 = false;
+        if (d.type === 'Treino') {
+          if (d.routineId) {
+            const charCode = d.routineId.toUpperCase().charCodeAt(0) - 65;
+            isColor2 = (charCode >= 0 ? charCode % 2 === 1 : trainCountAI % 2 === 1);
+          } else {
+            isColor2 = (trainCountAI % 2 === 1);
+          }
+          trainCountAI++;
+        }
+        const colorClass = d.type === 'Treino' ? (isColor2 ? 'text-purple-400' : 'text-blue-400') : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
         const titleShort = (d.title || '').replace('Treino ','');
         dayBtn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
       }
@@ -12613,9 +12732,18 @@ function perfGeneratePDF() {
   // Cardio Prescrito Ativo
   const cardio = PERF_CARDIO_DB.find(c => c.id === perfPrescribedCardioId) || PERF_CARDIO_DB[0];
 
-  // Monta HTML das Rotinas
-  const routinesHtml = perfWorkoutPlan.map(routine => {
+  // Monta HTML das Rotinas (com Alternância de 2 Cores: Azul / Roxo)
+  const routinesHtml = perfWorkoutPlan.map((routine, rIdx) => {
     const routineSets = routine.exercises.reduce((s,e) => s + e.sets, 0);
+    const charCode = routine.id ? routine.id.toUpperCase().charCodeAt(0) - 65 : rIdx;
+    const isColor2 = (charCode >= 0 ? charCode % 2 === 1 : rIdx % 2 === 1);
+    
+    const headerBg = isColor2 ? '#581c87' : '#1e3a8a';
+    const indexColColor = isColor2 ? '#7e22ce' : '#1e40af';
+    const gifBtnColor = isColor2 ? '#7e22ce' : '#2563eb';
+    const gifBtnBg = isColor2 ? '#faf5ff' : '#eff6ff';
+    const gifBtnBorder = isColor2 ? '#e9d5ff' : '#bfdbfe';
+
     const rows = routine.exercises.map((ex, idx) => {
       const dbEx = PERF_EXERCISE_DB.find(e => e.id === ex.exerciseId) || {
         group: 'Geral', mechanics: 'Composto', equipment: 'Livre', primary: 'Músculo Alvo', secondary: 'Estabilizadores'
@@ -12625,11 +12753,11 @@ function perfGeneratePDF() {
 
       return `
         <tr style="border-bottom: 1px solid #e5e7eb; font-size: 11px;">
-          <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #1e40af; width: 28px;">${idx+1}</td>
+          <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: ${indexColColor}; width: 28px;">${idx+1}</td>
           <td style="padding: 8px 8px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
               <strong style="color: #111827; font-size: 12px; display: block;">${ex.name}</strong>
-              <a href="https://www.gifdotreino.com/" target="_blank" style="color: #2563eb; text-decoration: none; font-size: 9px; font-weight: bold; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">
+              <a href="https://www.gifdotreino.com/" target="_blank" style="color: ${gifBtnColor}; text-decoration: none; font-size: 9px; font-weight: bold; background: ${gifBtnBg}; border: 1px solid ${gifBtnBorder}; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">
                 🎬 GIF Execução
               </a>
             </div>
@@ -12649,11 +12777,11 @@ function perfGeneratePDF() {
 
     return `
       <div style="margin-bottom: 20px; page-break-inside: avoid; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; background: #ffffff;">
-        <div style="background: #1e3a8a; color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: ${headerBg}; color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
           <h3 style="margin: 0; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
             ${routine.name}
           </h3>
-          <span style="font-size: 11px; font-family: monospace; background: rgba(255,255,255,0.2); padding: 2px 8px; rounded: 4px;">
+          <span style="font-size: 11px; font-family: monospace; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px;">
             ${routine.exercises.length} Exercícios • ${routineSets} Séries
           </span>
         </div>
@@ -12678,16 +12806,30 @@ function perfGeneratePDF() {
     `;
   }).join('');
 
-  // Monta HTML da Agenda dos 7 Dias com Sinergia Nutricional
+  // Monta HTML da Agenda dos 7 Dias com Sinergia Nutricional (Alternando 2 Cores nos Treinos)
+  let pdfTrainCount = 0;
   const scheduleRows = perfWeeklySchedule.map((d, idx) => {
     const isTrain = d.type === 'Treino';
     const isCardio = d.type === 'Cardio';
-    const typeColor = isTrain ? '#1e40af' : isCardio ? '#b45309' : '#6b7280';
-    const typeBg = isTrain ? '#eff6ff' : isCardio ? '#fffbeb' : '#f9fafb';
+
+    let isColor2 = false;
+    if (isTrain) {
+      if (d.routineId) {
+        const charCode = d.routineId.toUpperCase().charCodeAt(0) - 65;
+        isColor2 = (charCode >= 0 ? charCode % 2 === 1 : pdfTrainCount % 2 === 1);
+      } else {
+        isColor2 = (pdfTrainCount % 2 === 1);
+      }
+      pdfTrainCount++;
+    }
+
+    const typeColor = isTrain ? (isColor2 ? '#7e22ce' : '#1e40af') : isCardio ? '#b45309' : '#6b7280';
+    const typeBg = isTrain ? (isColor2 ? '#faf5ff' : '#eff6ff') : isCardio ? '#fffbeb' : '#f9fafb';
+    const borderColor = isTrain ? (isColor2 ? '#e9d5ff' : '#bfdbfe') : isCardio ? '#fed7aa' : '#e5e7eb';
     const dayLabel = `DIA ${idx + 1}`;
 
     return `
-      <div style="flex: 1; min-width: 90px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; background: ${typeBg}; font-size: 10px;">
+      <div style="flex: 1; min-width: 90px; border: 1px solid ${borderColor}; border-radius: 6px; padding: 6px 8px; background: ${typeBg}; font-size: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 3px; margin-bottom: 3px;">
           <strong style="color: ${typeColor}; font-size: 11px;">${dayLabel}</strong>
           <span style="font-size: 9px; font-weight: bold; color: ${typeColor};">${d.type}</span>
