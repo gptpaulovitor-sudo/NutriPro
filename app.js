@@ -7706,6 +7706,8 @@ function perfRender() {
   perfSyncNutritionAudit();
   if (typeof updateAITrainingBanner === 'function') updateAITrainingBanner();
 
+  if (typeof perfSanitizeWorkoutPlan === 'function') perfSanitizeWorkoutPlan();
+
   perfSwitchView(perfActiveSubView, false);
   renderPerfTargetButtons();
   renderPerfWeeklySchedule();
@@ -8887,6 +8889,80 @@ const GROUP_DEFAULT_GIFS = {
   'Geral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif'
 };
 
+const MUSCLE_MAPPING_DEFAULTS = {
+  'Peitoral': { primary: 'Peitoral Maior (Fibras Médias e Superiores)', secondary: 'Deltoide Anterior, Tríceps Braquial' },
+  'Dorsal':   { primary: 'Latíssimo do Dorso & Romboides', secondary: 'Bíceps Braquial, Trapézio, Deltoide Posterior' },
+  'Pernas':   { primary: 'Quadríceps & Glúteos', secondary: 'Isquiotibiais, Adutores, Panturrilhas' },
+  'Ombros':   { primary: 'Deltoide Medial & Anterior', secondary: 'Tríceps Braquial, Trapézio Superior' },
+  'Bíceps':   { primary: 'Bíceps Braquial', secondary: 'Braquial, Braquiorradial' },
+  'Tríceps':  { primary: 'Tríceps Braquial', secondary: 'Ancôneo' },
+  'Braços':   { primary: 'Bíceps & Tríceps Braquial', secondary: 'Braquial, Braquiorradial' },
+  'Abdômen':  { primary: 'Reto Abdominal', secondary: 'Oblíquos Internos e Externos, Core' },
+  'Geral':    { primary: 'Cadeia Muscular Integrada', secondary: 'Estabilizadores Centrais e Escapulares' }
+};
+
+function perfSanitizeWorkoutPlan() {
+  if (!perfWorkoutPlan || !Array.isArray(perfWorkoutPlan)) return;
+
+  perfWorkoutPlan.forEach((routine, rIdx) => {
+    if (!routine.exercises || !Array.isArray(routine.exercises)) routine.exercises = [];
+    
+    routine.exercises = routine.exercises.map((ex, idx) => {
+      if (!ex) return null;
+      
+      const dbEx = perfFindExercise(ex.exerciseId || ex.id, ex.name);
+      if (dbEx) {
+        return {
+          ...ex,
+          exerciseId: dbEx.id,
+          id: dbEx.id,
+          name: (ex.name && ex.name.toLowerCase() !== 'geral' && ex.name !== 'Exercício Biomecânico') ? ex.name : dbEx.name,
+          group: dbEx.group,
+          mechanics: dbEx.mechanics,
+          equipment: dbEx.equipment,
+          primary: dbEx.primary,
+          secondary: dbEx.secondary,
+          cadence: ex.cadence || dbEx.cadence,
+          resistProfile: ex.resistProfile || dbEx.resistProfile,
+          sets: parseInt(ex.sets) || 3,
+          reps: ex.reps || '8-12',
+          rpe: parseInt(ex.rpe) || 8,
+          rest: parseInt(ex.rest) || 60
+        };
+      }
+
+      // Inferência do grupo pela rotina
+      const rName = (routine.name || routine.id || '').toLowerCase();
+      let inferredGroup = 'Peitoral';
+      if (/pull|dorsal|costas|remada|puxada/i.test(rName)) inferredGroup = 'Dorsal';
+      else if (/leg|perna|inferior|coxa|agachamento/i.test(rName)) inferredGroup = 'Pernas';
+      else if (/shoulder|ombro|deltoide/i.test(rName)) inferredGroup = 'Ombros';
+      else if (/arm|braco|biceps|triceps/i.test(rName)) inferredGroup = 'Bíceps';
+
+      const groupExercises = PERF_EXERCISE_DB.filter(e => e.group === inferredGroup);
+      const fallbackDb = groupExercises[idx % groupExercises.length] || PERF_EXERCISE_DB[0];
+
+      return {
+        ...ex,
+        exerciseId: fallbackDb.id,
+        id: fallbackDb.id,
+        name: (ex.name && ex.name.toLowerCase() !== 'geral' && ex.name !== 'Exercício Biomecânico') ? ex.name : fallbackDb.name,
+        group: inferredGroup,
+        mechanics: fallbackDb.mechanics,
+        equipment: fallbackDb.equipment,
+        primary: fallbackDb.primary,
+        secondary: fallbackDb.secondary,
+        cadence: ex.cadence || fallbackDb.cadence,
+        resistProfile: ex.resistProfile || fallbackDb.resistProfile,
+        sets: parseInt(ex.sets) || 3,
+        reps: ex.reps || '8-12',
+        rpe: parseInt(ex.rpe) || 8,
+        rest: parseInt(ex.rest) || 60
+      };
+    }).filter(Boolean);
+  });
+}
+
 function perfFindExercise(idOrName, fallbackName = '') {
   if (!idOrName && !fallbackName) return null;
 
@@ -8900,7 +8976,10 @@ function perfFindExercise(idOrName, fallbackName = '') {
   }
 
   const rawTarget = String(fallbackName || idOrName || '').trim();
-  if (!rawTarget || rawTarget.toLowerCase() === 'geral') return null;
+  if (!rawTarget || rawTarget.toLowerCase() === 'geral') {
+    // Retorna primeiro exercício relevante
+    return PERF_EXERCISE_DB[0];
+  }
 
   const normalize = (str) => String(str || '')
     .normalize('NFD')
@@ -8912,7 +8991,7 @@ function perfFindExercise(idOrName, fallbackName = '') {
     .trim();
 
   const normTarget = normalize(rawTarget);
-  if (!normTarget) return null;
+  if (!normTarget) return PERF_EXERCISE_DB[0];
 
   // 2. Busca exata por nome normalizado
   let match = PERF_EXERCISE_DB.find(e => normalize(e.name) === normTarget);
@@ -8921,7 +9000,7 @@ function perfFindExercise(idOrName, fallbackName = '') {
   // 3. Busca por substring
   match = PERF_EXERCISE_DB.find(e => {
     const n = normalize(e.name);
-    return (normTarget.length >= 4 && n.includes(normTarget)) || (n.length >= 4 && normTarget.includes(n));
+    return (normTarget.length >= 3 && n.includes(normTarget)) || (n.length >= 3 && normTarget.includes(n));
   });
   if (match) return match;
 
@@ -8946,28 +9025,33 @@ function perfFindExercise(idOrName, fallbackName = '') {
     }
   });
 
-  if (bestScore >= 3 && bestMatch) return bestMatch;
+  if (bestScore >= 2 && bestMatch) return bestMatch;
 
   return null;
 }
 
 function perfGetExerciseGuideData(ex) {
   const custom = PERF_EXERCISE_GUIDE_MAP[ex.id] || {};
+  const group = ex.group && ex.group !== 'Geral' ? ex.group : 'Peitoral';
+  const mapping = MUSCLE_MAPPING_DEFAULTS[group] || MUSCLE_MAPPING_DEFAULTS['Peitoral'];
+  
+  const primary = (ex.primary && ex.primary !== 'Músculo Alvo') ? ex.primary : mapping.primary;
+  const secondary = (ex.secondary && ex.secondary !== 'Sinergistas' && ex.secondary !== 'Estabilizadores') ? ex.secondary : mapping.secondary;
   const mechanics = ex.mechanics || 'Composto';
   const cadence = ex.cadence || (mechanics === 'Isolador' ? '3-1-1-0 (1s pico)' : '3-0-1-0 (Controlada)');
 
   // Prioriza GIF mapeado ou usa o GIF em CDN oficial do grupo
-  let gifUrl = custom.gif || GROUP_DEFAULT_GIFS[ex.group] || GROUP_DEFAULT_GIFS['Geral'];
+  let gifUrl = custom.gif || GROUP_DEFAULT_GIFS[group] || GROUP_DEFAULT_GIFS['Peitoral'];
   
-  const steps = custom.steps || [
-    `Ajuste a pegada e a posição mantendo a base estável e o core ativado.`,
-    `Inicie a fase excêntrica de forma controlada (3 segundos) mantendo alinhamento articular.`,
-    `Na fase concêntrica, produza aceleração compensatória focando na contração máxima de ${ex.primary || 'músculo alvo'}.`,
-    `Mantenha a postura e evite compensações com musculaturas sinergistas.`
+  const steps = (custom.steps && custom.steps.length > 0) ? custom.steps : [
+    `Ajuste a postura e a pegada mantendo alinhamento articular e core ativado.`,
+    `Inicie a fase excêntrica de forma lenta e controlada (3 segundos) alongando o músculo alvo.`,
+    `Na fase concêntrica, produza aceleração compensatória focando na contração máxima de ${primary}.`,
+    `Mantenha a base firme e evite impulsos com musculaturas sinergistas.`
   ];
 
   const breathing = custom.breathing || `Inspire profundamente na fase excêntrica (descida/alongamento) e solte o ar na fase concêntrica (esforço/subida).`;
-  const mistakes = custom.mistakes || `Evite impulsos corporais, perda do alinhamento da coluna ou encurtamento prematuro da amplitude do movimento.`;
+  const mistakes = custom.mistakes || `Evite impulsos excessivos, perda da estabilização da coluna ou redução involuntária da amplitude.`;
   
   // Link direto para gifdotreino.com
   const cleanQuery = encodeURIComponent((ex.name || '').replace(/\(.*?\)/g, '').trim());
@@ -8975,6 +9059,10 @@ function perfGetExerciseGuideData(ex) {
 
   return {
     ...ex,
+    group,
+    primary,
+    secondary,
+    mechanics,
     cadence,
     gifUrl,
     steps,
@@ -8985,12 +9073,15 @@ function perfGetExerciseGuideData(ex) {
 }
 
 function perfGetSubstitutes(exerciseId) {
-  if (!exerciseId) return [];
-  const dbEx = perfFindExercise(exerciseId);
-  if (!dbEx) return [];
+  const dbEx = perfFindExercise(exerciseId) || PERF_EXERCISE_DB[0];
+  const targetGroup = dbEx ? dbEx.group : 'Peitoral';
 
   // Retorna todos os outros exercícios do mesmo grupo muscular
-  return PERF_EXERCISE_DB.filter(e => e.group === dbEx.group && e.id !== dbEx.id);
+  let list = PERF_EXERCISE_DB.filter(e => e.group === targetGroup && (!dbEx || e.id !== dbEx.id));
+  if (list.length === 0) {
+    list = PERF_EXERCISE_DB.slice(0, 10);
+  }
+  return list;
 }
 
 function perfSwapExercise(routineId, oldExerciseId, newExerciseId) {
@@ -9054,35 +9145,45 @@ function perfOpenExerciseGuide(exerciseId, routineId = null, explicitName = '') 
   if (!ex) {
     const rawName = decodedName || (exerciseId && exerciseId !== 'geral' ? exerciseId : 'Exercício Biomecânico');
     const norm = rawName.toLowerCase();
-    let group = 'Geral';
+    let group = 'Peitoral';
     let fallbackId = 'pe01';
     if (/supino|crucifixo|peito|peitoral|flexao|dip|voador|peck/i.test(norm)) { group = 'Peitoral'; fallbackId = 'pe01'; }
     else if (/costas|dorsal|puxada|remada|pulldown|barra fixa/i.test(norm)) { group = 'Dorsal'; fallbackId = 'do04'; }
     else if (/agachamento|leg|extensora|flexora|stiff|gemeos|panturrilha|gluteo|avanco|bulgaro|hack/i.test(norm)) { group = 'Pernas'; fallbackId = 'lg01'; }
     else if (/desenvolvimento|elevacao|ombro|deltoide|arnold|lateral/i.test(norm)) { group = 'Ombros'; fallbackId = 'sh02'; }
-    else if (/biceps|rosca|scott/i.test(norm)) { group = 'Braços'; fallbackId = 'bi01'; }
-    else if (/triceps|testa|frances|corda/i.test(norm)) { group = 'Braços'; fallbackId = 'tr01'; }
+    else if (/biceps|rosca|scott/i.test(norm)) { group = 'Bíceps'; fallbackId = 'bi01'; }
+    else if (/triceps|testa|frances|corda/i.test(norm)) { group = 'Tríceps'; fallbackId = 'tr01'; }
     else if (/abdominal|prancha|crunch|infra|supra/i.test(norm)) { group = 'Abdômen'; fallbackId = 'ab01'; }
 
     const fallbackDb = PERF_EXERCISE_DB.find(e => e.id === fallbackId) || PERF_EXERCISE_DB[0];
+    const mapping = MUSCLE_MAPPING_DEFAULTS[group] || MUSCLE_MAPPING_DEFAULTS['Peitoral'];
+
     ex = {
       id: fallbackDb.id,
       name: rawName,
-      group: group !== 'Geral' ? group : fallbackDb.group,
+      group: group,
       mechanics: fallbackDb.mechanics,
       equipment: fallbackDb.equipment,
-      primary: fallbackDb.primary,
-      secondary: fallbackDb.secondary
+      primary: fallbackDb.primary || mapping.primary,
+      secondary: fallbackDb.secondary || mapping.secondary
     };
   }
 
   const data = perfGetExerciseGuideData(ex);
-  if (decodedName && decodedName !== 'geral' && decodedName !== 'Exercício Biomecânico') {
+  if (decodedName && decodedName.toLowerCase() !== 'geral' && decodedName !== 'Exercício Biomecânico') {
     data.name = decodedName;
   }
 
   const modal = document.getElementById('modal-exercise-guide');
   if (!modal) return;
+
+  modal.dataset.currentExId = data.id || '';
+  modal.dataset.currentRoutineId = routineId || '';
+
+  const searchInput = document.getElementById('guide-modal-search-input');
+  if (searchInput) searchInput.value = '';
+  const searchResults = document.getElementById('guide-modal-search-results');
+  if (searchResults) { searchResults.classList.add('hidden'); searchResults.innerHTML = ''; }
 
   const titleEl = document.getElementById('guide-modal-title');
   const groupEl = document.getElementById('guide-modal-group');
@@ -9166,6 +9267,150 @@ function perfOpenExerciseGuide(exerciseId, routineId = null, explicitName = '') 
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+let perfQuickGroupFilter = 'Todos';
+
+function perfQuickFilterGroup(group) {
+  perfQuickGroupFilter = group;
+  document.querySelectorAll('.perf-qfilter-btn').forEach(btn => {
+    const txt = btn.textContent.trim().toLowerCase();
+    const gLow = group.toLowerCase();
+    if (txt === gLow || (gLow === 'braços' && (txt === 'braços' || txt === 'braço')) || (gLow === 'peitoral' && txt === 'peito') || (gLow === 'dorsal' && txt === 'costas')) {
+      btn.className = 'perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-[0_0_8px_rgba(59,130,246,0.5)] shrink-0';
+    } else {
+      btn.className = 'perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0';
+    }
+  });
+  const input = document.getElementById('perf-quick-search-input');
+  perfQuickSearchExercise(input ? input.value : '');
+}
+
+function perfQuickSearchExercise(query = '') {
+  const container = document.getElementById('perf-quick-search-results');
+  if (!container) return;
+
+  const cleanQuery = (query || '').trim().toLowerCase();
+  
+  if (!cleanQuery && perfQuickGroupFilter === 'Todos') {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+
+  const filtered = PERF_EXERCISE_DB.filter(ex => {
+    const matchGroup = (perfQuickGroupFilter === 'Todos') || 
+      (perfQuickGroupFilter === 'Braços' ? (ex.group === 'Bíceps' || ex.group === 'Tríceps') : ex.group === perfQuickGroupFilter);
+    
+    if (!matchGroup) return false;
+    if (!cleanQuery) return true;
+
+    const normName = ex.name.toLowerCase();
+    const normPrimary = (ex.primary || '').toLowerCase();
+    const normEquip = (ex.equipment || '').toLowerCase();
+    return normName.includes(cleanQuery) || normPrimary.includes(cleanQuery) || normEquip.includes(cleanQuery);
+  }).slice(0, 18);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-zinc-500">Nenhum exercício encontrado. <a href="https://www.gifdotreino.com/?s=${encodeURIComponent(query)}" target="_blank" class="text-blue-400 underline font-semibold">Buscar em GifDoTreino.com ↗</a></div>`;
+    return;
+  }
+
+  const currentRoutine = perfWorkoutPlan.find(r => r.id === perfTargetRoutine);
+
+  container.innerHTML = filtered.map(ex => {
+    const alreadyAdded = currentRoutine && currentRoutine.exercises.some(e => (e.exerciseId || e.id) === ex.id);
+    return `
+      <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-blue-500/50 flex flex-col justify-between gap-2 transition-all">
+        <div>
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-xs font-bold text-white truncate">${ex.name}</span>
+            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-black text-blue-300 border border-blue-900/60 shrink-0">${ex.equipment}</span>
+          </div>
+          <div class="text-[10.5px] text-zinc-400 mt-1 truncate">
+            🎯 <span class="text-zinc-200">${ex.primary}</span> (${ex.group})
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800">
+          <button onclick="perfOpenExerciseGuide('${ex.id}', '${perfTargetRoutine}', '${encodeURIComponent(ex.name)}')"
+            class="px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center gap-1">
+            <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> GIF
+          </button>
+          <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}');`}"
+            class="flex-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${alreadyAdded ? 'bg-zinc-800 text-zinc-500 cursor-default' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_8px_rgba(59,130,246,0.4)]'}">
+            <i data-lucide="${alreadyAdded ? 'check' : 'plus'}" class="w-3 h-3"></i>
+            <span>${alreadyAdded ? 'Adicionado' : `+ Treino ${perfTargetRoutine}`}</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function perfSearchInGuideModal(query = '') {
+  const container = document.getElementById('guide-modal-search-results');
+  if (!container) return;
+
+  const cleanQuery = (query || '').trim().toLowerCase();
+  if (!cleanQuery) {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+
+  const filtered = PERF_EXERCISE_DB.filter(ex => {
+    const normName = ex.name.toLowerCase();
+    const normPrimary = (ex.primary || '').toLowerCase();
+    const normGroup = (ex.group || '').toLowerCase();
+    const normEquip = (ex.equipment || '').toLowerCase();
+    return normName.includes(cleanQuery) || normPrimary.includes(cleanQuery) || normGroup.includes(cleanQuery) || normEquip.includes(cleanQuery);
+  }).slice(0, 12);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="col-span-full text-center py-3 text-xs text-zinc-500">Nenhum exercício encontrado. <a href="https://www.gifdotreino.com/?s=${encodeURIComponent(query)}" target="_blank" class="text-blue-400 underline">Buscar no GifDoTreino.com ↗</a></div>`;
+    return;
+  }
+
+  const modalEl = document.getElementById('modal-exercise-guide');
+  const currentModalId = modalEl ? modalEl.dataset.currentExId : '';
+  const currentRoutineId = modalEl ? modalEl.dataset.currentRoutineId : '';
+
+  container.innerHTML = filtered.map(ex => `
+    <div class="p-2.5 rounded-xl bg-black/60 border border-blue-900/60 hover:border-blue-400/60 flex flex-col justify-between gap-1.5 transition-all">
+      <div>
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-xs font-bold text-white truncate">${ex.name}</span>
+          <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-blue-300 border border-blue-800/50 shrink-0">${ex.equipment}</span>
+        </div>
+        <div class="text-[10px] text-zinc-400 truncate mt-0.5">🎯 ${ex.primary} (${ex.group})</div>
+      </div>
+      <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-800">
+        <button onclick="perfOpenExerciseGuide('${ex.id}', '${currentRoutineId || ''}', '${encodeURIComponent(ex.name)}')"
+          class="flex-1 px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center justify-center gap-1">
+          <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> Ver GIF
+        </button>
+        ${currentRoutineId && currentModalId ? `
+          <button onclick="perfSwapExercise('${currentRoutineId}', '${currentModalId}', '${ex.id}'); perfCloseExerciseGuide();"
+            class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-amber-300 hover:text-white bg-amber-950/90 hover:bg-amber-800 border border-amber-600/70 transition-all flex items-center gap-1">
+            <i data-lucide="shuffle" class="w-3 h-3"></i> Trocar
+          </button>
+        ` : `
+          <button onclick="perfAddExercise('${ex.id}'); perfCloseExerciseGuide();"
+            class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-300 hover:text-white bg-emerald-950/90 hover:bg-emerald-800 border border-emerald-600/70 transition-all flex items-center gap-1">
+            <i data-lucide="plus" class="w-3 h-3"></i> Adicionar
+          </button>
+        `}
+      </div>
+    </div>
+  `).join('');
+
   if (window.lucide) window.lucide.createIcons();
 }
 
@@ -13440,7 +13685,10 @@ window.togglePilaresAcessosCard = togglePilaresAcessosCard;
 window.updateMobileSubnavActiveVisuals = updateMobileSubnavActiveVisuals;
 window.perfSwitchView = perfSwitchView;
 window.resultsSwitchSubView = resultsSwitchSubView;
-
-
-
-
+window.perfQuickFilterGroup = perfQuickFilterGroup;
+window.perfQuickSearchExercise = perfQuickSearchExercise;
+window.perfSearchInGuideModal = perfSearchInGuideModal;
+window.perfSanitizeWorkoutPlan = perfSanitizeWorkoutPlan;
+window.perfOpenExerciseGuide = perfOpenExerciseGuide;
+window.perfCloseExerciseGuide = perfCloseExerciseGuide;
+window.perfSwapExercise = perfSwapExercise;

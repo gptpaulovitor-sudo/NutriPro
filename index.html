@@ -1206,6 +1206,30 @@
             </div>
           </div>
 
+          <!-- Barra de Busca Rápida de Exercícios para Inserção Direta na Rotina Alvo -->
+          <div class="hud-card p-3.5 rounded-2xl border border-blue-500/40 bg-zinc-950/90 shadow-[0_0_20px_rgba(37,99,235,0.15)] space-y-2.5">
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+              <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="perf-quick-search-input"
+                  placeholder="🔍 Buscar exercício no banco ou GifDoTreino (ex: leg press, supino, agachamento, bíceps, remada)..."
+                  oninput="perfQuickSearchExercise(this.value)"
+                  class="w-full bg-black/80 border border-blue-600/40 focus:border-blue-400 text-white rounded-xl pl-10 pr-3 py-2 text-xs outline-none shadow-inner" />
+              </div>
+              <div class="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
+                <button type="button" onclick="perfQuickFilterGroup('Todos')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-blue-600 text-white shrink-0">Todos</button>
+                <button type="button" onclick="perfQuickFilterGroup('Peitoral')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0">Peitoral</button>
+                <button type="button" onclick="perfQuickFilterGroup('Dorsal')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0">Dorsal</button>
+                <button type="button" onclick="perfQuickFilterGroup('Pernas')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0">Pernas</button>
+                <button type="button" onclick="perfQuickFilterGroup('Ombros')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0">Ombros</button>
+                <button type="button" onclick="perfQuickFilterGroup('Braços')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0">Braços</button>
+                <button type="button" onclick="perfQuickFilterGroup('Abdômen')" class="perf-qfilter-btn text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white shrink-0">Abdômen</button>
+              </div>
+            </div>
+            <!-- Container de resultados dinâmicos -->
+            <div id="perf-quick-search-results" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pt-2 border-t border-zinc-800/80"></div>
+          </div>
+
           <!-- Container das Rotinas Prescritas (Largura Total Full Width) -->
           <div id="perf-routines-container" class="space-y-5"></div>
 
@@ -4748,6 +4772,25 @@
             </div>
           </div>
 
+          <!-- Barra de Busca Rápida no Modal para Inserção / Troca de Qualquer Exercício do Catálogo -->
+          <div class="p-3.5 rounded-xl bg-blue-950/30 border border-blue-800/50 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-blue-400 font-bold flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-blue-400"></i> Buscar Outro Exercício (Base GifDoTreino &amp; Biomecânica):
+              </span>
+            </div>
+            <div class="relative">
+              <input type="text" id="guide-modal-search-input"
+                placeholder="🔍 Digite para buscar qualquer exercício (ex: supino, leg press, puxada, agachamento)..."
+                oninput="perfSearchInGuideModal(this.value)"
+                class="w-full bg-black/80 border border-blue-500/40 focus:border-blue-400 text-white rounded-xl pl-9 pr-3 py-2 text-xs outline-none shadow-inner" />
+              <i data-lucide="search" class="w-4 h-4 text-blue-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            </div>
+            <div id="guide-modal-search-results" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+              <!-- Resultados da busca rápida no modal -->
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -5344,10 +5387,10 @@
       </div>
 
       <!-- Custom Scripts -->
-      <script src="foodsData.js?v=20260828_giffix"></script>
-      <script src="db.js?v=20260828_giffix"></script>
-      <script src="math.js?v=20260828_giffix"></script>
-      <script src="app.js?v=20260828_giffix"></script>
+      <script src="foodsData.js?v=20260828_exsearch"></script>
+      <script src="db.js?v=20260828_exsearch"></script>
+      <script src="math.js?v=20260828_exsearch"></script>
+      <script src="app.js?v=20260828_exsearch"></script>
 </body>
 
 </html>
