@@ -11750,6 +11750,11 @@ async function savePerformanceForPatient(patientId = activePatientId) {
   if (!pId) return;
 
   perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
+  const metaToSave = {
+    ...(perfWorkoutMeta || {}),
+    patientId: pId
+  };
+
   const record = {
     id: pId,
     patientId: pId,
@@ -11759,7 +11764,7 @@ async function savePerformanceForPatient(patientId = activePatientId) {
     prescribedCardioId: perfPrescribedCardioId,
     heartRateZones: perfCustomHRZones,
     auditData: perfAuditData,
-    meta: perfWorkoutMeta,
+    meta: metaToSave,
     // Persiste o estado pendente de aprovação da IA para que sobreviva ao reload
     pendingAIValidation: (perfPendingAIValidation && perfPendingAIValidation.patientId === pId)
       ? perfPendingAIValidation
@@ -11770,6 +11775,7 @@ async function savePerformanceForPatient(patientId = activePatientId) {
   // 1. Grava no localStorage imediatamente (síncrono e resiliente a fechamento de app / recarga)
   try {
     localStorage.setItem("NUTRIAX_PERFORMANCE_" + pId, JSON.stringify(record));
+    localStorage.setItem("NUTRIAX_PERFORMANCE_LAST_ACTIVE", JSON.stringify({ patientId: pId, record }));
   } catch (lsErr) {
     console.warn("Falha ao salvar performance no localStorage:", lsErr);
   }
@@ -11793,31 +11799,49 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     perfPendingAIValidation = null;
   }
 
-  let saved = null;
+  let dexieSaved = null;
+  let lsSaved = null;
 
   // 1. Tenta recuperar do Dexie (IndexedDB)
   try {
     if (typeof db !== "undefined" && db.performanceMetabolica) {
-      saved = await db.performanceMetabolica.get(pId);
+      dexieSaved = await db.performanceMetabolica.get(pId);
     }
   } catch (err) {
     console.warn("Erro ao ler performance do Dexie:", err);
   }
 
-  // 2. Fallback de alta confiabilidade no localStorage
-  if (!saved || !Array.isArray(saved.workoutPlan) || saved.workoutPlan.length === 0) {
+  // 2. Tenta recuperar do localStorage específico do paciente
+  try {
+    const lsRaw = localStorage.getItem("NUTRIAX_PERFORMANCE_" + pId);
+    if (lsRaw) {
+      lsSaved = JSON.parse(lsRaw);
+    }
+  } catch (lsErr) {
+    console.warn("Erro ao ler performance do localStorage:", lsErr);
+  }
+
+  // 3. Fallback do último registro ativo global no localStorage
+  if (!lsSaved) {
     try {
-      const lsRaw = localStorage.getItem("NUTRIAX_PERFORMANCE_" + pId);
-      if (lsRaw) {
-        saved = JSON.parse(lsRaw);
-        // Sincroniza de volta no Dexie em segundo plano se disponível
-        if (saved && typeof db !== "undefined" && db.performanceMetabolica) {
-          db.performanceMetabolica.put(saved).catch(() => {});
+      const lastActiveRaw = localStorage.getItem("NUTRIAX_PERFORMANCE_LAST_ACTIVE");
+      if (lastActiveRaw) {
+        const lastActiveObj = JSON.parse(lastActiveRaw);
+        if (lastActiveObj && (lastActiveObj.patientId === pId || !lastActiveObj.patientId) && lastActiveObj.record) {
+          lsSaved = lastActiveObj.record;
         }
       }
-    } catch (lsErr) {
-      console.warn("Erro ao ler performance do localStorage:", lsErr);
-    }
+    } catch (_) {}
+  }
+
+  // 4. Seleciona o registro mais recente entre Dexie e localStorage
+  let saved = null;
+  if (dexieSaved && lsSaved) {
+    const dexieTime = dexieSaved.lastUpdated ? new Date(dexieSaved.lastUpdated).getTime() : 0;
+    const lsTime = lsSaved.lastUpdated ? new Date(lsSaved.lastUpdated).getTime() : 0;
+    saved = lsTime >= dexieTime ? lsSaved : dexieSaved;
+  } else {
+    saved = dexieSaved || lsSaved;
   }
 
   if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
@@ -11833,8 +11857,10 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       isAIGenerated: !!saved.isAIGenerated,
       isClinicallyValidated: !!saved.isClinicallyValidated,
       generatedAt: saved.generatedAt || null,
-      validatedAt: saved.validatedAt || null
+      validatedAt: saved.validatedAt || null,
+      patientId: pId
     };
+    if (!perfWorkoutMeta.patientId) perfWorkoutMeta.patientId = pId;
     perfTargetRoutine = (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
 
     // Restaura estado pendente de aprovação da IA (gerado mas ainda não aprovado)
@@ -11851,6 +11877,15 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
         perfPendingAIValidation = null;
       }
     }
+
+    // Mantém ambos os storages sincronizados com a versão mais recente
+    try {
+      localStorage.setItem("NUTRIAX_PERFORMANCE_" + pId, JSON.stringify(saved));
+      if (typeof db !== "undefined" && db.performanceMetabolica) {
+        db.performanceMetabolica.put(saved).catch(() => {});
+      }
+    } catch (_) {}
+
   } else {
     perfActiveSplit = 'PPL';
     perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
@@ -11861,7 +11896,8 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       isAIGenerated: false,
       isClinicallyValidated: false,
       generatedAt: null,
-      validatedAt: null
+      validatedAt: null,
+      patientId: pId
     };
     perfTargetRoutine = 'A';
     perfPendingAIValidation = null;
@@ -11935,7 +11971,7 @@ function updateAITrainingBanner() {
  * @returns {Promise<Object>}
  */
 async function approveAITraining(patientId, validatedPrescription, contextSnapshot) {
-  const pId = patientId || perfPendingAIValidation?.patientId || perfWorkoutMeta?.patientId;
+  const pId = patientId || perfPendingAIValidation?.patientId || perfWorkoutMeta?.patientId || activePatientId;
   const presc = validatedPrescription || perfPendingAIValidation?.prescription || { routines: perfWorkoutPlan };
   const snapshot = contextSnapshot || perfPendingAIValidation?.context;
 
@@ -12028,6 +12064,7 @@ async function approveAITraining(patientId, validatedPrescription, contextSnapsh
   // PERSISTÊNCIA SEGURA — Único ponto de gravação autorizado
   await savePerformanceForPatient(pId);
   updateAITrainingBanner();
+  perfRender();
 
   alert('✅ Prescrição de Treino e Periodização Biomecânica validada e assinada com sucesso!');
   return { status: 'APPROVED', patientId: pId, validatedAt: perfWorkoutMeta.validatedAt };
