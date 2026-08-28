@@ -10492,6 +10492,144 @@ async function defaultPerformanceAIGenerator(context, previousErrors = []) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// POOL DE API KEYS GEMINI — Rotação automática em caso de quota excedida
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Retorna o array de chaves configuradas.
+ * Prioriza GEMINI_API_KEYS (pool); faz fallback para GEMINI_API_KEY (legado).
+ * @returns {string[]}
+ */
+function geminiGetApiKeyPool() {
+  // Pool novo
+  try {
+    const raw = localStorage.getItem('GEMINI_API_KEYS');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(k => String(k).trim()).filter(Boolean);
+      }
+    }
+  } catch (_) {}
+
+  // Fallback: chave única legada
+  const single = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
+  if (single) return [single];
+
+  return [];
+}
+
+/**
+ * Salva o pool de chaves no localStorage.
+ * Também mantém GEMINI_API_KEY sincronizado com a primeira chave (retrocompatibilidade).
+ * @param {string[]} keys
+ */
+function geminiSaveApiKeyPool(keys) {
+  const clean = keys.map(k => String(k).trim()).filter(Boolean);
+  localStorage.setItem('GEMINI_API_KEYS', JSON.stringify(clean));
+  if (clean.length > 0) {
+    localStorage.setItem('GEMINI_API_KEY', clean[0]);
+  } else {
+    localStorage.removeItem('GEMINI_API_KEY');
+    localStorage.removeItem('GEMINI_API_KEYS');
+  }
+}
+
+/**
+ * Abre um modal simples para gerenciar o pool de API Keys do Gemini.
+ * Permite adicionar, remover e visualizar todas as chaves configuradas.
+ */
+function openGeminiKeysManager() {
+  const existingModal = document.getElementById('gemini-keys-modal');
+  if (existingModal) existingModal.remove();
+
+  const pool = geminiGetApiKeyPool();
+
+  const modal = document.createElement('div');
+  modal.id = 'gemini-keys-modal';
+  modal.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+  modal.innerHTML = `
+    <div class="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-white font-bold text-lg flex items-center gap-2">
+            <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+            Pool de API Keys Gemini
+          </h2>
+          <p class="text-zinc-400 text-xs mt-0.5">Adicione múltiplas chaves. Em caso de quota excedida, a próxima é usada automaticamente.</p>
+        </div>
+        <button onclick="document.getElementById('gemini-keys-modal').remove()" class="text-zinc-500 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Lista de chaves -->
+      <div id="gemini-keys-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+        ${pool.length === 0
+          ? '<p class="text-zinc-500 text-sm text-center py-4">Nenhuma chave configurada.</p>'
+          : pool.map((k, i) => `
+            <div class="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2">
+              <span class="text-xs font-bold text-violet-400 w-6 shrink-0">#${i + 1}</span>
+              <span class="text-xs text-zinc-300 font-mono truncate flex-1" title="${k}">${k.slice(0, 8)}${'*'.repeat(Math.max(0, k.length - 12))}${k.slice(-4)}</span>
+              ${i === 0 ? '<span class="text-[10px] bg-emerald-900/60 text-emerald-400 border border-emerald-700/60 px-2 py-0.5 rounded-full font-bold shrink-0">Principal</span>' : ''}
+              <button onclick="geminiRemoveKeyFromPool(${i})" class="text-zinc-600 hover:text-red-400 transition-colors shrink-0" title="Remover">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>`).join('')
+        }
+      </div>
+
+      <!-- Adicionar nova chave -->
+      <div class="border-t border-zinc-800 pt-4 space-y-3">
+        <label class="text-zinc-300 text-sm font-semibold block">Adicionar nova chave</label>
+        <div class="flex gap-2">
+          <input id="gemini-new-key-input" type="password"
+            placeholder="AIza..."
+            class="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500 font-mono"
+          />
+          <button onclick="geminiAddKeyToPool()" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors shrink-0">
+            Adicionar
+          </button>
+        </div>
+        <p class="text-zinc-500 text-xs">A primeira chave da lista é sempre a principal. As demais são usadas automaticamente como fallback.</p>
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button onclick="document.getElementById('gemini-keys-modal').remove()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-5 py-2 rounded-xl text-sm transition-colors">
+          Fechar
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function geminiAddKeyToPool() {
+  const input = document.getElementById('gemini-new-key-input');
+  if (!input) return;
+  const newKey = input.value.trim();
+  if (!newKey) { alert('Por favor, insira uma chave válida.'); return; }
+  const pool = geminiGetApiKeyPool();
+  if (pool.includes(newKey)) { alert('Esta chave já está no pool.'); return; }
+  pool.push(newKey);
+  geminiSaveApiKeyPool(pool);
+  openGeminiKeysManager(); // re-renderiza
+}
+
+function geminiRemoveKeyFromPool(index) {
+  const pool = geminiGetApiKeyPool();
+  pool.splice(index, 1);
+  geminiSaveApiKeyPool(pool);
+  openGeminiKeysManager(); // re-renderiza
+}
+
+// Expõe globalmente
+window.openGeminiKeysManager  = openGeminiKeysManager;
+window.geminiAddKeyToPool     = geminiAddKeyToPool;
+window.geminiRemoveKeyFromPool = geminiRemoveKeyFromPool;
+
+// ════════════════════════════════════════════════════════════════════════════
 // GERADOR REAL DE PRESCRIÇÃO VIA GOOGLE GEMINI (PILAR DE PERFORMANCE)
 // geminiPerformanceAIGenerator(context, previousErrors)
 // ════════════════════════════════════════════════════════════════════════════
@@ -10499,22 +10637,99 @@ async function defaultPerformanceAIGenerator(context, previousErrors = []) {
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
 /**
+ * Executa uma única chamada ao endpoint Gemini com uma chave específica.
+ * Lança isQuotaError=true em caso de HTTP 429 para o chamador poder rotacionar.
+ * @param {string} apiKey
+ * @param {string} prompt
+ * @returns {Promise<Object>} Prescrição bruta JSON
+ */
+async function _callGeminiWithKey(apiKey, prompt) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+      }),
+      signal: controller.signal
+    });
+  } catch (fetchErr) {
+    if (fetchErr.name === 'AbortError') {
+      const timeoutErr = new Error('Falha na API do Gemini: requisição excedeu 90s (timeout). A IA demorou para responder — tente novamente.');
+      timeoutErr.isTimeout = true;
+      throw timeoutErr;
+    }
+    throw new Error(`Falha de conexão com a API do Gemini: ${fetchErr.message || fetchErr}`);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    let errorDetails = '';
+    try {
+      const errJson = await response.json();
+      errorDetails = errJson?.error?.message || errJson?.message || '';
+    } catch (_) {
+      try { errorDetails = await response.text(); } catch (__) {}
+    }
+    const detailSuffix = errorDetails ? ` Detalhes: ${errorDetails}` : '';
+
+    if (response.status === 400) throw new Error(`Falha na API do Gemini (HTTP 400 - Parâmetros inválidos).${detailSuffix}`);
+    if (response.status === 401) throw new Error(`Falha na API do Gemini (HTTP 401 - Chave inválida ou não autenticada).${detailSuffix}`);
+    if (response.status === 403) throw new Error(`Falha na API do Gemini (HTTP 403 - Acesso negado).${detailSuffix}`);
+    if (response.status === 429) {
+      const quotaErr = new Error(`Chave #KEY# com quota excedida (HTTP 429).${detailSuffix}`);
+      quotaErr.isQuotaError = true;
+      throw quotaErr;
+    }
+    throw new Error(`Falha na API do Gemini (HTTP ${response.status}).${detailSuffix}`);
+  }
+
+  let resData;
+  try { resData = await response.json(); }
+  catch (_) { throw new Error('Falha na API do Gemini: resposta não é JSON válido.'); }
+
+  const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText || !rawText.trim()) throw new Error('Falha na API do Gemini: resposta vazia ou sem conteúdo.');
+
+  // Sanitiza blocos ```json```
+  let cleaned = rawText.trim();
+  if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+  else if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+  cleaned = cleaned.trim();
+
+  let prescription;
+  try { prescription = JSON.parse(cleaned); }
+  catch (_) { throw new Error('Falha na API do Gemini: resposta não contém JSON válido.'); }
+
+  if (!prescription || typeof prescription !== 'object') {
+    throw new Error('Falha na API do Gemini: resposta não é um objeto JSON válido.');
+  }
+  return prescription;
+}
+
+/**
  * Gerador de prescrição de treino utilizando a API do Google Gemini.
- * Responsável exclusivamente por gerar o candidato estruturado e individualizado a partir do contexto.
- * Não realiza validações de regras de negócio, não altera e não persiste dados.
+ * Usa um POOL de chaves — rotaciona automaticamente em caso de quota excedida (429).
  *
  * @param {Object} context - PerformanceContext DTO canônico
  * @param {string[]} previousErrors - Lista de erros da tentativa anterior (se houver)
  * @returns {Promise<Object>} Objeto JSON bruto da prescrição gerada
  */
 async function geminiPerformanceAIGenerator(context, previousErrors = []) {
-  // 1. Obter chave da API exclusivamente do localStorage
-  const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
-  if (!apiKey) {
-    throw new Error('Chave da API Gemini não configurada. Configure GEMINI_API_KEY no localStorage.');
+  // 1. Obter pool de chaves (multi-key com fallback legado)
+  const apiKeys = geminiGetApiKeyPool();
+  if (apiKeys.length === 0) {
+    throw new Error('Nenhuma chave da API Gemini configurada. Clique em "🔑 Chaves de API" para configurar.');
   }
 
-  // 2. Montar o prompt de sistema e instruções especializadas
+  // 2. Montar prompt
   let prompt = `Você é um especialista em Fisiologia do Exercício, Biomecânica, Prescrição do Treinamento de Força, Performance Humana e Periodização.
 
 Sua função neste sistema é gerar uma PRESCRIÇÃO DE TREINO CANDIDATA ALTAMENTE INDIVIDUALIZADA e EXCLUSIVA para o paciente informado no DTO canônico.
@@ -10613,117 +10828,38 @@ Não repita os erros anteriores.
 Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e do TrainingPrescriptionSchema.`;
   }
 
-  // 4. Configuração do Endpoint e Timeout via AbortController (90s — prompt extenso requer mais tempo)
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
+  // 4. Rotacao por pool de chaves — tenta cada key; pula em caso de 429
+  const quotaExhaustedKeys = [];
+  let lastError = null;
 
-  let response;
-  try {
-    response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.2
-        }
-      }),
-      signal: controller.signal
-    });
-  } catch (fetchErr) {
-    if (fetchErr.name === 'AbortError') {
-      const timeoutErr = new Error('Falha na API do Gemini: requisição excedeu o limite de 90 segundos (timeout). A IA demorou para responder — tente novamente.');
-      timeoutErr.isTimeout = true;
-      throw timeoutErr;
-    }
-    throw new Error(`Falha de conexão com a API do Gemini: ${fetchErr.message || fetchErr}`);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  // 5. Tratamento de Erros HTTP
-  if (!response.ok) {
-    let errorDetails = '';
+  for (let ki = 0; ki < apiKeys.length; ki++) {
+    const currentKey = apiKeys[ki];
     try {
-      const errJson = await response.json();
-      if (errJson && errJson.error && errJson.error.message) {
-        errorDetails = errJson.error.message;
-      } else if (errJson && errJson.message) {
-        errorDetails = errJson.message;
+      console.info(`[Gemini] Tentando chave #${ki + 1} de ${apiKeys.length}...`);
+      const prescription = await _callGeminiWithKey(currentKey, prompt);
+      if (ki > 0) {
+        console.info(`[Gemini] Sucesso com chave #${ki + 1} (após ${ki} quota(s) excedida(s)).`);
       }
-    } catch (_) {
-      try {
-        const errText = await response.text();
-        if (errText) errorDetails = errText;
-      } catch (__) {}
-    }
-
-    const detailSuffix = errorDetails ? ` Detalhes: ${errorDetails}` : '';
-
-    if (response.status === 400) {
-      throw new Error(`Falha na API do Gemini (HTTP 400 - Requisição ou parâmetros inválidos).${detailSuffix}`);
-    } else if (response.status === 401) {
-      throw new Error(`Falha na API do Gemini (HTTP 401 - Chave de API não autenticada ou inválida).${detailSuffix}`);
-    } else if (response.status === 403) {
-      throw new Error(`Falha na API do Gemini (HTTP 403 - Acesso negado ou sem permissão para o modelo/chave).${detailSuffix}`);
-    } else if (response.status === 429) {
-      const quotaErr = new Error(`Falha na API do Gemini (HTTP 429 - Limite de requisições ou quota excedida).${detailSuffix}`);
-      quotaErr.isQuotaError = true;
-      throw quotaErr;
-    } else if (response.status >= 500) {
-      throw new Error(`Falha na API do Gemini (HTTP ${response.status} - Erro interno ou indisponibilidade do serviço Gemini).${detailSuffix}`);
-    } else {
-      throw new Error(`Falha na API do Gemini (HTTP ${response.status}).${detailSuffix}`);
+      return prescription;
+    } catch (err) {
+      lastError = err;
+      if (err.isQuotaError) {
+        quotaExhaustedKeys.push(ki + 1);
+        console.warn(`[Gemini] Chave #${ki + 1} com quota excedida. ${ki + 1 < apiKeys.length ? 'Tentando próxima...' : 'Sem mais chaves disponíveis.'}`);
+        continue; // tenta a próxima key
+      }
+      // Erros que não são de quota (timeout, 401, 400...) lançam imediatamente
+      throw err;
     }
   }
 
-  // 6. Extração da resposta
-  let resData;
-  try {
-    resData = await response.json();
-  } catch (jsonErr) {
-    throw new Error('Falha na API do Gemini: a resposta da API não é um JSON válido.');
-  }
-
-  const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
-    throw new Error('Falha na API do Gemini: resposta vazia ou sem conteúdo textual utilizável.');
-  }
-
-  // 7. Sanitização do JSON (JSON puro ou dentro de blocos Markdown ```json)
-  let cleanedText = rawText.trim();
-  if (cleanedText.startsWith('```json')) {
-    cleanedText = cleanedText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
-  } else if (cleanedText.startsWith('```')) {
-    cleanedText = cleanedText.replace(/^```\s*/i, '').replace(/```\s*$/i, '');
-  }
-  cleanedText = cleanedText.trim();
-
-  // 8. JSON.parse e retorno
-  let prescription;
-  try {
-    prescription = JSON.parse(cleanedText);
-  } catch (parseErr) {
-    throw new Error('Falha na API do Gemini: a resposta recebida não contém JSON válido.');
-  }
-
-  if (!prescription || typeof prescription !== 'object') {
-    throw new Error('Falha na API do Gemini: a resposta recebida não é um objeto JSON válido.');
-  }
-
-  return prescription;
+  // Todas as chaves esgotaram quota
+  const poolMsg = apiKeys.length > 1
+    ? `Todas as ${apiKeys.length} chaves do pool estão com quota excedida.`
+    : 'A chave de API está com quota excedida.';
+  const finalErr = new Error(`${poolMsg} Aguarde a renovação (geralmente meia-noite PT) ou adicione novas chaves em "🔑 Chaves de API".`);
+  finalErr.isQuotaError = true;
+  throw finalErr;
 }
 
 
@@ -12263,16 +12399,18 @@ function resetGenAiButtons() {
 async function handleGenerateAITraining() {
   const allGenBtns = document.querySelectorAll('#perf-btn-generate-ai, #perf-ai-btn, [onclick*="handleGenerateAITraining"]');
 
-  // 1. Verificação proativa da chave da API Gemini no localStorage
-  let apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
-  if (!apiKey) {
-    const inputKey = window.prompt('🔑 Chave da API Gemini não configurada.\n\nPor favor, insira sua chave da API do Google Gemini (ela será salva com segurança no seu navegador):');
+  // 1. Verificação proativa do pool de chaves da API Gemini
+  let apiKeys = geminiGetApiKeyPool();
+  if (apiKeys.length === 0) {
+    // Tenta migrar key legada do prompt antigo
+    const inputKey = window.prompt('🔑 Nenhuma chave da API Gemini configurada.\n\nInsira sua primeira chave (ela será salva no pool do navegador):');
     if (inputKey && inputKey.trim()) {
-      localStorage.setItem('GEMINI_API_KEY', inputKey.trim());
-      apiKey = inputKey.trim();
+      geminiSaveApiKeyPool([inputKey.trim()]);
+      apiKeys = [inputKey.trim()];
     } else {
       resetGenAiButtons();
-      alert('❌ Chave da API Gemini não configurada.\n\nPara utilizar o gerador por Inteligência Artificial, é necessário configurar sua GEMINI_API_KEY no localStorage.');
+      // Abre o gerenciador para facilitar configuração
+      openGeminiKeysManager();
       return;
     }
   }
