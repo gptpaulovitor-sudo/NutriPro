@@ -6249,6 +6249,9 @@ const PERF_EXERCISE_DB = [
   { id:'lg20', name:'Panturrilha em Pé na Máquina',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio (Cabeça Medial e Lateral)',        secondary:'Sóleo',                                    resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Panturrilha em pé: joelho estendido maximiza comprimento do gastrocnêmio. Pausa 1s na elevação máxima (encurtamento) + descida de 3s com alongamento completo — Biomec. MI.' },
   { id:'lg21', name:'Panturrilha Sentado (Gêmeos / Sóleo)',     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Sóleo (Trabalho com Joelho Flexionado)',        secondary:'Gastrocnêmio profundo',                    resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Joelho flexionado inibe o gastrocnêmio e isola o sóleo, com pico de ativação no encurtamento. Par do exercício em pé (que foca gastrocnêmio alongado) — Biomec. MI.' },
   { id:'lg22', name:'Panturrilha no Leg Press 45°',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio & Sóleo',                          secondary:'Tibial',                                   resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Panturrilha no leg press: carga axial com ADM máxima (plataforma faz naturalmente o alongamento). Pico de tensão passiva no alongamento com joelho estendido — Biomec. MI.' },
+  { id:'lg23', name:'Agachamento Sumô com Halter ou Barra',     group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Glúteos & Adutores da Coxa',                    secondary:'Quadríceps, Isquiotibiais',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Agachamento sumô: base aberta com rotação externa enfatiza glúteos e adutores no alongamento.' },
+  { id:'lg24', name:'Elevação Pélvica Unilateral',              group:'Pernas',   mechanics:'Isolador', equipment:'Halteres',       primary:'Glúteo Máximo (Unilateral)',                    secondary:'Isquiotibiais, Core',                       resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Elevação pélvica unilateral: correção de assimetrias com pico de contração no topo.' },
+  { id:'lg25', name:'Afundo Deslocado com Halteres (Passada)',  group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Quadríceps & Glúteo Máximo',                    secondary:'Isquiotibiais, Panturrilhas, Core',         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Afundo com deslocamento (Walking Lunge): descida profunda gera pico de alongamento simultâneo de glúteo e quadríceps.' },
 
   // ── OMBROS & TRAPÉZIO ──
   // Fonte: Lima & Pinto — Cinesiologia Cap.6 | Schoenfeld Cap.2 (EMG deltoide) | ACSM Cap.7
@@ -8304,6 +8307,39 @@ const PERF_EXERCISE_GUIDE_MAP = {
     breathing: 'Expire empurrando e inspire no alongamento.',
     mistakes: 'Mantenha as travas de segurança do Leg engatadas em nível seguro.'
   },
+  lg23: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-sumo-squat.gif',
+    steps: [
+      'Pés afastados além da largura dos ombros com pontas viradas para fora a 45°.',
+      'Segure um halter pesado entre as pernas com braços estendidos.',
+      'Agache mantendo a coluna ereta e os joelhos alinhados com as pontas dos pés.',
+      'Empurre o chão com os calcanhares contraindo glúteos e adutores no topo.'
+    ],
+    breathing: 'Inspire na descida profunda e expire ao estender os joelhos e quadril.',
+    mistakes: 'Não deixe os joelhos caírem para dentro (valgo dinâmico).'
+  },
+  lg24: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/bodyweight-single-leg-hip-thrust.gif',
+    steps: [
+      'Costas apoiadas no banco na altura das escápulas, um pé firme no chão.',
+      'Eleve a outra perna dobrada a 90° e segure um halter sobre a pelve (opcional).',
+      'Empurre o solo com o calcanhar do pé de apoio estendendo o quadril até ficar paralelo.',
+      'Segure 1 a 2 segundos no topo contraindo o glúteo máximo.'
+    ],
+    breathing: 'Expire ao subir o quadril e inspire na descida controlada.',
+    mistakes: 'Não use a lombar para compensar a amplitude; o movimento é exclusivamente do quadril.'
+  },
+  lg25: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunges.gif',
+    steps: [
+      'Segure um halter em cada mão ao lado do tronco com peitoral aberto e abdômen firme.',
+      'Dê um passo largo à frente flexionando ambos os joelhos em ângulo de 90°.',
+      'O joelho de trás deve quase encostar no chão com controle, sem impacto.',
+      'Empurre com o calcanhar da perna da frente para avançar imediatamente para o próximo passo contínuo.'
+    ],
+    breathing: 'Inspire ao descer no passo e expire ao projetar a força para avançar.',
+    mistakes: 'Não incline o tronco excessivamente para frente nem deixe o calcanhar dianteiro sair do solo.'
+  },
 
   // ── OMBROS & TRAPÉZIO ──
   sh01: {
@@ -8996,6 +9032,56 @@ function perfSanitizeWorkoutPlan() {
   });
 }
 
+const PERF_ACTION_FAMILIES = [
+  // PERNAS / GLÚTEOS / QUADRÍCEPS / POSTERIOR
+  { key: 'passada', rx: /afundo|passada|avanco|lunge|deslocado/i, group: 'Pernas', defaultId: 'lg25' },
+  { key: 'bulgaro', rx: /bulgaro|split/i, group: 'Pernas', defaultId: 'lg07' },
+  { key: 'agachamento', rx: /agachamento|squat|sissy|sumo|goblet/i, group: 'Pernas', defaultId: 'lg01' },
+  { key: 'hack', rx: /hack/i, group: 'Pernas', defaultId: 'lg03' },
+  { key: 'legpress', rx: /leg\s*press|leg\s*45|leg\s*horizontal/i, group: 'Pernas', defaultId: 'lg04' },
+  { key: 'extensora', rx: /extensor|cadeira extensora/i, group: 'Pernas', defaultId: 'lg06' },
+  { key: 'flexora', rx: /flexor|mesa flexora|cadeira flexora/i, group: 'Pernas', defaultId: 'lg12' },
+  { key: 'stiff', rx: /stiff|deadlift|terra|romeno|rdl/i, group: 'Pernas', defaultId: 'lg10' },
+  { key: 'pelvica', rx: /pelvic|thrust|ponte/i, group: 'Pernas', defaultId: 'lg15' },
+  { key: 'panturrilha', rx: /panturrilha|gemeos|soleo|calf/i, group: 'Pernas', defaultId: 'lg20' },
+  { key: 'abdutora', rx: /abdutor/i, group: 'Pernas', defaultId: 'lg17' },
+  { key: 'adutora', rx: /adutor/i, group: 'Pernas', defaultId: 'lg18' },
+  { key: 'gluteo_cabo', rx: /gluteo.*cabo|coice/i, group: 'Pernas', defaultId: 'lg19' },
+
+  // PEITORAL
+  { key: 'crossover', rx: /crossover|cross\s*over/i, group: 'Peitoral', defaultId: 'pe10' },
+  { key: 'peckdeck', rx: /peck\s*deck|voador/i, group: 'Peitoral', defaultId: 'pe13' },
+  { key: 'crucifixo_peito', rx: /crucifixo(?!.*(invers|invert|posterior|deltoide))/i, group: 'Peitoral', defaultId: 'pe07' },
+  { key: 'supino', rx: /supino|bench\s*press|chest\s*press|floor\s*press/i, group: 'Peitoral', defaultId: 'pe01' },
+  { key: 'flexao', rx: /flexao|push\s*up/i, group: 'Peitoral', defaultId: 'pe18' },
+  { key: 'mergulho_peito', rx: /mergulho.*paralelas|paralelas/i, group: 'Peitoral', defaultId: 'pe19' },
+  { key: 'pullover', rx: /pullover/i, group: 'Peitoral', defaultId: 'pe20' },
+
+  // DORSAL / COSTAS
+  { key: 'puxada', rx: /puxada|pulldown|barra\s*fixa|pull\s*up|chin\s*up/i, group: 'Dorsal', defaultId: 'do04' },
+  { key: 'remada', rx: /remada(?!.*alta)|row(?!.*upright)|cavalinho|serrote/i, group: 'Dorsal', defaultId: 'do08' },
+  { key: 'lombar', rx: /lombar|hiperextensao|hiper\s*extensao/i, group: 'Dorsal', defaultId: 'do17' },
+
+  // OMBROS / TRAPÉZIO
+  { key: 'crucifixo_inverso', rx: /crucifixo.*(invers|invert)|rear\s*delt|posterior.*deltoide|deltoide.*posterior/i, group: 'Ombros', defaultId: 'sh21' },
+  { key: 'desenvolvimento', rx: /desenvolvimento|militar|arnold|overhead|shoulder\s*press/i, group: 'Ombros', defaultId: 'sh02' },
+  { key: 'elevacao_lateral', rx: /elevacao.*lateral|lateral\s*raise|y\s*raise/i, group: 'Ombros', defaultId: 'sh06' },
+  { key: 'elevacao_frontal', rx: /elevacao.*frontal|front\s*raise/i, group: 'Ombros', defaultId: 'sh10' },
+  { key: 'facepull', rx: /face\s*pull/i, group: 'Ombros', defaultId: 'sh15' },
+  { key: 'remada_alta', rx: /remada\s*alta|upright\s*row/i, group: 'Ombros', defaultId: 'sh16' },
+  { key: 'encolhimento', rx: /encolhimento|shrug|trapezio/i, group: 'Ombros', defaultId: 'sh18' },
+
+  // BÍCEPS / ANTEBRAÇO
+  { key: 'rosca', rx: /rosca|biceps|curl|scott|spider|martelo/i, group: 'Bíceps', defaultId: 'bi01' },
+  { key: 'antebraco', rx: /antebraco|punho/i, group: 'Bíceps', defaultId: 'bi16' },
+
+  // TRÍCEPS
+  { key: 'triceps', rx: /triceps|testa|frances|pushdown|coice|kickback/i, group: 'Tríceps', defaultId: 'tr01' },
+
+  // ABDÔMEN
+  { key: 'abdomen', rx: /abdominal|crunch|prancha|infra|supra|obliquo/i, group: 'Abdômen', defaultId: 'ab01' }
+];
+
 function perfSearchExerciseSemantic(rawTarget) {
   if (!rawTarget || typeof rawTarget !== 'string') return null;
 
@@ -9035,7 +9121,13 @@ function perfSearchExerciseSemantic(rawTarget) {
   let exact = PERF_EXERCISE_DB.find(e => normalize(e.name) === normTarget);
   if (exact) return exact;
 
-  // 2. Pesos de ações primárias vs modificadores
+  // 2. Identificação da Família Biomecânica
+  const detectedFamily = PERF_ACTION_FAMILIES.find(f => f.rx.test(clean) || f.rx.test(normTarget));
+  const candidatePool = detectedFamily 
+    ? PERF_EXERCISE_DB.filter(e => e.group === detectedFamily.group)
+    : PERF_EXERCISE_DB;
+
+  // 3. Pesos de ações primárias vs modificadores
   const ACTION_WEIGHTS = {
     'crossover': 20,
     'crucifixo': 18, 'voador': 18, 'fly': 18, 'peck': 12, 'deck': 12,
@@ -9066,7 +9158,7 @@ function perfSearchExerciseSemantic(rawTarget) {
   let bestScore = 0;
   let bestMatch = null;
 
-  PERF_EXERCISE_DB.forEach(e => {
+  candidatePool.forEach(e => {
     const eTokens = normalize(e.name).split(' ').filter(t => t.length >= 2);
     let score = 0;
 
@@ -9095,7 +9187,13 @@ function perfSearchExerciseSemantic(rawTarget) {
     }
   });
 
-  return (bestScore >= 4 && bestMatch) ? bestMatch : null;
+  if (bestScore >= 4 && bestMatch) return bestMatch;
+  if (detectedFamily && detectedFamily.defaultId) {
+    const defaultEx = PERF_EXERCISE_DB.find(e => e.id === detectedFamily.defaultId);
+    if (defaultEx) return defaultEx;
+  }
+
+  return null;
 }
 
 function perfFindExercise(idOrName, fallbackName = '') {
