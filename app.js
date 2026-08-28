@@ -6272,6 +6272,9 @@ const PERF_EXERCISE_DB = [
   { id:'sh18', name:'Encolhimento com Barra (Shrug)',            group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Trapézio Superior',                             secondary:'Elevador da Escápula',                     resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Encolhimento: pico de ativação do trapézio superior na elevação máxima da escápula (encurtamento). 1s isométrico no topo — Lima & Pinto Cap.6.' },
   { id:'sh19', name:'Encolhimento com Halteres',                group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Trapézio Superior (Foco em Contração)',         secondary:'Elevador da Escápula',                     resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Halteres no encolhimento: maior liberdade de ADM que a barra. Pico do trapézio superior no encurtamento. Excêntrico lento de 3s promove maior dano miofibrilar — Schoenfeld.' },
   { id:'sh20', name:'Encolhimento no Smith por Trás',           group:'Ombros',   mechanics:'Isolador', equipment:'Smith',          primary:'Trapézio Superior & Médio',                     secondary:'Romboides',                                resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Smith por trás: trajetória controlada para elevação de cargas supramáximas no trapézio superior. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.6.' },
+  { id:'sh21', name:'Crucifixo Invertido no Cabo / Polia Alta', group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio Médio/Inferior',       resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Crucifixo invertido na polia alta (Reverse Cable Crossover): tensão contínua em toda abdução horizontal do ombro, isolando o deltoide posterior.' },
+  { id:'sh22', name:'Crucifixo Invertido na Polia Baixa',       group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio',                      resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa com tronco inclinado: pico de tensão no início da abertura horizontal para deltoide posterior.' },
+  { id:'sh23', name:'Elevação Y no Cabo / Halteres (Y-Raise)', group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Medial & Trapézio Inferior',           secondary:'Serrátil Anterior',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Y-Raise: plano escapular a 30° ativa trapézio inferior e deltoide medial simultaneamente.' },
 
   // ── BÍCEPS & ANTEBRAÇO ──
   // Fonte: Schoenfeld Cap.2 (EMG bíceps) | Lima & Pinto — Cinesiologia Cap.7
@@ -8487,6 +8490,36 @@ const PERF_EXERCISE_GUIDE_MAP = {
     breathing: 'Expire subindo e inspire descendo.',
     mistakes: 'Mantenha a cabeça neutra.'
   },
+  sh21: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif',
+    steps: [
+      'Posicione-se no centro do crossover com as polias ajustadas na altura dos ombros ou ligeiramente acima.',
+      'Segure o cabo esquerdo com a mão direita e o cabo direito com a mão esquerda (cabos cruzados à frente).',
+      'Abra os braços para trás e para fora em arco no plano horizontal, contraindo fortemente o deltoide posterior.',
+      'Retorne de forma lenta e controlada (3 segundos) mantendo leve flexão nos cotovelos.'
+    ],
+    breathing: 'Expire ao abrir os braços para trás e inspire no retorno controlado à frente.',
+    mistakes: 'Não transforme o movimento em remada flexionando excessivamente os cotovelos nem use impulso lombar.'
+  },
+  sh22: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-rear-lateral-raise-support-head.gif',
+    steps: [
+      'Com o tronco inclinado a 45° ou paralelo ao solo, segure os cabos cruzados da polia baixa.',
+      'Abra os braços lateralmente focando exclusivamente na contração do deltoide posterior.',
+      'Segure 1 segundo no topo e retorne controlando a descida.'
+    ],
+    breathing: 'Expire na abertura e inspire no retorno.',
+    mistakes: 'Mantenha as escápulas estáveis sem dar tranco.'
+  },
+  sh23: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-lateral-raise.gif',
+    steps: [
+      'Em pé ou levemente inclinado, eleve os braços em formato de Y (30° à frente da linha dos ombros).',
+      'Foque na ativação simultânea do deltoide lateral e das fibras inferiores do trapézio.'
+    ],
+    breathing: 'Expire na elevação em Y e inspire na descida.',
+    mistakes: 'Não ultrapasse a linha do conforto articular.'
+  },
 
   // ── BÍCEPS & ANTEBRAÇO ──
   bi01: {
@@ -8977,18 +9010,37 @@ function perfFindExercise(idOrName, fallbackName = '') {
 
   const rawTarget = String(fallbackName || idOrName || '').trim();
   if (!rawTarget || rawTarget.toLowerCase() === 'geral') {
-    // Retorna primeiro exercício relevante
     return PERF_EXERCISE_DB[0];
   }
 
-  const normalize = (str) => String(str || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\(.*?\)/g, ' ')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  // Normalização semântica e mapeamento de raízes/sinônimos
+  const normalize = (str) => {
+    let s = String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\(.*?\)/g, ' ')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    s = s
+      .replace(/\binvertid[ao]s?\b/g, 'inverso')
+      .replace(/\bposteriores?\b/g, 'inverso')
+      .replace(/\bcrossovers?\b/g, 'cabo polia')
+      .replace(/\bpolias?\b/g, 'cabo')
+      .replace(/\bpeck\s*deck\b/g, 'voador')
+      .replace(/\bhalteres?\b/g, 'halter')
+      .replace(/\bbarras?\b/g, 'barra')
+      .replace(/\bmaquinas?\b/g, 'maquina')
+      .replace(/\bcostas?\b/g, 'dorsal')
+      .replace(/\bpeito\b/g, 'peitoral')
+      .replace(/\bpernas?\b/g, 'perna')
+      .replace(/\bombros?\b/g, 'ombro')
+      .replace(/\bbracos?\b/g, 'braco');
+
+    return s;
+  };
 
   const normTarget = normalize(rawTarget);
   if (!normTarget) return PERF_EXERCISE_DB[0];
@@ -8997,37 +9049,64 @@ function perfFindExercise(idOrName, fallbackName = '') {
   let match = PERF_EXERCISE_DB.find(e => normalize(e.name) === normTarget);
   if (match) return match;
 
-  // 3. Busca por substring
-  match = PERF_EXERCISE_DB.find(e => {
-    const n = normalize(e.name);
-    return (normTarget.length >= 3 && n.includes(normTarget)) || (n.length >= 3 && normTarget.includes(n));
-  });
-  if (match) return match;
+  // 3. Pesos de ações primárias vs modificadores
+  const ACTION_WEIGHTS = {
+    'crucifixo': 15, 'voador': 15, 'fly': 15,
+    'supino': 15, 'press': 15,
+    'agachamento': 15, 'squat': 15, 'hack': 15, 'leg': 15,
+    'remada': 15, 'row': 15,
+    'puxada': 15, 'pulldown': 15, 'barra': 8, 'chin': 15,
+    'desenvolvimento': 15, 'militar': 15, 'arnold': 15,
+    'elevacao': 12, 'raise': 12,
+    'rosca': 15, 'curl': 15,
+    'triceps': 15, 'pushdown': 15, 'testa': 15, 'frances': 15, 'coice': 15,
+    'stiff': 15, 'deadlift': 15, 'terra': 15, 'rdl': 15,
+    'afundo': 15, 'avanco': 15, 'passada': 15, 'bulgaro': 15, 'lunge': 15,
+    'extensora': 15, 'flexora': 15,
+    'panturrilha': 15, 'gemeos': 15, 'soleo': 15, 'calf': 15,
+    'encolhimento': 15, 'shrug': 15,
+    'face': 12, 'pull': 12,
+    'thrust': 15,
+    'abdominal': 15, 'crunch': 15, 'prancha': 15,
+    'inverso': 10, 'lateral': 8, 'frontal': 8,
+    'inclinado': 6, 'declinado': 6, 'reto': 6, 'curvado': 6, 'unilateral': 6,
+    'martelo': 8, 'scott': 8, 'spider': 8, 'concentrada': 8,
+    '45': 4, 'alta': 2, 'baixa': 2, 'media': 2
+  };
 
-  // 4. Pontuação por tokens
-  const targetTokens = normTarget.split(' ').filter(t => t.length > 2);
+  const targetTokens = normTarget.split(' ').filter(t => t.length >= 2);
   let bestScore = 0;
   let bestMatch = null;
 
   PERF_EXERCISE_DB.forEach(e => {
-    const eTokens = normalize(e.name).split(' ').filter(t => t.length > 2);
+    const eTokens = normalize(e.name).split(' ').filter(t => t.length >= 2);
     let score = 0;
+
     targetTokens.forEach(t => {
+      const weight = ACTION_WEIGHTS[t] || 2;
       if (eTokens.includes(t)) {
-        score += 3;
-      } else if (eTokens.some(et => et.includes(t) || t.includes(et))) {
-        score += 1.5;
+        score += weight * 2;
+      } else if (eTokens.some(et => et.startsWith(t) || t.startsWith(et))) {
+        score += weight * 1.2;
       }
     });
+
+    // Penalidades de incompatibilidade de movimento
+    if (targetTokens.includes('crucifixo') && eTokens.includes('remada')) score -= 20;
+    if (targetTokens.includes('remada') && eTokens.includes('puxada')) score -= 10;
+    if (targetTokens.includes('supino') && eTokens.includes('desenvolvimento')) score -= 15;
+    if (targetTokens.includes('elevacao') && targetTokens.includes('lateral') && eTokens.includes('frontal')) score -= 15;
+    if (targetTokens.includes('elevacao') && targetTokens.includes('frontal') && eTokens.includes('lateral')) score -= 15;
+
     if (score > bestScore) {
       bestScore = score;
       bestMatch = e;
     }
   });
 
-  if (bestScore >= 2 && bestMatch) return bestMatch;
+  if (bestScore >= 4 && bestMatch) return bestMatch;
 
-  return null;
+  return PERF_EXERCISE_DB[0];
 }
 
 function perfGetExerciseGuideData(ex) {
