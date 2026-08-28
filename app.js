@@ -8996,30 +8996,18 @@ function perfSanitizeWorkoutPlan() {
   });
 }
 
-function perfFindExercise(idOrName, fallbackName = '') {
-  if (!idOrName && !fallbackName) return null;
+function perfSearchExerciseSemantic(rawTarget) {
+  if (!rawTarget || typeof rawTarget !== 'string') return null;
 
-  // 1. Busca direta por ID
-  if (idOrName && typeof idOrName === 'string') {
-    const cleanId = idOrName.trim().toLowerCase();
-    if (cleanId && cleanId !== 'geral') {
-      const byId = PERF_EXERCISE_DB.find(e => e.id.toLowerCase() === cleanId);
-      if (byId) return byId;
-    }
-  }
+  const clean = rawTarget.trim();
+  if (!clean || clean.toLowerCase() === 'geral' || clean === 'Exercício Biomecânico') return null;
 
-  const rawTarget = String(fallbackName || idOrName || '').trim();
-  if (!rawTarget || rawTarget.toLowerCase() === 'geral') {
-    return PERF_EXERCISE_DB[0];
-  }
-
-  // Normalização semântica e mapeamento de raízes/sinônimos
   const normalize = (str) => {
     let s = String(str || '')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .replace(/\(.*?\)/g, ' ')
+      .replace(/[()]/g, ' ')
       .replace(/[^a-z0-9\s]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -9027,8 +9015,6 @@ function perfFindExercise(idOrName, fallbackName = '') {
     s = s
       .replace(/\binvertid[ao]s?\b/g, 'inverso')
       .replace(/\bposteriores?\b/g, 'inverso')
-      .replace(/\bcrossovers?\b/g, 'cabo polia')
-      .replace(/\bpolias?\b/g, 'cabo')
       .replace(/\bpeck\s*deck\b/g, 'voador')
       .replace(/\bhalteres?\b/g, 'halter')
       .replace(/\bbarras?\b/g, 'barra')
@@ -9042,36 +9028,38 @@ function perfFindExercise(idOrName, fallbackName = '') {
     return s;
   };
 
-  const normTarget = normalize(rawTarget);
-  if (!normTarget) return PERF_EXERCISE_DB[0];
+  const normTarget = normalize(clean);
+  if (!normTarget) return null;
 
-  // 2. Busca exata por nome normalizado
-  let match = PERF_EXERCISE_DB.find(e => normalize(e.name) === normTarget);
-  if (match) return match;
+  // 1. Busca exata por nome normalizado
+  let exact = PERF_EXERCISE_DB.find(e => normalize(e.name) === normTarget);
+  if (exact) return exact;
 
-  // 3. Pesos de ações primárias vs modificadores
+  // 2. Pesos de ações primárias vs modificadores
   const ACTION_WEIGHTS = {
-    'crucifixo': 15, 'voador': 15, 'fly': 15,
-    'supino': 15, 'press': 15,
-    'agachamento': 15, 'squat': 15, 'hack': 15, 'leg': 15,
-    'remada': 15, 'row': 15,
-    'puxada': 15, 'pulldown': 15, 'barra': 8, 'chin': 15,
-    'desenvolvimento': 15, 'militar': 15, 'arnold': 15,
-    'elevacao': 12, 'raise': 12,
-    'rosca': 15, 'curl': 15,
-    'triceps': 15, 'pushdown': 15, 'testa': 15, 'frances': 15, 'coice': 15,
-    'stiff': 15, 'deadlift': 15, 'terra': 15, 'rdl': 15,
-    'afundo': 15, 'avanco': 15, 'passada': 15, 'bulgaro': 15, 'lunge': 15,
-    'extensora': 15, 'flexora': 15,
-    'panturrilha': 15, 'gemeos': 15, 'soleo': 15, 'calf': 15,
-    'encolhimento': 15, 'shrug': 15,
-    'face': 12, 'pull': 12,
-    'thrust': 15,
-    'abdominal': 15, 'crunch': 15, 'prancha': 15,
-    'inverso': 10, 'lateral': 8, 'frontal': 8,
-    'inclinado': 6, 'declinado': 6, 'reto': 6, 'curvado': 6, 'unilateral': 6,
-    'martelo': 8, 'scott': 8, 'spider': 8, 'concentrada': 8,
-    '45': 4, 'alta': 2, 'baixa': 2, 'media': 2
+    'crossover': 20,
+    'crucifixo': 18, 'voador': 18, 'fly': 18, 'peck': 12, 'deck': 12,
+    'supino': 18, 'press': 16,
+    'agachamento': 18, 'squat': 18, 'hack': 18, 'leg': 18,
+    'remada': 18, 'row': 18, 'cavalinho': 18, 'serrote': 18,
+    'puxada': 18, 'pulldown': 18, 'chin': 18,
+    'desenvolvimento': 18, 'militar': 18, 'arnold': 18,
+    'elevacao': 14, 'raise': 14,
+    'rosca': 18, 'curl': 18, 'scott': 14, 'spider': 14, 'martelo': 14,
+    'triceps': 18, 'pushdown': 18, 'testa': 16, 'frances': 16, 'coice': 16, 'kickback': 16, 'mergulho': 16, 'paralelas': 16,
+    'stiff': 18, 'deadlift': 18, 'terra': 18, 'rdl': 18, 'hiperextensao': 16,
+    'afundo': 18, 'avanco': 18, 'passada': 18, 'bulgaro': 18, 'lunge': 18,
+    'extensora': 18, 'flexora': 18,
+    'panturrilha': 18, 'gemeos': 18, 'soleo': 18, 'calf': 18,
+    'encolhimento': 18, 'shrug': 18,
+    'face': 14, 'pull': 14,
+    'thrust': 18, 'pelvica': 18,
+    'abdutora': 18, 'adutora': 18,
+    'abdominal': 18, 'crunch': 18, 'prancha': 18, 'infra': 14, 'supra': 14,
+    'pullover': 18, 'sissy': 18,
+    'inverso': 12, 'invertido': 12, 'lateral': 10, 'frontal': 10,
+    'inclinado': 8, 'declinado': 8, 'reto': 8, 'curvado': 8, 'unilateral': 6,
+    '45': 5, 'alta': 4, 'baixa': 4, 'media': 4
   };
 
   const targetTokens = normTarget.split(' ').filter(t => t.length >= 2);
@@ -9092,11 +9080,14 @@ function perfFindExercise(idOrName, fallbackName = '') {
     });
 
     // Penalidades de incompatibilidade de movimento
-    if (targetTokens.includes('crucifixo') && eTokens.includes('remada')) score -= 20;
-    if (targetTokens.includes('remada') && eTokens.includes('puxada')) score -= 10;
-    if (targetTokens.includes('supino') && eTokens.includes('desenvolvimento')) score -= 15;
-    if (targetTokens.includes('elevacao') && targetTokens.includes('lateral') && eTokens.includes('frontal')) score -= 15;
-    if (targetTokens.includes('elevacao') && targetTokens.includes('frontal') && eTokens.includes('lateral')) score -= 15;
+    if (targetTokens.includes('crossover') && !eTokens.includes('crossover')) score -= 25;
+    if (targetTokens.includes('crucifixo') && eTokens.includes('remada')) score -= 25;
+    if (targetTokens.includes('remada') && eTokens.includes('puxada')) score -= 20;
+    if (targetTokens.includes('puxada') && eTokens.includes('remada')) score -= 20;
+    if (targetTokens.includes('supino') && eTokens.includes('desenvolvimento')) score -= 20;
+    if (targetTokens.includes('desenvolvimento') && eTokens.includes('supino')) score -= 20;
+    if (targetTokens.includes('elevacao') && targetTokens.includes('lateral') && eTokens.includes('frontal')) score -= 20;
+    if (targetTokens.includes('elevacao') && targetTokens.includes('frontal') && eTokens.includes('lateral')) score -= 20;
 
     if (score > bestScore) {
       bestScore = score;
@@ -9104,7 +9095,29 @@ function perfFindExercise(idOrName, fallbackName = '') {
     }
   });
 
-  if (bestScore >= 4 && bestMatch) return bestMatch;
+  return (bestScore >= 4 && bestMatch) ? bestMatch : null;
+}
+
+function perfFindExercise(idOrName, fallbackName = '') {
+  if (!idOrName && !fallbackName) return PERF_EXERCISE_DB[0];
+
+  const rawName = String(fallbackName || '').trim();
+  const rawId = String(idOrName || '').trim();
+
+  // 1. Se foi passado um nome descritivo (e não é 'geral'), busca semântica pelo nome
+  if (rawName && rawName.toLowerCase() !== 'geral' && rawName !== 'Exercício Biomecânico') {
+    const matchByName = perfSearchExerciseSemantic(rawName);
+    if (matchByName) return matchByName;
+  }
+
+  // 2. Se ID válido, verifica no DB
+  if (rawId && rawId !== 'geral') {
+    const byId = PERF_EXERCISE_DB.find(e => e.id.toLowerCase() === rawId.toLowerCase());
+    if (byId) return byId;
+
+    const matchById = perfSearchExerciseSemantic(rawId);
+    if (matchById) return matchById;
+  }
 
   return PERF_EXERCISE_DB[0];
 }
@@ -9226,7 +9239,7 @@ function perfOpenExerciseGuide(exerciseId, routineId = null, explicitName = '') 
     const norm = rawName.toLowerCase();
     let group = 'Peitoral';
     let fallbackId = 'pe01';
-    if (/supino|crucifixo|peito|peitoral|flexao|dip|voador|peck/i.test(norm)) { group = 'Peitoral'; fallbackId = 'pe01'; }
+    if (/crossover|supino|crucifixo|peito|peitoral|flexao|dip|voador|peck/i.test(norm)) { group = 'Peitoral'; fallbackId = 'pe01'; }
     else if (/costas|dorsal|puxada|remada|pulldown|barra fixa/i.test(norm)) { group = 'Dorsal'; fallbackId = 'do04'; }
     else if (/agachamento|leg|extensora|flexora|stiff|gemeos|panturrilha|gluteo|avanco|bulgaro|hack/i.test(norm)) { group = 'Pernas'; fallbackId = 'lg01'; }
     else if (/desenvolvimento|elevacao|ombro|deltoide|arnold|lateral/i.test(norm)) { group = 'Ombros'; fallbackId = 'sh02'; }
