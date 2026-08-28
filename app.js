@@ -10333,7 +10333,22 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       aiRawResponse = await aiGenerator(contextSnapshot, previousErrors);
     } catch (genErr) {
       console.error(`[generateAndValidateWorkout] Tentativa ${attempt}: erro na chamada da IA:`, genErr);
+      // Erros de quota (429) e timeout não devem ser rethentados — abortam imediatamente
+      if (genErr.isQuotaError || genErr.isTimeout) {
+        return {
+          status:  'REJECT',
+          fatal:   true,
+          requiresManualPrescription: true,
+          attempt,
+          context: contextSnapshot,
+          prescription: null,
+          warnings: [],
+          errors: [String(genErr.message || genErr)]
+        };
+      }
       previousErrors = [`Erro na chamada da IA: ${String(genErr.message || genErr)}`];
+      // Aguarda 2s antes de nova tentativa para evitar rate limiting
+      await new Promise(r => setTimeout(r, 2000));
       continue; // tenta novamente
     }
 
@@ -10580,7 +10595,8 @@ NÃO ADICIONE TEXTO ANTES OU DEPOIS DO JSON.
 }
 
 === DTO CANÔNICO DO CONTEXTO ===
-${JSON.stringify(context, null, 2)}`;
+${JSON.stringify(context)}`;
+  // Contexto minificado (sem espaços) para reduzir tokens e latência da API
 
   // 3. Retroalimentação de erros de tentativas anteriores (se houver)
   if (Array.isArray(previousErrors) && previousErrors.length > 0) {
@@ -10597,10 +10613,10 @@ Não repita os erros anteriores.
 Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e do TrainingPrescriptionSchema.`;
   }
 
-  // 4. Configuração do Endpoint e Timeout via AbortController (30s)
+  // 4. Configuração do Endpoint e Timeout via AbortController (90s — prompt extenso requer mais tempo)
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
 
   let response;
   try {
@@ -10628,7 +10644,9 @@ Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e
     });
   } catch (fetchErr) {
     if (fetchErr.name === 'AbortError') {
-      throw new Error('Falha na API do Gemini: requisição excedeu o limite de 30 segundos (timeout).');
+      const timeoutErr = new Error('Falha na API do Gemini: requisição excedeu o limite de 90 segundos (timeout). A IA demorou para responder — tente novamente.');
+      timeoutErr.isTimeout = true;
+      throw timeoutErr;
     }
     throw new Error(`Falha de conexão com a API do Gemini: ${fetchErr.message || fetchErr}`);
   } finally {
@@ -10661,7 +10679,9 @@ Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e
     } else if (response.status === 403) {
       throw new Error(`Falha na API do Gemini (HTTP 403 - Acesso negado ou sem permissão para o modelo/chave).${detailSuffix}`);
     } else if (response.status === 429) {
-      throw new Error(`Falha na API do Gemini (HTTP 429 - Limite de requisições ou quota excedida).${detailSuffix}`);
+      const quotaErr = new Error(`Falha na API do Gemini (HTTP 429 - Limite de requisições ou quota excedida).${detailSuffix}`);
+      quotaErr.isQuotaError = true;
+      throw quotaErr;
     } else if (response.status >= 500) {
       throw new Error(`Falha na API do Gemini (HTTP ${response.status} - Erro interno ou indisponibilidade do serviço Gemini).${detailSuffix}`);
     } else {
