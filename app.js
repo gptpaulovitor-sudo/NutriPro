@@ -9454,7 +9454,7 @@ const PERF_ACTION_FAMILIES = [
   { key: 'legpress', rx: /leg\s*press|leg\s*45|leg\s*horizontal/i, group: 'Pernas', defaultId: 'lg04' },
   { key: 'extensora', rx: /extensor|cadeira extensora/i, group: 'Pernas', defaultId: 'lg06' },
   { key: 'flexora', rx: /flexor|mesa flexora|cadeira flexora/i, group: 'Pernas', defaultId: 'lg12' },
-  { key: 'stiff', rx: /stiff|deadlift|terra|romeno|rdl/i, group: 'Pernas', defaultId: 'lg10' },
+  { key: 'stiff', rx: /stiff|terra\s*romeno|romeno|rdl|romanian/i, group: 'Pernas', defaultId: 'lg10' },
   { key: 'pelvica', rx: /pelvic|thrust|ponte/i, group: 'Pernas', defaultId: 'lg15' },
   { key: 'panturrilha', rx: /panturrilha|gemeos|soleo|calf/i, group: 'Pernas', defaultId: 'lg20' },
   { key: 'abdutora', rx: /abdutor/i, group: 'Pernas', defaultId: 'lg17' },
@@ -9470,7 +9470,8 @@ const PERF_ACTION_FAMILIES = [
   { key: 'mergulho_peito', rx: /mergulho.*paralelas|paralelas/i, group: 'Peitoral', defaultId: 'pe19' },
   { key: 'pullover', rx: /pullover/i, group: 'Peitoral', defaultId: 'pe20' },
 
-  // DORSAL / COSTAS
+  // DORSAL / COSTAS / HINGE
+  { key: 'terra', rx: /levantamento\s*terra|terra\s*convencional|deadlift(?!.*(romanian|romeno|stiff))/i, group: 'Dorsal', defaultId: 'do16' },
   { key: 'puxada', rx: /puxada|pulldown|barra\s*fixa|pull\s*up|chin\s*up/i, group: 'Dorsal', defaultId: 'do04' },
   { key: 'remada', rx: /remada(?!.*alta)|row(?!.*upright)|cavalinho|serrote/i, group: 'Dorsal', defaultId: 'do08' },
   { key: 'lombar', rx: /lombar|hiperextensao|hiper\s*extensao/i, group: 'Dorsal', defaultId: 'do17' },
@@ -9500,6 +9501,16 @@ function perfSearchExerciseSemantic(rawTarget) {
 
   const clean = rawTarget.trim();
   if (!clean || clean.toLowerCase() === 'geral' || clean === 'Exercício Biomecânico') return null;
+
+  // Atalhos de alta precisão para Levantamento Terra Convencional vs Stiff
+  if (/levantamento\s*terra|terra\s*convencional|deadlift/i.test(clean) && !/romen|stiff|rdl/i.test(clean)) {
+    const deadliftEx = PERF_EXERCISE_DB.find(e => e.id === 'do16');
+    if (deadliftEx) return deadliftEx;
+  }
+  if (/stiff|terra\s*romeno|romeno|rdl/i.test(clean)) {
+    const stiffEx = PERF_EXERCISE_DB.find(e => e.id === 'lg10');
+    if (stiffEx) return stiffEx;
+  }
 
   const normalize = (str) => {
     let s = String(str || '')
@@ -9552,7 +9563,7 @@ function perfSearchExerciseSemantic(rawTarget) {
     'elevacao': 14, 'raise': 14,
     'rosca': 18, 'curl': 18, 'scott': 14, 'spider': 14, 'martelo': 14,
     'triceps': 18, 'pushdown': 18, 'testa': 16, 'frances': 16, 'coice': 16, 'kickback': 16, 'mergulho': 16, 'paralelas': 16,
-    'stiff': 18, 'deadlift': 18, 'terra': 18, 'rdl': 18, 'hiperextensao': 16,
+    'terra': 25, 'deadlift': 25, 'stiff': 25, 'rdl': 25, 'romeno': 20, 'hiperextensao': 16,
     'afundo': 18, 'avanco': 18, 'passada': 18, 'bulgaro': 18, 'lunge': 18,
     'extensora': 18, 'flexora': 18,
     'panturrilha': 18, 'gemeos': 18, 'soleo': 18, 'calf': 18,
@@ -9593,6 +9604,8 @@ function perfSearchExerciseSemantic(rawTarget) {
     if (targetTokens.includes('desenvolvimento') && eTokens.includes('supino')) score -= 20;
     if (targetTokens.includes('elevacao') && targetTokens.includes('lateral') && eTokens.includes('frontal')) score -= 20;
     if (targetTokens.includes('elevacao') && targetTokens.includes('frontal') && eTokens.includes('lateral')) score -= 20;
+    if ((targetTokens.includes('terra') || targetTokens.includes('deadlift')) && !targetTokens.includes('romeno') && eTokens.includes('stiff')) score -= 35;
+    if (targetTokens.includes('stiff') && eTokens.includes('deadlift') && !eTokens.includes('stiff') && !eTokens.includes('romeno')) score -= 35;
 
     if (score > bestScore) {
       bestScore = score;
@@ -9612,20 +9625,23 @@ function perfSearchExerciseSemantic(rawTarget) {
 function perfFindExercise(idOrName, fallbackName = '') {
   if (!idOrName && !fallbackName) return PERF_EXERCISE_DB[0];
 
-  const rawName = String(fallbackName || '').trim();
   const rawId = String(idOrName || '').trim();
+  const rawName = String(fallbackName || '').trim();
 
-  // 1. Se foi passado um nome descritivo (e não é 'geral'), busca semântica pelo nome
+  // 1. Se ID canônico válido existente no banco de dados, retorna diretamente o registro oficial
+  if (rawId && rawId !== 'geral' && rawId !== 'Exercício Biomecânico') {
+    const byId = PERF_EXERCISE_DB.find(e => e.id.toLowerCase() === rawId.toLowerCase());
+    if (byId) return byId;
+  }
+
+  // 2. Se foi passado um nome descritivo (e não é 'geral'), busca semântica pelo nome
   if (rawName && rawName.toLowerCase() !== 'geral' && rawName !== 'Exercício Biomecânico') {
     const matchByName = perfSearchExerciseSemantic(rawName);
     if (matchByName) return matchByName;
   }
 
-  // 2. Se ID válido, verifica no DB
-  if (rawId && rawId !== 'geral') {
-    const byId = PERF_EXERCISE_DB.find(e => e.id.toLowerCase() === rawId.toLowerCase());
-    if (byId) return byId;
-
+  // 3. Fallback: busca semântica pelo rawId caso seja um termo livre
+  if (rawId && rawId !== 'geral' && rawId !== 'Exercício Biomecânico') {
     const matchById = perfSearchExerciseSemantic(rawId);
     if (matchById) return matchById;
   }
@@ -12895,6 +12911,33 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       perfWeeklySchedule = perfBuildWeeklySchedule('PHAT');
     } else {
       perfWorkoutPlan = saved.workoutPlan;
+      // Auto-cura de IDs de exercícios antigos salvos no cache do paciente
+      if (Array.isArray(perfWorkoutPlan)) {
+        perfWorkoutPlan.forEach(r => {
+          if (Array.isArray(r.exercises)) {
+            r.exercises.forEach(ex => {
+              if (!ex) return;
+              const nameLower = (ex.name || '').toLowerCase();
+              if ((nameLower.includes('levantamento terra') || nameLower.includes('deadlift')) && !nameLower.includes('romen') && !nameLower.includes('stiff')) {
+                ex.exerciseId = 'do16';
+                ex.id = 'do16';
+              } else if (nameLower.includes('stiff') || nameLower.includes('romeno') || nameLower.includes('rdl')) {
+                ex.exerciseId = 'lg10';
+                ex.id = 'lg10';
+              } else if (nameLower.includes('paralelas') || nameLower.includes('dips')) {
+                ex.exerciseId = 'pe19';
+                ex.id = 'pe19';
+              } else if (nameLower.includes('serrote') || nameLower.includes('unilateral com halter')) {
+                ex.exerciseId = 'do11';
+                ex.id = 'do11';
+              } else if (nameLower.includes('crucifixo invertido')) {
+                ex.exerciseId = 'sh21';
+                ex.id = 'sh21';
+              }
+            });
+          }
+        });
+      }
       const isOldPhat = (perfActiveSplit === 'PHAT' || perfWorkoutPlan.length >= 6) && (saved.weeklySchedule?.[2]?.type === 'Cardio' || saved.weeklySchedule?.[4]?.type !== 'Treino + Cardio');
       perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7 && !isOldPhat)
         ? perfNormalizeWeeklySchedule(saved.weeklySchedule)
