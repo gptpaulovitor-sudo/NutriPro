@@ -3,11 +3,12 @@
 // Offline Support & Smart Caching Strategy
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-pro-v1.4.1';
+const CACHE_NAME = 'nutriax-pro-v1.5.0';
 
 const PRECACHE_ASSETS = [
   './',
   './index.html',
+  './paciente.html',
   './styles.css',
   './app.js',
   './db.js',
@@ -16,6 +17,7 @@ const PRECACHE_ASSETS = [
   './logo.png',
   './nutritionist.jpg',
   './manifest.json',
+  './manifest_paciente.json',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

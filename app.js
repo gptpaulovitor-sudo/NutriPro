@@ -384,8 +384,8 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
   }
   if (rgBar) {
     rgBar.style.width = `${scoreGordura}%`;
-    rgBar.className = scoreGordura >= 80 
-      ? "h-full bg-gradient-to-r from-red-600 to-rose-500 rounded-full transition-all duration-500" 
+    rgBar.className = scoreGordura >= 80
+      ? "h-full bg-gradient-to-r from-red-600 to-rose-500 rounded-full transition-all duration-500"
       : "h-full bg-amber-500 rounded-full transition-all duration-500";
   }
 
@@ -519,7 +519,7 @@ async function onPatientChange(patientId) {
 
   // ── 0. Flush save pendente do paciente ATUAL antes de qualquer mudança ───
   if (typeof _flushAnamneseSave === "function") {
-    try { await _flushAnamneseSave(); } catch(e) { console.warn(e); }
+    try { await _flushAnamneseSave(); } catch (e) { console.warn(e); }
   }
 
   activePatientId = patientId;
@@ -553,12 +553,12 @@ async function onPatientChange(patientId) {
     updateDashboardAndRadar(patientId),
     loadPrescriptionForPatient(patientId),
   ];
-  if (typeof loadPerformanceForPatient === "function")    localLoads.push(loadPerformanceForPatient(patientId));
-  if (typeof loadPatientAnamnese === "function")          localLoads.push(loadPatientAnamnese(patientId));
-  if (typeof loadDietaryRecall === "function")            localLoads.push(loadDietaryRecall(patientId));
-  if (typeof loadClinicalExams === "function")            localLoads.push(loadClinicalExams(patientId));
+  if (typeof loadPerformanceForPatient === "function") localLoads.push(loadPerformanceForPatient(patientId));
+  if (typeof loadPatientAnamnese === "function") localLoads.push(loadPatientAnamnese(patientId));
+  if (typeof loadDietaryRecall === "function") localLoads.push(loadDietaryRecall(patientId));
+  if (typeof loadClinicalExams === "function") localLoads.push(loadClinicalExams(patientId));
   if (typeof loadAssessmentsAndRenderCharts === "function") localLoads.push(loadAssessmentsAndRenderCharts(patientId));
-  if (typeof loadAdherenceDashboard === "function")       localLoads.push(loadAdherenceDashboard(patientId));
+  if (typeof loadAdherenceDashboard === "function") localLoads.push(loadAdherenceDashboard(patientId));
 
   await Promise.all(localLoads);
 
@@ -594,7 +594,7 @@ async function loadFoods(query = "", sourceFilter = currentFoodSourceFilter, cat
 
   // Contadores estatísticos no topo com foco bromatológico
   const tacoCount = allFoods.filter((f) => (f.source || "").includes("TACO")).length;
-  const atwaterOkCount = allFoods.filter((f) => f.bromatology?.energyStatus === "CONSISTENTE" || (!f.bromatology && Math.abs(f.calories - ((f.protein*4)+(f.carbohydrate*4)+(f.lipid*9))) / (f.calories || 1) <= 0.05)).length;
+  const atwaterOkCount = allFoods.filter((f) => f.bromatology?.energyStatus === "CONSISTENTE" || (!f.bromatology && Math.abs(f.calories - ((f.protein * 4) + (f.carbohydrate * 4) + (f.lipid * 9))) / (f.calories || 1) <= 0.05)).length;
   const atwaterReviewCount = allFoods.filter((f) => f.bromatology?.energyStatus === "REVISAR" || f.bromatology?.energyStatus === "INCONSISTENTE").length;
   const unverifiedCount = allFoods.filter((f) => f.bromatology?.sourceStatus === "REQUER VALIDAÇÃO" || (!["TACO", "Rótulo Comercial", "Rótulo Oficial"].includes(f.source) && !f.brand)).length;
 
@@ -615,7 +615,7 @@ async function loadFoods(query = "", sourceFilter = currentFoodSourceFilter, cat
     const energyStatus = f.bromatology?.energyStatus || (diffPct <= 5 ? "CONSISTENTE" : diffPct <= 10 ? "REVISAR" : "INCONSISTENTE");
     const sourceStatus = f.bromatology?.sourceStatus || ((f.source === "TACO" || f.brand) ? "OK" : "REQUER VALIDAÇÃO");
 
-    const matchesSearch = !searchVal || 
+    const matchesSearch = !searchVal ||
       (f.name && f.name.toLowerCase().includes(searchVal)) ||
       (f.brand && f.brand.toLowerCase().includes(searchVal)) ||
       (f.prepState && f.prepState.toLowerCase().includes(searchVal)) ||
@@ -659,7 +659,7 @@ function renderFoodsTable(foodsList) {
   const getSourceBadge = (f) => {
     const source = f.source || "TACO";
     const status = f.bromatology?.sourceStatus || ((source === "TACO" || f.brand) ? "OK" : "REQUER VALIDAÇÃO");
-    
+
     if (source === "TACO") return `<span class="bg-blue-950/80 text-blue-300 border border-blue-800/80 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1 w-fit"><i data-lucide="check" class="w-3 h-3 text-blue-400"></i> TACO 4ª Ed.</span>`;
     if (source === "Rótulo Comercial" || source === "Rótulo Oficial" || f.brand) return `<span class="bg-amber-950/80 text-amber-300 border border-amber-800/80 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1 w-fit"><i data-lucide="tag" class="w-3 h-3 text-amber-400"></i> Rótulo Oficial</span>`;
     if (status === "REQUER VALIDAÇÃO") return `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/80 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1 w-fit"><i data-lucide="help-circle" class="w-3 h-3 text-rose-400"></i> Requer Validação</span>`;
@@ -779,8 +779,8 @@ function setFoodSourceFilter(source) {
 
   const activeBtnId = source === "all" ? "filter-src-all" :
     source === "TACO" ? "filter-src-taco" :
-    source === "TBCA" ? "filter-src-tbca" :
-    source === "Rótulo Comercial" ? "filter-src-rotulos" : "filter-src-meus";
+      source === "TBCA" ? "filter-src-tbca" :
+        source === "Rótulo Comercial" ? "filter-src-rotulos" : "filter-src-meus";
 
   const activeBtn = document.getElementById(activeBtnId);
   if (activeBtn) {
@@ -875,8 +875,8 @@ function updateFoodLabel100gPreview() {
 
   const massStatusText = sumMass <= 100.05 ? "Massa OK" : "⚠️ ERRO DE MASSA (>100g)";
   const energyStatusText = diffPct <= 5.0 ? `🟢 Atwater: ${atwaterKcal.toFixed(1)} kcal (Dif ${diffPct.toFixed(1)}%)` :
-                           diffPct <= 10.0 ? `🟡 Atwater: ${atwaterKcal.toFixed(1)} kcal (Revisar Dif ${diffPct.toFixed(1)}%)` :
-                           `🔴 Atwater: ${atwaterKcal.toFixed(1)} kcal (Inconsistente Dif ${diffPct.toFixed(1)}%)`;
+    diffPct <= 10.0 ? `🟡 Atwater: ${atwaterKcal.toFixed(1)} kcal (Revisar Dif ${diffPct.toFixed(1)}%)` :
+      `🔴 Atwater: ${atwaterKcal.toFixed(1)} kcal (Inconsistente Dif ${diffPct.toFixed(1)}%)`;
 
   const previewEl = document.getElementById("label100gPreviewText");
   if (previewEl) {
@@ -995,8 +995,8 @@ const handleSaveNewFood = saveCustomFood;
 async function deleteCustomFood(idOrName) {
   if (!confirm(`Deseja realmente remover este alimento do banco de dados?`)) return;
 
-  const item = await db.foods.where("id").equals(Number(idOrName)).first() || 
-               await db.foods.where("name").equals(idOrName).first();
+  const item = await db.foods.where("id").equals(Number(idOrName)).first() ||
+    await db.foods.where("name").equals(idOrName).first();
   if (item && item.id) {
     await db.foods.delete(item.id);
   } else {
@@ -1007,8 +1007,8 @@ async function deleteCustomFood(idOrName) {
 
 // 4.8 Adição Rápida de Alimento à Prescrição Ativa
 async function quickAddFoodToDiet(idOrName) {
-  const food = await db.foods.where("id").equals(Number(idOrName)).first() || 
-               await db.foods.where("name").equals(idOrName).first();
+  const food = await db.foods.where("id").equals(Number(idOrName)).first() ||
+    await db.foods.where("name").equals(idOrName).first();
   if (!food) return;
 
   selectedFoodItem = food;
@@ -1208,7 +1208,7 @@ async function loadEvaluationForPatient(patientId = activePatientId) {
     if (document.getElementById("skSuprailiac") && latest.skSuprailiac !== undefined) document.getElementById("skSuprailiac").value = latest.skSuprailiac;
     if (document.getElementById("skThigh") && latest.skThigh !== undefined) document.getElementById("skThigh").value = latest.skThigh;
     if (document.getElementById("skCalfFold") && latest.skCalfFold !== undefined) document.getElementById("skCalfFold").value = latest.skCalfFold;
-    
+
     if (document.getElementById("circWaist") && latest.waist !== undefined) document.getElementById("circWaist").value = latest.waist;
     if (document.getElementById("circHip") && latest.hip !== undefined) document.getElementById("circHip").value = latest.hip;
     if (document.getElementById("circAbdomen") && latest.circAbdomen !== undefined) document.getElementById("circAbdomen").value = latest.circAbdomen;
@@ -1266,7 +1266,7 @@ async function onEvaluationPatientInput() {
     if (!isNaN(age) && age > 0) p.age = age;
     if (gender) p.gender = gender;
     if (!isNaN(actFactor) && actFactor > 0) p.activityFactor = actFactor;
-    
+
     // Recalcula peso alvo baseado no novo peso
     const autoTarget = calculateAutoTargetWeight({
       patient: p,
@@ -1381,22 +1381,22 @@ async function handleSaveNewAssessment(event) {
     arm,
     circThigh,
     // Dobras cutâneas (se preenchidas na aba Avaliação)
-    skChest:       parseFloat(document.getElementById("skChest")?.value)       || 0,
-    skAxillary:    parseFloat(document.getElementById("skAxillary")?.value)    || 0,
-    skTriceps:     parseFloat(document.getElementById("skTriceps")?.value)     || 0,
-    skBiceps:      parseFloat(document.getElementById("skBiceps")?.value)      || 0,
+    skChest: parseFloat(document.getElementById("skChest")?.value) || 0,
+    skAxillary: parseFloat(document.getElementById("skAxillary")?.value) || 0,
+    skTriceps: parseFloat(document.getElementById("skTriceps")?.value) || 0,
+    skBiceps: parseFloat(document.getElementById("skBiceps")?.value) || 0,
     skSubscapular: parseFloat(document.getElementById("skSubscapular")?.value) || 0,
-    skAbdominal:   parseFloat(document.getElementById("skAbdominal")?.value)   || 0,
-    skSuprailiac:  parseFloat(document.getElementById("skSuprailiac")?.value)  || 0,
-    skThigh:       parseFloat(document.getElementById("skThigh")?.value)       || 0,
-    skCalfFold:    parseFloat(document.getElementById("skCalfFold")?.value)    || 0,
+    skAbdominal: parseFloat(document.getElementById("skAbdominal")?.value) || 0,
+    skSuprailiac: parseFloat(document.getElementById("skSuprailiac")?.value) || 0,
+    skThigh: parseFloat(document.getElementById("skThigh")?.value) || 0,
+    skCalfFold: parseFloat(document.getElementById("skCalfFold")?.value) || 0,
     // Circunferências extras da aba Avaliação
-    circChest:      parseFloat(document.getElementById("circChest")?.value)     || 0,
-    circArmRelaxed: parseFloat(document.getElementById("circArmRelaxed")?.value)|| 0,
-    circForearm:    parseFloat(document.getElementById("circForearm")?.value)   || 0,
-    circCalf:       parseFloat(document.getElementById("circCalf")?.value)      || 0,
-    circNeck:       parseFloat(document.getElementById("circNeck")?.value)      || 0,
-    targetBF:       parseFloat(document.getElementById("evalTargetFatPercent")?.value) || 10.0
+    circChest: parseFloat(document.getElementById("circChest")?.value) || 0,
+    circArmRelaxed: parseFloat(document.getElementById("circArmRelaxed")?.value) || 0,
+    circForearm: parseFloat(document.getElementById("circForearm")?.value) || 0,
+    circCalf: parseFloat(document.getElementById("circCalf")?.value) || 0,
+    circNeck: parseFloat(document.getElementById("circNeck")?.value) || 0,
+    targetBF: parseFloat(document.getElementById("evalTargetFatPercent")?.value) || 10.0
   };
 
   await db.assessments.put(newAssessment);
@@ -1407,7 +1407,7 @@ async function handleSaveNewAssessment(event) {
     p.currentWeight = weight;
     p.usualWeight = weight;
     await db.patients.put(p);
-    
+
     const hInfo = document.getElementById("headerPatientInfo");
     if (hInfo) hInfo.innerText = `${p.age} anos • ${p.height} m • ${p.currentWeight} kg`;
 
@@ -1531,7 +1531,7 @@ function updateEvaluationCalculations() {
   if (document.getElementById("resRcqClass")) document.getElementById("resRcqClass").innerText = indices.rcqClassification;
   if (document.getElementById("resRcEst")) document.getElementById("resRcEst").innerText = indices.rcEst;
   if (document.getElementById("resRcEstClass")) document.getElementById("resRcEstClass").innerText = indices.rcEstClassification;
-  
+
   if (document.getElementById("resConicity")) document.getElementById("resConicity").innerText = indices.conicityIndex || "1.18";
   if (document.getElementById("resConicityClass")) document.getElementById("resConicityClass").innerText = indices.conicityClassification || "Adequado";
 
@@ -1540,7 +1540,7 @@ function updateEvaluationCalculations() {
     const ffmiClass = bodyComp.ffmi >= 25 ? "Alto / Hipertrofia" : bodyComp.ffmi >= 20 ? "Adequado / Normal" : "Baixo";
     document.getElementById("resFfmiClass").innerText = ffmiClass;
   }
-  
+
   if (document.getElementById("resAmbc")) document.getElementById("resAmbc").innerText = `${indices.armMuscularArea} cm²`;
   if (document.getElementById("resAmbcClass")) {
     const ambClass = indices.armMuscularArea > 40 ? "Elevada" : indices.armMuscularArea >= 25 ? "Adequada" : "Reduzida";
@@ -1561,11 +1561,11 @@ function updateEvaluationCalculations() {
       const isRisk = a.type === "risk";
       const isWarning = a.type === "warning";
       const borderClass = isRisk ? "border-rose-800/80 bg-rose-950/30" :
-                          isWarning ? "border-amber-800/80 bg-amber-950/30" :
-                          "border-zinc-800 bg-zinc-950/80";
+        isWarning ? "border-amber-800/80 bg-amber-950/30" :
+          "border-zinc-800 bg-zinc-950/80";
       const badgeClass = isRisk ? "bg-rose-600 text-white" :
-                         isWarning ? "bg-amber-500 text-zinc-950 font-black" :
-                         "bg-zinc-800 text-zinc-300 border border-zinc-700";
+        isWarning ? "bg-amber-500 text-zinc-950 font-black" :
+          "bg-zinc-800 text-zinc-300 border border-zinc-700";
       const titleClass = isRisk ? "text-rose-400" : isWarning ? "text-amber-400" : "text-white";
       const icon = isRisk ? "alert-circle" : isWarning ? "alert-triangle" : "check-circle";
 
@@ -1605,7 +1605,7 @@ async function handleFoodSearchAutocomplete(val) {
 
   const allFoods = await db.foods.toArray();
   const searchVal = val.toLowerCase();
-  const matches = allFoods.filter((f) => 
+  const matches = allFoods.filter((f) =>
     (f.name && f.name.toLowerCase().includes(searchVal)) ||
     (f.brand && f.brand.toLowerCase().includes(searchVal)) ||
     (f.category && f.category.toLowerCase().includes(searchVal))
@@ -1719,10 +1719,10 @@ function handleAddPrescriptionItem() {
     id: Date.now().toString(),
     mealName,
     mealTime: mealName === "Café da manhã" ? "07:00" :
-              mealName === "Lanche manhã" ? "10:00" :
-              mealName === "Almoço" ? "12:30" :
-              mealName === "Pré-treino" ? "16:00" :
-              mealName === "Pós-treino" ? "18:00" :
+      mealName === "Lanche manhã" ? "10:00" :
+        mealName === "Almoço" ? "12:30" :
+          mealName === "Pré-treino" ? "16:00" :
+            mealName === "Pós-treino" ? "18:00" :
               mealName === "Jantar" ? "20:00" : "22:00",
     foodName: selectedFoodItem.name,
     quantity: grams,
@@ -1764,9 +1764,9 @@ function openEditPrescriptionItem(id) {
   document.getElementById("editPrescFoodName").innerText = item.foodName;
   document.getElementById("editPrescQty").value = item.quantity;
   document.getElementById("editPrescUnit").value = item.unitDisplay?.includes("unidade") ? "unidade" :
-                                                    item.unitDisplay?.includes("ml") ? "ml" :
-                                                    item.unitDisplay?.includes("colher") ? "colher de sopa" :
-                                                    item.unitDisplay?.includes("copo") ? "copo (200ml)" : "g";
+    item.unitDisplay?.includes("ml") ? "ml" :
+      item.unitDisplay?.includes("colher") ? "colher de sopa" :
+        item.unitDisplay?.includes("copo") ? "copo (200ml)" : "g";
   document.getElementById("editPrescMeal").value = item.mealName;
   document.getElementById("editPrescTime").value = item.mealTime || "";
 
@@ -1796,16 +1796,18 @@ async function saveEditPrescriptionItem() {
   item.mealTime = newTime;
 
   // Recalcula com base na unidade
-  const unitConversions = { "g": 1, "ml": 1, "unidade": item.gramPerUnit || 100,
-    "colher de sopa": 15, "copo (200ml)": 200, "fatia": item.gramPerUnit || 30 };
+  const unitConversions = {
+    "g": 1, "ml": 1, "unidade": item.gramPerUnit || 100,
+    "colher de sopa": 15, "copo (200ml)": 200, "fatia": item.gramPerUnit || 30
+  };
   const grams = newUnit === "g" || newUnit === "ml" ? newQty : (unitConversions[newUnit] || 100);
   const baseRatio = grams / (item.baseQuantity || 100);
 
-  item.calories    = Number((item.kcalPer100 || (item.calories / ratio)) * baseRatio).toFixed(1) * 1;
-  item.protein     = Number((item.protPer100 || (item.protein / ratio)) * baseRatio).toFixed(1) * 1;
-  item.carbohydrate= Number((item.carbPer100 || (item.carbohydrate / ratio)) * baseRatio).toFixed(1) * 1;
-  item.lipid       = Number((item.lipidPer100 || (item.lipid / ratio)) * baseRatio).toFixed(1) * 1;
-  item.fiber       = Number((item.fiberPer100 || (item.fiber / ratio || 0)) * baseRatio).toFixed(1) * 1;
+  item.calories = Number((item.kcalPer100 || (item.calories / ratio)) * baseRatio).toFixed(1) * 1;
+  item.protein = Number((item.protPer100 || (item.protein / ratio)) * baseRatio).toFixed(1) * 1;
+  item.carbohydrate = Number((item.carbPer100 || (item.carbohydrate / ratio)) * baseRatio).toFixed(1) * 1;
+  item.lipid = Number((item.lipidPer100 || (item.lipid / ratio)) * baseRatio).toFixed(1) * 1;
+  item.fiber = Number((item.fiberPer100 || (item.fiber / ratio || 0)) * baseRatio).toFixed(1) * 1;
   item.unitDisplay = newUnit === "g" || newUnit === "ml" ? `${newQty}${newUnit}` : `${newQty} ${newUnit}`;
 
   currentPrescriptionItems[idx] = item;
@@ -1828,9 +1830,9 @@ function renderPrescriptionTotals() {
     { kcal: 0, protein: 0, carb: 0, lipid: 0, fiber: 0 }
   );
 
-  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) || 
-                  parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
-  
+  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
+    parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
+
   const protKg = calculateMacrosPerKg(totals.protein, pWeight);
   const carbKg = calculateMacrosPerKg(totals.carb, pWeight);
   const lipKg = calculateMacrosPerKg(totals.lipid, pWeight);
@@ -1850,7 +1852,7 @@ function renderPrescriptionTotals() {
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
   const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
   const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 1800;
-  
+
   const macroTargets = calculateDietaryMacroTargets(obj, patType, pWeight, getKcal);
 
   // 3. Atualização dos Labels de Meta nos 5 Cards
@@ -1882,7 +1884,7 @@ function renderPrescriptionTotals() {
   }
 
   // 4. Auditoria Bromatológica & Termodinâmica do Total Prescrito (Regra 11)
-  const auditReport = typeof auditDietBromatology === "function" 
+  const auditReport = typeof auditDietBromatology === "function"
     ? auditDietBromatology(currentPrescriptionItems)
     : null;
 
@@ -1945,8 +1947,8 @@ function openAIPrescriptionModal() {
   const modal = document.getElementById("aiPrescriptionModal");
   if (!modal) return;
 
-  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) || 
-                  parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
+  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
+    parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
   const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
   const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
@@ -1971,8 +1973,8 @@ function closeAIPrescriptionModal() {
 }
 
 async function executeAIPrescriptionGeneration() {
-  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) || 
-                  parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
+  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
+    parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
   const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
   const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
@@ -2127,7 +2129,7 @@ function generateWhatsAppDietMessage(patientData = {}, items = [], targets = {},
     orderedMealKeys.forEach(mealKey => {
       const mealItems = grouped[mealKey];
       const mealTime = mealItems[0]?.mealTime ? ` (${mealItems[0].mealTime})` : "";
-      
+
       msg += `⏰ *${mealKey.toUpperCase()}${mealTime}*\n`;
       mealItems.forEach(i => {
         const displayPortion = i.unitDisplay || `${i.quantity}g`;
@@ -2195,8 +2197,8 @@ function closeWhatsAppDietModal() {
 
 function refreshWhatsAppMessagePreview(patientObj = null) {
   const pName = document.getElementById("whatsappPatientName")?.value || "Paciente";
-  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) || 
-                  parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
+  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
+    parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
   const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
   const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
@@ -2425,8 +2427,8 @@ function renderMealItems() {
         <!-- 3. Lista de Alimentos da Refeição -->
         <div class="divide-y divide-zinc-800/70">
           ${items
-            .map(
-              (item) => `
+          .map(
+            (item) => `
               <div class="p-3.5 flex items-center justify-between hover:bg-zinc-800/50 text-xs transition-colors group">
               <div class="min-w-0 pr-2">
                 <div class="flex items-center gap-2">
@@ -2462,8 +2464,8 @@ function renderMealItems() {
             </div>
 
           `
-            )
-            .join("")}
+          )
+          .join("")}
         </div>
       </div>
     `;
@@ -2732,16 +2734,16 @@ async function exportPrescriptionAndEvaluationPDF() {
       </div>
 
       ${mealGroups.map((group) => {
-        const items = currentPrescriptionItems.filter((i) => i.mealName === group);
-        if (items.length === 0) return "";
+    const items = currentPrescriptionItems.filter((i) => i.mealName === group);
+    if (items.length === 0) return "";
 
-        const groupKcal = items.reduce((acc, i) => acc + i.calories, 0);
-        const groupProt = items.reduce((acc, i) => acc + i.protein, 0);
-        const groupCarb = items.reduce((acc, i) => acc + i.carbohydrate, 0);
-        const groupLip = items.reduce((acc, i) => acc + i.lipid, 0);
-        const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group]) ? mealStrategies[group] : { pct: 0.15, guideline: "Aporte harmônico de macronutrientes." };
+    const groupKcal = items.reduce((acc, i) => acc + i.calories, 0);
+    const groupProt = items.reduce((acc, i) => acc + i.protein, 0);
+    const groupCarb = items.reduce((acc, i) => acc + i.carbohydrate, 0);
+    const groupLip = items.reduce((acc, i) => acc + i.lipid, 0);
+    const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group]) ? mealStrategies[group] : { pct: 0.15, guideline: "Aporte harmônico de macronutrientes." };
 
-        return `
+    return `
           <div class="meal-card">
             <div class="meal-header">
               <div>
@@ -2780,7 +2782,7 @@ async function exportPrescriptionAndEvaluationPDF() {
             <div class="meal-direction">💡 <strong>Direcionamento:</strong> ${strat.guideline}</div>
           </div>
         `;
-      }).join("")}
+  }).join("")}
 
       <!-- 5. Hidratação & Orientações Finais -->
       <div class="card-box highlight" style="margin-top: 14px; font-size: 11px;">
@@ -3063,7 +3065,7 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
     if (result.status === "success" && result.data) {
       const cloudData = result.data;
       if (cloudData.patient) await db.patients.put(cloudData.patient);
-      
+
       if (cloudData.exams && Array.isArray(cloudData.exams) && cloudData.exams.length > 0) {
         await db.clinicalExams.where("patientId").equals(patientId).delete();
         await db.clinicalExams.bulkPut(cloudData.exams);
@@ -3279,7 +3281,7 @@ function calculateAutoTargetWeight(params = {}) {
   const height = parseFloat(params.height || p.height || document.getElementById("evalHeight")?.value || 1.70);
   const gender = params.gender || p.gender || document.getElementById("evalGender")?.value || "Masculino";
   const objective = params.objective || p.objective || document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  
+
   // Percentual de Gordura Alvo Desejado
   let targetBF = parseFloat(params.targetBF || document.getElementById("evalTargetFatPercent")?.value);
   if (isNaN(targetBF) || targetBF <= 0) {
@@ -3525,7 +3527,7 @@ async function loadPatientAnamnese(patientId) {
   let p;
   try {
     p = await db.patients.get(patientId);
-  } catch(e) {
+  } catch (e) {
     _isLoadingAnamnese = false;
     return;
   }
@@ -3623,7 +3625,7 @@ async function loadPatientAnamnese(patientId) {
 // Aplica bloqueio visual dos campos quando sedentário
 function _applyAnamneseSedentaryLock(lock) {
   const fields = ["anamneseWorkoutFrequency", "anamneseWorkoutDuration",
-                  "anamneseWorkoutIntensity", "anamneseWorkoutTime"];
+    "anamneseWorkoutIntensity", "anamneseWorkoutTime"];
   const defaults = ["0x/semana", "45 min", "Leve", "Não se aplica (Sedentário)"];
 
   fields.forEach((id, i) => {
@@ -3649,8 +3651,8 @@ function _refreshFADescription(fa, isSedentary, neat, freq, intensity, sleep) {
   const descEl = document.getElementById("anamneseFADescription");
   if (!descEl) return;
   const classification = fa >= 1.725 ? "Muito Ativo / Atleta" :
-                         fa >= 1.55  ? "Moderadamente Ativo" :
-                         fa >= 1.375 ? "Levemente Ativo" : "Sedentário";
+    fa >= 1.55 ? "Moderadamente Ativo" :
+      fa >= 1.375 ? "Levemente Ativo" : "Sedentário";
   if (isSedentary) {
     descEl.innerHTML = `Paciente <strong>Sedentário</strong> (Opções de treino desconsideradas) + Rotina <strong>${neat}</strong> geram um FA de <strong>${Number(fa).toFixed(2)} (${classification})</strong>.`;
   } else {
@@ -3755,7 +3757,7 @@ function calculateSuggestedFA(autoSync = true) {
 
 async function autoSaveAnamnese(shouldSyncCloud = false) {
   if (_isLoadingAnamnese) return; // Bloqueia save durante load
-  
+
   const p = await db.patients.get(activePatientId);
   if (!p) return;
 
@@ -3773,14 +3775,14 @@ async function autoSaveAnamnese(shouldSyncCloud = false) {
   const foodAversions = _getField("anamneseFoodAversions") ?? p.foodAversions ?? "";
   const preferredFoods = _getField("anamnesePreferredFoods") ?? p.preferredFoods ?? "";
   const workoutType = _getField("anamneseWorkoutType") || p.workoutType || "Musculação / Força";
-  
+
   // Para campos de treino, usa valores salvos se estiverem desabilitados (sedentário)
   const freqEl = document.getElementById("anamneseWorkoutFrequency");
   const durEl = document.getElementById("anamneseWorkoutDuration");
   const intEl = document.getElementById("anamneseWorkoutIntensity");
   const timeEl = document.getElementById("anamneseWorkoutTime");
   const isSedentaryNow = (workoutType === "Nenhum (Sedentário)") || (patientType === "Sedentário");
-  
+
   const workoutFrequency = (isSedentaryNow ? "0x/semana" : (freqEl?.value || p.workoutFrequency || "5x/semana"));
   const workoutDuration = (isSedentaryNow ? "45 min" : (durEl?.value || p.workoutDuration || "60 min"));
   const workoutIntensity = (isSedentaryNow ? "Leve" : (intEl?.value || p.workoutIntensity || "Moderada"));
@@ -3910,7 +3912,7 @@ async function handleRecallFoodSearchAutocomplete(val) {
 
   const allFoods = await db.foods.toArray();
   const searchVal = val.toLowerCase();
-  const matches = allFoods.filter((f) => 
+  const matches = allFoods.filter((f) =>
     (f.name && f.name.toLowerCase().includes(searchVal)) ||
     (f.brand && f.brand.toLowerCase().includes(searchVal)) ||
     (f.category && f.category.toLowerCase().includes(searchVal))
@@ -4025,10 +4027,10 @@ async function handleAddRecallItem() {
     patientId: activePatientId,
     mealName,
     mealTime: mealName === "Café da manhã" ? "07:30" :
-              mealName === "Lanche manhã" ? "10:00" :
-              mealName === "Almoço" ? "12:30" :
-              mealName === "Lanche tarde" ? "16:30" :
-              mealName === "Jantar" ? "20:30" : "22:30",
+      mealName === "Lanche manhã" ? "10:00" :
+        mealName === "Almoço" ? "12:30" :
+          mealName === "Lanche tarde" ? "16:30" :
+            mealName === "Jantar" ? "20:30" : "22:30",
     foodName: selectedRecallFoodItem.name,
     quantity: grams,
     unitDisplay: unitLabel,
@@ -4148,8 +4150,8 @@ function renderRecallMealItems() {
 
         <div class="divide-y divide-zinc-800/70">
           ${items
-            .map(
-              (item) => `
+          .map(
+            (item) => `
             <div class="p-3.5 flex items-center justify-between hover:bg-zinc-800/50 text-xs transition-colors group">
               <div class="min-w-0 pr-2">
                 <div class="flex items-center gap-2">
@@ -4175,8 +4177,8 @@ function renderRecallMealItems() {
               </button>
             </div>
           `
-            )
-            .join("")}
+          )
+          .join("")}
         </div>
       </div>
     `;
@@ -4522,10 +4524,10 @@ async function renderResultsCharts(patientId = activePatientId) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { 
-          legend: { 
-            position: "top", 
-            labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } } 
+        plugins: {
+          legend: {
+            position: "top",
+            labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } }
           }
         },
         scales: {
@@ -4562,10 +4564,10 @@ async function renderResultsCharts(patientId = activePatientId) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { 
-          legend: { 
-            position: "top", 
-            labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } } 
+        plugins: {
+          legend: {
+            position: "top",
+            labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } }
           }
         },
         scales: {
@@ -4602,16 +4604,16 @@ async function renderResultsCharts(patientId = activePatientId) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { 
-          legend: { 
-            position: "top", 
-            labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } } 
+        plugins: {
+          legend: {
+            position: "top",
+            labels: { color: "#e4e4e7", font: { size: 11, weight: "bold" } }
           }
         },
         scales: {
-          y: { 
-            stacked: true, 
-            beginAtZero: true, 
+          y: {
+            stacked: true,
+            beginAtZero: true,
             grid: { color: "#27272a" },
             ticks: { color: "#a1a1aa", callback: (val) => val + " kg" }
           },
@@ -4626,7 +4628,7 @@ async function renderResultsCharts(patientId = activePatientId) {
 
 async function renderResultsSynergy(patientId = activePatientId) {
   const ctx = perfGetNutritionContext();
-  
+
   const carboDesc = document.getElementById("synergy-carbo-desc");
   if (carboDesc) {
     carboDesc.innerHTML = `Quando a recarga glicêmica pré-treino (${ctx.currentWeight > 100 ? '80-100g' : '60-80g'} carbo) atinge <strong class="text-white">100% da meta</strong>, a progressão média de tonelagem na musculação avança <strong class="text-amber-400">+4.8%</strong> por microciclo.`;
@@ -4658,7 +4660,7 @@ async function renderResultsSynergy(patientId = activePatientId) {
 async function renderResultsGallery(patientId = activePatientId) {
   const data = await resultsCalculateMetrics(patientId);
   const evals = data.evals || [];
-  
+
   const container = document.getElementById("results-photo-compare-container");
   if (container && evals.length > 0) {
     const first = evals[0];
@@ -4814,7 +4816,7 @@ function openMetricsGlossaryModal(cardKey = 'all') {
   const modal = document.getElementById("modalMetricsGlossary");
   if (!modal) return;
   modal.classList.remove("hidden");
-  
+
   if (cardKey && cardKey !== 'all') {
     const card = document.getElementById(`glossary-card-${cardKey}`);
     if (card) {
@@ -4869,7 +4871,7 @@ async function exportImpactReportPDF(patientId = activePatientId) {
     return;
   }
 
-  const tableRowsHtml = evals.length > 0 
+  const tableRowsHtml = evals.length > 0
     ? evals.map((e, idx) => `
         <tr style="border-bottom: 1px solid #e2e8f0; ${idx % 2 === 0 ? 'background: #f8fafc;' : ''}">
           <td style="padding: 8px 10px; font-weight: bold; font-family: monospace;">${e.date}</td>
@@ -5005,7 +5007,7 @@ async function exportImpactReportPDF(patientId = activePatientId) {
           </div>
           <div>
             <span style="color: #64748b; font-size: 10px; display: block;">Massa Magra:</span>
-            <strong style="font-size: 14px; color: #047857;">${leanMass.toFixed(2)} kg (${((leanMass/currentWeight)*100).toFixed(1)}%)</strong>
+            <strong style="font-size: 14px; color: #047857;">${leanMass.toFixed(2)} kg (${((leanMass / currentWeight) * 100).toFixed(1)}%)</strong>
           </div>
           <div>
             <span style="color: #64748b; font-size: 10px; display: block;">Massa Gorda:</span>
@@ -5051,7 +5053,7 @@ async function exportImpactReportPDF(patientId = activePatientId) {
             <strong style="color: #b45309; display: block; font-size: 11px; margin-bottom: 4px;">🥗 Protocolo Nutricional Prescrito:</strong>
             <ul style="padding-left: 14px; color: #334155; line-height: 1.5;">
               <li>Aporte Proteico: <strong>${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG} g/dia)</strong></li>
-              <li>Hidratação Mínima: <strong>${(ctx.waterTargetMl/1000).toFixed(2)} Litros/dia (40 mL/kg)</strong></li>
+              <li>Hidratação Mínima: <strong>${(ctx.waterTargetMl / 1000).toFixed(2)} Litros/dia (40 mL/kg)</strong></li>
               <li>Balanço Energético: <strong>${ctx.isBulking ? `Superávit Anabólico (+${ctx.energyBalance > 0 ? ctx.energyBalance : 280} kcal/dia)` : `Déficit Controlado (-${Math.abs(ctx.energyBalance)} kcal/dia)`}</strong></li>
             </ul>
           </div>
@@ -5215,8 +5217,8 @@ function renderShapeCards(gender) {
 
   container.innerHTML = list.map((item, idx) => {
     const isSelected = Math.abs(item.percent - currentTarget) < 1.5;
-    const borderClass = isSelected 
-      ? "border-red-600 shadow-crimson-glow scale-[1.02] bg-zinc-900" 
+    const borderClass = isSelected
+      ? "border-red-600 shadow-crimson-glow scale-[1.02] bg-zinc-900"
       : "border-zinc-800 hover:border-red-600 hover:scale-[1.03] bg-zinc-900/90";
 
     const sprite = positions[idx] || { posX: idx * 10, posY: gender === "Masculino" ? 28.5 : 67.5 };
@@ -5283,7 +5285,7 @@ function onTargetBodyFatInputChange(val) {
   const bf = parseFloat(val) || 10;
   const gender = document.getElementById("evalGender")?.value || "Masculino";
   const list = shapeGuideData[gender] || shapeGuideData.Masculino;
-  
+
   let closest = list[0];
   let minDiff = 999;
   list.forEach(item => {
@@ -5325,7 +5327,7 @@ async function loadClinicalExams(patientId = activePatientId) {
   if (document.getElementById("examGlucose")) document.getElementById("examGlucose").value = exam ? (exam.fastingGlucose || "") : "";
   if (document.getElementById("examInsulin")) document.getElementById("examInsulin").value = exam ? (exam.fastingInsulin || "") : "";
   if (document.getElementById("examHba1c")) document.getElementById("examHba1c").value = exam ? (exam.hba1c || "") : "";
-  
+
   if (document.getElementById("examTotalCholesterol")) document.getElementById("examTotalCholesterol").value = exam ? (exam.totalCholesterol || "") : "";
   if (document.getElementById("examHdl")) document.getElementById("examHdl").value = exam ? (exam.hdl || "") : "";
   if (document.getElementById("examLdl")) document.getElementById("examLdl").value = exam ? (exam.ldl || "") : "";
@@ -5420,7 +5422,7 @@ function renderClinicalAlerts() {
   if (homaBadge) {
     if (result.homaIR > 0) {
       homaBadge.innerText = `HOMA-IR: ${result.homaIR}`;
-      homaBadge.className = result.homaIR > 2.5 
+      homaBadge.className = result.homaIR > 2.5
         ? "bg-amber-950/80 text-amber-300 border border-amber-800/80 text-[10px] font-bold px-2 py-0.5 rounded-md font-mono"
         : "bg-zinc-950 text-zinc-300 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-md font-mono";
     } else {
@@ -5446,16 +5448,16 @@ function renderClinicalAlerts() {
       const isWarning = alert.type === "warning";
 
       const cardBg = isRisk ? "bg-rose-950/30 border-rose-800/60 text-white" :
-                     isWarning ? "bg-amber-950/30 border-amber-800/60 text-white" :
-                     "bg-zinc-950/80 border-zinc-800 text-white";
+        isWarning ? "bg-amber-950/30 border-amber-800/60 text-white" :
+          "bg-zinc-950/80 border-zinc-800 text-white";
 
       const badgeBg = isRisk ? "bg-rose-600 text-white" :
-                      isWarning ? "bg-amber-500 text-zinc-950 font-black" :
-                      "bg-zinc-800 text-zinc-300 border border-zinc-700";
+        isWarning ? "bg-amber-500 text-zinc-950 font-black" :
+          "bg-zinc-800 text-zinc-300 border border-zinc-700";
 
       const titleColor = isRisk ? "text-rose-400" :
-                         isWarning ? "text-amber-400" :
-                         "text-white";
+        isWarning ? "text-amber-400" :
+          "text-white";
 
       const iconName = isRisk ? "alert-circle" : isWarning ? "alert-triangle" : "check-circle";
 
@@ -5720,36 +5722,36 @@ function renderAdherenceTimeline(logs = []) {
         <!-- Grade de Refei\u00e7\u00f5es do Dia -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           ${meals
-            .map((meal) => {
-              const isFollowed = meal.status === "followed";
-              const isModified = meal.status === "modified";
-              const isMissed = meal.status === "missed";
+          .map((meal) => {
+            const isFollowed = meal.status === "followed";
+            const isModified = meal.status === "modified";
+            const isMissed = meal.status === "missed";
 
-              const cardBg = isFollowed
-                ? "bg-zinc-900/90 border-zinc-800 hover:border-zinc-700"
-                : isModified
+            const cardBg = isFollowed
+              ? "bg-zinc-900/90 border-zinc-800 hover:border-zinc-700"
+              : isModified
                 ? "bg-amber-950/20 border-amber-900/60 hover:border-amber-700"
                 : "bg-rose-950/20 border-rose-900/60 hover:border-rose-700";
 
-              const badgeClass = isFollowed
-                ? "bg-emerald-950/80 text-emerald-300 border-emerald-800/80"
-                : isModified
+            const badgeClass = isFollowed
+              ? "bg-emerald-950/80 text-emerald-300 border-emerald-800/80"
+              : isModified
                 ? "bg-amber-950/80 text-amber-300 border-amber-800/80"
                 : "bg-rose-950/80 text-rose-300 border-rose-800/80";
 
-              const statusText = isFollowed
-                ? "Seguiu 100%"
-                : isModified
+            const statusText = isFollowed
+              ? "Seguiu 100%"
+              : isModified
                 ? "Modificou / Substituiu"
                 : "N\u00e3o realizou / Furou";
 
-              const iconName = isFollowed
-                ? "check-circle-2"
-                : isModified
+            const iconName = isFollowed
+              ? "check-circle-2"
+              : isModified
                 ? "alert-triangle"
                 : "x-circle";
 
-              return `
+            return `
               <div class="p-4 rounded-2xl border ${cardBg} shadow-sm space-y-2.5 transition-all text-xs flex flex-col justify-between">
                 <div class="space-y-2">
                   <div class="flex items-center justify-between gap-1 border-b border-zinc-800 pb-1.5">
@@ -5778,8 +5780,8 @@ function renderAdherenceTimeline(logs = []) {
                 </div>
               </div>
             `;
-            })
-            .join("")}
+          })
+          .join("")}
         </div>
       </div>
     `;
@@ -5822,8 +5824,8 @@ async function handleSaveAdherenceCheckIn(event) {
 let currentActivePilar = 3; // 1: Mentalidade, 2: Disciplina, 3: Nutrição, 4: Performance, 5: Resultado
 
 const ALL_TAB_IDS = [
-  'dashboard','anamnese','exams','recall','evaluation',
-  'prescription','evolution','adherence','foods','patientApp','backup','performance'
+  'dashboard', 'anamnese', 'exams', 'recall', 'evaluation',
+  'prescription', 'evolution', 'adherence', 'discipline', 'foods', 'patientApp', 'backup', 'performance'
 ];
 
 const PILAR_NAMES = {
@@ -5847,6 +5849,19 @@ function togglePilaresAcessosCard() {
 }
 
 function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
+  // Pilar 2 Tools
+  const p2Tools = ['dashboard', 'heatmap', 'habits', 'sos'];
+  p2Tools.forEach(t => {
+    const btn = document.getElementById(`card-subnav-btn-2-${t}`);
+    if (btn) {
+      if (pilarId === 2 && t === toolKey) {
+        btn.className = "p-2 rounded-xl bg-orange-950 border border-orange-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-orange-950 transition-all";
+      } else {
+        btn.className = "p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
+      }
+    }
+  });
+
   // Pilar 3 Tools
   const p3Tools = ['dashboard', 'prescription', 'evaluation', 'anamnese', 'exams', 'recall', 'adherence', 'foods', 'patientApp'];
   p3Tools.forEach(t => {
@@ -5896,7 +5911,10 @@ async function selectMobilePilarTool(pilarId, toolKey) {
   switchPilar(pilarId, null, false);
 
   // 2. Executa a ativação de acordo com o pilar
-  if (pilarId === 3) {
+  if (pilarId === 2) {
+    await switchTab('discipline', false, false);
+    selectDisciplineSubView(toolKey);
+  } else if (pilarId === 3) {
     await switchTab(toolKey, false, false);
   } else if (pilarId === 4) {
     await switchTab('performance', false, false);
@@ -5932,7 +5950,7 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
     if (navEl) {
       if (i === pilarId) {
         navEl.classList.remove('hidden');
-        navEl.style.display = (i === 3 || i === 4) ? 'flex' : 'flex';
+        navEl.style.display = 'flex';
       } else {
         navEl.classList.add('hidden');
         navEl.style.display = 'none';
@@ -5946,7 +5964,7 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
     if (cardSub) {
       if (i === pilarId) {
         cardSub.classList.remove('hidden');
-        cardSub.style.display = (i === 3 || i === 4 || i === 5) ? 'grid' : 'block';
+        cardSub.style.display = (i === 2 || i === 3 || i === 4 || i === 5) ? 'grid' : 'block';
       } else {
         cardSub.classList.add('hidden');
         cardSub.style.display = 'none';
@@ -5987,11 +6005,16 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
   // 6. Determina qual aba abrir por padrão no pilar escolhido
   if (targetTab) {
     await switchTab(targetTab, false, autoScroll);
-    if (pilarId === 3) updateMobileSubnavActiveVisuals(3, targetTab);
+    if (pilarId === 2) updateMobileSubnavActiveVisuals(2, targetTab);
+    else if (pilarId === 3) updateMobileSubnavActiveVisuals(3, targetTab);
     else if (pilarId === 4) updateMobileSubnavActiveVisuals(4, 'prescription');
     else if (pilarId === 5) updateMobileSubnavActiveVisuals(5, 'dashboard');
   } else {
-    if (pilarId === 3) {
+    if (pilarId === 2) {
+      await switchTab('discipline', false, autoScroll);
+      updateMobileSubnavActiveVisuals(2, 'dashboard');
+      if (typeof renderDisciplineDashboard === 'function') renderDisciplineDashboard();
+    } else if (pilarId === 3) {
       await switchTab('dashboard', false, autoScroll);
       updateMobileSubnavActiveVisuals(3, 'dashboard');
     } else if (pilarId === 4) {
@@ -6047,18 +6070,21 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
 
   // 1. Flush de salvamento pendente antes de sair da aba
   if (typeof _flushAnamneseSave === "function") {
-    try { await _flushAnamneseSave(); } catch(e) { console.warn(e); }
+    try { await _flushAnamneseSave(); } catch (e) { console.warn(e); }
   }
 
   // 2. Sincroniza o Pilar correspondente se acionado diretamente
   if (syncPilar) {
-    if (tabName === 'performance' && currentActivePilar !== 4) {
+    if (tabName === 'discipline' && currentActivePilar !== 2) {
+      switchPilar(2, 'discipline', autoScroll);
+      return;
+    } else if (tabName === 'performance' && currentActivePilar !== 4) {
       switchPilar(4, 'performance', autoScroll);
       return;
     } else if (tabName === 'evolution' && currentActivePilar !== 5) {
       switchPilar(5, 'evolution', autoScroll);
       return;
-    } else if (tabName !== 'performance' && tabName !== 'evolution' && currentActivePilar !== 3) {
+    } else if (tabName !== 'discipline' && tabName !== 'performance' && tabName !== 'evolution' && currentActivePilar !== 3) {
       switchPilar(3, tabName, autoScroll);
       return;
     }
@@ -6123,6 +6149,8 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
     } else if (tabName === 'evolution') {
       if (typeof loadAssessmentsAndRenderCharts === 'function') await loadAssessmentsAndRenderCharts(activePatientId);
       if (typeof renderEvolutionCharts === 'function') renderEvolutionCharts();
+    } else if (tabName === 'discipline') {
+      if (typeof renderDisciplineDashboard === 'function') renderDisciplineDashboard();
     } else if (tabName === 'adherence') {
       if (typeof loadAdherenceDashboard === 'function') await loadAdherenceDashboard(activePatientId);
     } else if (tabName === 'performance') {
@@ -6155,6 +6183,251 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// PILAR 2: DISCIPLINA, HÁBITOS & SCORE IDC ENGINE
+// ═══════════════════════════════════════════════════════════
+
+function selectDisciplineSubView(viewKey) {
+  const subBtns = ['dashboard', 'heatmap', 'habits'];
+  subBtns.forEach(k => {
+    const btn = document.getElementById(`pilar2-subnav-${k}`);
+    if (btn) {
+      if (k === viewKey) {
+        btn.classList.add('active');
+        btn.className = "hud-tab-btn-orange active px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5";
+      } else {
+        btn.classList.remove('active');
+        btn.className = "hud-tab-btn-orange px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5";
+      }
+    }
+  });
+
+  if (viewKey === 'heatmap') {
+    const el = document.getElementById('disciplineHeatmapGrid');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if (viewKey === 'habits') {
+    const el = document.getElementById('disciplineHabitsList');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if (viewKey === 'sos') {
+    const el = document.getElementById('tab-discipline');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+}
+
+function renderDisciplineDashboard() {
+  const p = (typeof patients !== 'undefined' && patients[activePatientId]) ? patients[activePatientId] : { name: 'Paulo Vitor' };
+  
+  // Atualiza tags de paciente
+  const nameEl = document.getElementById('disciplinePatientTag');
+  if (nameEl) nameEl.textContent = p.name || 'Paulo Vitor';
+
+  // Carrega estado do paciente do localStorage ou padrão
+  let state = {
+    streakDays: 14,
+    tier: 'Blindado',
+    scoreIDC: 85.0,
+    dietPercent: 86.7,
+    mealsDone: 13,
+    mealsTotal: 15,
+    waterVolume: 3800,
+    waterTarget: 4000,
+    workoutPercent: 100
+  };
+
+  try {
+    const saved = localStorage.getItem('nutriax_patient_discipline_v3');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.streakDays) state.streakDays = parsed.streakDays;
+      if (parsed.tier) state.tier = parsed.tier;
+      if (parsed.waterCurrent) state.waterVolume = parsed.waterCurrent;
+      if (parsed.waterTarget) state.waterTarget = parsed.waterTarget;
+      if (parsed.meals && parsed.meals.length > 0) {
+        const done = parsed.meals.filter(m => m.done).length;
+        state.mealsDone = done;
+        state.mealsTotal = parsed.meals.length;
+        state.dietPercent = Math.round((done / parsed.meals.length) * 100);
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao ler estado do paciente', e);
+  }
+
+  // Atualiza KPIs
+  const kpiScore = document.getElementById('kpiIdcScore');
+  if (kpiScore) kpiScore.textContent = `${state.scoreIDC.toFixed(1)}%`;
+  
+  const kpiProg = document.getElementById('kpiIdcProgress');
+  if (kpiProg) kpiProg.style.width = `${state.scoreIDC}%`;
+
+  const kpiTier = document.getElementById('kpiIdcTierBadge');
+  if (kpiTier) kpiTier.textContent = state.tier;
+
+  const headerStreak = document.getElementById('disciplineHeaderStreak');
+  if (headerStreak) headerStreak.textContent = `${state.streakDays} Dias Invicto`;
+
+  const kpiDiet = document.getElementById('kpiDietPercent');
+  if (kpiDiet) kpiDiet.textContent = `${state.dietPercent}%`;
+
+  const kpiDietDet = document.getElementById('kpiDietDetail');
+  if (kpiDietDet) kpiDietDet.textContent = `${state.mealsDone} de ${state.mealsTotal} refeições no plano`;
+
+  const kpiWater = document.getElementById('kpiWaterVolume');
+  if (kpiWater) kpiWater.textContent = state.waterVolume.toLocaleString('pt-BR');
+
+  // Renderiza o Heatmap e Feed
+  renderDisciplineHeatmap();
+  renderDisciplineTimeline();
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function renderDisciplineHeatmap() {
+  const container = document.getElementById('disciplineHeatmapGrid');
+  if (!container) return;
+
+  // Gera histórico dos últimos 35 dias
+  const daysData = [];
+  const today = new Date();
+  
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    
+    // Nível de consistência realista
+    let score = 85;
+    let level = 3;
+    if (i === 0) { score = 85; level = 3; }
+    else if (i === 1) { score = 95; level = 4; }
+    else if (i === 2) { score = 100; level = 4; }
+    else if (i === 6 || i === 13 || i === 20) { score = 70; level = 2; }
+    else if (i === 15) { score = 40; level = 1; }
+    else if (i > 25) { score = Math.floor(Math.random() * 20) + 75; level = score > 85 ? 3 : 2; }
+    else { score = Math.floor(Math.random() * 15) + 85; level = score > 90 ? 4 : 3; }
+
+    daysData.push({ date: dateStr, score, level });
+  }
+
+  container.innerHTML = daysData.map((d) => `
+    <div class="heatmap-cell heatmap-cell-${d.level}"
+         onmouseenter="showHeatmapTooltip('${d.date}', ${d.score})"
+         title="${d.date} · Score IDC: ${d.score}%">
+    </div>
+  `).join('');
+}
+
+function showHeatmapTooltip(dateStr, score) {
+  const el = document.getElementById('heatmapTooltipText');
+  if (el) {
+    let qual = "Excelente (Consistência Alta)";
+    if (score >= 95) qual = "Perfeito (100% dos hábitos batidos)";
+    else if (score < 60) qual = "Atenção (Deslize registrado)";
+    el.innerHTML = `📅 <strong>${dateStr}:</strong> Score IDC de <strong class="text-white font-mono">${score}%</strong> · <em>${qual}</em>`;
+  }
+}
+
+function renderDisciplineTimeline() {
+  const container = document.getElementById('disciplineTimelineFeed');
+  if (!container) return;
+
+  const events = [
+    { time: 'Hoje, 13:05', title: 'Almoço Estruturado Consumido', desc: '200g Frango + 200g Arroz + Legumes (580 kcal, 55g P)', type: 'meal', icon: 'utensils', color: 'orange' },
+    { time: 'Hoje, 12:00', title: 'Hidratação Fracionada (+500ml)', desc: 'Total acumulado no dia: 2.500 ml / 4.000 ml', type: 'water', icon: 'droplets', color: 'blue' },
+    { time: 'Hoje, 10:35', title: 'Lanche da Manhã Consumido', desc: '30g Whey Protein + 1 Fruta (190 kcal, 25g P)', type: 'meal', icon: 'utensils', color: 'orange' },
+    { time: 'Hoje, 07:45', title: 'Café da Manhã Consumido', desc: '3 Ovos + Pão Integral + Café (380 kcal, 24g P)', type: 'meal', icon: 'utensils', color: 'orange' },
+    { time: 'Ontem, 22:30', title: 'Janela de Sono Registrada', desc: '7.5 horas de sono · Qualidade subjetiva: Boa 😊', type: 'sleep', icon: 'moon', color: 'purple' },
+    { time: 'Ontem, 19:40', title: 'Treino A + Cardio Concluídos', desc: 'Peitoral + Deltoide + Tríceps + 25 min Cardio Zona 2', type: 'workout', icon: 'dumbbell', color: 'emerald' }
+  ];
+
+  container.innerHTML = events.map(e => `
+    <div class="p-3.5 rounded-xl bg-black/50 border border-zinc-800/80 flex items-start justify-between gap-3 hover:border-orange-500/30 transition-all">
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-lg bg-${e.color}-950/80 border border-${e.color}-800/60 flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="${e.icon}" class="w-4 h-4 text-${e.color}-400"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h4 class="text-xs font-bold text-white">${e.title}</h4>
+            <span class="text-[9px] font-mono text-zinc-500">${e.time}</span>
+          </div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">${e.desc}</p>
+        </div>
+      </div>
+      <span class="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded shrink-0">
+        SINCRONIZADO
+      </span>
+    </div>
+  `).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function openPatientShareModal() {
+  const modal = document.getElementById('patientShareModal');
+  if (!modal) return;
+
+  // Determina URL pública ou local
+  let patientUrl = 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
+  if (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.')) {
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    patientUrl = `${origin}${path}paciente.html`;
+  }
+
+  const input = document.getElementById('patientShareLinkInput');
+  if (input) input.value = patientUrl;
+
+  const qrImg = document.getElementById('patientQrCodeImg');
+  if (qrImg) {
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(patientUrl)}`;
+  }
+
+  modal.classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closePatientShareModal() {
+  const modal = document.getElementById('patientShareModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function copyPatientShareLink() {
+  const input = document.getElementById('patientShareLinkInput');
+  if (!input) return;
+
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = document.getElementById('btnCopyPatientLink');
+    if (btn) {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Copiado!';
+      btn.classList.add('bg-emerald-950', 'border-emerald-700');
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('bg-emerald-950', 'border-emerald-700');
+        if (window.lucide) window.lucide.createIcons();
+      }, 2500);
+    }
+  }).catch(err => {
+    input.select();
+    document.execCommand('copy');
+    alert('Link copiado para a área de transferência!');
+  });
+}
+
+function sendPatientWhatsAppMessage() {
+  const input = document.getElementById('patientShareLinkInput');
+  const patientUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
+  
+  const p = (typeof patients !== 'undefined' && patients[activePatientId]) ? patients[activePatientId] : { name: 'Paulo Vitor' };
+  const patientName = p.name ? p.name.split(' ')[0] : 'Paulo';
+
+  const message = `Olá, ${patientName}! 🔥\n\nAqui está o seu acesso exclusivo ao aplicativo *NutriAx — Disciplina & Hábitos* para acompanhar sua dieta, registrar a hidratação diária, treinos e manter sua sequência de consistência:\n\n👉 ${patientUrl}\n\n*Dica de Instalação no Celular:*\n• No *iPhone (Safari)*: Toque em Compartilhar e selecione "Adicionar à Tela de Início".\n• No *Android (Chrome)*: Toque no banner "Instalar aplicativo".\n\nBons treinos e foco total no plano! 🚀`;
+
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+  window.open(waUrl, '_blank');
+}
+
 // Inicializa no carregamento da página com suporte a atalhos PWA (?tab=...)
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -6184,146 +6457,146 @@ document.addEventListener('DOMContentLoaded', () => {
 const PERF_EXERCISE_DB = [
   // ── PEITORAL (BARRAS, HALTERES, CABOS, MÁQUINAS, LIVRES) ──
   // Fonte: Schoenfeld — "Science and Dev. of Muscle Hypertrophy" Cap.2/3 | Lima & Pinto — Cinesiologia Cap.4
-  { id:'pe01', name:'Supino Reto com Barra',                    group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Esternocostal)',          secondary:'Deltoide Anterior, Tríceps Braquial',       resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Pico de torque entre 0-60° de abdução horizontal (encurtamento). Exc. 3s acumula tensão mecânica máxima sem perder força intramuscular — Schoenfeld Cap.3.' },
-  { id:'pe02', name:'Supino Inclinado com Barra (30° a 45°)',   group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Clavicular - Superior)',  secondary:'Deltoide Anterior, Tríceps',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Ângulo inclinado desloca tensão para fibras claviculares. Excêntrico 3s preserva integridade da articulação glenoumeral — ACSM Cap.7.' },
-  { id:'pe03', name:'Supino Declinado com Barra',               group:'Peitoral', mechanics:'Composto', equipment:'Barra',          primary:'Peitoral Maior (Feixe Inferior/Abdominal)',     secondary:'Tríceps Braquial, Deltoide Anterior',       resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Declinação aumenta ativação do feixe esternal inferior. Exc. 3s controla sobrecarga em ângulo desfavorável para o ombro.' },
-  { id:'pe04', name:'Supino Reto com Halteres',                 group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Maior amplitude & adução)',     secondary:'Deltoide Anterior, Tríceps',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Halteres permitem ADM 20-30% maior que barra, gerando pico de torque no alongamento (90°+ de abdução). Responsável por maior TUT sarcomérico — Schoenfeld Cap.2.' },
-  { id:'pe05', name:'Supino Inclinado com Halteres',            group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Porção Superior)',              secondary:'Deltoide Anterior, Tríceps',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Combina ADM aumentada dos halteres com inclinação para feixe clavicular. Componente de alongamento em 90° solicita OIMS maximamente — Lima & Pinto Cap.4.' },
-  { id:'pe06', name:'Supino Declinado com Halteres',            group:'Peitoral', mechanics:'Composto', equipment:'Halteres',       primary:'Peitoral Maior (Porção Inferior)',              secondary:'Tríceps, Deltoide Anterior',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'ADM ampliada + declinação: ativa porção abdominal do peitoral no alongamento. Par complementar ao Peck Deck — Schoenfeld Cap.2.' },
-  { id:'pe07', name:'Crucifixo Reto com Halteres',              group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Alongamento Máximo)',           secondary:'Deltoide Anterior (estabilizador)',         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Pico de torque a 90° de abdução horizontal (posição de maior comprimento). Pausa 1s no fundo recruta sarcômeros em série — Schoenfeld, Science of Hyp. Cap.2.' },
-  { id:'pe08', name:'Crucifixo Inclinado com Halteres',          group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Fibras Claviculares)',          secondary:'Deltoide Anterior',                         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Crucifixo inclinado: pico de tensão no alongamento com ênfase em fibras superiores. Pausa 1s no ponto de maior comprimento — Lima & Pinto Cap.4.' },
-  { id:'pe09', name:'Crucifixo Declinado com Halteres',         group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior (Fibras Esternocostais)',        secondary:'Deltoide Anterior',                         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Crucifixo declinado: alonga fibras esternocostais inferiores. Excêntrico lento de 3s é determinante para dano miofibrilar e remodelação — Schoenfeld Cap.3.' },
-  { id:'pe10', name:'Crossover no Cabo (Polia Alta)',           group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Foco Porção Inferior)',         secondary:'Deltoide Anterior',                         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia alta cria vetor de tração que desafia o peitoral na posição de maior comprimento. Tensão contínua do cabo em toda ADM — Lima & Pinto, Cinesiologia Cap.5.' },
-  { id:'pe11', name:'Crossover no Cabo (Polia Média)',          group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Tensão Contínua Esternal)',     secondary:'Deltoide Anterior',                         resistProfile:'uniform',   cadence:'3-1-1-0', cadenceNote:'Polia média cria curva de torque relativamente uniforme em toda ADM. Pausa de 1s na adução maximiza o pico de contração esternal — Schoenfeld Cap.2.' },
-  { id:'pe12', name:'Crossover no Cabo (Polia Baixa)',          group:'Peitoral', mechanics:'Isolador', equipment:'Cabo',           primary:'Peitoral Maior (Foco Feixe Clavicular)',        secondary:'Deltoide Anterior',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Polia baixa cria resistência que aumenta no encurtamento (adução cruzada). Pico de tensão na posição encurtada estimula fibras claviculares — Lima & Pinto Cap.4.' },
-  { id:'pe13', name:'Peck Deck / Voador (Máquina)',             group:'Peitoral', mechanics:'Isolador', equipment:'Máquina',        primary:'Peitoral Maior (Pico de Contração Medial)',     secondary:'Deltoide Anterior',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Peck Deck: curva de força crescente até o encurtamento total. 1s de pausa isométrica na adução máxima ativa UMs de alto limiar — Schoenfeld, Science Cap.3.' },
-  { id:'pe14', name:'Supino Vertical na Máquina Articulada',    group:'Peitoral', mechanics:'Composto', equipment:'Máquina',        primary:'Peitoral Maior (Trajetória Convergente)',       secondary:'Tríceps Braquial, Deltoide',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Máquina articulada converge para o centro, simulando adução. Trajetória guiada permite excêntrico controlado 3s sem falha técnica — ACSM Tabela 7-2.' },
-  { id:'pe15', name:'Supino Inclinado na Máquina Convergente',  group:'Peitoral', mechanics:'Composto', equipment:'Máquina',        primary:'Peitoral Maior (Porção Superior)',              secondary:'Tríceps, Deltoide Anterior',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Máquina convergente inclinada isola porção clavicular com trajetória controlada. Segurança para excêntrico pesado de 3s — ACSM Cap.7.' },
-  { id:'pe16', name:'Supino no Smith (Guia Reto)',              group:'Peitoral', mechanics:'Composto', equipment:'Smith',          primary:'Peitoral Maior',                                secondary:'Tríceps, Deltoide',                         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Guia vertical do Smith elimina graus de liberdade, focando o estímulo no encurtamento esternal. Útil para overload progressivo controlado — ACSM Cap.7.' },
-  { id:'pe17', name:'Supino no Smith Inclinado',                group:'Peitoral', mechanics:'Composto', equipment:'Smith',          primary:'Peitoral Maior (Superior)',                     secondary:'Tríceps, Deltoide Anterior',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Smith inclinado isola porção clavicular com trajetória controlada. Permite excêntrico de 3s com sobrecarga supramáxima segura — ACSM Cap.7.' },
-  { id:'pe18', name:'Flexão de Braço no Solo (Push-up)',        group:'Peitoral', mechanics:'Composto', equipment:'Peso Corporal',  primary:'Peitoral Maior',                                secondary:'Tríceps, Core (estabilização)',              resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Flexão de braço: pico de EMG peitoral no encurtamento (cotovelos estendidos). Excêntrico lento de 3s amplifica tensão muscular sem carga externa — Lima & Pinto.' },
-  { id:'pe19', name:'Mergulho em Paralelas (Foco Peitoral)',    group:'Peitoral', mechanics:'Composto', equipment:'Peso Corporal',  primary:'Peitoral Maior (Tronco inclinado à frente)',   secondary:'Tríceps Braquial, Deltoide Anterior',        resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Tronco inclinado à frente no mergulho cria componente de alongamento do peitoral. Descida de 3s com controle protege a articulação glenoumeral — Lima & Pinto Cap.4.' },
-  { id:'pe20', name:'Pullover com Halter',                      group:'Peitoral', mechanics:'Isolador', equipment:'Halteres',       primary:'Peitoral Maior & Serrátil Anterior',            secondary:'Latíssimo do Dorso, Tríceps Longo',         resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Pullover sobrecarrega peitoral e serrátil no máximo alongamento (ombros em flexão). Pausa 1s no fundo amplifica estímulo em sarcômeros em série — Schoenfeld Cap.2.' },
+  { id: 'pe01', name: 'Supino Reto com Barra', group: 'Peitoral', mechanics: 'Composto', equipment: 'Barra', primary: 'Peitoral Maior (Feixe Esternocostal)', secondary: 'Deltoide Anterior, Tríceps Braquial', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Pico de torque entre 0-60° de abdução horizontal (encurtamento). Exc. 3s acumula tensão mecânica máxima sem perder força intramuscular — Schoenfeld Cap.3.' },
+  { id: 'pe02', name: 'Supino Inclinado com Barra (30° a 45°)', group: 'Peitoral', mechanics: 'Composto', equipment: 'Barra', primary: 'Peitoral Maior (Feixe Clavicular - Superior)', secondary: 'Deltoide Anterior, Tríceps', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Ângulo inclinado desloca tensão para fibras claviculares. Excêntrico 3s preserva integridade da articulação glenoumeral — ACSM Cap.7.' },
+  { id: 'pe03', name: 'Supino Declinado com Barra', group: 'Peitoral', mechanics: 'Composto', equipment: 'Barra', primary: 'Peitoral Maior (Feixe Inferior/Abdominal)', secondary: 'Tríceps Braquial, Deltoide Anterior', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Declinação aumenta ativação do feixe esternal inferior. Exc. 3s controla sobrecarga em ângulo desfavorável para o ombro.' },
+  { id: 'pe04', name: 'Supino Reto com Halteres', group: 'Peitoral', mechanics: 'Composto', equipment: 'Halteres', primary: 'Peitoral Maior (Maior amplitude & adução)', secondary: 'Deltoide Anterior, Tríceps', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Halteres permitem ADM 20-30% maior que barra, gerando pico de torque no alongamento (90°+ de abdução). Responsável por maior TUT sarcomérico — Schoenfeld Cap.2.' },
+  { id: 'pe05', name: 'Supino Inclinado com Halteres', group: 'Peitoral', mechanics: 'Composto', equipment: 'Halteres', primary: 'Peitoral Maior (Porção Superior)', secondary: 'Deltoide Anterior, Tríceps', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Combina ADM aumentada dos halteres com inclinação para feixe clavicular. Componente de alongamento em 90° solicita OIMS maximamente — Lima & Pinto Cap.4.' },
+  { id: 'pe06', name: 'Supino Declinado com Halteres', group: 'Peitoral', mechanics: 'Composto', equipment: 'Halteres', primary: 'Peitoral Maior (Porção Inferior)', secondary: 'Tríceps, Deltoide Anterior', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'ADM ampliada + declinação: ativa porção abdominal do peitoral no alongamento. Par complementar ao Peck Deck — Schoenfeld Cap.2.' },
+  { id: 'pe07', name: 'Crucifixo Reto com Halteres', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Peitoral Maior (Alongamento Máximo)', secondary: 'Deltoide Anterior (estabilizador)', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Pico de torque a 90° de abdução horizontal (posição de maior comprimento). Pausa 1s no fundo recruta sarcômeros em série — Schoenfeld, Science of Hyp. Cap.2.' },
+  { id: 'pe08', name: 'Crucifixo Inclinado com Halteres', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Peitoral Maior (Fibras Claviculares)', secondary: 'Deltoide Anterior', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Crucifixo inclinado: pico de tensão no alongamento com ênfase em fibras superiores. Pausa 1s no ponto de maior comprimento — Lima & Pinto Cap.4.' },
+  { id: 'pe09', name: 'Crucifixo Declinado com Halteres', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Peitoral Maior (Fibras Esternocostais)', secondary: 'Deltoide Anterior', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Crucifixo declinado: alonga fibras esternocostais inferiores. Excêntrico lento de 3s é determinante para dano miofibrilar e remodelação — Schoenfeld Cap.3.' },
+  { id: 'pe10', name: 'Crossover no Cabo (Polia Alta)', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Peitoral Maior (Foco Porção Inferior)', secondary: 'Deltoide Anterior', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Polia alta cria vetor de tração que desafia o peitoral na posição de maior comprimento. Tensão contínua do cabo em toda ADM — Lima & Pinto, Cinesiologia Cap.5.' },
+  { id: 'pe11', name: 'Crossover no Cabo (Polia Média)', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Peitoral Maior (Tensão Contínua Esternal)', secondary: 'Deltoide Anterior', resistProfile: 'uniform', cadence: '3-1-1-0', cadenceNote: 'Polia média cria curva de torque relativamente uniforme em toda ADM. Pausa de 1s na adução maximiza o pico de contração esternal — Schoenfeld Cap.2.' },
+  { id: 'pe12', name: 'Crossover no Cabo (Polia Baixa)', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Peitoral Maior (Foco Feixe Clavicular)', secondary: 'Deltoide Anterior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Polia baixa cria resistência que aumenta no encurtamento (adução cruzada). Pico de tensão na posição encurtada estimula fibras claviculares — Lima & Pinto Cap.4.' },
+  { id: 'pe13', name: 'Peck Deck / Voador (Máquina)', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Peitoral Maior (Pico de Contração Medial)', secondary: 'Deltoide Anterior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Peck Deck: curva de força crescente até o encurtamento total. 1s de pausa isométrica na adução máxima ativa UMs de alto limiar — Schoenfeld, Science Cap.3.' },
+  { id: 'pe14', name: 'Supino Vertical na Máquina Articulada', group: 'Peitoral', mechanics: 'Composto', equipment: 'Máquina', primary: 'Peitoral Maior (Trajetória Convergente)', secondary: 'Tríceps Braquial, Deltoide', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Máquina articulada converge para o centro, simulando adução. Trajetória guiada permite excêntrico controlado 3s sem falha técnica — ACSM Tabela 7-2.' },
+  { id: 'pe15', name: 'Supino Inclinado na Máquina Convergente', group: 'Peitoral', mechanics: 'Composto', equipment: 'Máquina', primary: 'Peitoral Maior (Porção Superior)', secondary: 'Tríceps, Deltoide Anterior', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Máquina convergente inclinada isola porção clavicular com trajetória controlada. Segurança para excêntrico pesado de 3s — ACSM Cap.7.' },
+  { id: 'pe16', name: 'Supino no Smith (Guia Reto)', group: 'Peitoral', mechanics: 'Composto', equipment: 'Smith', primary: 'Peitoral Maior', secondary: 'Tríceps, Deltoide', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Guia vertical do Smith elimina graus de liberdade, focando o estímulo no encurtamento esternal. Útil para overload progressivo controlado — ACSM Cap.7.' },
+  { id: 'pe17', name: 'Supino no Smith Inclinado', group: 'Peitoral', mechanics: 'Composto', equipment: 'Smith', primary: 'Peitoral Maior (Superior)', secondary: 'Tríceps, Deltoide Anterior', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Smith inclinado isola porção clavicular com trajetória controlada. Permite excêntrico de 3s com sobrecarga supramáxima segura — ACSM Cap.7.' },
+  { id: 'pe18', name: 'Flexão de Braço no Solo (Push-up)', group: 'Peitoral', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Peitoral Maior', secondary: 'Tríceps, Core (estabilização)', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Flexão de braço: pico de EMG peitoral no encurtamento (cotovelos estendidos). Excêntrico lento de 3s amplifica tensão muscular sem carga externa — Lima & Pinto.' },
+  { id: 'pe19', name: 'Mergulho em Paralelas (Foco Peitoral)', group: 'Peitoral', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Peitoral Maior (Tronco inclinado à frente)', secondary: 'Tríceps Braquial, Deltoide Anterior', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Tronco inclinado à frente no mergulho cria componente de alongamento do peitoral. Descida de 3s com controle protege a articulação glenoumeral — Lima & Pinto Cap.4.' },
+  { id: 'pe20', name: 'Pullover com Halter', group: 'Peitoral', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Peitoral Maior & Serrátil Anterior', secondary: 'Latíssimo do Dorso, Tríceps Longo', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Pullover sobrecarrega peitoral e serrátil no máximo alongamento (ombros em flexão). Pausa 1s no fundo amplifica estímulo em sarcômeros em série — Schoenfeld Cap.2.' },
 
   // ── DORSAL / COSTAS (BARRAS, HALTERES, CABOS, MÁQUINAS, LIVRES) ──
   // Fonte: Lima & Pinto — Cinesiologia e Musculação Cap.5 | Schoenfeld Cap.2 (Moment Arm & EMG)
-  { id:'do01', name:'Barra Fixa Pronada (Pull-up)',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso (Largura Dorsal)',           secondary:'Romboides, Bíceps, Trapézio Inferior',     resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pico de ativação EMG do latíssimo com ombros em flexão máxima (posição de maior comprimento). Descida controlada 3s recruta mais fibras por mais tempo — Schoenfeld Cap.2.' },
-  { id:'do02', name:'Barra Fixa Supinada (Chin-up)',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso & Bíceps Braquial',          secondary:'Romboides, Braquial',                      resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pegada supinada reduz supressão neural de bíceps, aumentando cocativação. Pico de torque do latíssimo no alongamento — Lima & Pinto Cap.5.' },
-  { id:'do03', name:'Barra Fixa com Pegada Neutra',             group:'Dorsal',   mechanics:'Composto', equipment:'Peso Corporal',  primary:'Latíssimo do Dorso & Braquiorradial',           secondary:'Bíceps, Romboides',                        resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pegada neutra otimiza ativação do braquiorradial e latíssimo simultaneamente. Excêntrico 3s preserva o ombro em rotação neutra — ACSM Cap.7.' },
-  { id:'do04', name:'Puxada Frontal Aberta na Polia',           group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso (Fibras Superiores)',        secondary:'Bíceps Braquial, Romboides',               resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Pegada aberta maximiza o momento de força sobre o latíssimo no ponto de maior comprimento (braços estendidos). Cabo mantém tensão constante — Lima & Pinto Cap.5.' },
-  { id:'do05', name:'Puxada Frontal com Triângulo (Fechada)',   group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso & Redondo Maior',            secondary:'Bíceps, Braquial',                         resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Triângulo fechado gera puxada na linha mediana, equilibrando tensão ao longo de toda ADM. Curva de torque do latíssimo relativamente uniforme — Schoenfeld Cap.2.' },
-  { id:'do06', name:'Puxada Supinada na Polia',                 group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Latíssimo do Dorso (Feixe Inferior)',           secondary:'Bíceps Braquial, Braquial',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Pegada supinada desloca torque para o feixe inferior do latíssimo, com pico no encurtamento (cotovelo junto ao corpo). Complementar à puxada aberta — Lima & Pinto Cap.5.' },
-  { id:'do07', name:'Pulldown / Puxada com Braços Retos (Cabo)',group:'Dorsal',   mechanics:'Isolador', equipment:'Cabo',           primary:'Latíssimo do Dorso (Isolamento)',               secondary:'Redondo Maior, Tríceps Longo',             resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Braços retos eliminam a contribuição de bíceps, isolando o latíssimo no momento de extensão do ombro (pico de torque no encurtamento). Pausa 1s no quadril — Schoenfeld Cap.3.' },
-  { id:'do08', name:'Remada Curvada com Barra (Pronada)',       group:'Dorsal',   mechanics:'Composto', equipment:'Barra',          primary:'Latíssimo do Dorso & Romboides (Espessura)',    secondary:'Trapézio Médio/Inf, Bíceps, Eretores',    resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Remada pronada: pico de ativação na retração escapular (encurtamento de romboides e trapézio médio). Excêntrico 3s com tronco estável a 45° — Lima & Pinto Cap.5.' },
-  { id:'do09', name:'Remada Curvada com Barra (Supinada/Yates)',group:'Dorsal',  mechanics:'Composto', equipment:'Barra',          primary:'Latíssimo do Dorso (Feixe Inferior)',           secondary:'Bíceps Braquial, Romboides',               resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Yates row: pegada supinada aumenta ativação do feixe inferior do latíssimo no encurtamento. Tronco mais ereto (70°) encurta o braço de momento — Schoenfeld Cap.2.' },
-  { id:'do10', name:'Remada Cavalinho (Barra T)',               group:'Dorsal',   mechanics:'Composto', equipment:'Barra',          primary:'Romboides, Latíssimo & Trapézio Médio',         secondary:'Bíceps, Eretores da Espinha',              resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Apoio no peito estabiliza o eixo e permite pico de contração na retração escapular (encurtamento de romboides). Excêntrico 3s com carga alta — Lima & Pinto Cap.5.' },
-  { id:'do11', name:'Remada Unilateral com Halter (Serrote)',   group:'Dorsal',   mechanics:'Composto', equipment:'Halteres',       primary:'Latíssimo do Dorso (Unilateral)',               secondary:'Romboides, Bíceps, Redondo Maior',         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Posição unilateral com apoio permite maior amplitude no início do movimento (posição de maior comprimento). Rotação de tronco controlada amplifica estímulo — Schoenfeld Cap.2.' },
-  { id:'do12', name:'Remada Baixa no Cabo (Triângulo)',         group:'Dorsal',   mechanics:'Composto', equipment:'Cabo',           primary:'Romboides & Latíssimo do Dorso',                secondary:'Bíceps Braquial, Trapézio',                resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Remada baixa com triângulo: pico na retração escapular com cotovelos junto ao corpo (encurtamento). Controle da extensão pélvica evita compensação lombar — Lima & Pinto.' },
-  { id:'do13', name:'Remada Baixa com Barra Reta / Pegada Aberta',group:'Dorsal',mechanics:'Composto', equipment:'Cabo',           primary:'Trapézio Médio, Romboides & Deltoide Posterior',secondary:'Latíssimo, Bíceps',                         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Pegada aberta isola trapézio médio e deltoide posterior na retração. Par ideal de puxada aberta (ambas encurtadas diferentes) — Lima & Pinto Cap.5.' },
-  { id:'do14', name:'Remada Articulada na Máquina (Peito Apoiado)',group:'Dorsal',mechanics:'Composto',equipment:'Máquina',        primary:'Latíssimo do Dorso & Romboides',                secondary:'Bíceps, Trapézio',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Apoio no peito elimina a compensação lombar, isolando o dorsal no encurtamento. Pausa 1s na retração máxima ativa fibras de alto limiar — Schoenfeld Cap.3.' },
-  { id:'do15', name:'Puxada Vertical na Máquina Articulada',    group:'Dorsal',   mechanics:'Composto', equipment:'Máquina',        primary:'Latíssimo do Dorso',                            secondary:'Bíceps Braquial',                          resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Máquina articulada mantém tensão na posição de maior comprimento do latíssimo. Ideal para iniciantes controlarem a fase excêntrica — ACSM Cap.7.' },
-  { id:'do16', name:'Levantamento Terra Convencional (Deadlift)',group:'Dorsal',  mechanics:'Composto', equipment:'Barra',          primary:'Eretores da Espinha, Glúteos & Isquiotibiais',  secondary:'Latíssimo, Trapézio, Quadríceps, Core',   resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Terra convencional: pico de torque nos eretores e isquiotibiais na posição de maior comprimento (barra no solo). Exc. 4s controla cargas supramáximas — ACSM Tabela 7-2.' },
-  { id:'do17', name:'Hiperextensão Lombar (Banco 45°)',         group:'Dorsal',   mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Eretores da Espinha (Lombar)',                  secondary:'Glúteo Máximo, Isquiotibiais',             resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Hiperextensão: pico de ativação dos eretores no alongamento (tronco a 90°). Pausa 1s no fundo maximiza o estresse sobre as fibras lombares — Lima & Pinto Cap.5.' },
+  { id: 'do01', name: 'Barra Fixa Pronada (Pull-up)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Latíssimo do Dorso (Largura Dorsal)', secondary: 'Romboides, Bíceps, Trapézio Inferior', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Pico de ativação EMG do latíssimo com ombros em flexão máxima (posição de maior comprimento). Descida controlada 3s recruta mais fibras por mais tempo — Schoenfeld Cap.2.' },
+  { id: 'do02', name: 'Barra Fixa Supinada (Chin-up)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Latíssimo do Dorso & Bíceps Braquial', secondary: 'Romboides, Braquial', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Pegada supinada reduz supressão neural de bíceps, aumentando cocativação. Pico de torque do latíssimo no alongamento — Lima & Pinto Cap.5.' },
+  { id: 'do03', name: 'Barra Fixa com Pegada Neutra', group: 'Dorsal', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Latíssimo do Dorso & Braquiorradial', secondary: 'Bíceps, Romboides', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Pegada neutra otimiza ativação do braquiorradial e latíssimo simultaneamente. Excêntrico 3s preserva o ombro em rotação neutra — ACSM Cap.7.' },
+  { id: 'do04', name: 'Puxada Frontal Aberta na Polia', group: 'Dorsal', mechanics: 'Composto', equipment: 'Cabo', primary: 'Latíssimo do Dorso (Fibras Superiores)', secondary: 'Bíceps Braquial, Romboides', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Pegada aberta maximiza o momento de força sobre o latíssimo no ponto de maior comprimento (braços estendidos). Cabo mantém tensão constante — Lima & Pinto Cap.5.' },
+  { id: 'do05', name: 'Puxada Frontal com Triângulo (Fechada)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Cabo', primary: 'Latíssimo do Dorso & Redondo Maior', secondary: 'Bíceps, Braquial', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Triângulo fechado gera puxada na linha mediana, equilibrando tensão ao longo de toda ADM. Curva de torque do latíssimo relativamente uniforme — Schoenfeld Cap.2.' },
+  { id: 'do06', name: 'Puxada Supinada na Polia', group: 'Dorsal', mechanics: 'Composto', equipment: 'Cabo', primary: 'Latíssimo do Dorso (Feixe Inferior)', secondary: 'Bíceps Braquial, Braquial', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Pegada supinada desloca torque para o feixe inferior do latíssimo, com pico no encurtamento (cotovelo junto ao corpo). Complementar à puxada aberta — Lima & Pinto Cap.5.' },
+  { id: 'do07', name: 'Pulldown / Puxada com Braços Retos (Cabo)', group: 'Dorsal', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Latíssimo do Dorso (Isolamento)', secondary: 'Redondo Maior, Tríceps Longo', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Braços retos eliminam a contribuição de bíceps, isolando o latíssimo no momento de extensão do ombro (pico de torque no encurtamento). Pausa 1s no quadril — Schoenfeld Cap.3.' },
+  { id: 'do08', name: 'Remada Curvada com Barra (Pronada)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Barra', primary: 'Latíssimo do Dorso & Romboides (Espessura)', secondary: 'Trapézio Médio/Inf, Bíceps, Eretores', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Remada pronada: pico de ativação na retração escapular (encurtamento de romboides e trapézio médio). Excêntrico 3s com tronco estável a 45° — Lima & Pinto Cap.5.' },
+  { id: 'do09', name: 'Remada Curvada com Barra (Supinada/Yates)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Barra', primary: 'Latíssimo do Dorso (Feixe Inferior)', secondary: 'Bíceps Braquial, Romboides', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Yates row: pegada supinada aumenta ativação do feixe inferior do latíssimo no encurtamento. Tronco mais ereto (70°) encurta o braço de momento — Schoenfeld Cap.2.' },
+  { id: 'do10', name: 'Remada Cavalinho (Barra T)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Barra', primary: 'Romboides, Latíssimo & Trapézio Médio', secondary: 'Bíceps, Eretores da Espinha', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Apoio no peito estabiliza o eixo e permite pico de contração na retração escapular (encurtamento de romboides). Excêntrico 3s com carga alta — Lima & Pinto Cap.5.' },
+  { id: 'do11', name: 'Remada Unilateral com Halter (Serrote)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Halteres', primary: 'Latíssimo do Dorso (Unilateral)', secondary: 'Romboides, Bíceps, Redondo Maior', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Posição unilateral com apoio permite maior amplitude no início do movimento (posição de maior comprimento). Rotação de tronco controlada amplifica estímulo — Schoenfeld Cap.2.' },
+  { id: 'do12', name: 'Remada Baixa no Cabo (Triângulo)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Cabo', primary: 'Romboides & Latíssimo do Dorso', secondary: 'Bíceps Braquial, Trapézio', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Remada baixa com triângulo: pico na retração escapular com cotovelos junto ao corpo (encurtamento). Controle da extensão pélvica evita compensação lombar — Lima & Pinto.' },
+  { id: 'do13', name: 'Remada Baixa com Barra Reta / Pegada Aberta', group: 'Dorsal', mechanics: 'Composto', equipment: 'Cabo', primary: 'Trapézio Médio, Romboides & Deltoide Posterior', secondary: 'Latíssimo, Bíceps', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Pegada aberta isola trapézio médio e deltoide posterior na retração. Par ideal de puxada aberta (ambas encurtadas diferentes) — Lima & Pinto Cap.5.' },
+  { id: 'do14', name: 'Remada Articulada na Máquina (Peito Apoiado)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Máquina', primary: 'Latíssimo do Dorso & Romboides', secondary: 'Bíceps, Trapézio', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Apoio no peito elimina a compensação lombar, isolando o dorsal no encurtamento. Pausa 1s na retração máxima ativa fibras de alto limiar — Schoenfeld Cap.3.' },
+  { id: 'do15', name: 'Puxada Vertical na Máquina Articulada', group: 'Dorsal', mechanics: 'Composto', equipment: 'Máquina', primary: 'Latíssimo do Dorso', secondary: 'Bíceps Braquial', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Máquina articulada mantém tensão na posição de maior comprimento do latíssimo. Ideal para iniciantes controlarem a fase excêntrica — ACSM Cap.7.' },
+  { id: 'do16', name: 'Levantamento Terra Convencional (Deadlift)', group: 'Dorsal', mechanics: 'Composto', equipment: 'Barra', primary: 'Eretores da Espinha, Glúteos & Isquiotibiais', secondary: 'Latíssimo, Trapézio, Quadríceps, Core', resistProfile: 'stretched', cadence: '4-0-1-0', cadenceNote: 'Terra convencional: pico de torque nos eretores e isquiotibiais na posição de maior comprimento (barra no solo). Exc. 4s controla cargas supramáximas — ACSM Tabela 7-2.' },
+  { id: 'do17', name: 'Hiperextensão Lombar (Banco 45°)', group: 'Dorsal', mechanics: 'Isolador', equipment: 'Peso Corporal', primary: 'Eretores da Espinha (Lombar)', secondary: 'Glúteo Máximo, Isquiotibiais', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Hiperextensão: pico de ativação dos eretores no alongamento (tronco a 90°). Pausa 1s no fundo maximiza o estresse sobre as fibras lombares — Lima & Pinto Cap.5.' },
 
   // ── PERNAS & GLÚTEOS (QUADRÍCEPS, ISQUIOTIBIAIS, PANTURRILHA, GLÚTEO) ──
   // Fonte: "Biomecânica Básica dos Exercícios: Membros Inferiores" | Schoenfeld Cap.2 | ACSM Tabela 7-2
-  { id:'lg01', name:'Agachamento Livre com Barra (Back Squat)', group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Quadríceps (Vasto Lat., Med., Reto Fem.)',      secondary:'Glúteo Máximo, Isquiotibiais, Core',       resistProfile:'uniform',   cadence:'4-0-1-0', cadenceNote:'Curva de torque do agachamento é quasi-uniforme. Exc. 4s protege o tendão patelar e ligamento cruzado anterior, maximizando tensão mecânica — Biomecânica Membros Inferiores.' },
-  { id:'lg02', name:'Agachamento Frontal com Barra (Front Squat)',group:'Pernas', mechanics:'Composto', equipment:'Barra',          primary:'Quadríceps (Foco Reto Femoral)',                secondary:'Glúteos, Core Abdominal',                  resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Tronco mais vertical no front squat alonga o reto femoral na profundidade máxima. Exc. 4s com controle de joelho sobre o pé — Biomecânica Membros Inferiores.' },
-  { id:'lg03', name:'Agachamento Hack (Máquina)',               group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps (Isolamento de Carga)',              secondary:'Glúteo Máximo',                            resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Hack machine elimina carga axial na coluna. Joelhos avançam sobre os pés ampliando ADM do quadríceps (posição de maior comprimento). Exc. 4s preserva patelar — Biomec. MI.' },
-  { id:'lg04', name:'Leg Press 45°',                            group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps & Glúteos',                          secondary:'Isquiotibiais, Adutores',                  resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Leg Press: amplitude máxima com joelho acima de 90° gera pico de torque no quadríceps em posição de maior comprimento. Exc. 3s controlado na máquina — Biomec. MI.' },
-  { id:'lg05', name:'Leg Press Horizontal',                     group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Quadríceps',                                    secondary:'Glúteos',                                  resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Leg Press horizontal: vetor de força horizontal cria ângulo diferente de torque. ADM completa com joelhos em 90°+ alonga quadríceps — Biomecânica Membros Inferiores.' },
-  { id:'lg06', name:'Cadeira Extensora',                         group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Quadríceps (Reto Femoral & Vastos)',            secondary:'—',                                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Cadeira extensora: pico de ativação EMG na extensão completa (posição de encurtamento). 1s isométrico no topo ativa UMs de alto limiar do reto femoral — Schoenfeld Cap.3.' },
-  { id:'lg07', name:'Agachamento Búlgaro com Halteres',         group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Glúteo Máximo & Quadríceps (Unilateral)',       secondary:'Isquiotibiais, Adutores',                  resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Búlgaro: pé traseiro elevado força o glúteo frontal a trabalhar no máximo alongamento (anteversão pélvica). Par ideal com Hip Thrust (encurtado) — Biomec. MI.' },
-  { id:'lg08', name:'Avanço / Passada com Halteres ou Barra',   group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Quadríceps & Glúteos',                          secondary:'Isquiotibiais, Panturrilhas',              resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Passada/avanço: descida profunda gera alongamento simultâneo de glúteo e quadríceps. Posição unilateral amplifica a instabilidade muscular — Biomec. Membros Inferiores.' },
-  { id:'lg09', name:'Agachamento Sissy (Sissy Squat)',          group:'Pernas',   mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Quadríceps (Alongamento Extremo Reto Fem.)',    secondary:'Core',                                     resistProfile:'stretched', cadence:'3-0-2-0', cadenceNote:'Sissy squat: joelhos avançam além dos pés com calcanhar elevado, gerando o maior alongamento possível do reto femoral. 2s concêntrico para controle — Biomec. MI.' },
-  { id:'lg10', name:'Stiff com Barra (Terra Romeno)',           group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Isquiotibiais (Bíceps Femoral, Semitendíneo)',  secondary:'Glúteo Máximo, Eretores Lombares',         resistProfile:'stretched', cadence:'4-0-1-0', cadenceNote:'Stiff/RDL: anteversão pélvica maximiza o alongamento dos isquiotibiais. Pico de torque no comprimento máximo. Exc. 4s é crítico para controlar tensão passiva — Biomec. MI.' },
-  { id:'lg11', name:'Stiff com Halteres',                       group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Isquiotibiais & Glúteo',                        secondary:'Eretores da Espinha',                      resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Halteres permitem maior ADM que a barra no stiff. Pico de torque dos isquiotibiais no comprimento máximo com maior destreza de execução — Biomec. Membros Inferiores.' },
-  { id:'lg12', name:'Mesa Flexora Deitada',                     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Bíceps Femoral)',                secondary:'Gastrocnêmio',                             resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Mesa flexora deitada: quadril neutro gera curva de torque mais uniforme. Porém, menor componente de alongamento que a cadeira sentada. Par com Stiff — Schoenfeld Cap.2.' },
-  { id:'lg13', name:'Cadeira Flexora Sentada',                  group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Maior Alongamento Pélvico)',     secondary:'Gastrocnêmio',                             resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Cadeira sentada: quadril em flexão cria anteversão pélvica que ENCURTA os isquiotibiais, gerando pico de força no encurtamento. Par científico do Stiff — Biomec. MI + Schoenfeld.' },
-  { id:'lg14', name:'Flexora Vertical Unilateral',              group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Isquiotibiais (Equilíbrio Muscular)',           secondary:'—',                                        resistProfile:'uniform',   cadence:'3-1-1-0', cadenceNote:'Flexora vertical isola cada membro separadamente com curva de torque moderada. Pausa 1s na flexão máxima para contração máxima unilateral — Lima & Pinto Cap.6.' },
-  { id:'lg15', name:'Elevação Pélvica com Barra (Hip Thrust)',   group:'Pernas',   mechanics:'Composto', equipment:'Barra',          primary:'Glúteo Máximo (Pico de Contração)',             secondary:'Isquiotibiais, Adutores',                  resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Hip Thrust: pico de ativação EMG do glúteo máximo na extensão completa do quadril (posição encurtada). 1s isométrico no topo = pico de força glúteo — Schoenfeld Cap.2.' },
-  { id:'lg16', name:'Elevação Pélvica na Máquina',              group:'Pernas',   mechanics:'Composto', equipment:'Máquina',        primary:'Glúteo Máximo',                                 secondary:'Isquiotibiais',                            resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Máquina de hip thrust: mesmo princípio biomecânico do hip thrust com barra, mas carga guiada. 1s isométrico no topo do movimento — Schoenfeld Cap.2.' },
-  { id:'lg17', name:'Cadeira Abdutora',                         group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Glúteo Médio & Glúteo Mínimo',                  secondary:'Tensor da Fáscia Lata',                    resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Abdutora: glúteo médio trabalha contra resistência máxima no final da abdução (encurtamento). Pausa 1s na abertura máxima para ativação de fibras lentas — Lima & Pinto.' },
-  { id:'lg18', name:'Cadeira Adutora',                          group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Adutores da Coxa (Magno, Longo, Breve)',        secondary:'Grácil',                                   resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Adutora: adutores trabalham contra resistência progressiva até o fechamento (encurtamento). Pausa 1s no fechamento máximo para contração isométrica de adutores.' },
-  { id:'lg19', name:'Glúteo no Cabo (Coiçe / Extensão)',         group:'Pernas',   mechanics:'Isolador', equipment:'Cabo',           primary:'Glúteo Máximo (Isolado)',                       secondary:'Isquiotibiais',                            resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Extensão de quadril no cabo: pico de ativação do glúteo máximo na extensão completa (encurtamento). Cabo mantém tensão em toda ADM. Pausa 1s no topo — Schoenfeld Cap.2.' },
-  { id:'lg20', name:'Panturrilha em Pé na Máquina',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio (Cabeça Medial e Lateral)',        secondary:'Sóleo',                                    resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Panturrilha em pé: joelho estendido maximiza comprimento do gastrocnêmio. Pausa 1s na elevação máxima (encurtamento) + descida de 3s com alongamento completo — Biomec. MI.' },
-  { id:'lg21', name:'Panturrilha Sentado (Gêmeos / Sóleo)',     group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Sóleo (Trabalho com Joelho Flexionado)',        secondary:'Gastrocnêmio profundo',                    resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Joelho flexionado inibe o gastrocnêmio e isola o sóleo, com pico de ativação no encurtamento. Par do exercício em pé (que foca gastrocnêmio alongado) — Biomec. MI.' },
-  { id:'lg22', name:'Panturrilha no Leg Press 45°',             group:'Pernas',   mechanics:'Isolador', equipment:'Máquina',        primary:'Gastrocnêmio & Sóleo',                          secondary:'Tibial',                                   resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Panturrilha no leg press: carga axial com ADM máxima (plataforma faz naturalmente o alongamento). Pico de tensão passiva no alongamento com joelho estendido — Biomec. MI.' },
-  { id:'lg23', name:'Agachamento Sumô com Halter ou Barra',     group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Glúteos & Adutores da Coxa',                    secondary:'Quadríceps, Isquiotibiais',                resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Agachamento sumô: base aberta com rotação externa enfatiza glúteos e adutores no alongamento.' },
-  { id:'lg24', name:'Elevação Pélvica Unilateral',              group:'Pernas',   mechanics:'Isolador', equipment:'Halteres',       primary:'Glúteo Máximo (Unilateral)',                    secondary:'Isquiotibiais, Core',                       resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Elevação pélvica unilateral: correção de assimetrias com pico de contração no topo.' },
-  { id:'lg25', name:'Afundo Deslocado com Halteres (Passada)',  group:'Pernas',   mechanics:'Composto', equipment:'Halteres',       primary:'Quadríceps & Glúteo Máximo',                    secondary:'Isquiotibiais, Panturrilhas, Core',         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Afundo com deslocamento (Walking Lunge): descida profunda gera pico de alongamento simultâneo de glúteo e quadríceps.' },
+  { id: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', group: 'Pernas', mechanics: 'Composto', equipment: 'Barra', primary: 'Quadríceps (Vasto Lat., Med., Reto Fem.)', secondary: 'Glúteo Máximo, Isquiotibiais, Core', resistProfile: 'uniform', cadence: '4-0-1-0', cadenceNote: 'Curva de torque do agachamento é quasi-uniforme. Exc. 4s protege o tendão patelar e ligamento cruzado anterior, maximizando tensão mecânica — Biomecânica Membros Inferiores.' },
+  { id: 'lg02', name: 'Agachamento Frontal com Barra (Front Squat)', group: 'Pernas', mechanics: 'Composto', equipment: 'Barra', primary: 'Quadríceps (Foco Reto Femoral)', secondary: 'Glúteos, Core Abdominal', resistProfile: 'stretched', cadence: '4-0-1-0', cadenceNote: 'Tronco mais vertical no front squat alonga o reto femoral na profundidade máxima. Exc. 4s com controle de joelho sobre o pé — Biomecânica Membros Inferiores.' },
+  { id: 'lg03', name: 'Agachamento Hack (Máquina)', group: 'Pernas', mechanics: 'Composto', equipment: 'Máquina', primary: 'Quadríceps (Isolamento de Carga)', secondary: 'Glúteo Máximo', resistProfile: 'stretched', cadence: '4-0-1-0', cadenceNote: 'Hack machine elimina carga axial na coluna. Joelhos avançam sobre os pés ampliando ADM do quadríceps (posição de maior comprimento). Exc. 4s preserva patelar — Biomec. MI.' },
+  { id: 'lg04', name: 'Leg Press 45°', group: 'Pernas', mechanics: 'Composto', equipment: 'Máquina', primary: 'Quadríceps & Glúteos', secondary: 'Isquiotibiais, Adutores', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Leg Press: amplitude máxima com joelho acima de 90° gera pico de torque no quadríceps em posição de maior comprimento. Exc. 3s controlado na máquina — Biomec. MI.' },
+  { id: 'lg05', name: 'Leg Press Horizontal', group: 'Pernas', mechanics: 'Composto', equipment: 'Máquina', primary: 'Quadríceps', secondary: 'Glúteos', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Leg Press horizontal: vetor de força horizontal cria ângulo diferente de torque. ADM completa com joelhos em 90°+ alonga quadríceps — Biomecânica Membros Inferiores.' },
+  { id: 'lg06', name: 'Cadeira Extensora', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Quadríceps (Reto Femoral & Vastos)', secondary: '—', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Cadeira extensora: pico de ativação EMG na extensão completa (posição de encurtamento). 1s isométrico no topo ativa UMs de alto limiar do reto femoral — Schoenfeld Cap.3.' },
+  { id: 'lg07', name: 'Agachamento Búlgaro com Halteres', group: 'Pernas', mechanics: 'Composto', equipment: 'Halteres', primary: 'Glúteo Máximo & Quadríceps (Unilateral)', secondary: 'Isquiotibiais, Adutores', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Búlgaro: pé traseiro elevado força o glúteo frontal a trabalhar no máximo alongamento (anteversão pélvica). Par ideal com Hip Thrust (encurtado) — Biomec. MI.' },
+  { id: 'lg08', name: 'Avanço / Passada com Halteres ou Barra', group: 'Pernas', mechanics: 'Composto', equipment: 'Halteres', primary: 'Quadríceps & Glúteos', secondary: 'Isquiotibiais, Panturrilhas', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Passada/avanço: descida profunda gera alongamento simultâneo de glúteo e quadríceps. Posição unilateral amplifica a instabilidade muscular — Biomec. Membros Inferiores.' },
+  { id: 'lg09', name: 'Agachamento Sissy (Sissy Squat)', group: 'Pernas', mechanics: 'Isolador', equipment: 'Peso Corporal', primary: 'Quadríceps (Alongamento Extremo Reto Fem.)', secondary: 'Core', resistProfile: 'stretched', cadence: '3-0-2-0', cadenceNote: 'Sissy squat: joelhos avançam além dos pés com calcanhar elevado, gerando o maior alongamento possível do reto femoral. 2s concêntrico para controle — Biomec. MI.' },
+  { id: 'lg10', name: 'Stiff com Barra (Terra Romeno)', group: 'Pernas', mechanics: 'Composto', equipment: 'Barra', primary: 'Isquiotibiais (Bíceps Femoral, Semitendíneo)', secondary: 'Glúteo Máximo, Eretores Lombares', resistProfile: 'stretched', cadence: '4-0-1-0', cadenceNote: 'Stiff/RDL: anteversão pélvica maximiza o alongamento dos isquiotibiais. Pico de torque no comprimento máximo. Exc. 4s é crítico para controlar tensão passiva — Biomec. MI.' },
+  { id: 'lg11', name: 'Stiff com Halteres', group: 'Pernas', mechanics: 'Composto', equipment: 'Halteres', primary: 'Isquiotibiais & Glúteo', secondary: 'Eretores da Espinha', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Halteres permitem maior ADM que a barra no stiff. Pico de torque dos isquiotibiais no comprimento máximo com maior destreza de execução — Biomec. Membros Inferiores.' },
+  { id: 'lg12', name: 'Mesa Flexora Deitada', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Isquiotibiais (Bíceps Femoral)', secondary: 'Gastrocnêmio', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Mesa flexora deitada: quadril neutro gera curva de torque mais uniforme. Porém, menor componente de alongamento que a cadeira sentada. Par com Stiff — Schoenfeld Cap.2.' },
+  { id: 'lg13', name: 'Cadeira Flexora Sentada', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Isquiotibiais (Maior Alongamento Pélvico)', secondary: 'Gastrocnêmio', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Cadeira sentada: quadril em flexão cria anteversão pélvica que ENCURTA os isquiotibiais, gerando pico de força no encurtamento. Par científico do Stiff — Biomec. MI + Schoenfeld.' },
+  { id: 'lg14', name: 'Flexora Vertical Unilateral', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Isquiotibiais (Equilíbrio Muscular)', secondary: '—', resistProfile: 'uniform', cadence: '3-1-1-0', cadenceNote: 'Flexora vertical isola cada membro separadamente com curva de torque moderada. Pausa 1s na flexão máxima para contração máxima unilateral — Lima & Pinto Cap.6.' },
+  { id: 'lg15', name: 'Elevação Pélvica com Barra (Hip Thrust)', group: 'Pernas', mechanics: 'Composto', equipment: 'Barra', primary: 'Glúteo Máximo (Pico de Contração)', secondary: 'Isquiotibiais, Adutores', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Hip Thrust: pico de ativação EMG do glúteo máximo na extensão completa do quadril (posição encurtada). 1s isométrico no topo = pico de força glúteo — Schoenfeld Cap.2.' },
+  { id: 'lg16', name: 'Elevação Pélvica na Máquina', group: 'Pernas', mechanics: 'Composto', equipment: 'Máquina', primary: 'Glúteo Máximo', secondary: 'Isquiotibiais', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Máquina de hip thrust: mesmo princípio biomecânico do hip thrust com barra, mas carga guiada. 1s isométrico no topo do movimento — Schoenfeld Cap.2.' },
+  { id: 'lg17', name: 'Cadeira Abdutora', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Glúteo Médio & Glúteo Mínimo', secondary: 'Tensor da Fáscia Lata', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Abdutora: glúteo médio trabalha contra resistência máxima no final da abdução (encurtamento). Pausa 1s na abertura máxima para ativação de fibras lentas — Lima & Pinto.' },
+  { id: 'lg18', name: 'Cadeira Adutora', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Adutores da Coxa (Magno, Longo, Breve)', secondary: 'Grácil', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Adutora: adutores trabalham contra resistência progressiva até o fechamento (encurtamento). Pausa 1s no fechamento máximo para contração isométrica de adutores.' },
+  { id: 'lg19', name: 'Glúteo no Cabo (Coiçe / Extensão)', group: 'Pernas', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Glúteo Máximo (Isolado)', secondary: 'Isquiotibiais', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Extensão de quadril no cabo: pico de ativação do glúteo máximo na extensão completa (encurtamento). Cabo mantém tensão em toda ADM. Pausa 1s no topo — Schoenfeld Cap.2.' },
+  { id: 'lg20', name: 'Panturrilha em Pé na Máquina', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Gastrocnêmio (Cabeça Medial e Lateral)', secondary: 'Sóleo', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Panturrilha em pé: joelho estendido maximiza comprimento do gastrocnêmio. Pausa 1s na elevação máxima (encurtamento) + descida de 3s com alongamento completo — Biomec. MI.' },
+  { id: 'lg21', name: 'Panturrilha Sentado (Gêmeos / Sóleo)', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Sóleo (Trabalho com Joelho Flexionado)', secondary: 'Gastrocnêmio profundo', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Joelho flexionado inibe o gastrocnêmio e isola o sóleo, com pico de ativação no encurtamento. Par do exercício em pé (que foca gastrocnêmio alongado) — Biomec. MI.' },
+  { id: 'lg22', name: 'Panturrilha no Leg Press 45°', group: 'Pernas', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Gastrocnêmio & Sóleo', secondary: 'Tibial', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Panturrilha no leg press: carga axial com ADM máxima (plataforma faz naturalmente o alongamento). Pico de tensão passiva no alongamento com joelho estendido — Biomec. MI.' },
+  { id: 'lg23', name: 'Agachamento Sumô com Halter ou Barra', group: 'Pernas', mechanics: 'Composto', equipment: 'Halteres', primary: 'Glúteos & Adutores da Coxa', secondary: 'Quadríceps, Isquiotibiais', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Agachamento sumô: base aberta com rotação externa enfatiza glúteos e adutores no alongamento.' },
+  { id: 'lg24', name: 'Elevação Pélvica Unilateral', group: 'Pernas', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Glúteo Máximo (Unilateral)', secondary: 'Isquiotibiais, Core', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Elevação pélvica unilateral: correção de assimetrias com pico de contração no topo.' },
+  { id: 'lg25', name: 'Afundo Deslocado com Halteres (Passada)', group: 'Pernas', mechanics: 'Composto', equipment: 'Halteres', primary: 'Quadríceps & Glúteo Máximo', secondary: 'Isquiotibiais, Panturrilhas, Core', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Afundo com deslocamento (Walking Lunge): descida profunda gera pico de alongamento simultâneo de glúteo e quadríceps.' },
 
   // ── OMBROS & TRAPÉZIO ──
   // Fonte: Lima & Pinto — Cinesiologia Cap.6 | Schoenfeld Cap.2 (EMG deltoide) | ACSM Cap.7
-  { id:'sh01', name:'Desenvolvimento Militar em Pé (Overhead)', group:'Ombros',   mechanics:'Composto', equipment:'Barra',          primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps, Trapézio Superior, Core',         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'OHP: pico de ativação do deltoide anterior e medial na extensão total do cotovelo (encurtamento). Excêntrico 3s controlado preserva a articulação glenoumeral — ACSM Cap.7.' },
-  { id:'sh02', name:'Desenvolvimento Sentado com Halteres',     group:'Ombros',   mechanics:'Composto', equipment:'Halteres',       primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps Braquial, Trapézio',               resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Desenvolvimendo com halteres: maior ADM que a barra. Pico de ativação do deltoide no encurtamento (cotovelos estendidos). Halteres exigem mais estabilização — ACSM Cap.7.' },
-  { id:'sh03', name:'Desenvolvimento Arnold (Arnold Press)',    group:'Ombros',   mechanics:'Composto', equipment:'Halteres',       primary:'Deltoide Anterior, Medial & Rotação',           secondary:'Tríceps Braquial',                         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Arnold Press: rotação supina no início cria componente de alongamento do deltoide anterior e medial. Sequência única de recrutamento muscular — Lima & Pinto Cap.6.' },
-  { id:'sh04', name:'Desenvolvimento na Máquina Articulada',    group:'Ombros',   mechanics:'Composto', equipment:'Máquina',        primary:'Deltoide Anterior & Medial',                    secondary:'Tríceps',                                  resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Máquina articulada: trajetória guiada com pico de ativação do deltoide no encurtamento (braços estendidos). Ideal para overload progressivo seguro — ACSM Tabela 7-2.' },
-  { id:'sh05', name:'Desenvolvimento no Smith',                 group:'Ombros',   mechanics:'Composto', equipment:'Smith',          primary:'Deltoide Anterior',                             secondary:'Tríceps, Trapézio',                        resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Smith para ombros: guia vertical elimina instabilidade lateral. Pico de ativação do deltoide anterior no encurtamento com overload controlado — ACSM Cap.7.' },
-  { id:'sh06', name:'Elevação Lateral com Halteres',            group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Medial (Feixe Acromial / Largura)',    secondary:'Deltoide Anterior, Trapézio Sup.',         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Elevação lateral: curva de torque do deltoide medial cresce com a abdução, com pico a 90°. 1s isométrico no topo recrutando fibras tipo IIa — Lima & Pinto Cap.6.' },
-  { id:'sh07', name:'Elevação Lateral na Polia Baixa (Cabo)',   group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Medial (Tensão Contínua)',             secondary:'Supraespinhal',                            resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa: o vetor de tração do cabo cria tensão no deltoide ANTES da vertical (posição de maior comprimento), complementando o halter. Par científico do sh06 — Schoenfeld.' },
-  { id:'sh08', name:'Elevação Lateral na Máquina',              group:'Ombros',   mechanics:'Isolador', equipment:'Máquina',        primary:'Deltoide Medial',                               secondary:'Trapézio',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina lateral: resistência guiada com pico no encurtamento (abdução de 90°). Pausa 1s no topo com carga maior que com halteres livres — Lima & Pinto Cap.6.' },
-  { id:'sh09', name:'Elevação Lateral Inclinada no Banco 45°',  group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Medial (Maior Alongamento)',           secondary:'Supraespinhal',                            resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Banco inclinado: o braço de resistência é máximo na posição de repouso (deltoide mais alongado), sendo o par perfeito da elevação lateral normal — Schoenfeld Cap.2.' },
-  { id:'sh10', name:'Elevação Frontal com Halteres',            group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Anterior (Feixe Clavicular)',          secondary:'Peitoral Superior',                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Elevação frontal: pico de ativação do deltoide anterior próximo à horizontal (encurtamento relativo). 1s isométrico a 90° de flexão — Lima & Pinto Cap.6.' },
-  { id:'sh11', name:'Elevação Frontal com Barra',               group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Deltoide Anterior',                             secondary:'Peitoral Superior',                        resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Barra cria maior estabilidade que halteres na elevação frontal. Pico de ativação do deltoide anterior no plano sagital — Lima & Pinto Cap.6.' },
-  { id:'sh12', name:'Elevação Frontal na Polia com Corda',      group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Anterior',                             secondary:'Peitoral Clavicular',                      resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa para elevação frontal: tensão máxima no deltoide anterior na posição mais baixa (maior comprimento). Cabo mantém tensão em toda ADM — Lima & Pinto Cap.6.' },
-  { id:'sh13', name:'Crucifixo Inverso com Halteres',           group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio Médio',                resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Crucifixo inverso: pico de torque do deltoide posterior na abdução horizontal máxima (encurtamento). 1s isométrico no pico máximo de retração — Lima & Pinto Cap.6.' },
-  { id:'sh14', name:'Crucifixo Inverso no Peck Deck (Máquina)', group:'Ombros',   mechanics:'Isolador', equipment:'Máquina',        primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio',                      resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Peck Deck invertido: máquina permite carga maior no deltoide posterior com trajetória controlada. Pico no encurtamento (retração escapular máxima) — Lima & Pinto Cap.6.' },
-  { id:'sh15', name:'Face Pull na Polia com Corda',             group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior & Manguito Rotador',         secondary:'Trapézio Médio/Inf, Romboides',            resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Face pull: pico de ativação do deltoide posterior e rotadores externos na retração escapular máxima (encurtamento). 1s isométrico na posição de cotovelos para trás — Schoenfeld.' },
-  { id:'sh16', name:'Remada Alta com Barra (Upright Row)',       group:'Ombros',   mechanics:'Composto', equipment:'Barra',          primary:'Deltoide Medial & Trapézio Superior',           secondary:'Bíceps, Braquial',                         resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Upright row: pico de ativação do deltoide medial e trapézio superior quando o cotovelo ultrapassa a altura do ombro (encurtamento). Pegada aberta (> 45cm) — ACSM Cap.7.' },
-  { id:'sh17', name:'Remada Alta na Polia Baixa',               group:'Ombros',   mechanics:'Composto', equipment:'Cabo',           primary:'Deltoide Medial & Trapézio',                    secondary:'Braquial, Bíceps',                         resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Polia baixa na remada alta: tensão do cabo começa com braço estendido (deltoide em maior comprimento). Par do upright row com barra — Lima & Pinto Cap.6.' },
-  { id:'sh18', name:'Encolhimento com Barra (Shrug)',            group:'Ombros',   mechanics:'Isolador', equipment:'Barra',          primary:'Trapézio Superior',                             secondary:'Elevador da Escápula',                     resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Encolhimento: pico de ativação do trapézio superior na elevação máxima da escápula (encurtamento). 1s isométrico no topo — Lima & Pinto Cap.6.' },
-  { id:'sh19', name:'Encolhimento com Halteres',                group:'Ombros',   mechanics:'Isolador', equipment:'Halteres',       primary:'Trapézio Superior (Foco em Contração)',         secondary:'Elevador da Escápula',                     resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Halteres no encolhimento: maior liberdade de ADM que a barra. Pico do trapézio superior no encurtamento. Excêntrico lento de 3s promove maior dano miofibrilar — Schoenfeld.' },
-  { id:'sh20', name:'Encolhimento no Smith por Trás',           group:'Ombros',   mechanics:'Isolador', equipment:'Smith',          primary:'Trapézio Superior & Médio',                     secondary:'Romboides',                                resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Smith por trás: trajetória controlada para elevação de cargas supramáximas no trapézio superior. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.6.' },
-  { id:'sh21', name:'Crucifixo Invertido no Cabo / Polia Alta', group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio Médio/Inferior',       resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Crucifixo invertido na polia alta (Reverse Cable Crossover): tensão contínua em toda abdução horizontal do ombro, isolando o deltoide posterior.' },
-  { id:'sh22', name:'Crucifixo Invertido na Polia Baixa',       group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Posterior',                            secondary:'Romboides, Trapézio',                      resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa com tronco inclinado: pico de tensão no início da abertura horizontal para deltoide posterior.' },
-  { id:'sh23', name:'Elevação Y no Cabo / Halteres (Y-Raise)', group:'Ombros',   mechanics:'Isolador', equipment:'Cabo',           primary:'Deltoide Medial & Trapézio Inferior',           secondary:'Serrátil Anterior',                         resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Y-Raise: plano escapular a 30° ativa trapézio inferior e deltoide medial simultaneamente.' },
+  { id: 'sh01', name: 'Desenvolvimento Militar em Pé (Overhead)', group: 'Ombros', mechanics: 'Composto', equipment: 'Barra', primary: 'Deltoide Anterior & Medial', secondary: 'Tríceps, Trapézio Superior, Core', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'OHP: pico de ativação do deltoide anterior e medial na extensão total do cotovelo (encurtamento). Excêntrico 3s controlado preserva a articulação glenoumeral — ACSM Cap.7.' },
+  { id: 'sh02', name: 'Desenvolvimento Sentado com Halteres', group: 'Ombros', mechanics: 'Composto', equipment: 'Halteres', primary: 'Deltoide Anterior & Medial', secondary: 'Tríceps Braquial, Trapézio', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Desenvolvimendo com halteres: maior ADM que a barra. Pico de ativação do deltoide no encurtamento (cotovelos estendidos). Halteres exigem mais estabilização — ACSM Cap.7.' },
+  { id: 'sh03', name: 'Desenvolvimento Arnold (Arnold Press)', group: 'Ombros', mechanics: 'Composto', equipment: 'Halteres', primary: 'Deltoide Anterior, Medial & Rotação', secondary: 'Tríceps Braquial', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Arnold Press: rotação supina no início cria componente de alongamento do deltoide anterior e medial. Sequência única de recrutamento muscular — Lima & Pinto Cap.6.' },
+  { id: 'sh04', name: 'Desenvolvimento na Máquina Articulada', group: 'Ombros', mechanics: 'Composto', equipment: 'Máquina', primary: 'Deltoide Anterior & Medial', secondary: 'Tríceps', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Máquina articulada: trajetória guiada com pico de ativação do deltoide no encurtamento (braços estendidos). Ideal para overload progressivo seguro — ACSM Tabela 7-2.' },
+  { id: 'sh05', name: 'Desenvolvimento no Smith', group: 'Ombros', mechanics: 'Composto', equipment: 'Smith', primary: 'Deltoide Anterior', secondary: 'Tríceps, Trapézio', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Smith para ombros: guia vertical elimina instabilidade lateral. Pico de ativação do deltoide anterior no encurtamento com overload controlado — ACSM Cap.7.' },
+  { id: 'sh06', name: 'Elevação Lateral com Halteres', group: 'Ombros', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Deltoide Medial (Feixe Acromial / Largura)', secondary: 'Deltoide Anterior, Trapézio Sup.', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Elevação lateral: curva de torque do deltoide medial cresce com a abdução, com pico a 90°. 1s isométrico no topo recrutando fibras tipo IIa — Lima & Pinto Cap.6.' },
+  { id: 'sh07', name: 'Elevação Lateral na Polia Baixa (Cabo)', group: 'Ombros', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Deltoide Medial (Tensão Contínua)', secondary: 'Supraespinhal', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Polia baixa: o vetor de tração do cabo cria tensão no deltoide ANTES da vertical (posição de maior comprimento), complementando o halter. Par científico do sh06 — Schoenfeld.' },
+  { id: 'sh08', name: 'Elevação Lateral na Máquina', group: 'Ombros', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Deltoide Medial', secondary: 'Trapézio', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Máquina lateral: resistência guiada com pico no encurtamento (abdução de 90°). Pausa 1s no topo com carga maior que com halteres livres — Lima & Pinto Cap.6.' },
+  { id: 'sh09', name: 'Elevação Lateral Inclinada no Banco 45°', group: 'Ombros', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Deltoide Medial (Maior Alongamento)', secondary: 'Supraespinhal', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Banco inclinado: o braço de resistência é máximo na posição de repouso (deltoide mais alongado), sendo o par perfeito da elevação lateral normal — Schoenfeld Cap.2.' },
+  { id: 'sh10', name: 'Elevação Frontal com Halteres', group: 'Ombros', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Deltoide Anterior (Feixe Clavicular)', secondary: 'Peitoral Superior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Elevação frontal: pico de ativação do deltoide anterior próximo à horizontal (encurtamento relativo). 1s isométrico a 90° de flexão — Lima & Pinto Cap.6.' },
+  { id: 'sh11', name: 'Elevação Frontal com Barra', group: 'Ombros', mechanics: 'Isolador', equipment: 'Barra', primary: 'Deltoide Anterior', secondary: 'Peitoral Superior', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Barra cria maior estabilidade que halteres na elevação frontal. Pico de ativação do deltoide anterior no plano sagital — Lima & Pinto Cap.6.' },
+  { id: 'sh12', name: 'Elevação Frontal na Polia com Corda', group: 'Ombros', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Deltoide Anterior', secondary: 'Peitoral Clavicular', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Polia baixa para elevação frontal: tensão máxima no deltoide anterior na posição mais baixa (maior comprimento). Cabo mantém tensão em toda ADM — Lima & Pinto Cap.6.' },
+  { id: 'sh13', name: 'Crucifixo Inverso com Halteres', group: 'Ombros', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Deltoide Posterior', secondary: 'Romboides, Trapézio Médio', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Crucifixo inverso: pico de torque do deltoide posterior na abdução horizontal máxima (encurtamento). 1s isométrico no pico máximo de retração — Lima & Pinto Cap.6.' },
+  { id: 'sh14', name: 'Crucifixo Inverso no Peck Deck (Máquina)', group: 'Ombros', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Deltoide Posterior', secondary: 'Romboides, Trapézio', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Peck Deck invertido: máquina permite carga maior no deltoide posterior com trajetória controlada. Pico no encurtamento (retração escapular máxima) — Lima & Pinto Cap.6.' },
+  { id: 'sh15', name: 'Face Pull na Polia com Corda', group: 'Ombros', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Deltoide Posterior & Manguito Rotador', secondary: 'Trapézio Médio/Inf, Romboides', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Face pull: pico de ativação do deltoide posterior e rotadores externos na retração escapular máxima (encurtamento). 1s isométrico na posição de cotovelos para trás — Schoenfeld.' },
+  { id: 'sh16', name: 'Remada Alta com Barra (Upright Row)', group: 'Ombros', mechanics: 'Composto', equipment: 'Barra', primary: 'Deltoide Medial & Trapézio Superior', secondary: 'Bíceps, Braquial', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Upright row: pico de ativação do deltoide medial e trapézio superior quando o cotovelo ultrapassa a altura do ombro (encurtamento). Pegada aberta (> 45cm) — ACSM Cap.7.' },
+  { id: 'sh17', name: 'Remada Alta na Polia Baixa', group: 'Ombros', mechanics: 'Composto', equipment: 'Cabo', primary: 'Deltoide Medial & Trapézio', secondary: 'Braquial, Bíceps', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Polia baixa na remada alta: tensão do cabo começa com braço estendido (deltoide em maior comprimento). Par do upright row com barra — Lima & Pinto Cap.6.' },
+  { id: 'sh18', name: 'Encolhimento com Barra (Shrug)', group: 'Ombros', mechanics: 'Isolador', equipment: 'Barra', primary: 'Trapézio Superior', secondary: 'Elevador da Escápula', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Encolhimento: pico de ativação do trapézio superior na elevação máxima da escápula (encurtamento). 1s isométrico no topo — Lima & Pinto Cap.6.' },
+  { id: 'sh19', name: 'Encolhimento com Halteres', group: 'Ombros', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Trapézio Superior (Foco em Contração)', secondary: 'Elevador da Escápula', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Halteres no encolhimento: maior liberdade de ADM que a barra. Pico do trapézio superior no encurtamento. Excêntrico lento de 3s promove maior dano miofibrilar — Schoenfeld.' },
+  { id: 'sh20', name: 'Encolhimento no Smith por Trás', group: 'Ombros', mechanics: 'Isolador', equipment: 'Smith', primary: 'Trapézio Superior & Médio', secondary: 'Romboides', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Smith por trás: trajetória controlada para elevação de cargas supramáximas no trapézio superior. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.6.' },
+  { id: 'sh21', name: 'Crucifixo Invertido no Cabo / Polia Alta', group: 'Ombros', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Deltoide Posterior', secondary: 'Romboides, Trapézio Médio/Inferior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Crucifixo invertido na polia alta (Reverse Cable Crossover): tensão contínua em toda abdução horizontal do ombro, isolando o deltoide posterior.' },
+  { id: 'sh22', name: 'Crucifixo Invertido na Polia Baixa', group: 'Ombros', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Deltoide Posterior', secondary: 'Romboides, Trapézio', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Polia baixa com tronco inclinado: pico de tensão no início da abertura horizontal para deltoide posterior.' },
+  { id: 'sh23', name: 'Elevação Y no Cabo / Halteres (Y-Raise)', group: 'Ombros', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Deltoide Medial & Trapézio Inferior', secondary: 'Serrátil Anterior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Y-Raise: plano escapular a 30° ativa trapézio inferior e deltoide medial simultaneamente.' },
 
   // ── BÍCEPS & ANTEBRAÇO ──
   // Fonte: Schoenfeld Cap.2 (EMG bíceps) | Lima & Pinto — Cinesiologia Cap.7
-  { id:'bi01', name:'Rosca Direta com Barra Reta',              group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Cabeça Longa e Curta)',        secondary:'Braquial, Braquiorradial',                 resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Rosca direta: curva de torque do bíceps relativamente uniforme, com pico levemente antes de 90°. Barra reta exige supinação total (ativa cabeça curta) — Lima & Pinto Cap.7.' },
-  { id:'bi02', name:'Rosca Direta com Barra W (EZ Bar)',        group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Menor estresse nos punhos)',   secondary:'Braquial',                                 resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Barra EZ: reduz o estresse nos punhos com supinação parcial. Recrutamento ligeiramente diferente da barra reta. Curva de torque uniforme — Lima & Pinto Cap.7.' },
-  { id:'bi03', name:'Rosca Alternada com Halteres (com Supinação)',group:'Bíceps',mechanics:'Isolador',equipment:'Halteres',       primary:'Bíceps Braquial (Pico de Supinação)',           secondary:'Braquial Anterior',                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Rosca alternada: supinação do antebraço no topo adiciona componente de encurtamento adicional do bíceps. Pausa 1s com supinação total no pico — Lima & Pinto Cap.7.' },
-  { id:'bi04', name:'Rosca Martelo com Halteres',               group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Braquiorradial & Braquial Anterior',            secondary:'Bíceps Braquial (neutro)',                  resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Rosca martelo: pegada neutra elimina supinação, isolando braquial e braquiorradial. Curva de torque uniforme. Par do bíceps puro — Lima & Pinto Cap.7.' },
-  { id:'bi05', name:'Rosca Martelo na Polia com Corda',         group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Braquiorradial & Braquial',                     secondary:'Bíceps Braquial',                          resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Cabo na posição de maior comprimento: tensão desde o início do movimento (braquiorradial em posição mais estendida). Par complementar ao martelo com halteres — Schoenfeld.' },
-  { id:'bi06', name:'Rosca Scott com Barra W (Banco Scott)',    group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Foco Cabeça Curta/Braquial)',  secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Scott/Preacher: ombro em flexão encurta a cabeça longa, forçando a cabeça curta a compensar. Pico de ativação EMG no encurtamento — Lima & Pinto Cap.7.' },
-  { id:'bi07', name:'Rosca Scott Unilateral com Halter',        group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Isolamento Escapular)',        secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Scott unilateral: maior rotação supina possível no halter. Pico de contração do bíceps no encurtamento. Pausa 1s com supinação máxima — Lima & Pinto Cap.7.' },
-  { id:'bi08', name:'Rosca Scott na Máquina',                   group:'Bíceps',   mechanics:'Isolador', equipment:'Máquina',        primary:'Bíceps Braquial (Tensão Contínua)',             secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina Scott: curva de resistência otimizada para a curva de força do bíceps, com pico no encurtamento. Pausa 1s isométrica no topo — Schoenfeld Cap.3.' },
-  { id:'bi09', name:'Rosca Inclinada no Banco 45° (Halteres)',  group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Cabeça Longa / Alongamento)',  secondary:'Braquial',                                 resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Rosca inclinada 45°: ombro estendido alonga a cabeça longa do bíceps maximamente. Pico de tensão passiva no início do movimento (posição de maior comprimento) — Schoenfeld Cap.2.' },
-  { id:'bi10', name:'Rosca Concentrada com Halter (Arnold)',    group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Pico de Contração Máximo)',    secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Rosca concentrada: cotovelo apoiado cria pico de contração isométrica no encurtamento máximo. 1s isométrico no topo com supinação total — Lima & Pinto Cap.7.' },
-  { id:'bi11', name:'Rosca na Polia Baixa (Cabo / Barra Reta)', group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Bíceps Braquial (Tensão em toda ADM)',          secondary:'Braquial',                                 resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia baixa: tensão do cabo desde a posição de maior comprimento do bíceps (braço estendido). ADM completa com tensão contínua — diferente da barra que perde tensão — Schoenfeld.' },
-  { id:'bi12', name:'Rosca Spider no Banco Inclinado',          group:'Bíceps',   mechanics:'Isolador', equipment:'Halteres',       primary:'Bíceps Braquial (Cabeça Curta)',                secondary:'Braquial',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Rosca spider: ombro em flexão encurta a cabeça longa e sobrecarrega a cabeça curta, com pico de ativação no encurtamento próximo de 90° — Lima & Pinto Cap.7.' },
-  { id:'bi13', name:'Rosca Hércules / Dupla Polia Alta',        group:'Bíceps',   mechanics:'Isolador', equipment:'Cabo',           primary:'Bíceps Braquial (Pico Duplo Bíceps)',           secondary:'Braquial',                                 resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Polia alta bilateral: ombro abduzido a 90° isola o pico de contração do bíceps bilateral. 1s isométrico no pico de supinação — Lima & Pinto Cap.7.' },
-  { id:'bi14', name:'Rosca 21 com Barra',                       group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Bíceps Braquial (Exaustão Metabólica)',         secondary:'Braquial, Braquiorradial',                 resistProfile:'uniform',   cadence:'2-0-1-0', cadenceNote:'Rosca 21: protocolo de exaustão metabólica com 3 faixas de ADM. Cadência mais rápida (2-0-1-0) para acúmulo de metabólitos e estresse celular — Schoenfeld Cap.4.' },
-  { id:'bi15', name:'Rosca Inversa com Barra (Pronada)',        group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Braquiorradial & Extensores de Punho',          secondary:'Braquial',                                 resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Rosca inversa pronada: isola o braquiorradial e extensores de punho. Curva de torque uniforme. Suplementar para equilíbrio de antebraço — Lima & Pinto Cap.7.' },
-  { id:'bi16', name:'Rosca Punho com Barra (Flexão de Punho)',  group:'Bíceps',   mechanics:'Isolador', equipment:'Barra',          primary:'Flexores do Antebraço',                         secondary:'Pronador Redondo',                          resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Flexão de punho: isolamento dos flexores superficiais e profundos do antebraço. Pausa 1s na flexão máxima (encurtamento) — Lima & Pinto Cap.7.' },
+  { id: 'bi01', name: 'Rosca Direta com Barra Reta', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Bíceps Braquial (Cabeça Longa e Curta)', secondary: 'Braquial, Braquiorradial', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Rosca direta: curva de torque do bíceps relativamente uniforme, com pico levemente antes de 90°. Barra reta exige supinação total (ativa cabeça curta) — Lima & Pinto Cap.7.' },
+  { id: 'bi02', name: 'Rosca Direta com Barra W (EZ Bar)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Bíceps Braquial (Menor estresse nos punhos)', secondary: 'Braquial', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Barra EZ: reduz o estresse nos punhos com supinação parcial. Recrutamento ligeiramente diferente da barra reta. Curva de torque uniforme — Lima & Pinto Cap.7.' },
+  { id: 'bi03', name: 'Rosca Alternada com Halteres (com Supinação)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Bíceps Braquial (Pico de Supinação)', secondary: 'Braquial Anterior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Rosca alternada: supinação do antebraço no topo adiciona componente de encurtamento adicional do bíceps. Pausa 1s com supinação total no pico — Lima & Pinto Cap.7.' },
+  { id: 'bi04', name: 'Rosca Martelo com Halteres', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Braquiorradial & Braquial Anterior', secondary: 'Bíceps Braquial (neutro)', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Rosca martelo: pegada neutra elimina supinação, isolando braquial e braquiorradial. Curva de torque uniforme. Par do bíceps puro — Lima & Pinto Cap.7.' },
+  { id: 'bi05', name: 'Rosca Martelo na Polia com Corda', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Braquiorradial & Braquial', secondary: 'Bíceps Braquial', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Cabo na posição de maior comprimento: tensão desde o início do movimento (braquiorradial em posição mais estendida). Par complementar ao martelo com halteres — Schoenfeld.' },
+  { id: 'bi06', name: 'Rosca Scott com Barra W (Banco Scott)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Bíceps Braquial (Foco Cabeça Curta/Braquial)', secondary: 'Braquial', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Scott/Preacher: ombro em flexão encurta a cabeça longa, forçando a cabeça curta a compensar. Pico de ativação EMG no encurtamento — Lima & Pinto Cap.7.' },
+  { id: 'bi07', name: 'Rosca Scott Unilateral com Halter', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Bíceps Braquial (Isolamento Escapular)', secondary: 'Braquial', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Scott unilateral: maior rotação supina possível no halter. Pico de contração do bíceps no encurtamento. Pausa 1s com supinação máxima — Lima & Pinto Cap.7.' },
+  { id: 'bi08', name: 'Rosca Scott na Máquina', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Bíceps Braquial (Tensão Contínua)', secondary: 'Braquial', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Máquina Scott: curva de resistência otimizada para a curva de força do bíceps, com pico no encurtamento. Pausa 1s isométrica no topo — Schoenfeld Cap.3.' },
+  { id: 'bi09', name: 'Rosca Inclinada no Banco 45° (Halteres)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Bíceps Braquial (Cabeça Longa / Alongamento)', secondary: 'Braquial', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Rosca inclinada 45°: ombro estendido alonga a cabeça longa do bíceps maximamente. Pico de tensão passiva no início do movimento (posição de maior comprimento) — Schoenfeld Cap.2.' },
+  { id: 'bi10', name: 'Rosca Concentrada com Halter (Arnold)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Bíceps Braquial (Pico de Contração Máximo)', secondary: 'Braquial', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Rosca concentrada: cotovelo apoiado cria pico de contração isométrica no encurtamento máximo. 1s isométrico no topo com supinação total — Lima & Pinto Cap.7.' },
+  { id: 'bi11', name: 'Rosca na Polia Baixa (Cabo / Barra Reta)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Bíceps Braquial (Tensão em toda ADM)', secondary: 'Braquial', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Polia baixa: tensão do cabo desde a posição de maior comprimento do bíceps (braço estendido). ADM completa com tensão contínua — diferente da barra que perde tensão — Schoenfeld.' },
+  { id: 'bi12', name: 'Rosca Spider no Banco Inclinado', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Bíceps Braquial (Cabeça Curta)', secondary: 'Braquial', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Rosca spider: ombro em flexão encurta a cabeça longa e sobrecarrega a cabeça curta, com pico de ativação no encurtamento próximo de 90° — Lima & Pinto Cap.7.' },
+  { id: 'bi13', name: 'Rosca Hércules / Dupla Polia Alta', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Bíceps Braquial (Pico Duplo Bíceps)', secondary: 'Braquial', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Polia alta bilateral: ombro abduzido a 90° isola o pico de contração do bíceps bilateral. 1s isométrico no pico de supinação — Lima & Pinto Cap.7.' },
+  { id: 'bi14', name: 'Rosca 21 com Barra', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Bíceps Braquial (Exaustão Metabólica)', secondary: 'Braquial, Braquiorradial', resistProfile: 'uniform', cadence: '2-0-1-0', cadenceNote: 'Rosca 21: protocolo de exaustão metabólica com 3 faixas de ADM. Cadência mais rápida (2-0-1-0) para acúmulo de metabólitos e estresse celular — Schoenfeld Cap.4.' },
+  { id: 'bi15', name: 'Rosca Inversa com Barra (Pronada)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Braquiorradial & Extensores de Punho', secondary: 'Braquial', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Rosca inversa pronada: isola o braquiorradial e extensores de punho. Curva de torque uniforme. Suplementar para equilíbrio de antebraço — Lima & Pinto Cap.7.' },
+  { id: 'bi16', name: 'Rosca Punho com Barra (Flexão de Punho)', group: 'Bíceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Flexores do Antebraço', secondary: 'Pronador Redondo', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Flexão de punho: isolamento dos flexores superficiais e profundos do antebraço. Pausa 1s na flexão máxima (encurtamento) — Lima & Pinto Cap.7.' },
 
   // ── TRÍCEPS ──
   // Fonte: Schoenfeld Cap.2 (EMG tríceps) | Lima & Pinto Cap.7 | ACSM Cap.7
-  { id:'tr01', name:'Tríceps na Polia com Barra Reta (Pushdown)',group:'Tríceps', mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Lateral)',             secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Pushdown: pico de ativação EMG da cabeça lateral do tríceps na extensão completa (encurtamento). Cabo mantém tensão constante. 1s isométrico no topo — Schoenfeld Cap.2.' },
-  { id:'tr02', name:'Tríceps na Polia com Corda',               group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Lateral & Medial)',    secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Corda no pushdown: abertura no final ativa a porção medial e lateral bilateralmente. Pico no encurtamento com abertura máxima dos punhos — Lima & Pinto Cap.7.' },
-  { id:'tr03', name:'Tríceps na Polia Invertido (Supinado)',    group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',          primary:'Tríceps Braquial (Cabeça Medial)',              secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Pegada supinada inverte o vetor de tração, isolando a cabeça medial do tríceps. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.7.' },
-  { id:'tr04', name:'Tríceps Testa com Barra W (Skull Crusher)',group:'Tríceps',  mechanics:'Isolador', equipment:'Barra',          primary:'Tríceps Braquial (Cabeça Longa & Lateral)',     secondary:'Ancôneo',                                  resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Skull crusher: ombro em 90° de flexão e cotovelo em flexão máxima alonga a cabeça longa. Pico de tensão passiva no maior comprimento. 1s pausa antes do push — Schoenfeld Cap.2.' },
-  { id:'tr05', name:'Tríceps Testa com Halteres',               group:'Tríceps',  mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Unilateral)',                 secondary:'Ancôneo',                                  resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Testa com halteres: como o skull crusher mas com maior ADM e independência unilateral. Pico de tensão no comprimento máximo da cabeça longa — Lima & Pinto Cap.7.' },
-  { id:'tr06', name:'Tríceps Francês com Halter (Em Pé/Sentado)',group:'Tríceps', mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Cabeça Longa / Alongamento)', secondary:'Cabeça Lateral',                           resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Tríceps francês: ombro em flexão máxima (>90°) cria o maior comprimento possível da cabeça longa do tríceps. Pausa 1s no fundo = pico de tensão passiva — Schoenfeld Cap.2.' },
-  { id:'tr07', name:'Tríceps Francês na Polia com Corda',       group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',           primary:'Tríceps Braquial (Cabeça Longa)',               secondary:'Ancôneo',                                  resistProfile:'stretched', cadence:'3-1-1-0', cadenceNote:'Polia para francês: tensão do cabo desde a posição de máximo alongamento da cabeça longa. Supera o halter em tensão constante — Lima & Pinto Cap.7.' },
-  { id:'tr08', name:'Supino Fechado com Barra (Close-Grip)',    group:'Tríceps',  mechanics:'Composto', equipment:'Barra',          primary:'Tríceps Braquial (Todas as cabeças)',           secondary:'Peitoral Maior, Deltoide Anterior',        resistProfile:'uniform',   cadence:'3-0-1-0', cadenceNote:'Supino fechado: pegada estreita (30-45cm) transfere carga do peitoral para o tríceps. Curva de torque uniforme do tríceps. Exc. 3s controlado — ACSM Tabela 7-2.' },
-  { id:'tr09', name:'Mergulho em Paralelas (Foco Tríceps)',     group:'Tríceps',  mechanics:'Composto', equipment:'Peso Corporal',  primary:'Tríceps Braquial (Tronco reto)',                secondary:'Peitoral Anterior, Deltoide',              resistProfile:'shortened', cadence:'3-0-1-0', cadenceNote:'Dip com tronco vertical: foco no tríceps (pico no encurtamento). Descida de 3s com cotovelos acima de 90° preserva a articulação glenoumeral — Lima & Pinto Cap.7.' },
-  { id:'tr10', name:'Mergulho no Banco (Bench Dips)',           group:'Tríceps',  mechanics:'Composto', equipment:'Peso Corporal',  primary:'Tríceps Braquial',                              secondary:'Deltoide Anterior',                        resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Bench dip: ombro em extensão cria componente de alongamento da cabeça longa. Cuidado com o ângulo de ombro. Excêntrico 3s controlado — Lima & Pinto Cap.7.' },
-  { id:'tr11', name:'Tríceps Coice com Halter (Kickback)',      group:'Tríceps',  mechanics:'Isolador', equipment:'Halteres',       primary:'Tríceps Braquial (Pico de Extensão Final)',     secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Kickback: pico de ativação EMG do tríceps no final da extensão do cotovelo (encurtamento). 1s isométrico no topo com ombro perpendicular ao solo — Schoenfeld Cap.2.' },
-  { id:'tr12', name:'Tríceps Coice no Cabo (Unilateral)',       group:'Tríceps',  mechanics:'Isolador', equipment:'Cabo',           primary:'Tríceps Braquial (Tensão Contínua)',            secondary:'Ancôneo',                                  resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Kickback no cabo: mantém tensão no tríceps mesmo na posição de extensão máxima (diferente do halter que perde tensão). Pausa 1s no topo — Lima & Pinto Cap.7.' },
-  { id:'tr13', name:'Tríceps Máquina Articulada (Dip Machine)', group:'Tríceps',  mechanics:'Composto', equipment:'Máquina',        primary:'Tríceps Braquial',                              secondary:'Deltoide Anterior',                        resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina de dip: trajetória guiada com pico de ativação do tríceps no encurtamento. Pausa 1s no topo com sobrecarga supramáxima — ACSM Tabela 7-2.' },
+  { id: 'tr01', name: 'Tríceps na Polia com Barra Reta (Pushdown)', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Tríceps Braquial (Cabeça Lateral)', secondary: 'Ancôneo', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Pushdown: pico de ativação EMG da cabeça lateral do tríceps na extensão completa (encurtamento). Cabo mantém tensão constante. 1s isométrico no topo — Schoenfeld Cap.2.' },
+  { id: 'tr02', name: 'Tríceps na Polia com Corda', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Tríceps Braquial (Cabeça Lateral & Medial)', secondary: 'Ancôneo', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Corda no pushdown: abertura no final ativa a porção medial e lateral bilateralmente. Pico no encurtamento com abertura máxima dos punhos — Lima & Pinto Cap.7.' },
+  { id: 'tr03', name: 'Tríceps na Polia Invertido (Supinado)', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Tríceps Braquial (Cabeça Medial)', secondary: 'Ancôneo', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Pegada supinada inverte o vetor de tração, isolando a cabeça medial do tríceps. Pico no encurtamento com 1s isométrico — Lima & Pinto Cap.7.' },
+  { id: 'tr04', name: 'Tríceps Testa com Barra W (Skull Crusher)', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Barra', primary: 'Tríceps Braquial (Cabeça Longa & Lateral)', secondary: 'Ancôneo', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Skull crusher: ombro em 90° de flexão e cotovelo em flexão máxima alonga a cabeça longa. Pico de tensão passiva no maior comprimento. 1s pausa antes do push — Schoenfeld Cap.2.' },
+  { id: 'tr05', name: 'Tríceps Testa com Halteres', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Tríceps Braquial (Unilateral)', secondary: 'Ancôneo', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Testa com halteres: como o skull crusher mas com maior ADM e independência unilateral. Pico de tensão no comprimento máximo da cabeça longa — Lima & Pinto Cap.7.' },
+  { id: 'tr06', name: 'Tríceps Francês com Halter (Em Pé/Sentado)', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Tríceps Braquial (Cabeça Longa / Alongamento)', secondary: 'Cabeça Lateral', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Tríceps francês: ombro em flexão máxima (>90°) cria o maior comprimento possível da cabeça longa do tríceps. Pausa 1s no fundo = pico de tensão passiva — Schoenfeld Cap.2.' },
+  { id: 'tr07', name: 'Tríceps Francês na Polia com Corda', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Tríceps Braquial (Cabeça Longa)', secondary: 'Ancôneo', resistProfile: 'stretched', cadence: '3-1-1-0', cadenceNote: 'Polia para francês: tensão do cabo desde a posição de máximo alongamento da cabeça longa. Supera o halter em tensão constante — Lima & Pinto Cap.7.' },
+  { id: 'tr08', name: 'Supino Fechado com Barra (Close-Grip)', group: 'Tríceps', mechanics: 'Composto', equipment: 'Barra', primary: 'Tríceps Braquial (Todas as cabeças)', secondary: 'Peitoral Maior, Deltoide Anterior', resistProfile: 'uniform', cadence: '3-0-1-0', cadenceNote: 'Supino fechado: pegada estreita (30-45cm) transfere carga do peitoral para o tríceps. Curva de torque uniforme do tríceps. Exc. 3s controlado — ACSM Tabela 7-2.' },
+  { id: 'tr09', name: 'Mergulho em Paralelas (Foco Tríceps)', group: 'Tríceps', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Tríceps Braquial (Tronco reto)', secondary: 'Peitoral Anterior, Deltoide', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Dip com tronco vertical: foco no tríceps (pico no encurtamento). Descida de 3s com cotovelos acima de 90° preserva a articulação glenoumeral — Lima & Pinto Cap.7.' },
+  { id: 'tr10', name: 'Mergulho no Banco (Bench Dips)', group: 'Tríceps', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Tríceps Braquial', secondary: 'Deltoide Anterior', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Bench dip: ombro em extensão cria componente de alongamento da cabeça longa. Cuidado com o ângulo de ombro. Excêntrico 3s controlado — Lima & Pinto Cap.7.' },
+  { id: 'tr11', name: 'Tríceps Coice com Halter (Kickback)', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Tríceps Braquial (Pico de Extensão Final)', secondary: 'Ancôneo', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Kickback: pico de ativação EMG do tríceps no final da extensão do cotovelo (encurtamento). 1s isométrico no topo com ombro perpendicular ao solo — Schoenfeld Cap.2.' },
+  { id: 'tr12', name: 'Tríceps Coice no Cabo (Unilateral)', group: 'Tríceps', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Tríceps Braquial (Tensão Contínua)', secondary: 'Ancôneo', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Kickback no cabo: mantém tensão no tríceps mesmo na posição de extensão máxima (diferente do halter que perde tensão). Pausa 1s no topo — Lima & Pinto Cap.7.' },
+  { id: 'tr13', name: 'Tríceps Máquina Articulada (Dip Machine)', group: 'Tríceps', mechanics: 'Composto', equipment: 'Máquina', primary: 'Tríceps Braquial', secondary: 'Deltoide Anterior', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Máquina de dip: trajetória guiada com pico de ativação do tríceps no encurtamento. Pausa 1s no topo com sobrecarga supramáxima — ACSM Tabela 7-2.' },
 
   // ── ABDÔMEN & CORE ──
   // Fonte: ACSM Cap.7 | Lima & Pinto — Cinesiologia Cap.8
-  { id:'ab01', name:'Abdominal Crunch no Solo / Banco Declinado',group:'Abdômen', mechanics:'Isolador', equipment:'Peso Corporal', primary:'Reto Abdominal (Porção Superior)',            secondary:'Oblíquos',                                 resistProfile:'shortened', cadence:'2-1-1-0', cadenceNote:'Crunch: pico de ativação do reto abdominal no encurtamento (flexão de tronco completa). 1s isométrico no topo antes de descer — Lima & Pinto Cap.8.' },
-  { id:'ab02', name:'Abdominal na Polia Alta com Corda (Cable Crunch)',group:'Abdômen',mechanics:'Isolador',equipment:'Cabo',     primary:'Reto Abdominal (Carga Progressiva)',            secondary:'Oblíquos',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Cable crunch: peso adicional do cabo cria sobrecarga progressiva no reto abdominal. Pico no encurtamento com 1s isométrico ajoelhado — ACSM Cap.7.' },
-  { id:'ab03', name:'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)',group:'Abdômen',mechanics:'Composto',equipment:'Peso Corporal',primary:'Reto Abdominal (Infra) & Iliopsoas',  secondary:'Oblíquos, Antebraços',                     resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Hanging leg raise: pico de tensão no reto abdominal inferior na posição de maior comprimento (pernas estendidas abaixo). Excêntrico 3s controlado evita balanço — ACSM Cap.7.' },
-  { id:'ab04', name:'Elevação de Pernas na Paralela (Capitão)', group:'Abdômen',  mechanics:'Composto', equipment:'Máquina',        primary:'Reto Abdominal (Infra)',                        secondary:'Flexores de Quadril',                      resistProfile:'stretched', cadence:'3-0-1-0', cadenceNote:'Capitão: apoio no antebraço estabiliza o tronco enquanto o reto abdominal trabalha no comprimento máximo. Excêntrico 3s — Lima & Pinto Cap.8.' },
-  { id:'ab05', name:'Abdominal Rollout (Roda Abdominal)',       group:'Abdômen',  mechanics:'Composto', equipment:'Acessório',      primary:'Core Global, Reto Abdominal & Transverso',      secondary:'Dorsal, Serrátil',                         resistProfile:'stretched', cadence:'3-0-2-0', cadenceNote:'Rollout: o reto abdominal e o transverso trabalham no comprimento máximo (tronco horizontal). Excêntrico 3s de controle é o mais desafiador — Lima & Pinto Cap.8.' },
-  { id:'ab06', name:'Prancha Isométrica no Solo (Plank)',       group:'Abdômen',  mechanics:'Isolador', equipment:'Peso Corporal',  primary:'Transverso do Abdômen & Reto Abdominal',        secondary:'Glúteos, Ombros',                          resistProfile:'uniform',   cadence:'0-0-0-0', cadenceNote:'Prancha: esforço isométrico contínuo sem fase concêntrica/excêntrica. O tempo sob tensão (30-60s) é o parâmetro de progressão — ACSM Cap.7.' },
-  { id:'ab07', name:'Russian Twist com Halter ou Anilha',       group:'Abdômen',  mechanics:'Isolador', equipment:'Halteres',       primary:'Oblíquos Interno e Externo',                    secondary:'Reto Abdominal',                           resistProfile:'stretched', cadence:'2-0-1-0', cadenceNote:'Russian twist: oblíquos trabalham em maior comprimento na rotação oposta ao braço de resistência. Controle durante toda ADM — Lima & Pinto Cap.8.' },
-  { id:'ab08', name:'Abdominal na Máquina (Machine Crunch)',    group:'Abdômen',  mechanics:'Isolador', equipment:'Máquina',        primary:'Reto Abdominal',                                secondary:'Oblíquos',                                 resistProfile:'shortened', cadence:'3-1-1-0', cadenceNote:'Máquina de crunch: carga progressiva com trajetória guiada. Pico de ativação no encurtamento. 1s isométrico no pico de flexão — Lima & Pinto Cap.8.' }
+  { id: 'ab01', name: 'Abdominal Crunch no Solo / Banco Declinado', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Peso Corporal', primary: 'Reto Abdominal (Porção Superior)', secondary: 'Oblíquos', resistProfile: 'shortened', cadence: '2-1-1-0', cadenceNote: 'Crunch: pico de ativação do reto abdominal no encurtamento (flexão de tronco completa). 1s isométrico no topo antes de descer — Lima & Pinto Cap.8.' },
+  { id: 'ab02', name: 'Abdominal na Polia Alta com Corda (Cable Crunch)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Cabo', primary: 'Reto Abdominal (Carga Progressiva)', secondary: 'Oblíquos', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Cable crunch: peso adicional do cabo cria sobrecarga progressiva no reto abdominal. Pico no encurtamento com 1s isométrico ajoelhado — ACSM Cap.7.' },
+  { id: 'ab03', name: 'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)', group: 'Abdômen', mechanics: 'Composto', equipment: 'Peso Corporal', primary: 'Reto Abdominal (Infra) & Iliopsoas', secondary: 'Oblíquos, Antebraços', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Hanging leg raise: pico de tensão no reto abdominal inferior na posição de maior comprimento (pernas estendidas abaixo). Excêntrico 3s controlado evita balanço — ACSM Cap.7.' },
+  { id: 'ab04', name: 'Elevação de Pernas na Paralela (Capitão)', group: 'Abdômen', mechanics: 'Composto', equipment: 'Máquina', primary: 'Reto Abdominal (Infra)', secondary: 'Flexores de Quadril', resistProfile: 'stretched', cadence: '3-0-1-0', cadenceNote: 'Capitão: apoio no antebraço estabiliza o tronco enquanto o reto abdominal trabalha no comprimento máximo. Excêntrico 3s — Lima & Pinto Cap.8.' },
+  { id: 'ab05', name: 'Abdominal Rollout (Roda Abdominal)', group: 'Abdômen', mechanics: 'Composto', equipment: 'Acessório', primary: 'Core Global, Reto Abdominal & Transverso', secondary: 'Dorsal, Serrátil', resistProfile: 'stretched', cadence: '3-0-2-0', cadenceNote: 'Rollout: o reto abdominal e o transverso trabalham no comprimento máximo (tronco horizontal). Excêntrico 3s de controle é o mais desafiador — Lima & Pinto Cap.8.' },
+  { id: 'ab06', name: 'Prancha Isométrica no Solo (Plank)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Peso Corporal', primary: 'Transverso do Abdômen & Reto Abdominal', secondary: 'Glúteos, Ombros', resistProfile: 'uniform', cadence: '0-0-0-0', cadenceNote: 'Prancha: esforço isométrico contínuo sem fase concêntrica/excêntrica. O tempo sob tensão (30-60s) é o parâmetro de progressão — ACSM Cap.7.' },
+  { id: 'ab07', name: 'Russian Twist com Halter ou Anilha', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Oblíquos Interno e Externo', secondary: 'Reto Abdominal', resistProfile: 'stretched', cadence: '2-0-1-0', cadenceNote: 'Russian twist: oblíquos trabalham em maior comprimento na rotação oposta ao braço de resistência. Controle durante toda ADM — Lima & Pinto Cap.8.' },
+  { id: 'ab08', name: 'Abdominal na Máquina (Machine Crunch)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Reto Abdominal', secondary: 'Oblíquos', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Máquina de crunch: carga progressiva com trajetória guiada. Pico de ativação no encurtamento. 1s isométrico no pico de flexão — Lima & Pinto Cap.8.' }
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -6340,85 +6613,85 @@ const PERF_RESISTANCE_PAIRS = {
   // Stretched: Crucifixo com halteres (pico a 90° de abdução — posição de maior comprimento)
   // Shortened: Peck Deck / Crossover polia baixa (pico na adução máxima — encurtamento)
   'Peitoral': {
-    stretched:  'pe07', // Crucifixo Reto com Halteres — Schoenfeld Cap.2: maior ADM do peitoral
-    shortened:  'pe13', // Peck Deck — Lima & Pinto Cap.4: pico na adução máxima (encurtamento)
-    uniform:    'pe01'  // Supino Reto com Barra — curva mista com domínio de encurtamento
+    stretched: 'pe07', // Crucifixo Reto com Halteres — Schoenfeld Cap.2: maior ADM do peitoral
+    shortened: 'pe13', // Peck Deck — Lima & Pinto Cap.4: pico na adução máxima (encurtamento)
+    uniform: 'pe01'  // Supino Reto com Barra — curva mista com domínio de encurtamento
   },
   // ── DORSAIS / LATÍSSIMO ──────────────────────────────────────────────────
   // Stretched: Puxada aberta (latíssimo em máximo comprimento com braços estendidos)
   // Shortened: Pulldown braços retos (pico na extensão do ombro — encurtamento)
   'Dorsal': {
-    stretched:  'do04', // Puxada Frontal Aberta — maior comprimento do lat (Schoenfeld Cap.2)
-    shortened:  'do07', // Pulldown/Puxada Braços Retos — pico no quadril (encurtamento)
-    uniform:    'do08'  // Remada Curvada com Barra — trabalho bilateral de romboides
+    stretched: 'do04', // Puxada Frontal Aberta — maior comprimento do lat (Schoenfeld Cap.2)
+    shortened: 'do07', // Pulldown/Puxada Braços Retos — pico no quadril (encurtamento)
+    uniform: 'do08'  // Remada Curvada com Barra — trabalho bilateral de romboides
   },
   // ── QUADRÍCEPS ───────────────────────────────────────────────────────────
   // Stretched: Hack Squat / Agachamento (amplitude máxima alonga reto femoral)
   // Shortened: Cadeira Extensora (pico de EMG na extensão completa — encurtamento)
   'Quadríceps': {
-    stretched:  'lg03', // Hack Squat — ADM máxima sem carga axial (Biomec. MI)
-    shortened:  'lg06', // Cadeira Extensora — pico de ativação no topo (Schoenfeld Cap.3)
-    uniform:    'lg01'  // Agachamento Livre — curva quasi-uniforme (Biomec. MI)
+    stretched: 'lg03', // Hack Squat — ADM máxima sem carga axial (Biomec. MI)
+    shortened: 'lg06', // Cadeira Extensora — pico de ativação no topo (Schoenfeld Cap.3)
+    uniform: 'lg01'  // Agachamento Livre — curva quasi-uniforme (Biomec. MI)
   },
   // ── ISQUIOTIBIAIS ────────────────────────────────────────────────────────
   // Stretched: Stiff/RDL (anteversão pélvica — posição de maior comprimento)
   // Shortened: Cadeira Flexora Sentada (quadril fletido encurta isquiotibiais — pico no encurtamento)
   'Isquiotibiais': {
-    stretched:  'lg10', // Stiff com Barra — máximo alongamento (Biomec. MI + Schoenfeld)
-    shortened:  'lg13', // Cadeira Flexora Sentada — quadril em flexão encurta o músculo
-    uniform:    'lg12'  // Mesa Flexora Deitada — quadril neutro, curva mais uniforme
+    stretched: 'lg10', // Stiff com Barra — máximo alongamento (Biomec. MI + Schoenfeld)
+    shortened: 'lg13', // Cadeira Flexora Sentada — quadril em flexão encurta o músculo
+    uniform: 'lg12'  // Mesa Flexora Deitada — quadril neutro, curva mais uniforme
   },
   // ── GLÚTEO MÁXIMO ────────────────────────────────────────────────────────
   // Stretched: Agachamento Búlgaro (anteversão pélvica força o glúteo a trabalhar alongado)
   // Shortened: Hip Thrust (pico de ativação EMG na extensão completa de quadril — encurtamento)
   'Glúteo': {
-    stretched:  'lg07', // Búlgaro — glúteo em posição de maior comprimento (Biomec. MI)
-    shortened:  'lg15', // Hip Thrust — máxima ativação EMG do glúteo (Schoenfeld Cap.2)
-    uniform:    'lg04'  // Leg Press — ativação de glúteo em ADM parcial
+    stretched: 'lg07', // Búlgaro — glúteo em posição de maior comprimento (Biomec. MI)
+    shortened: 'lg15', // Hip Thrust — máxima ativação EMG do glúteo (Schoenfeld Cap.2)
+    uniform: 'lg04'  // Leg Press — ativação de glúteo em ADM parcial
   },
   // ── DELTOIDE MEDIAL ──────────────────────────────────────────────────────
   // Stretched: Elevação Lateral Inclinada 45° (maior comprimento do deltoide medial em repouso)
   // Shortened: Elevação Lateral com Halteres (pico de torque a 90° — encurtamento relativo)
   'Deltoides': {
-    stretched:  'sh09', // Elev. Lateral Inclinada 45° — deltoide mais alongado (Schoenfeld Cap.2)
-    shortened:  'sh06', // Elev. Lateral com Halteres — pico a 90° (Lima & Pinto Cap.6)
-    uniform:    'sh07'  // Elev. Lateral Polia Baixa — tensão contínua em toda ADM
+    stretched: 'sh09', // Elev. Lateral Inclinada 45° — deltoide mais alongado (Schoenfeld Cap.2)
+    shortened: 'sh06', // Elev. Lateral com Halteres — pico a 90° (Lima & Pinto Cap.6)
+    uniform: 'sh07'  // Elev. Lateral Polia Baixa — tensão contínua em toda ADM
   },
   // ── BÍCEPS BRAQUIAL ──────────────────────────────────────────────────────
   // Stretched: Rosca Inclinada 45° (ombro em extensão alonga a cabeça longa do bíceps)
   // Shortened: Rosca Scott / Concentrada (ombro em flexão — pico de ativação no encurtamento)
   'Bíceps': {
-    stretched:  'bi09', // Rosca Inclinada 45° — cabeça longa em máx. comprimento (Schoenfeld Cap.2)
-    shortened:  'bi10', // Rosca Concentrada — pico isométrico no encurtamento (Lima & Pinto Cap.7)
-    uniform:    'bi01'  // Rosca Direta Barra — curva de torque mais uniforme
+    stretched: 'bi09', // Rosca Inclinada 45° — cabeça longa em máx. comprimento (Schoenfeld Cap.2)
+    shortened: 'bi10', // Rosca Concentrada — pico isométrico no encurtamento (Lima & Pinto Cap.7)
+    uniform: 'bi01'  // Rosca Direta Barra — curva de torque mais uniforme
   },
   // ── TRÍCEPS BRAQUIAL ─────────────────────────────────────────────────────
   // Stretched: Tríceps Francês (ombro em flexão >90° alonga a cabeça longa ao máximo)
   // Shortened: Pushdown Polia (cotovelo em extensão — pico de EMG no encurtamento)
   'Tríceps': {
-    stretched:  'tr06', // Tríceps Francês — cabeça longa em máx. comprimento (Schoenfeld Cap.2)
-    shortened:  'tr01', // Pushdown Barra Reta — pico de EMG no encurtamento (Lima & Pinto Cap.7)
-    uniform:    'tr08'  // Supino Fechado — todas as cabeças, curva uniforme (ACSM)
+    stretched: 'tr06', // Tríceps Francês — cabeça longa em máx. comprimento (Schoenfeld Cap.2)
+    shortened: 'tr01', // Pushdown Barra Reta — pico de EMG no encurtamento (Lima & Pinto Cap.7)
+    uniform: 'tr08'  // Supino Fechado — todas as cabeças, curva uniforme (ACSM)
   },
   // ── PANTURRILHA ──────────────────────────────────────────────────────────
   // Stretched: Em pé (joelho estendido — gastrocnêmio em máximo comprimento)
   // Shortened: Sentado (joelho fletido isola o sóleo — pico no encurtamento)
   'Panturrilha': {
-    stretched:  'lg20', // Panturrilha em Pé — gastrocnêmio máx. comprimento (Biomec. MI)
-    shortened:  'lg21', // Panturrilha Sentado — sóleo isolado, pico no encurtamento
-    uniform:    'lg22'  // Panturrilha Leg Press — ADM máxima com joelho estendido
+    stretched: 'lg20', // Panturrilha em Pé — gastrocnêmio máx. comprimento (Biomec. MI)
+    shortened: 'lg21', // Panturrilha Sentado — sóleo isolado, pico no encurtamento
+    uniform: 'lg22'  // Panturrilha Leg Press — ADM máxima com joelho estendido
   }
 };
 
 // Estado da Agenda Semanal (7 Dias — Sincronizado com a IA e Pilar Nutrição)
 let perfWeeklySchedule = [
   { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push', focus: 'Peitoral & Deltoides', type: 'Treino', nutrtip: 'Carbo moderado pré-treino' },
-  { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull', focus: 'Dorsal & Bíceps',       type: 'Treino', nutrtip: 'Alta hidratação (4.0L)' },
-  { dayKey: 'd3', dayName: 'Dia 3', routineId: null,title: 'Cardio / Descanso',focus: 'Recuperação Ativa',    type: 'Cardio', nutrtip: 'Déficit calórico mantido' },
-  { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs', focus: 'Quadríceps & Glúteos',  type: 'Treino', nutrtip: 'Carboidratos complexos' },
-  { dayKey: 'd5', dayName: 'Dia 5', routineId: 'A', title: 'Treino A · Push', focus: 'Hipertrofia Ombros',    type: 'Treino', nutrtip: 'Aporte proteico 2.0g/kg' },
-  { dayKey: 'd6', dayName: 'Dia 6', routineId: 'B', title: 'Treino B · Pull', focus: 'Densidade & Trapézio',  type: 'Treino', nutrtip: 'Refeição livre planejada' },
-  { dayKey: 'd7', dayName: 'Dia 7', routineId: null,title: 'Descanso Total', focus: 'Regeneração Muscular',  type: 'Off',    nutrtip: 'Sono reparador & Eletrólitos' },
+  { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull', focus: 'Dorsal & Bíceps', type: 'Treino', nutrtip: 'Alta hidratação (4.0L)' },
+  { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio / Descanso', focus: 'Recuperação Ativa', type: 'Cardio', nutrtip: 'Déficit calórico mantido' },
+  { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs', focus: 'Quadríceps & Glúteos', type: 'Treino', nutrtip: 'Carboidratos complexos' },
+  { dayKey: 'd5', dayName: 'Dia 5', routineId: 'A', title: 'Treino A · Push', focus: 'Hipertrofia Ombros', type: 'Treino', nutrtip: 'Aporte proteico 2.0g/kg' },
+  { dayKey: 'd6', dayName: 'Dia 6', routineId: 'B', title: 'Treino B · Pull', focus: 'Densidade & Trapézio', type: 'Treino', nutrtip: 'Refeição livre planejada' },
+  { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total', focus: 'Regeneração Muscular', type: 'Off', nutrtip: 'Sono reparador & Eletrólitos' },
 ];
 
 // Banco de Dados de Protocolos Cardio & Compromised Running (Engine)
@@ -6478,12 +6751,14 @@ const PERF_CARDIO_DB = [
     hardware: 'Cinta Cardíaca Bluetooth, Cronômetro de Intervalos',
     blocks: [
       { num: 1, name: 'Aquecimento Progressivo', items: ['Esteira / Bike: 5 min em Zona 2 (60-70% FCM) para elevação gradual da temperatura central'] },
-      { num: 2, name: 'Ciclo Principal 4x4', items: [
-        'Tiro 1: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
-        'Tiro 2: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
-        'Tiro 3: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
-        'Tiro 4: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)'
-      ]},
+      {
+        num: 2, name: 'Ciclo Principal 4x4', items: [
+          'Tiro 1: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+          'Tiro 2: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+          'Tiro 3: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+          'Tiro 4: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)'
+        ]
+      },
       { num: 3, name: 'Resfriamento & Remoção de Lactato', items: ['Caminhada Plana: 3 min em Zona 1 (< 60% FCM) para normalização hemodinâmica'] }
     ],
     restrictions: [
@@ -6504,11 +6779,13 @@ const PERF_CARDIO_DB = [
     hardware: 'AirBike / Echo Bike ou Esteira Inclinada',
     blocks: [
       { num: 1, name: 'Aquecimento Rápido', items: ['AirBike / Trote: 3 min progressivo (Zona 1 -> Zona 2)'] },
-      { num: 2, name: 'Série de Sprints All-Out (8 a 10 Tiros)', items: [
-        'Tiros 1 a 4: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total',
-        'Tiros 5 a 8: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total',
-        'Tiros 9 e 10 (Opcionais): 20s All-Out final com cadência máxima sustentada'
-      ]},
+      {
+        num: 2, name: 'Série de Sprints All-Out (8 a 10 Tiros)', items: [
+          'Tiros 1 a 4: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total',
+          'Tiros 5 a 8: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total',
+          'Tiros 9 e 10 (Opcionais): 20s All-Out final com cadência máxima sustentada'
+        ]
+      },
       { num: 3, name: 'Desaquecimento', items: ['Giro leve sem carga: 2 min em Zona 1 para relaxamento neuromuscular'] }
     ],
     restrictions: [
@@ -6557,9 +6834,9 @@ function perfSwitchView(viewKey, shouldScroll = false) {
   // Atualiza os botões ativos no menu superior do Pilar 4
   const navBtns = [
     { key: 'prescription', id: 'perf-nav-btn-prescription' },
-    { key: 'schedule',     id: 'perf-nav-btn-schedule' },
-    { key: 'cardio',       id: 'perf-nav-btn-cardio' },
-    { key: 'catalog',      id: 'perf-nav-btn-catalog' }
+    { key: 'schedule', id: 'perf-nav-btn-schedule' },
+    { key: 'cardio', id: 'perf-nav-btn-cardio' },
+    { key: 'catalog', id: 'perf-nav-btn-catalog' }
   ];
 
   navBtns.forEach(b => {
@@ -6660,8 +6937,8 @@ function renderPerfPrescribedCardio() {
 function perfGetNutritionContext() {
   const patientSelect = document.getElementById('activePatientSelect');
   const patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
-                      document.getElementById("perfPatientName")?.innerText?.trim() ||
-                      (patientSelect ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paulo Vitor Ribeiro de Sousa');
+    document.getElementById("perfPatientName")?.innerText?.trim() ||
+    (patientSelect ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paulo Vitor Ribeiro de Sousa');
 
   const headerWeightText = document.getElementById('headerPatientWeight')?.innerText?.replace('kg', '')?.trim();
   const perfWeightText = document.getElementById('perfPatientWeight')?.innerText?.replace('kg', '')?.trim();
@@ -6681,10 +6958,10 @@ function perfGetNutritionContext() {
 
   const tmbEl = document.getElementById('dashTmb');
   const tmb = tmbEl ? parseInt(tmbEl.innerText) || Math.round(500 + 22 * (currentWeight * 0.77)) : Math.round(500 + 22 * (currentWeight * 0.77));
-  
+
   const caloricTargetEl = document.getElementById('dashCaloricTarget');
   const caloricTarget = caloricTargetEl ? parseInt(caloricTargetEl.innerText) || Math.round(tmb * 1.45 + 280) : Math.round(tmb * 1.45 + 280);
-  
+
   const getKcal = typeof calculateGET === 'function' ? Math.round(calculateGET(tmb, 1.42)) : Math.round(tmb * 1.42);
   const energyBalance = caloricTarget - getKcal;
 
@@ -6805,7 +7082,7 @@ function perfBuildWeeklySchedule(splitKey) {
       }
     ];
   }
-  
+
   // 2. PHAT (5 Dias · Hipertrofia & Força / Bulking)
   else if (splitKey === 'PHAT') {
     return [
@@ -7123,13 +7400,13 @@ function perfBuildWeeklySchedule(splitKey) {
 function perfIsRoutineColor2(routineOrDay, fallbackIdx = 0) {
   if (!routineOrDay) return (fallbackIdx % 2 === 1);
   const idStr = String(routineOrDay.routineId || routineOrDay.id || routineOrDay.dayKey || routineOrDay.title || routineOrDay.name || '').trim();
-  
+
   // Se for letra simples ex: 'A', 'B', 'C', 'D'
   if (/^[A-Z]$/i.test(idStr)) {
     const code = idStr.toUpperCase().charCodeAt(0) - 65;
     return (code % 2 === 1);
   }
-  
+
   // Se contiver 'Treino A', 'Treino B', etc.
   const tMatch = idStr.match(/Treino\s+([A-Z0-9])/i);
   if (tMatch) {
@@ -7318,8 +7595,8 @@ function perfSyncNutritionAudit() {
     aExpl.textContent = ctx.isCutting
       ? `Em déficit de ${ctx.caloricTarget} kcal, a prescrição prioriza alta tensão mecânica (5-8 reps, RPE 8) para sinalizar preservação proteica celular (${ctx.proteinGKg.toFixed(1)} g/kg = ${ctx.totalProteinG}g/dia) com gasto lipídico otimizado.`
       : ctx.isBulking
-      ? `Em superávit de ${ctx.caloricTarget} kcal (+${Math.abs(ctx.energyBalance)} kcal), a periodização estimula sobrecarga progressiva e hipertrofia volumétrica aproveitando o aporte proteico de ${ctx.proteinGKg.toFixed(1)} g/kg.`
-      : `Em manutenção calórica (${ctx.caloricTarget} kcal), a periodização ${perfActiveSplit} estimula biogênese mitocondrial, recomposição corporal e ganho de força constante com ${ctx.waterTargetMl.toLocaleString('pt-BR')} mL de hidratação.`;
+        ? `Em superávit de ${ctx.caloricTarget} kcal (+${Math.abs(ctx.energyBalance)} kcal), a periodização estimula sobrecarga progressiva e hipertrofia volumétrica aproveitando o aporte proteico de ${ctx.proteinGKg.toFixed(1)} g/kg.`
+        : `Em manutenção calórica (${ctx.caloricTarget} kcal), a periodização ${perfActiveSplit} estimula biogênese mitocondrial, recomposição corporal e ganho de força constante com ${ctx.waterTargetMl.toLocaleString('pt-BR')} mL de hidratação.`;
   }
   const ratTitle = document.getElementById('perf-rationale-title');
   if (ratTitle) {
@@ -7533,7 +7810,7 @@ function renderPerfHeartRateZones() {
 
   const ageEl = document.getElementById('evalAge');
   const defaultAge = ageEl ? parseInt(ageEl.value) || 30 : 30;
-  
+
   const hrData = perfCalculateHeartRateZones(defaultAge, 60);
 
   // 1. MODO DE EDIÇÃO
@@ -7624,10 +7901,10 @@ function renderPerfHeartRateZones() {
             <div>
               <h3 class="text-sm md:text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
                 Quadro de Zonas Cardíacas &amp; Fisiologia
-                ${isCustomized 
-                  ? '<span class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700/80 px-2 py-0.5 rounded-full font-bold">Personalizado / Ergoespirometria</span>'
-                  : '<span class="text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-700/80 px-2 py-0.5 rounded-full font-bold">Tanaka &amp; Karvonen</span>'
-                }
+                ${isCustomized
+        ? '<span class="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700/80 px-2 py-0.5 rounded-full font-bold">Personalizado / Ergoespirometria</span>'
+        : '<span class="text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-700/80 px-2 py-0.5 rounded-full font-bold">Tanaka &amp; Karvonen</span>'
+      }
               </h3>
               <p class="text-xs text-zinc-400">Parâmetros calibrados para <strong>${hrData.age} anos</strong> · FCM: <strong class="text-white">${hrData.maxHR} bpm</strong> · FCR: <strong class="text-white">${hrData.restingHR} bpm</strong></p>
             </div>
@@ -7699,10 +7976,10 @@ function perfRender() {
           }
           trainCount++;
         }
-        const colorClass = d.type === 'Treino' 
-          ? (isColor2 ? 'text-purple-400' : 'text-blue-400') 
+        const colorClass = d.type === 'Treino'
+          ? (isColor2 ? 'text-purple-400' : 'text-blue-400')
           : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
-        const titleShort = (d.title || '').replace('Treino ','');
+        const titleShort = (d.title || '').replace('Treino ', '');
         btn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
       }
     });
@@ -8912,7 +9189,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
 function perfGenerateFallbackSvg(exerciseName, muscleGroup) {
   const safeName = (exerciseName || 'Exercício').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeGroup = (muscleGroup || 'Biomecânica').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
     <defs>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -8931,7 +9208,7 @@ function perfGenerateFallbackSvg(exerciseName, muscleGroup) {
     <rect x="120" y="222" width="160" height="24" rx="12" fill="#1e293b" stroke="#334155"/>
     <text x="200" y="238" fill="#38bdf8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">🎬 GIFDOTREINO · ATIVO</text>
   </svg>`;
-  
+
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
@@ -8960,14 +9237,14 @@ const GROUP_DEFAULT_GIFS = {
 
 const MUSCLE_MAPPING_DEFAULTS = {
   'Peitoral': { primary: 'Peitoral Maior (Fibras Médias e Superiores)', secondary: 'Deltoide Anterior, Tríceps Braquial' },
-  'Dorsal':   { primary: 'Latíssimo do Dorso & Romboides', secondary: 'Bíceps Braquial, Trapézio, Deltoide Posterior' },
-  'Pernas':   { primary: 'Quadríceps & Glúteos', secondary: 'Isquiotibiais, Adutores, Panturrilhas' },
-  'Ombros':   { primary: 'Deltoide Medial & Anterior', secondary: 'Tríceps Braquial, Trapézio Superior' },
-  'Bíceps':   { primary: 'Bíceps Braquial', secondary: 'Braquial, Braquiorradial' },
-  'Tríceps':  { primary: 'Tríceps Braquial', secondary: 'Ancôneo' },
-  'Braços':   { primary: 'Bíceps & Tríceps Braquial', secondary: 'Braquial, Braquiorradial' },
-  'Abdômen':  { primary: 'Reto Abdominal', secondary: 'Oblíquos Internos e Externos, Core' },
-  'Geral':    { primary: 'Cadeia Muscular Integrada', secondary: 'Estabilizadores Centrais e Escapulares' }
+  'Dorsal': { primary: 'Latíssimo do Dorso & Romboides', secondary: 'Bíceps Braquial, Trapézio, Deltoide Posterior' },
+  'Pernas': { primary: 'Quadríceps & Glúteos', secondary: 'Isquiotibiais, Adutores, Panturrilhas' },
+  'Ombros': { primary: 'Deltoide Medial & Anterior', secondary: 'Tríceps Braquial, Trapézio Superior' },
+  'Bíceps': { primary: 'Bíceps Braquial', secondary: 'Braquial, Braquiorradial' },
+  'Tríceps': { primary: 'Tríceps Braquial', secondary: 'Ancôneo' },
+  'Braços': { primary: 'Bíceps & Tríceps Braquial', secondary: 'Braquial, Braquiorradial' },
+  'Abdômen': { primary: 'Reto Abdominal', secondary: 'Oblíquos Internos e Externos, Core' },
+  'Geral': { primary: 'Cadeia Muscular Integrada', secondary: 'Estabilizadores Centrais e Escapulares' }
 };
 
 function perfSanitizeWorkoutPlan() {
@@ -8975,10 +9252,10 @@ function perfSanitizeWorkoutPlan() {
 
   perfWorkoutPlan.forEach((routine, rIdx) => {
     if (!routine.exercises || !Array.isArray(routine.exercises)) routine.exercises = [];
-    
+
     routine.exercises = routine.exercises.map((ex, idx) => {
       if (!ex) return null;
-      
+
       const dbEx = perfFindExercise(ex.exerciseId || ex.id, ex.name);
       if (dbEx) {
         return {
@@ -9123,7 +9400,7 @@ function perfSearchExerciseSemantic(rawTarget) {
 
   // 2. Identificação da Família Biomecânica
   const detectedFamily = PERF_ACTION_FAMILIES.find(f => f.rx.test(clean) || f.rx.test(normTarget));
-  const candidatePool = detectedFamily 
+  const candidatePool = detectedFamily
     ? PERF_EXERCISE_DB.filter(e => e.group === detectedFamily.group)
     : PERF_EXERCISE_DB;
 
@@ -9224,7 +9501,7 @@ function perfGetExerciseGuideData(ex) {
   const custom = PERF_EXERCISE_GUIDE_MAP[ex.id] || {};
   const group = ex.group && ex.group !== 'Geral' ? ex.group : 'Peitoral';
   const mapping = MUSCLE_MAPPING_DEFAULTS[group] || MUSCLE_MAPPING_DEFAULTS['Peitoral'];
-  
+
   const primary = (ex.primary && ex.primary !== 'Músculo Alvo') ? ex.primary : mapping.primary;
   const secondary = (ex.secondary && ex.secondary !== 'Sinergistas' && ex.secondary !== 'Estabilizadores') ? ex.secondary : mapping.secondary;
   const mechanics = ex.mechanics || 'Composto';
@@ -9232,7 +9509,7 @@ function perfGetExerciseGuideData(ex) {
 
   // Prioriza GIF mapeado ou usa o GIF em CDN oficial do grupo
   let gifUrl = custom.gif || GROUP_DEFAULT_GIFS[group] || GROUP_DEFAULT_GIFS['Peitoral'];
-  
+
   const steps = (custom.steps && custom.steps.length > 0) ? custom.steps : [
     `Ajuste a postura e a pegada mantendo alinhamento articular e core ativado.`,
     `Inicie a fase excêntrica de forma lenta e controlada (3 segundos) alongando o músculo alvo.`,
@@ -9242,7 +9519,7 @@ function perfGetExerciseGuideData(ex) {
 
   const breathing = custom.breathing || `Inspire profundamente na fase excêntrica (descida/alongamento) e solte o ar na fase concêntrica (esforço/subida).`;
   const mistakes = custom.mistakes || `Evite impulsos excessivos, perda da estabilização da coluna ou redução involuntária da amplitude.`;
-  
+
   // Link direto para gifdotreino.com
   const cleanQuery = encodeURIComponent((ex.name || '').replace(/\(.*?\)/g, '').trim());
   const externalUrl = `https://www.gifdotreino.com/?s=${cleanQuery}`;
@@ -9413,7 +9690,7 @@ function perfOpenExerciseGuide(exerciseId, routineId = null, explicitName = '') 
   if (stepsEl) {
     stepsEl.innerHTML = data.steps.map((st, i) => `
       <div class="flex items-start gap-2 p-2 rounded-lg bg-black/40 border border-zinc-800/80">
-        <span class="w-5 h-5 rounded-full bg-blue-950 text-blue-400 border border-blue-700/60 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">${i+1}</span>
+        <span class="w-5 h-5 rounded-full bg-blue-950 text-blue-400 border border-blue-700/60 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">${i + 1}</span>
         <span class="text-zinc-300 text-[11.5px] leading-snug">${st}</span>
       </div>
     `).join('');
@@ -9482,7 +9759,7 @@ function perfQuickSearchExercise(query = '') {
   if (!container) return;
 
   const cleanQuery = (query || '').trim().toLowerCase();
-  
+
   if (!cleanQuery && perfQuickGroupFilter === 'Todos') {
     container.classList.add('hidden');
     container.innerHTML = '';
@@ -9492,9 +9769,9 @@ function perfQuickSearchExercise(query = '') {
   container.classList.remove('hidden');
 
   const filtered = PERF_EXERCISE_DB.filter(ex => {
-    const matchGroup = (perfQuickGroupFilter === 'Todos') || 
+    const matchGroup = (perfQuickGroupFilter === 'Todos') ||
       (perfQuickGroupFilter === 'Braços' ? (ex.group === 'Bíceps' || ex.group === 'Tríceps') : ex.group === perfQuickGroupFilter);
-    
+
     if (!matchGroup) return false;
     if (!cleanQuery) return true;
 
@@ -9619,12 +9896,12 @@ function perfScrollToCardio() {
 function perfSetCardioFilter(filter) {
   perfCardioActiveFilter = filter;
   document.querySelectorAll('.perf-cardio-filter-btn').forEach(btn => {
-    btn.classList.remove('bg-amber-500','text-black');
-    btn.classList.add('bg-zinc-800','text-zinc-400');
+    btn.classList.remove('bg-amber-500', 'text-black');
+    btn.classList.add('bg-zinc-800', 'text-zinc-400');
     btn.style.boxShadow = '';
     if (btn.dataset.cfilter === filter) {
-      btn.classList.remove('bg-zinc-800','text-zinc-400');
-      btn.classList.add('bg-amber-500','text-black');
+      btn.classList.remove('bg-zinc-800', 'text-zinc-400');
+      btn.classList.add('bg-amber-500', 'text-black');
       btn.style.boxShadow = '0 0 8px rgba(245,158,11,0.4)';
     }
   });
@@ -9649,10 +9926,10 @@ function renderPerfCardioProtocols(targetFocusId = null) {
   container.innerHTML = filtered.map((c, idx) => {
     const isCompromised = c.category === "Compromised";
     const isZ2 = c.category === "Zona 2";
-    
+
     let badgeBorder = isCompromised ? "border-amber-500/60 bg-amber-950/60 text-amber-300" :
-                      isZ2 ? "border-emerald-500/60 bg-emerald-950/60 text-emerald-300" :
-                      "border-purple-500/60 bg-purple-950/60 text-purple-300";
+      isZ2 ? "border-emerald-500/60 bg-emerald-950/60 text-emerald-300" :
+        "border-purple-500/60 bg-purple-950/60 text-purple-300";
 
     // Identifica com precisão cirúrgica em quais dias este cardio está realmente prescrito na agenda semanal
     const activePrescribedDays = perfWeeklySchedule
@@ -9672,8 +9949,8 @@ function renderPerfCardioProtocols(targetFocusId = null) {
     const cardHighlight = isFocused
       ? "border-amber-400 ring-2 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.4)] bg-gradient-to-b from-amber-950/40 via-black to-zinc-950"
       : isPrescribed
-      ? "border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-black/80"
-      : "border-zinc-800/90 bg-black/70";
+        ? "border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-black/80"
+        : "border-zinc-800/90 bg-black/70";
 
     return `
       <div id="cardio-card-${c.id}" class="hud-card p-5 space-y-3.5 transition-all flex flex-col justify-between ${cardHighlight} rounded-2xl">
@@ -9768,7 +10045,7 @@ function perfPrescribeCardioToDay(cardioId, dayKey) {
       return {
         ...d,
         cardioId: cardio.id,
-        title: cardio.title.replace('Circuito ','').replace('Protocolo ',''),
+        title: cardio.title.replace('Circuito ', '').replace('Protocolo ', ''),
         focus: cardio.subtitle,
         type: 'Cardio',
         nutrtip: `Déficit calórico mantido · ${cardio.calEst}`
@@ -9815,7 +10092,7 @@ function perfFocusDay(dayKey) {
         isColor2 = charCode >= 0 && charCode % 2 === 1;
       }
     }
-    activeBtn.style.boxShadow = day.type === 'Treino' 
+    activeBtn.style.boxShadow = day.type === 'Treino'
       ? (isColor2 ? '0 0 12px rgba(168,85,247,0.65)' : '0 0 12px rgba(59,130,246,0.65)')
       : (day.type === 'Cardio' ? '0 0 12px rgba(245,158,11,0.65)' : '0 0 10px rgba(113,113,122,0.4)');
   }
@@ -9858,10 +10135,10 @@ function renderPerfCatalog() {
 
   const filtered = PERF_EXERCISE_DB.filter(ex =>
     (perfGroupFilter === 'Todos' || ex.group === perfGroupFilter) &&
-    (ex.name.toLowerCase().includes(perfSearchTerm.toLowerCase()) || 
-     ex.primary.toLowerCase().includes(perfSearchTerm.toLowerCase()) ||
-     (ex.secondary && ex.secondary.toLowerCase().includes(perfSearchTerm.toLowerCase())) ||
-     ex.equipment.toLowerCase().includes(perfSearchTerm.toLowerCase()))
+    (ex.name.toLowerCase().includes(perfSearchTerm.toLowerCase()) ||
+      ex.primary.toLowerCase().includes(perfSearchTerm.toLowerCase()) ||
+      (ex.secondary && ex.secondary.toLowerCase().includes(perfSearchTerm.toLowerCase())) ||
+      ex.equipment.toLowerCase().includes(perfSearchTerm.toLowerCase()))
   );
 
   const currentRoutine = perfWorkoutPlan.find(r => r.id === perfTargetRoutine);
@@ -9877,18 +10154,18 @@ function renderPerfCatalog() {
   const htmlCards = filtered.length === 0
     ? '<p class="text-center text-zinc-500 text-xs py-8 col-span-full">Nenhum exercício encontrado para esta busca.</p>'
     : filtered.map(ex => {
-        const alreadyAdded = currentRoutine && currentRoutine.exercises.some(e => e.exerciseId === ex.id);
-        const mechColor = ex.mechanics === 'Composto'
-          ? 'color:#60a5fa;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4)'
-          : 'color:#c084fc;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4)';
-        
-        let equipBadgeStyle = 'color:#e4e4e7;background:#18181b;border:1px solid #3f3f46;';
-        if (ex.equipment === 'Máquina') equipBadgeStyle = 'color:#fbbf24;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);';
-        if (ex.equipment === 'Barra') equipBadgeStyle = 'color:#38bdf8;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);';
-        if (ex.equipment === 'Halteres') equipBadgeStyle = 'color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);';
-        if (ex.equipment === 'Cabo') equipBadgeStyle = 'color:#34d399;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);';
+      const alreadyAdded = currentRoutine && currentRoutine.exercises.some(e => e.exerciseId === ex.id);
+      const mechColor = ex.mechanics === 'Composto'
+        ? 'color:#60a5fa;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4)'
+        : 'color:#c084fc;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4)';
 
-        return `
+      let equipBadgeStyle = 'color:#e4e4e7;background:#18181b;border:1px solid #3f3f46;';
+      if (ex.equipment === 'Máquina') equipBadgeStyle = 'color:#fbbf24;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);';
+      if (ex.equipment === 'Barra') equipBadgeStyle = 'color:#38bdf8;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);';
+      if (ex.equipment === 'Halteres') equipBadgeStyle = 'color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);';
+      if (ex.equipment === 'Cabo') equipBadgeStyle = 'color:#34d399;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);';
+
+      return `
         <div class="hud-card p-3 transition-all ${alreadyAdded ? 'opacity-60 border-blue-900/30' : 'hover:border-blue-500/50 hover:shadow-[0_0_12px_rgba(59,130,246,0.15)]'}">
           <div class="flex justify-between items-start gap-2 mb-1.5">
             <h4 class="font-semibold text-xs text-zinc-100 leading-tight">${ex.name}</h4>
@@ -9916,7 +10193,7 @@ function renderPerfCatalog() {
             ${ex.secondary && ex.secondary !== '—' ? `<div class="text-zinc-500"><span class="text-zinc-400">Sinergistas:</span> ${ex.secondary}</div>` : ''}
           </div>
         </div>`;
-      }).join('');
+    }).join('');
 
   if (container) {
     container.innerHTML = countHeader + htmlCards;
@@ -10382,15 +10659,15 @@ async function buildPerformanceContext(patientId = activePatientId) {
     return null;
   }
 
-  const age           = parseInt(p.age) || 30;
-  const sex           = p.gender || 'Masculino';             // 'Masculino' | 'Feminino'
-  const heightCm      = (parseFloat(p.height) || 1.70) * 100; // converte m → cm
-  const weightKg      = parseFloat(p.currentWeight) || parseFloat(p.usualWeight) || 70.0;
+  const age = parseInt(p.age) || 30;
+  const sex = p.gender || 'Masculino';             // 'Masculino' | 'Feminino'
+  const heightCm = (parseFloat(p.height) || 1.70) * 100; // converte m → cm
+  const weightKg = parseFloat(p.currentWeight) || parseFloat(p.usualWeight) || 70.0;
   const usualWeightKg = parseFloat(p.usualWeight) || weightKg;
-  const targetWeightKg= parseFloat(p.targetWeight) || weightKg;
-  const objective     = p.objective || 'Manutenção & Saúde';
-  const patientType   = p.patientType || 'Praticante recreativo';
-  const activityFactor= parseFloat(p.activityFactor) || 1.42;
+  const targetWeightKg = parseFloat(p.targetWeight) || weightKg;
+  const objective = p.objective || 'Manutenção & Saúde';
+  const patientType = p.patientType || 'Praticante recreativo';
+  const activityFactor = parseFloat(p.activityFactor) || 1.42;
 
   // Nível de treino: obtido do cadastro direto ou inferido somente se explícito
   const trainingLevel = (() => {
@@ -10428,7 +10705,7 @@ async function buildPerformanceContext(patientId = activePatientId) {
     if (db.assessments) {
       assessments = await db.assessments.where('patientId').equals(pId).toArray();
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // Filtra registros de seed/demo e ordena do mais recente ao mais antigo
   assessments = (assessments || [])
@@ -10457,26 +10734,26 @@ async function buildPerformanceContext(patientId = activePatientId) {
 
   // Circunferências e RCQ
   const waistVal = latestEval ? (parseFloat(latestEval.waist) || null) : null;
-  const hipVal   = latestEval ? (parseFloat(latestEval.hip) || null) : null;
+  const hipVal = latestEval ? (parseFloat(latestEval.hip) || null) : null;
   const waistToHipRatio = (waistVal > 0 && hipVal > 0)
     ? Math.round((waistVal / hipVal) * 100) / 100
     : null;
 
   // ── 3. ENERGÉTICA & METABOLISMO (math.js) ─────────────────────────────────
-  const tmbResult  = (typeof calculateTMB === 'function')
+  const tmbResult = (typeof calculateTMB === 'function')
     ? calculateTMB(sex, age, weightKg, heightCm / 100, leanMassKg)
     : { tmb: Math.round(370 + 21.6 * leanMassKg), method: 'Katch-McArdle' };
-  const tmbKcal    = Math.round(tmbResult.tmb);
-  const getKcal    = (typeof calculateGET === 'function')
+  const tmbKcal = Math.round(tmbResult.tmb);
+  const getKcal = (typeof calculateGET === 'function')
     ? Math.round(calculateGET(tmbKcal, activityFactor))
     : Math.round(tmbKcal * activityFactor);
-  const tmbMethod  = tmbResult.method;
+  const tmbMethod = tmbResult.method;
 
   // ── 4. NUTRIÇÃO & BALANÇO ENERGÉTICO (db.prescriptions) ───────────────────
   let prescRecord = null;
   try {
     if (db.prescriptions) prescRecord = await db.prescriptions.get(pId);
-  } catch (_) {}
+  } catch (_) { }
 
   const prescItems = (prescRecord && Array.isArray(prescRecord.items)) ? prescRecord.items : [];
   const prescribedKcal = prescItems.length > 0
@@ -10502,7 +10779,7 @@ async function buildPerformanceContext(patientId = activePatientId) {
     if (db.clinicalExams) {
       clinicalExamsList = await db.clinicalExams.where('patientId').equals(pId).toArray();
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // ── 6. RESTRIÇÕES, LIMITAÇÕES & EQUIPAMENTOS ──────────────────────────────
   const extractedProhibitedExercises = (() => {
@@ -10521,21 +10798,21 @@ async function buildPerformanceContext(patientId = activePatientId) {
   })();
 
   const constraints = {
-    injuries:             extractedInjuries,
-    prohibitedExercises:  extractedProhibitedExercises,
-    availableEquipment:   p.availableEquipment || 'Full Gym',
-    prescribedCardioId:   typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
+    injuries: extractedInjuries,
+    prohibitedExercises: extractedProhibitedExercises,
+    availableEquipment: p.availableEquipment || 'Full Gym',
+    prescribedCardioId: typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
   };
 
   // ── 7. MONTAGEM DO DTO CANÔNICO CONSOLIDADO ───────────────────────────────
   const context = {
     _meta: {
-      contextVersion:   '1.1',
-      builtAt:          new Date().toISOString(),
-      patientId:        pId,
-      hasAssessment:    latestEval !== null,
-      assessmentDate:   latestEval ? latestEval.date : null,
-      hasPrescription:  prescItems.length > 0,
+      contextVersion: '1.1',
+      builtAt: new Date().toISOString(),
+      patientId: pId,
+      hasAssessment: latestEval !== null,
+      assessmentDate: latestEval ? latestEval.date : null,
+      hasPrescription: prescItems.length > 0,
       tmbMethod,
     },
 
@@ -10553,18 +10830,18 @@ async function buildPerformanceContext(patientId = activePatientId) {
     },
 
     trainingProfile: {
-      mainModality:     p.mainModality || p.workoutType || 'Musculação',
-      workoutType:      p.workoutType || 'Musculação / Força',
-      frequencyWeekly:  workoutFrequencyDays,
-      frequencyLabel:   p.workoutFrequency || `${workoutFrequencyDays}x/semana`,
-      durationMinutes:  workoutDurationMinutes,
-      durationLabel:    p.workoutDuration || `${workoutDurationMinutes} min`,
-      intensity:        p.workoutIntensity || 'Moderada',
-      workoutTime:      p.workoutTime || '',
-      neatRoutine:      p.neatRoutine || 'Moderado',
+      mainModality: p.mainModality || p.workoutType || 'Musculação',
+      workoutType: p.workoutType || 'Musculação / Força',
+      frequencyWeekly: workoutFrequencyDays,
+      frequencyLabel: p.workoutFrequency || `${workoutFrequencyDays}x/semana`,
+      durationMinutes: workoutDurationMinutes,
+      durationLabel: p.workoutDuration || `${workoutDurationMinutes} min`,
+      intensity: p.workoutIntensity || 'Moderada',
+      workoutTime: p.workoutTime || '',
+      neatRoutine: p.neatRoutine || 'Moderado',
       trainingLevel,
       patientType,
-      isMinor:          age < 18,
+      isMinor: age < 18,
     },
 
     anthropometry: {
@@ -10574,28 +10851,28 @@ async function buildPerformanceContext(patientId = activePatientId) {
       fatMassKg,             // massa gorda (kg)
       bmi,                   // IMC
       circumferences: {
-        waist:          waistVal,
-        hip:            hipVal,
-        abdomen:        latestEval ? (parseFloat(latestEval.circAbdomen) || null) : null,
-        arm:            latestEval ? (parseFloat(latestEval.arm) || null) : null,
-        thigh:          latestEval ? (parseFloat(latestEval.circThigh) || null) : null,
-        chest:          latestEval ? (parseFloat(latestEval.circChest) || null) : null,
-        armRelaxed:     latestEval ? (parseFloat(latestEval.circArmRelaxed) || null) : null,
-        forearm:        latestEval ? (parseFloat(latestEval.circForearm) || null) : null,
-        calf:           latestEval ? (parseFloat(latestEval.circCalf) || null) : null,
-        neck:           latestEval ? (parseFloat(latestEval.circNeck) || null) : null,
+        waist: waistVal,
+        hip: hipVal,
+        abdomen: latestEval ? (parseFloat(latestEval.circAbdomen) || null) : null,
+        arm: latestEval ? (parseFloat(latestEval.arm) || null) : null,
+        thigh: latestEval ? (parseFloat(latestEval.circThigh) || null) : null,
+        chest: latestEval ? (parseFloat(latestEval.circChest) || null) : null,
+        armRelaxed: latestEval ? (parseFloat(latestEval.circArmRelaxed) || null) : null,
+        forearm: latestEval ? (parseFloat(latestEval.circForearm) || null) : null,
+        calf: latestEval ? (parseFloat(latestEval.circCalf) || null) : null,
+        neck: latestEval ? (parseFloat(latestEval.circNeck) || null) : null,
         waistToHipRatio
       },
       skinfolds: {
-        chest:          latestEval ? (parseFloat(latestEval.skChest) || null) : null,
-        axillary:       latestEval ? (parseFloat(latestEval.skAxillary) || null) : null,
-        triceps:        latestEval ? (parseFloat(latestEval.skTriceps) || null) : null,
-        biceps:         latestEval ? (parseFloat(latestEval.skBiceps) || null) : null,
-        subscapular:    latestEval ? (parseFloat(latestEval.skSubscapular) || null) : null,
-        abdominal:      latestEval ? (parseFloat(latestEval.skAbdominal) || null) : null,
-        suprailiac:     latestEval ? (parseFloat(latestEval.skSuprailiac) || null) : null,
-        thigh:          latestEval ? (parseFloat(latestEval.skThigh) || null) : null,
-        calfFold:       latestEval ? (parseFloat(latestEval.skCalfFold) || null) : null
+        chest: latestEval ? (parseFloat(latestEval.skChest) || null) : null,
+        axillary: latestEval ? (parseFloat(latestEval.skAxillary) || null) : null,
+        triceps: latestEval ? (parseFloat(latestEval.skTriceps) || null) : null,
+        biceps: latestEval ? (parseFloat(latestEval.skBiceps) || null) : null,
+        subscapular: latestEval ? (parseFloat(latestEval.skSubscapular) || null) : null,
+        abdominal: latestEval ? (parseFloat(latestEval.skAbdominal) || null) : null,
+        suprailiac: latestEval ? (parseFloat(latestEval.skSuprailiac) || null) : null,
+        thigh: latestEval ? (parseFloat(latestEval.skThigh) || null) : null,
+        calfFold: latestEval ? (parseFloat(latestEval.skCalfFold) || null) : null
       }
     },
 
@@ -10610,44 +10887,44 @@ async function buildPerformanceContext(patientId = activePatientId) {
       caloricTargetKcal,     // meta calórica REAL da prescrição ativa
       energyBalanceKcal,     // = caloricTargetKcal - getKcal (positivo = superávit)
       proteinGKg,            // aporte proteico (g/kg peso)
-      prescriptionSource:    prescItems.length > 0 ? 'prescribed' : 'estimated_from_get',
+      prescriptionSource: prescItems.length > 0 ? 'prescribed' : 'estimated_from_get',
     },
 
     lifestyle: {
-      sleepHours:           parseFloat(p.sleepHours) || 7.5,
-      sleepQuality:         p.sleepQuality || 'Boa',
-      stressLevel:          p.stressLevel || 'Moderado',
-      hydrationLiters:      parseFloat(p.hydrationLiters) || (Math.round(weightKg * 0.035 * 10) / 10),
-      neatRoutine:          p.neatRoutine || 'Moderado',
-      cookingAvailability:  p.cookingAvailability || 'Moderada',
-      mealPreparer:         p.mealPreparer || 'O próprio paciente',
-      bowelHabit:           p.bowelHabit || 'Regular (1x a 2x/dia)'
+      sleepHours: parseFloat(p.sleepHours) || 7.5,
+      sleepQuality: p.sleepQuality || 'Boa',
+      stressLevel: p.stressLevel || 'Moderado',
+      hydrationLiters: parseFloat(p.hydrationLiters) || (Math.round(weightKg * 0.035 * 10) / 10),
+      neatRoutine: p.neatRoutine || 'Moderado',
+      cookingAvailability: p.cookingAvailability || 'Moderada',
+      mealPreparer: p.mealPreparer || 'O próprio paciente',
+      bowelHabit: p.bowelHabit || 'Regular (1x a 2x/dia)'
     },
 
     clinical: {
-      clinicalNotes:        p.clinicalNotes || '',
-      dietaryRestrictions:  p.dietaryRestrictions || '',
-      foodAversions:        p.foodAversions || '',
-      preferredFoods:       p.preferredFoods || '',
-      exams:                clinicalExamsList || []
+      clinicalNotes: p.clinicalNotes || '',
+      dietaryRestrictions: p.dietaryRestrictions || '',
+      foodAversions: p.foodAversions || '',
+      preferredFoods: p.preferredFoods || '',
+      exams: clinicalExamsList || []
     },
 
     constraints
   };
 
   console.info('[buildPerformanceContext] DTO construído:', JSON.stringify({
-    patientId:            context._meta.patientId,
-    contextVersion:       context._meta.contextVersion,
-    hasAssessment:        context._meta.hasAssessment,
-    hasPrescription:      context._meta.hasPrescription,
-    frequencyWeekly:      context.trainingProfile.frequencyWeekly,
-    durationMinutes:      context.trainingProfile.durationMinutes,
-    tmbKcal:              context.energy.tmbKcal,
-    getKcal:              context.energy.getKcal,
-    caloricTargetKcal:    context.nutrition.caloricTargetKcal,
-    energyBalanceKcal:    context.nutrition.energyBalanceKcal,
-    leanMassKg:           context.anthropometry.leanMassKg,
-    bodyFatPercent:       context.anthropometry.bodyFatPercent,
+    patientId: context._meta.patientId,
+    contextVersion: context._meta.contextVersion,
+    hasAssessment: context._meta.hasAssessment,
+    hasPrescription: context._meta.hasPrescription,
+    frequencyWeekly: context.trainingProfile.frequencyWeekly,
+    durationMinutes: context.trainingProfile.durationMinutes,
+    tmbKcal: context.energy.tmbKcal,
+    getKcal: context.energy.getKcal,
+    caloricTargetKcal: context.nutrition.caloricTargetKcal,
+    energyBalanceKcal: context.nutrition.energyBalanceKcal,
+    leanMassKg: context.anthropometry.leanMassKg,
+    bodyFatPercent: context.anthropometry.bodyFatPercent,
     targetBodyFatPercent: context.anthropometry.targetBodyFatPercent,
   }, null, 2));
 
@@ -10750,7 +11027,7 @@ function validateAIPrescription(aiResponse) {
   const cleanData = {
     frequency: Math.round(aiResponse.frequency),
     routines: aiResponse.routines.map(r => ({
-      id:   String(r.id).trim(),
+      id: String(r.id).trim(),
       name: String(r.name).trim(),
       exercises: r.exercises.map(ex => {
         const rawRest = ex.rest !== undefined && ex.rest !== null ? ex.rest : (ex.restSeconds !== undefined && ex.restSeconds !== null ? ex.restSeconds : undefined);
@@ -10759,10 +11036,10 @@ function validateAIPrescription(aiResponse) {
           name: String(ex.name).trim(),
           sets: Math.round(typeof ex.sets === 'number' ? ex.sets : parseInt(ex.sets, 10)),
           reps: String(ex.reps).trim(),
-          rpe:  typeof ex.rpe === 'number' ? ex.rpe : parseFloat(ex.rpe),
+          rpe: typeof ex.rpe === 'number' ? ex.rpe : parseFloat(ex.rpe),
           // Campos opcionais — copiados somente se presentes e válidos
           ...(hasValidRest ? { rest: Math.round(typeof rawRest === 'number' ? rawRest : parseInt(rawRest, 10)) } : {}),
-          ...(typeof ex.obs  === 'string' && ex.obs.trim() !== '' ? { obs: ex.obs.trim() } : {}),
+          ...(typeof ex.obs === 'string' && ex.obs.trim() !== '' ? { obs: ex.obs.trim() } : {}),
         };
       })
     }))
@@ -10792,7 +11069,7 @@ function validateAIPrescription(aiResponse) {
  */
 function validatePrescriptionAgainstContext(prescription, performanceContext) {
   const warnings = [];
-  const errors   = [];
+  const errors = [];
 
   // Guardrail de entrada — não lança exceção, retorna REJECT informativo
   if (!prescription || typeof prescription !== 'object') {
@@ -10824,15 +11101,15 @@ function validatePrescriptionAgainstContext(prescription, performanceContext) {
   // ── R2 — REJECT: Frequência incompatível com nível iniciante ─────────────
   // Apenas rejeita se o nível for estritamente identificado como iniciante
   const trainingLevelLower = String(performanceContext.patient?.trainingLevel || '').toLowerCase();
-  const frequency          = typeof prescription.frequency === 'number' ? prescription.frequency : 0;
+  const frequency = typeof prescription.frequency === 'number' ? prescription.frequency : 0;
 
   if (trainingLevelLower.includes('iniciante') && frequency > 4) {
     errors.push('Frequência incompatível com nível de treinamento iniciante.');
   }
 
   // ── R3 — WARNING: Volume elevado em déficit energético ───────────────────
-  const totalSets        = allExercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
-  const energyBalance    = typeof performanceContext.nutrition?.energyBalanceKcal === 'number'
+  const totalSets = allExercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
+  const energyBalance = typeof performanceContext.nutrition?.energyBalanceKcal === 'number'
     ? performanceContext.nutrition.energyBalanceKcal
     : 0;
 
@@ -10846,10 +11123,10 @@ function validatePrescriptionAgainstContext(prescription, performanceContext) {
   if (objectiveLower.includes('hipertrofia')) {
     const hasStrengthMaxStimulus = allExercises.some(ex => {
       const repsStr = String(ex.reps || '').trim();
-      const rpe     = parseFloat(ex.rpe);
+      const rpe = parseFloat(ex.rpe);
       // Reps "1" ou "2" (exact match da parte numérica principal)
       const isVeryLowReps = /^[12]$/.test(repsStr) || /^[12]-/.test(repsStr);
-      const isHighRpe     = rpe >= 9;
+      const isHighRpe = rpe >= 9;
       return isVeryLowReps && isHighRpe;
     });
 
@@ -10863,7 +11140,7 @@ function validatePrescriptionAgainstContext(prescription, performanceContext) {
 
   // ── Decisão Final ─────────────────────────────────────────────────────────
   let status = 'PASS';
-  if (errors.length > 0)        status = 'REJECT';
+  if (errors.length > 0) status = 'REJECT';
   else if (warnings.length > 0) status = 'WARNING';
 
   return { status, warnings, errors };
@@ -10903,27 +11180,27 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
   } catch (ctxErr) {
     console.error('[generateAndValidateWorkout] Erro ao construir contexto:', ctxErr);
     return {
-      status:                   'REJECT',
-      fatal:                    true,
+      status: 'REJECT',
+      fatal: true,
       requiresManualPrescription: true,
-      attempt:                  0,
-      context:                  null,
-      prescription:             null,
-      warnings:                 [],
-      errors:                   ['Erro interno ao construir o PerformanceContext: ' + String(ctxErr.message || ctxErr)]
+      attempt: 0,
+      context: null,
+      prescription: null,
+      warnings: [],
+      errors: ['Erro interno ao construir o PerformanceContext: ' + String(ctxErr.message || ctxErr)]
     };
   }
 
   if (!performanceContext) {
     return {
-      status:                   'REJECT',
-      fatal:                    true,
+      status: 'REJECT',
+      fatal: true,
       requiresManualPrescription: true,
-      attempt:                  0,
-      context:                  null,
-      prescription:             null,
-      warnings:                 [],
-      errors:                   [`Paciente "${patientId}" não encontrado ou sem dados suficientes para gerar o contexto.`]
+      attempt: 0,
+      context: null,
+      prescription: null,
+      warnings: [],
+      errors: [`Paciente "${patientId}" não encontrado ou sem dados suficientes para gerar o contexto.`]
     };
   }
 
@@ -10940,9 +11217,9 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
   const contextSnapshot = deepFreeze(JSON.parse(JSON.stringify(performanceContext)));
 
   // ── ETAPA 2-5: Loop com circuit breaker ───────────────────────────────────
-  let attempt       = 0;
+  let attempt = 0;
   let previousErrors = [];
-  let lastResult     = null;
+  let lastResult = null;
 
   while (attempt < MAX_ATTEMPTS) {
     attempt++;
@@ -10957,8 +11234,8 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       // Erros de quota (429) e timeout não devem ser rethentados — abortam imediatamente
       if (genErr.isQuotaError || genErr.isTimeout) {
         return {
-          status:  'REJECT',
-          fatal:   true,
+          status: 'REJECT',
+          fatal: true,
           requiresManualPrescription: true,
           attempt,
           context: contextSnapshot,
@@ -10981,13 +11258,13 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       // Prescrição estruturalmente inválida NÃO chega ao validador clínico
       previousErrors = structural.errors;
       lastResult = {
-        status:       'REJECT',
-        fatal:        false,
+        status: 'REJECT',
+        fatal: false,
         attempt,
-        context:      contextSnapshot,
+        context: contextSnapshot,
         prescription: null,
-        warnings:     [],
-        errors:       structural.errors
+        warnings: [],
+        errors: structural.errors
       };
       continue;
     }
@@ -11000,13 +11277,13 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       // Envia SOMENTE os erros que precisam ser corrigidos na próxima tentativa
       previousErrors = coherence.errors;
       lastResult = {
-        status:       'REJECT',
-        fatal:        false,
+        status: 'REJECT',
+        fatal: false,
         attempt,
-        context:      contextSnapshot,
+        context: contextSnapshot,
         prescription: null,
-        warnings:     coherence.warnings,
-        errors:       coherence.errors
+        warnings: coherence.warnings,
+        errors: coherence.errors
       };
       continue;
     }
@@ -11015,13 +11292,13 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
     // NUNCA persiste automaticamente. Retorna para revisão profissional.
     console.info(`[generateAndValidateWorkout] Tentativa ${attempt}: ${coherence.status}. Aguardando revisão profissional.`);
     return {
-      status:             coherence.status,   // "PASS" | "WARNING"
-      fatal:              false,
+      status: coherence.status,   // "PASS" | "WARNING"
+      fatal: false,
       attempt,
-      context:            contextSnapshot,
-      prescription:       structural.data,    // dados limpos, sem campos da IA fora do contrato
-      warnings:           coherence.warnings,
-      errors:             [],
+      context: contextSnapshot,
+      prescription: structural.data,    // dados limpos, sem campos da IA fora do contrato
+      warnings: coherence.warnings,
+      errors: [],
       requiresHumanReview: true
       // ⛔ db.performanceMetabolica NÃO é tocado aqui.
       // Persistência SOMENTE via approveAITraining() após revisão profissional.
@@ -11031,18 +11308,18 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
   // ── PASSO 3: Circuit Breaker — esgotadas as 3 tentativas ─────────────────
   console.error('[generateAndValidateWorkout] Circuit breaker ativado após 3 tentativas.');
   return {
-    status:                   'REJECT',
-    fatal:                    true,
+    status: 'REJECT',
+    fatal: true,
     requiresManualPrescription: true,
-    attempt:                  MAX_ATTEMPTS,
-    context:                  contextSnapshot,
-    prescription:             null,
-    warnings:                 lastResult?.warnings || [],
+    attempt: MAX_ATTEMPTS,
+    context: contextSnapshot,
+    prescription: null,
+    warnings: lastResult?.warnings || [],
     errors: (lastResult && lastResult.errors && lastResult.errors.length > 0)
       ? lastResult.errors
       : (previousErrors && previousErrors.length > 0
-          ? previousErrors
-          : ['Não foi possível gerar uma prescrição compatível após 3 tentativas. É necessária prescrição manual ou revisão profissional.'])
+        ? previousErrors
+        : ['Não foi possível gerar uma prescrição compatível após 3 tentativas. É necessária prescrição manual ou revisão profissional.'])
   };
 }
 
@@ -11132,7 +11409,7 @@ function geminiGetApiKeyPool() {
         return parsed.map(k => String(k).trim()).filter(Boolean);
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // Fallback: chave única legada
   const single = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
@@ -11188,8 +11465,8 @@ function openGeminiKeysManager() {
       <!-- Lista de chaves -->
       <div id="gemini-keys-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
         ${pool.length === 0
-          ? '<p class="text-zinc-500 text-sm text-center py-4">Nenhuma chave configurada.</p>'
-          : pool.map((k, i) => `
+      ? '<p class="text-zinc-500 text-sm text-center py-4">Nenhuma chave configurada.</p>'
+      : pool.map((k, i) => `
             <div class="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2">
               <span class="text-xs font-bold text-violet-400 w-6 shrink-0">#${i + 1}</span>
               <span class="text-xs text-zinc-300 font-mono truncate flex-1" title="${k}">${k.slice(0, 8)}${'*'.repeat(Math.max(0, k.length - 12))}${k.slice(-4)}</span>
@@ -11198,7 +11475,7 @@ function openGeminiKeysManager() {
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
             </div>`).join('')
-        }
+    }
       </div>
 
       <!-- Adicionar nova chave -->
@@ -11246,8 +11523,8 @@ function geminiRemoveKeyFromPool(index) {
 }
 
 // Expõe globalmente
-window.openGeminiKeysManager  = openGeminiKeysManager;
-window.geminiAddKeyToPool     = geminiAddKeyToPool;
+window.openGeminiKeysManager = openGeminiKeysManager;
+window.geminiAddKeyToPool = geminiAddKeyToPool;
 window.geminiRemoveKeyFromPool = geminiRemoveKeyFromPool;
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -11297,7 +11574,7 @@ async function _callGeminiWithKey(apiKey, prompt) {
       const errJson = await response.json();
       errorDetails = errJson?.error?.message || errJson?.message || '';
     } catch (_) {
-      try { errorDetails = await response.text(); } catch (__) {}
+      try { errorDetails = await response.text(); } catch (__) { }
     }
     const detailSuffix = errorDetails ? ` Detalhes: ${errorDetails}` : '';
 
@@ -11494,24 +11771,24 @@ Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e
 async function runPerformanceAITests() {
   'use strict';
 
-  const results  = [];
-  let   dbWrites = 0; // contador de tentativas de escrita no Dexie
+  const results = [];
+  let dbWrites = 0; // contador de tentativas de escrita no Dexie
 
   function assert(testId, description, condition, detail = '') {
     const passed = !!condition;
     results.push({ testId, description, passed, detail });
-    console.log(`  [T${String(testId).padStart(2,'0')}] ${passed ? '✅ PASS' : '❌ FAIL'} — ${description}${detail ? ' → ' + detail : ''}`);
+    console.log(`  [T${String(testId).padStart(2, '0')}] ${passed ? '✅ PASS' : '❌ FAIL'} — ${description}${detail ? ' → ' + detail : ''}`);
   }
 
   // Context de paciente genérico para os testes
   function makeCtx(overrides = {}) {
     return {
-      _meta:         { patientId: 'test-patient', tmbMethod: 'Katch-McArdle', hasAssessment: true, hasPrescription: true },
-      patient:       { age: 30, sex: 'Masculino', weightKg: 80, heightCm: 175, objective: 'Hipertrofia', trainingLevel: 'Intermediário', patientType: 'Praticante recreativo', ...overrides.patient },
+      _meta: { patientId: 'test-patient', tmbMethod: 'Katch-McArdle', hasAssessment: true, hasPrescription: true },
+      patient: { age: 30, sex: 'Masculino', weightKg: 80, heightCm: 175, objective: 'Hipertrofia', trainingLevel: 'Intermediário', patientType: 'Praticante recreativo', ...overrides.patient },
       anthropometry: { bodyFatPercent: 15, targetBodyFatPercent: 12, leanMassKg: 68, ...overrides.anthropometry },
-      energy:        { tmbKcal: 2200, getKcal: 3000, activityFactor: 1.42, ...overrides.energy },
-      nutrition:     { caloricTargetKcal: 3350, energyBalanceKcal: 350, proteinGKg: 2.0, prescriptionSource: 'prescribed', ...overrides.nutrition },
-      constraints:   { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym', prescribedCardioId: 'cardio_01', ...overrides.constraints },
+      energy: { tmbKcal: 2200, getKcal: 3000, activityFactor: 1.42, ...overrides.energy },
+      nutrition: { caloricTargetKcal: 3350, energyBalanceKcal: 350, proteinGKg: 2.0, prescriptionSource: 'prescribed', ...overrides.nutrition },
+      constraints: { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym', prescribedCardioId: 'cardio_01', ...overrides.constraints },
     };
   }
 
@@ -11534,8 +11811,8 @@ async function runPerformanceAITests() {
 
   // ── T01: Prescrição válida → PASS ─────────────────────────────────────────
   (() => {
-    const ctx    = makeCtx();
-    const presc  = makePresc();
+    const ctx = makeCtx();
+    const presc = makePresc();
     const result = validatePrescriptionAgainstContext(presc, ctx);
     assert(1, 'Prescrição válida → PASS', result.status === 'PASS', `status=${result.status}`);
   })();
@@ -11650,9 +11927,9 @@ async function runPerformanceAITests() {
     }
 
     // Executa o motor de coerência diretamente (sem chamada de IA real)
-    const ctx   = makeCtx();
+    const ctx = makeCtx();
     const presc = makePresc();
-    const r     = validatePrescriptionAgainstContext(presc, ctx);
+    const r = validatePrescriptionAgainstContext(presc, ctx);
 
     // Restaura
     if (originalPut) db.performanceMetabolica.put = originalPut;
@@ -11706,22 +11983,22 @@ async function runPerformanceAITests() {
         id: 'A', name: 'Push',
         exercises: [{
           name: 'Supino', sets: 4, reps: '8-12', rpe: 8,
-          injectField:    'payload malicioso',  // campo desconhecido
-          __proto__:      'tentativa de proto pollution', // deve ser ignorado
+          injectField: 'payload malicioso',  // campo desconhecido
+          __proto__: 'tentativa de proto pollution', // deve ser ignorado
         }]
       }],
       extraMetadata: { leanMassKg: 999, tmbKcal: 9999 } // campos canônicos injetados pela IA
     };
     const structural = validateAIPrescription(aiWithUnknownFields);
-    const cleanEx    = structural.data?.routines?.[0]?.exercises?.[0];
-    const leaked     = cleanEx && ('injectField' in cleanEx || 'extraMetadata' in (structural.data || {}));
+    const cleanEx = structural.data?.routines?.[0]?.exercises?.[0];
+    const leaked = cleanEx && ('injectField' in cleanEx || 'extraMetadata' in (structural.data || {}));
     assert(12, 'Campos desconhecidos da IA não chegam à camada de persistência', !leaked, `leaked=${leaked}`);
     // Campos canônicos do contexto permanecem inalterados
     assert(12.1, 'extraMetadata (leanMassKg injetado pela IA) não existe no DTO limpo', !('extraMetadata' in (structural.data || {})));
   })();
 
   // ── Resultado Final ───────────────────────────────────────────────────────
-  const total  = results.filter(r => Number.isInteger(r.testId)).length;
+  const total = results.filter(r => Number.isInteger(r.testId)).length;
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed);
 
@@ -12452,7 +12729,7 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
           lsSaved = lastActiveObj.record;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // 4. Seleciona o registro mais recente entre Dexie e localStorage
@@ -12503,9 +12780,9 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     try {
       localStorage.setItem("NUTRIAX_PERFORMANCE_" + pId, JSON.stringify(saved));
       if (typeof db !== "undefined" && db.performanceMetabolica) {
-        db.performanceMetabolica.put(saved).catch(() => {});
+        db.performanceMetabolica.put(saved).catch(() => { });
       }
-    } catch (_) {}
+    } catch (_) { }
 
   } else {
     perfActiveSplit = 'PPL';
@@ -12531,9 +12808,9 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
   if (perfPendingAIValidation) {
     const btnApprove = document.getElementById('btnApproveAITraining');
     if (btnApprove) {
-      const pendingPid   = perfPendingAIValidation.patientId;
+      const pendingPid = perfPendingAIValidation.patientId;
       const pendingPresc = perfPendingAIValidation.prescription;
-      const pendingCtx   = perfPendingAIValidation.context;
+      const pendingCtx = perfPendingAIValidation.context;
       btnApprove.onclick = () => approveAITraining(pendingPid, pendingPresc, pendingCtx);
     }
   }
@@ -12626,7 +12903,7 @@ async function approveAITraining(patientId, validatedPrescription, contextSnapsh
     let currentContext = null;
     try {
       currentContext = await buildPerformanceContext(pId);
-    } catch(e) {
+    } catch (e) {
       console.warn('[approveAITraining] Falha ao ler contexto atual para checagem de staleness:', e);
     }
 
@@ -12729,8 +13006,8 @@ function renderPerfTargetButtons() {
     const isTarget = routine.id === perfTargetRoutine;
     const isColor2 = perfIsRoutineColor2(routine, rIdx);
 
-    const activeStyle = isColor2 
-      ? 'workout-theme-purple-btn bg-purple-600 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
+    const activeStyle = isColor2
+      ? 'workout-theme-purple-btn bg-purple-600 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.6)]'
       : 'workout-theme-blue-btn bg-blue-600 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]';
     const inactiveStyle = isColor2
       ? 'text-purple-300 hover:text-white bg-zinc-900 border-zinc-800 hover:border-purple-600/60'
@@ -12746,11 +13023,11 @@ function renderPerfTargetButtons() {
 }
 
 function renderPerfHudMetrics() {
-  const totalEx   = perfWorkoutPlan.reduce((s,r) => s + r.exercises.length, 0);
-  const totalSets = perfWorkoutPlan.reduce((s,r) => s + r.exercises.reduce((a,e) => a + (parseInt(e.sets) || 0), 0), 0);
-  const elEx   = document.getElementById('perf-total-ex');
+  const totalEx = perfWorkoutPlan.reduce((s, r) => s + r.exercises.length, 0);
+  const totalSets = perfWorkoutPlan.reduce((s, r) => s + r.exercises.reduce((a, e) => a + (parseInt(e.sets) || 0), 0), 0);
+  const elEx = document.getElementById('perf-total-ex');
   const elSets = document.getElementById('perf-total-sets');
-  if (elEx)   elEx.textContent = totalEx;
+  if (elEx) elEx.textContent = totalEx;
   if (elSets) elSets.textContent = totalSets;
 }
 
@@ -12761,7 +13038,7 @@ function renderPerfWorkoutPlan() {
 
   perfWorkoutPlan.forEach((routine, rIdx) => {
     const isTarget = routine.id === perfTargetRoutine;
-    const totalSets = routine.exercises.reduce((s,e)=>s + (parseInt(e.sets) || 0), 0);
+    const totalSets = routine.exercises.reduce((s, e) => s + (parseInt(e.sets) || 0), 0);
     const isColor2 = perfIsRoutineColor2(routine, rIdx);
 
     const activeBorder = isColor2
@@ -12791,7 +13068,7 @@ function renderPerfWorkoutPlan() {
     const textAddEx = isColor2 ? 'text-purple-400 hover:text-purple-300' : 'text-blue-400 hover:text-blue-300';
     const exRowHover = isColor2 ? 'hover:bg-purple-950/20' : 'hover:bg-blue-950/20';
     const exNumBadge = isColor2 ? 'workout-theme-purple-badge text-purple-200 bg-purple-950/90 border-purple-700/70' : 'workout-theme-blue-badge text-blue-200 bg-blue-950/90 border-blue-700/70';
-    const gifBtn = isColor2 
+    const gifBtn = isColor2
       ? 'workout-theme-purple-btn text-purple-200 bg-purple-950/80 hover:bg-purple-900 border-purple-700/70 shadow-[0_0_8px_rgba(168,85,247,0.3)]'
       : 'workout-theme-blue-btn text-blue-200 bg-blue-950/80 hover:bg-blue-900 border-blue-700/70 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
     const focusBorder = isColor2 ? 'focus:border-purple-500' : 'focus:border-blue-500';
@@ -12802,49 +13079,49 @@ function renderPerfWorkoutPlan() {
           <p class="text-xs mt-1 text-zinc-500">Selecione esta rotina e acesse o menu <strong>"Catálogo Biomecânico"</strong> no topo para adicionar exercícios.</p>
         </div>`
       : routine.exercises.map((ex, idx) => {
-          const dbEx = perfFindExercise(ex.exerciseId || ex.id, ex.name) || {
-            id: ex.exerciseId || ex.id || 'pe01',
-            name: ex.name || 'Exercício Biomecânico',
-            group: ex.group || 'Geral',
-            mechanics: ex.mechanics || 'Composto',
-            equipment: ex.equipment || 'Barra/Halter',
-            primary: ex.primary || 'Músculo Alvo',
-            secondary: ex.secondary || 'Estabilizadores'
-          };
+        const dbEx = perfFindExercise(ex.exerciseId || ex.id, ex.name) || {
+          id: ex.exerciseId || ex.id || 'pe01',
+          name: ex.name || 'Exercício Biomecânico',
+          group: ex.group || 'Geral',
+          mechanics: ex.mechanics || 'Composto',
+          equipment: ex.equipment || 'Barra/Halter',
+          primary: ex.primary || 'Músculo Alvo',
+          secondary: ex.secondary || 'Estabilizadores'
+        };
 
-          const resolvedId = dbEx.id || ex.exerciseId || ex.id || 'pe01';
-          const exDisplayName = ex.name || dbEx.name;
-          const rpeVal = parseInt(ex.rpe) || 8;
-          const rpeRir = rpeVal >= 9 ? '1 RIR (Máxima)' : rpeVal >= 8 ? '2 RIR (Ótima)' : '3 RIR (Técnica)';
+        const resolvedId = dbEx.id || ex.exerciseId || ex.id || 'pe01';
+        const exDisplayName = ex.name || dbEx.name;
+        const rpeVal = parseInt(ex.rpe) || 8;
+        const rpeRir = rpeVal >= 9 ? '1 RIR (Máxima)' : rpeVal >= 8 ? '2 RIR (Ótima)' : '3 RIR (Técnica)';
 
-          // Cadência científica por exercício (Schoenfeld/ACSM) — lê do objeto ex (propagado pelo makeEx)
-          const cadenceRaw = ex.cadence || dbEx.cadence || (dbEx.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
-          const cadenceLabel = (() => {
-            const c = cadenceRaw.split('-').map(Number);
-            const exc = c[0] || 3, pause1 = c[1] || 0, conc = c[2] || 1, pause2 = c[3] || 0;
-            const notes = [];
-            if (exc >= 4) notes.push(`Exc. ${exc}s (máx. TUT`);
-            else notes.push(`Exc. ${exc}s`);
-            if (pause1 > 0) notes.push(`P.fundo ${pause1}s`);
-            notes.push(`Conc. ${conc}s`);
-            if (pause2 > 0) notes.push(`P.topo ${pause2}s (ISO)`);
-            return `${cadenceRaw} · ${notes.join(' / ')}`;
-          })();
-          const resistProf = ex.resistProfile || dbEx.resistProfile || 'uniform';
-          const resistBadge = resistProf === 'stretched'
-            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700/50" title="Pico de torque na posição de maior comprimento muscular — Schoenfeld Cap.2">🔵 Pico Alongado</span>`
-            : resistProf === 'shortened'
+        // Cadência científica por exercício (Schoenfeld/ACSM) — lê do objeto ex (propagado pelo makeEx)
+        const cadenceRaw = ex.cadence || dbEx.cadence || (dbEx.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0');
+        const cadenceLabel = (() => {
+          const c = cadenceRaw.split('-').map(Number);
+          const exc = c[0] || 3, pause1 = c[1] || 0, conc = c[2] || 1, pause2 = c[3] || 0;
+          const notes = [];
+          if (exc >= 4) notes.push(`Exc. ${exc}s (máx. TUT`);
+          else notes.push(`Exc. ${exc}s`);
+          if (pause1 > 0) notes.push(`P.fundo ${pause1}s`);
+          notes.push(`Conc. ${conc}s`);
+          if (pause2 > 0) notes.push(`P.topo ${pause2}s (ISO)`);
+          return `${cadenceRaw} · ${notes.join(' / ')}`;
+        })();
+        const resistProf = ex.resistProfile || dbEx.resistProfile || 'uniform';
+        const resistBadge = resistProf === 'stretched'
+          ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700/50" title="Pico de torque na posição de maior comprimento muscular — Schoenfeld Cap.2">🔵 Pico Alongado</span>`
+          : resistProf === 'shortened'
             ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-700/50" title="Pico de torque na posição de encurtamento muscular — Lima & Pinto Cap.4-7">🔴 Pico Encurtado</span>`
             : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/50" title="Curva de torque relativamente uniforme ao longo da ADM — ACSM Cap.7">⚪ Tensão Uniforme</span>`;
-          const cadenceTooltip = ex.cadenceNote || dbEx.cadenceNote || 'Cadência baseada na mecânica do exercício.';
-          const restVal = parseInt(ex.rest) || 60;
-          const substitutes = perfGetSubstitutes(resolvedId);
-          const subOptionsHtml = substitutes.map(s => {
-            const targetFull = s.primary || s.group;
-            return `<option value="${s.id}">• ${s.name} [🎯 Primário: ${targetFull} | ${s.equipment} · ${s.mechanics}]</option>`;
-          }).join('');
-          
-          return `
+        const cadenceTooltip = ex.cadenceNote || dbEx.cadenceNote || 'Cadência baseada na mecânica do exercício.';
+        const restVal = parseInt(ex.rest) || 60;
+        const substitutes = perfGetSubstitutes(resolvedId);
+        const subOptionsHtml = substitutes.map(s => {
+          const targetFull = s.primary || s.group;
+          return `<option value="${s.id}">• ${s.name} [🎯 Primário: ${targetFull} | ${s.equipment} · ${s.mechanics}]</option>`;
+        }).join('');
+
+        return `
           <div class="p-3 sm:p-4 border-b border-zinc-800/60 ${exRowHover} transition-all">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               
@@ -12852,7 +13129,7 @@ function renderPerfWorkoutPlan() {
               <div class="flex-1 min-w-0 space-y-1.5">
                 <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <span class="text-xs font-mono font-bold ${exNumBadge} px-2 py-0.5 rounded-md">
-                    #${idx+1}
+                    #${idx + 1}
                   </span>
                   <h4 class="text-sm md:text-base font-bold text-white tracking-tight break-words">${exDisplayName}</h4>
                   <button onclick="perfOpenExerciseGuide('${resolvedId}', '${routine.id}', '${encodeURIComponent(exDisplayName)}')"
@@ -12941,7 +13218,7 @@ function renderPerfWorkoutPlan() {
               </div>
             </div>
           </div>`;
-        }).join('');
+      }).join('');
 
     card.innerHTML = `
       <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3.5 sm:px-5 sm:py-4 border-b border-zinc-800 gap-2.5 ${headerBg}">
@@ -13006,9 +13283,11 @@ function perfAddExercise(exerciseId) {
   perfWorkoutPlan = perfWorkoutPlan.map(routine => {
     if (routine.id !== perfTargetRoutine) return routine;
     if (routine.exercises.some(e => (e.exerciseId || e.id) === exerciseId)) return routine;
-    return { ...routine, exercises: [...routine.exercises, {
-      exerciseId: ex.id, id: ex.id, name: ex.name, sets: 3, reps: '8-12', rpe: 7, rest: 90
-    }]};
+    return {
+      ...routine, exercises: [...routine.exercises, {
+        exerciseId: ex.id, id: ex.id, name: ex.name, sets: 3, reps: '8-12', rpe: 7, rest: 90
+      }]
+    };
   });
   savePerformanceForPatient(activePatientId);
   perfRender();
@@ -13050,12 +13329,12 @@ function perfUpdateField(routineId, exerciseId, field, value) {
 function perfSetGroupFilter(group) {
   perfGroupFilter = group;
   document.querySelectorAll('.perf-group-btn').forEach(btn => {
-    btn.classList.remove('bg-blue-600','text-white');
-    btn.classList.add('bg-zinc-800','text-zinc-400');
+    btn.classList.remove('bg-blue-600', 'text-white');
+    btn.classList.add('bg-zinc-800', 'text-zinc-400');
     btn.style.boxShadow = '';
     if (btn.dataset.group === group) {
-      btn.classList.remove('bg-zinc-800','text-zinc-400');
-      btn.classList.add('bg-blue-600','text-white');
+      btn.classList.remove('bg-zinc-800', 'text-zinc-400');
+      btn.classList.add('bg-blue-600', 'text-white');
       btn.style.boxShadow = '0 0 8px rgba(59,130,246,0.5)';
     }
   });
@@ -13084,7 +13363,7 @@ function resetGenAiButtons() {
       } else {
         b.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4 text-violet-300"></i><span>Gerar Treino Completo via IA</span>';
       }
-    } catch(e){}
+    } catch (e) { }
   });
   if (window.lucide) window.lucide.createIcons();
 }
@@ -13112,7 +13391,7 @@ async function handleGenerateAITraining() {
     try {
       b.disabled = true;
       b.innerHTML = '<i data-lucide="brain-circuit" class="w-4 h-4 animate-pulse text-cyan-300 inline-block align-middle mr-1"></i> Analisando Biomecânica & Curva de Torque...';
-    } catch(e){}
+    } catch (e) { }
   });
   if (window.lucide) lucide.createIcons();
 
@@ -13201,7 +13480,7 @@ async function handleGenerateAITraining() {
           trainCountAI++;
         }
         const colorClass = d.type === 'Treino' ? (isColor2 ? 'text-purple-400' : 'text-blue-400') : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
-        const titleShort = (d.title || '').replace('Treino ','');
+        const titleShort = (d.title || '').replace('Treino ', '');
         dayBtn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
       }
     });
@@ -13263,28 +13542,28 @@ function perfGeneratePDF() {
     document.getElementById("perfPatientName")?.innerText?.trim() ||
     (patientSelect && patientSelect.selectedIndex >= 0 ? patientSelect.options[patientSelect.selectedIndex]?.text?.replace(/\s*\(.*?\)\s*$/, '') : 'Paciente');
   const currentDate = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  
+
   // Resgata dados de nutrição e metas
   const objInput = document.getElementById('prescGoal') || document.getElementById('anamneseGoal');
   const objective = objInput && objInput.value ? objInput.value : 'Hipertrofia & Recomposição Corporal';
-  
+
   const caloricTargetEl = document.getElementById('dashCaloricTarget');
   const caloricTarget = caloricTargetEl ? parseInt(caloricTargetEl.innerText) || 2200 : 2200;
-  
+
   const protInput = document.getElementById('prescProtGKg');
   const proteinGKg = protInput && protInput.value ? parseFloat(protInput.value) || 2.0 : 2.0;
 
-  const totalEx   = perfWorkoutPlan.reduce((s,r) => s + r.exercises.length, 0);
-  const totalSets = perfWorkoutPlan.reduce((s,r) => s + r.exercises.reduce((a,e) => a+e.sets,0), 0);
+  const totalEx = perfWorkoutPlan.reduce((s, r) => s + r.exercises.length, 0);
+  const totalSets = perfWorkoutPlan.reduce((s, r) => s + r.exercises.reduce((a, e) => a + e.sets, 0), 0);
 
   // Cardio Prescrito Ativo
   const cardio = PERF_CARDIO_DB.find(c => c.id === perfPrescribedCardioId) || PERF_CARDIO_DB[0];
 
   // Monta HTML das Rotinas (com Alternância de 2 Cores: Azul / Roxo)
   const routinesHtml = perfWorkoutPlan.map((routine, rIdx) => {
-    const routineSets = routine.exercises.reduce((s,e) => s + e.sets, 0);
+    const routineSets = routine.exercises.reduce((s, e) => s + e.sets, 0);
     const isColor2 = perfIsRoutineColor2(routine, rIdx);
-    
+
     const headerBg = isColor2 ? '#581c87' : '#1e3a8a';
     const indexColColor = isColor2 ? '#7e22ce' : '#1e40af';
     const gifBtnColor = isColor2 ? '#7e22ce' : '#2563eb';
@@ -13300,7 +13579,7 @@ function perfGeneratePDF() {
 
       return `
         <tr style="border-bottom: 1px solid #e5e7eb; font-size: 11px;">
-          <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: ${indexColColor}; width: 28px;">${idx+1}</td>
+          <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: ${indexColColor}; width: 28px;">${idx + 1}</td>
           <td style="padding: 8px 8px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
               <strong style="color: #111827; font-size: 12px; display: block;">${ex.name}</strong>
@@ -13395,13 +13674,13 @@ function perfGeneratePDF() {
 
   // Coleta todos os dias de Cardio prescritos na Agenda Semanal
   const cardioDays = perfWeeklySchedule.filter(d => d.type === 'Cardio');
-  
+
   let cardioSectionsHtml = '';
   if (cardioDays.length > 0) {
     cardioSectionsHtml = cardioDays.map((cd, idx) => {
       const cProto = PERF_CARDIO_DB.find(c => c.id === cd.cardioId) ||
-                     (cd.dayKey === 'd6' || cd.dayKey === 'sab' ? PERF_CARDIO_DB.find(c => c.id === 'cardio_02') : PERF_CARDIO_DB[0]);
-      
+        (cd.dayKey === 'd6' || cd.dayKey === 'sab' ? PERF_CARDIO_DB.find(c => c.id === 'cardio_02') : PERF_CARDIO_DB[0]);
+
       const cBlocksHtml = cProto.blocks.map(b => `
         <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px; font-size: 11px;">
           <strong style="color: #c2410c; display: block; margin-bottom: 4px; font-size: 11.5px;">Bloco ${b.num} — ${b.name}</strong>
@@ -13411,7 +13690,7 @@ function perfGeneratePDF() {
         </div>
       `).join('');
 
-      const cDayLabel = (cd.dayKey && cd.dayKey.startsWith('d')) ? `DIA ${cd.dayKey.replace('d','')}` : (cd.dayName && cd.dayName.startsWith('Dia ')) ? cd.dayName.toUpperCase() : `DIA ${idx + 1}`;
+      const cDayLabel = (cd.dayKey && cd.dayKey.startsWith('d')) ? `DIA ${cd.dayKey.replace('d', '')}` : (cd.dayName && cd.dayName.startsWith('Dia ')) ? cd.dayName.toUpperCase() : `DIA ${idx + 1}`;
 
       return `
         <div style="page-break-inside: avoid; border: 1px solid #f97316; border-radius: 8px; background: #fff7ed; padding: 12px; margin-bottom: 16px;">
@@ -13684,7 +13963,7 @@ function initNutriAxPWA() {
       navigator.serviceWorker.register('sw.js')
         .then((registration) => {
           console.log('[NutriAx PWA] Service Worker registrado com sucesso. Escopo:', registration.scope);
-          
+
           // Verifica se há atualização do Service Worker
           registration.onupdatefound = () => {
             const installingWorker = registration.installing;
@@ -13726,9 +14005,9 @@ function initNutriAxPWA() {
   });
 
   // 4. Detecção de Modo Standalone (Já executando como App Instalado)
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       window.navigator.standalone === true ||
-                       document.referrer.includes('android-app://');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true ||
+    document.referrer.includes('android-app://');
 
   if (isStandalone) {
     isAppInstalled = true;
@@ -13794,7 +14073,7 @@ function switchInstallTab(tabId) {
   tabs.forEach(t => {
     const btn = document.getElementById(`install-tab-btn-${t}`);
     const content = document.getElementById(`install-content-${t}`);
-    
+
     if (btn) {
       if (t === tabId) {
         btn.className = "py-2.5 px-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 bg-red-600 text-white shadow-md";

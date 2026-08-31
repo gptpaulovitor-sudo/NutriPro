@@ -127,16 +127,24 @@
         <!-- ── MENU PILAR 2: DISCIPLINA ── -->
         <div id="header-pilar-nav-2" class="hidden items-center justify-center gap-2">
           <span
-            class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-800/80 flex items-center gap-1.5">
+            class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-800/80 flex items-center gap-1.5 shadow-[0_0_10px_rgba(249,115,22,0.2)]">
             <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i> PILAR 2 · DISCIPLINA &amp; HÁBITOS
           </span>
-          <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-orange-400"></i> Rotina Diária <span
-              class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+          <button onclick="selectDisciplineSubView('dashboard')" id="pilar2-subnav-dashboard"
+            class="hud-tab-btn-orange active px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-orange-400"></i> Dashboard &amp; IDC
           </button>
-          <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400"></i> Consistência Semanal <span
-              class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+          <button onclick="selectDisciplineSubView('heatmap')" id="pilar2-subnav-heatmap"
+            class="hud-tab-btn-orange px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400"></i> Heatmap 30 Dias
+          </button>
+          <button onclick="selectDisciplineSubView('habits')" id="pilar2-subnav-habits"
+            class="hud-tab-btn-orange px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-orange-400"></i> Matriz de Hábitos
+          </button>
+          <button onclick="openPatientShareModal()"
+            class="btn-nax-orange px-3.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(249,115,22,0.4)]">
+            <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i> 📲 Compartilhar App do Paciente
           </button>
         </div>
 
@@ -452,12 +460,12 @@
               <span class="text-[9px] font-bold text-zinc-600 uppercase">Em breve</span>
             </button>
 
-            <!-- Pilar 2 -->
+            <!-- Pilar 2 (Disciplina) -->
             <button id="pilar-2" onclick="switchPilar(2)"
-              class="w-full text-left px-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-gray-300 flex items-center justify-between hover:bg-orange-950/40 hover:border-orange-800/60 hover:text-orange-200 transition-all">
+              class="w-full text-left px-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-gray-300 flex items-center justify-between hover:bg-orange-950/50 hover:border-orange-800/60 hover:text-orange-200 transition-all">
               <span class="flex items-center gap-2"><i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i> 2.
                 Disciplina</span>
-              <span class="text-[9px] font-bold text-zinc-600 uppercase">Em breve</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_6px_rgba(249,115,22,0.9)]"></span>
             </button>
 
             <!-- Pilar 3 (Nutrição - Ativo por Padrão) -->
@@ -565,8 +573,29 @@
           <!-- Mobile Pilar 1, 2, 5 -->
           <div id="mobile-pilar-nav-1" class="hidden p-2 text-xs text-zinc-400">Módulos de Mentalidade em
             desenvolvimento.</div>
-          <div id="mobile-pilar-nav-2" class="hidden p-2 text-xs text-zinc-400">Módulos de Disciplina em
-            desenvolvimento.</div>
+          <div id="mobile-pilar-nav-2" class="hidden space-y-1.5">
+            <button onclick="openPatientShareModal()"
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-orange-300 bg-orange-950/80 border border-orange-700/80 flex items-center justify-between shadow-[0_0_12px_rgba(249,115,22,0.25)]">
+              <span class="flex items-center gap-2">
+                <i data-lucide="smartphone" class="w-4 h-4 text-orange-400 animate-pulse"></i>
+                <span>📲 Compartilhar App do Paciente</span>
+              </span>
+              <span
+                class="text-[9px] font-mono bg-orange-900 text-orange-200 px-2 py-0.5 rounded-full font-bold">APP</span>
+            </button>
+            <button onclick="selectDisciplineSubView('dashboard')"
+              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-orange-500"></i> Dashboard &amp; Score IDC
+            </button>
+            <button onclick="selectDisciplineSubView('heatmap')"
+              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-500"></i> Heatmap de Hábitos (30 Dias)
+            </button>
+            <button onclick="selectDisciplineSubView('habits')"
+              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
+              <i data-lucide="list-checks" class="w-3.5 h-3.5 text-orange-500"></i> Matriz de Metas Prescritas
+            </button>
+          </div>
           <div id="mobile-pilar-nav-5" class="hidden space-y-1">
             <button onclick="exportPrescriptionAndEvaluationPDF()"
               class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-amber-300 hover:bg-zinc-800">Exportar
@@ -762,9 +791,32 @@
               class="hidden p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
               🧠 Módulos de Mentalidade e Mindset em fase final de validação.
             </div>
-            <div id="card-subnav-2"
-              class="hidden p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
-              🛡️ Módulos de Disciplina e Rastreamento de Hábitos em breve.
+            <div id="card-subnav-2" class="hidden grid grid-cols-2 gap-1.5 text-xs">
+              <button id="card-subnav-btn-2-dashboard" onclick="selectMobilePilarTool(2, 'dashboard')"
+                class="p-2 rounded-xl bg-orange-950/80 hover:bg-orange-900 border border-orange-700 flex items-center gap-2 text-left text-orange-200 font-bold transition-all">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-orange-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Dashboard &amp; IDC</span>
+              </button>
+              <button id="card-subnav-btn-2-heatmap" onclick="selectMobilePilarTool(2, 'heatmap')"
+                class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Heatmap 30 Dias</span>
+              </button>
+              <button id="card-subnav-btn-2-habits" onclick="selectMobilePilarTool(2, 'habits')"
+                class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 font-bold transition-all">
+                <i data-lucide="list-checks" class="w-3.5 h-3.5 text-orange-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Matriz de Hábitos</span>
+              </button>
+              <button id="card-subnav-btn-2-sos" onclick="selectMobilePilarTool(2, 'sos')"
+                class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-amber-200 font-bold transition-all">
+                <i data-lucide="life-buoy" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-[11px] truncate">Protocolo SOS</span>
+              </button>
+              <button onclick="openPatientShareModal()"
+                class="col-span-2 p-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 border border-orange-500 flex items-center justify-center gap-2 text-white font-bold text-xs shadow-[0_0_12px_rgba(249,115,22,0.35)] transition-all">
+                <i data-lucide="smartphone" class="w-4 h-4 text-white"></i>
+                <span>📲 Compartilhar App do Paciente</span>
+              </button>
             </div>
             <div id="card-subnav-5" class="hidden grid grid-cols-2 gap-1.5 text-xs">
               <button id="card-subnav-btn-5-dashboard" onclick="selectMobilePilarTool(5, 'dashboard')"
@@ -3441,6 +3493,300 @@
 
   </section>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       PILAR 2: DISCIPLINA, HÁBITOS & SCORE IDC (ABA DEDICADA)
+  ═══════════════════════════════════════════════════════════ -->
+  <section id="tab-discipline" class="max-w-7xl mx-auto space-y-6 w-full hidden">
+    <!-- Header Banner HUD -->
+    <div
+      class="module-header hud-card-orange rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-950/90 border border-orange-700/80 text-orange-300 text-[10px] font-mono font-bold">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i> PILAR 2 · DISCIPLINA &amp; HÁBITOS
+          </span>
+          <span id="disciplinePatientTag" class="text-xs text-orange-200/80 font-mono font-bold bg-black/40 px-2 py-0.5 rounded border border-orange-900/50">
+            Paulo Vitor
+          </span>
+          <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/80 border border-amber-800/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <i data-lucide="flame" class="w-3 h-3 text-orange-400"></i> Streak: <span id="disciplineHeaderStreak">14 Dias Invicto</span>
+          </span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-black text-white mt-1.5">Controle de Disciplina, Hábitos &amp; Score IDC</h1>
+        <p class="text-xs text-zinc-300 mt-0.5">
+          Acompanhamento em tempo real do Índice de Disciplina Comportamental (IDC), consistência mecânica, heatmap de 30 dias e sincronização do App do Paciente.
+        </p>
+      </div>
+
+      <!-- Ações do Header -->
+      <div class="flex flex-wrap gap-2 shrink-0">
+        <button onclick="renderDisciplineDashboard()"
+          class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold px-3.5 py-2.5 rounded-xl text-xs border border-zinc-700 flex items-center gap-1.5 transition-all">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-orange-400"></i> Sincronizar
+        </button>
+        <button onclick="openPatientShareModal()"
+          class="btn-nax-orange text-white font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.4)]">
+          <i data-lucide="smartphone" class="w-4 h-4 text-white"></i> 📲 Compartilhar App com Paciente
+        </button>
+      </div>
+    </div>
+
+    <!-- Banner de Integração com App do Paciente -->
+    <div class="bg-orange-950/30 border border-orange-800/50 rounded-2xl px-5 py-3.5 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/40 flex items-center justify-center shrink-0">
+          <i data-lucide="smartphone-charging" class="w-5 h-5 text-orange-400"></i>
+        </div>
+        <div>
+          <h3 class="text-orange-200 font-bold text-xs">App do Paciente Conectado via PWA Dedicado</h3>
+          <p class="text-orange-300/80 text-[11px]">
+            O paciente registra hidratação, refeições, treinos e sono pelo celular em <strong class="text-white font-mono">paciente.html</strong> e alimenta este painel automaticamente.
+          </p>
+        </div>
+      </div>
+      <button onclick="openPatientShareModal()"
+        class="text-xs font-bold text-orange-300 hover:text-white underline flex items-center gap-1">
+        Ver link de acesso &amp; QR Code <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+
+    <!-- ═══ 1. TOP 4 KPI CARDS (SCORE IDC & ADESÃO) ═══ -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 1. Score IDC Geral -->
+      <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Score IDC Geral</span>
+          <span id="kpiIdcTierBadge" class="bg-orange-950 text-orange-300 border border-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Blindado
+          </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpiIdcScore" class="text-3xl font-black text-white">85.0%</span>
+          <span class="text-xs text-orange-200/80">consistência</span>
+        </div>
+        <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+          <div id="kpiIdcProgress" class="h-full bg-gradient-to-r from-orange-600 to-amber-400" style="width: 85%;"></div>
+        </div>
+        <p class="text-[10px] text-zinc-400">🔥 14 dias seguidos acima de 80%</p>
+      </div>
+
+      <!-- 2. Taxa de Adesão Alimentar -->
+      <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Adesão Alimentar</span>
+          <span id="kpiDietBadge" class="bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Excelente
+          </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpiDietPercent" class="text-3xl font-black text-white">86.7%</span>
+          <span class="text-xs text-zinc-400">refeições</span>
+        </div>
+        <p id="kpiDietDetail" class="text-[11px] text-zinc-300 font-medium">13 de 15 refeições no plano</p>
+        <p class="text-[10px] text-zinc-400">Maior ponto de atenção: Lanche 16h30</p>
+      </div>
+
+      <!-- 3. Hidratação Fracionada -->
+      <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Hidratação Média</span>
+          <span class="bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Consumo
+          </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpiWaterVolume" class="text-3xl font-black text-blue-400">3.800</span>
+          <span class="text-xs text-zinc-400">ml / dia</span>
+        </div>
+        <p class="text-[11px] text-zinc-300 font-medium">Meta Prescrita: 4.000 ml (95%)</p>
+        <p class="text-[10px] text-zinc-400">6 de 7 dias com meta batida</p>
+      </div>
+
+      <!-- 4. Treino & Cardio (Pilar 4) -->
+      <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Estímulo Físico</span>
+          <span class="bg-purple-950 text-purple-300 border border-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Pilar 4
+          </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpiWorkoutPercent" class="text-3xl font-black text-emerald-400">100%</span>
+          <span class="text-xs text-zinc-400">cumprido</span>
+        </div>
+        <p class="text-[11px] text-zinc-300 font-medium">Musculação + Cardio Zona 2</p>
+        <p class="text-[10px] text-zinc-400">5 treinos + 4 sessões de cardio</p>
+      </div>
+    </div>
+
+    <!-- ═══ 2. HEATMAP DE CONSISTÊNCIA (30 A 60 DIAS) ═══ -->
+    <div class="hud-card p-6 space-y-4 border border-orange-900/40 bg-zinc-950/90 rounded-2xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-zinc-800 pb-3">
+        <div>
+          <h2 class="font-black text-white text-base flex items-center gap-2">
+            <i data-lucide="calendar" class="w-5 h-5 text-orange-500"></i> Heatmap de Consistência &amp; Hábitos (30 Dias)
+          </h2>
+          <p class="text-xs text-zinc-400">Visualização cronológica da disciplina diária do paciente — estilo matriz de densidade.</p>
+        </div>
+
+        <!-- Legenda do Heatmap -->
+        <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
+          <span>Menos</span>
+          <div class="heatmap-cell heatmap-cell-0" title="0% a 25%"></div>
+          <div class="heatmap-cell heatmap-cell-1" title="26% a 50%"></div>
+          <div class="heatmap-cell heatmap-cell-2" title="51% a 75%"></div>
+          <div class="heatmap-cell heatmap-cell-3" title="76% a 90%"></div>
+          <div class="heatmap-cell heatmap-cell-4" title="91% a 100%"></div>
+          <span>Mais (100%)</span>
+        </div>
+      </div>
+
+      <!-- Grade de Células do Heatmap -->
+      <div class="space-y-3">
+        <div id="disciplineHeatmapGrid" class="flex flex-wrap gap-1.5 p-3 rounded-xl bg-black/60 border border-zinc-800/80 items-center justify-start">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+        <div id="heatmapDayTooltip" class="p-3 rounded-xl bg-orange-950/40 border border-orange-800/50 text-xs text-orange-200 flex items-center justify-between">
+          <span id="heatmapTooltipText">Passe o cursor sobre um dia para ver o detalhamento do Score IDC e hábitos.</span>
+          <span class="text-[10px] font-mono text-orange-400 font-bold">MÉDIA 30 DIAS: 84.8%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 3. MATRIZ DE HÁBITOS & PROTOCOLO SOS ═══ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Coluna Esquerda: Matriz de Hábitos Prescritos -->
+      <div class="hud-card p-5 space-y-4 border border-zinc-800 bg-zinc-950/90 rounded-2xl">
+        <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+          <h2 class="font-black text-white text-sm flex items-center gap-2">
+            <i data-lucide="list-checks" class="w-4 h-4 text-orange-400"></i> Matriz de Hábitos Prescritos
+          </h2>
+          <span class="text-[10px] font-mono text-orange-400 bg-orange-950 px-2 py-0.5 rounded border border-orange-800">
+            5 Hábitos Ativos
+          </span>
+        </div>
+
+        <div class="space-y-2.5 text-xs" id="disciplineHabitsList">
+          <!-- Hábito 1: Água -->
+          <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-base">💧</span>
+              <div>
+                <strong class="text-white block">Hidratação Estruturada</strong>
+                <span class="text-[10px] text-zinc-400">Meta: 4.000 ml fracionados ao longo do dia</span>
+              </div>
+            </div>
+            <span class="font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">95% Cumprido</span>
+          </div>
+
+          <!-- Hábito 2: Refeições -->
+          <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-base">🥗</span>
+              <div>
+                <strong class="text-white block">Aderência ao Cardápio</strong>
+                <span class="text-[10px] text-zinc-400">5 refeições prescritas no Pilar 3 com timing correto</span>
+              </div>
+            </div>
+            <span class="font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">87% Cumprido</span>
+          </div>
+
+          <!-- Hábito 3: Musculação -->
+          <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-base">🏋️</span>
+              <div>
+                <strong class="text-white block">Treino de Musculação (Pilar 4)</strong>
+                <span class="text-[10px] text-zinc-400">Divisão A/B/C com RPE 8-9 e progressão de carga</span>
+              </div>
+            </div>
+            <span class="font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">100% Cumprido</span>
+          </div>
+
+          <!-- Hábito 4: Cardio -->
+          <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-base">⚡</span>
+              <div>
+                <strong class="text-white block">Cardio Zona 2 (Pilar 4)</strong>
+                <span class="text-[10px] text-zinc-400">25 min pós-treino ou em jejum (120-135 bpm)</span>
+              </div>
+            </div>
+            <span class="font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">100% Cumprido</span>
+          </div>
+
+          <!-- Hábito 5: Sono -->
+          <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-base">🌙</span>
+              <div>
+                <strong class="text-white block">Higiene do Sono &amp; Descanso</strong>
+                <span class="text-[10px] text-zinc-400">Mínimo 7.0 horas com corte de telas às 22h30</span>
+              </div>
+            </div>
+            <span class="font-mono text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800 text-[10px]">80% Cumprido</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coluna Direita: Protocolo SOS & Resgate de Deslizes -->
+      <div class="hud-card p-5 space-y-4 border border-amber-900/40 bg-zinc-950/90 rounded-2xl">
+        <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+          <h2 class="font-black text-white text-sm flex items-center gap-2">
+            <i data-lucide="life-buoy" class="w-4 h-4 text-amber-400"></i> Protocolo SOS &amp; Prevenção de Furos
+          </h2>
+          <span class="text-[10px] font-mono text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-800">
+            Contenção de Danos
+          </span>
+        </div>
+
+        <div class="space-y-3 text-xs text-zinc-300">
+          <div class="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 space-y-1">
+            <strong class="text-amber-300 block font-bold">🛡️ Filosofia Antifrágil da Disciplina</strong>
+            <p class="text-[11px] text-zinc-300 leading-relaxed">
+              O paciente bem-sucedido não é aquele que nunca desliza, mas sim aquele que <strong>nunca comete o segundo erro consecutivo</strong>. A regra de contenção garante retorno imediato aos trilhos.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="p-2.5 rounded-lg bg-black/50 border border-zinc-800 flex items-start gap-2.5">
+              <span class="text-amber-400 font-bold text-sm">1.</span>
+              <p><strong class="text-white">Sem Jejum Compensatório:</strong> Evitar restrições severas após uma refeição livre, pois isso induz episódios subsequentes de compulsão.</p>
+            </div>
+            <div class="p-2.5 rounded-lg bg-black/50 border border-zinc-800 flex items-start gap-2.5">
+              <span class="text-amber-400 font-bold text-sm">2.</span>
+              <p><strong class="text-white">Flush Hídrico Imediato:</strong> +500ml de água logo após a refeição livre para modular a volemia e retenção de sódio.</p>
+            </div>
+            <div class="p-2.5 rounded-lg bg-black/50 border border-zinc-800 flex items-start gap-2.5">
+              <span class="text-amber-400 font-bold text-sm">3.</span>
+              <p><strong class="text-white">Canalização Anabólica:</strong> Manter o treino de musculação pesado para direcionar o excedente energético à síntese proteica.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 4. FEED CRONOLÓGICO DE REGISTROS ═══ -->
+    <div class="hud-card p-6 space-y-4 border border-zinc-800 bg-zinc-950/90 rounded-2xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-zinc-800 pb-3">
+        <div>
+          <h2 class="font-black text-white text-base flex items-center gap-2">
+            <i data-lucide="history" class="w-5 h-5 text-orange-500"></i> Feed Cronológico de Registros do Paciente
+          </h2>
+          <p class="text-xs text-zinc-400">Histórico de ações recebidas do aplicativo do paciente em tempo real.</p>
+        </div>
+        <button onclick="renderDisciplineTimeline()"
+          class="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center gap-1">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Recarregar Feed
+        </button>
+      </div>
+
+      <div id="disciplineTimelineFeed" class="space-y-3">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </div>
+  </section>
+
   <!-- 4.1 ADHERENCE & COMPLIANCE TAB (ABA 06) -->
   <section id="tab-adherence" class="max-w-7xl mx-auto space-y-6 w-full hidden">
     <!-- Header Banner HUD -->
@@ -5380,6 +5726,96 @@
             <button onclick="closeMetricsGlossaryModal()"
               class="btn-nax-amber px-5 py-2 rounded-xl text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)]">
               Entendi, Fechar
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           MODAL DE COMPARTILHAMENTO DO APP DO PACIENTE (PWA DISCIPLINA)
+      ═══════════════════════════════════════════════════════════ -->
+      <div id="patientShareModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-zinc-950 border border-orange-600/50 rounded-3xl overflow-hidden shadow-2xl space-y-0">
+          
+          <!-- Header do Modal -->
+          <div class="p-5 bg-gradient-to-r from-orange-950/80 via-zinc-900 to-black border-b border-zinc-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/40 flex items-center justify-center">
+                <i data-lucide="smartphone" class="w-5 h-5 text-orange-400"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-black text-white">Compartilhar App com o Paciente</h3>
+                <p class="text-xs text-orange-200/80">Envio do Pilar Disciplina &amp; Hábitos para o celular</p>
+              </div>
+            </div>
+            <button onclick="closePatientShareModal()" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <!-- Conteúdo do Modal -->
+          <div class="p-6 space-y-5 text-xs text-zinc-300">
+            <!-- Link Direto com Botão de Copiar -->
+            <div class="space-y-1.5">
+              <label class="font-mono text-[11px] text-orange-400 font-bold uppercase block">1. Link Público do App (PWA)</label>
+              <div class="flex gap-2">
+                <input type="text" id="patientShareLinkInput" readonly
+                  value="https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html"
+                  class="flex-1 bg-black border border-zinc-700 text-orange-200 font-mono text-xs px-3 py-2.5 rounded-xl outline-none select-all">
+                <button onclick="copyPatientShareLink()" id="btnCopyPatientLink"
+                  class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center gap-1.5 border border-zinc-600 transition-all shrink-0">
+                  <i data-lucide="copy" class="w-4 h-4 text-orange-400"></i> Copiar Link
+                </button>
+              </div>
+            </div>
+
+            <!-- Botão de Ação Direta: WhatsApp -->
+            <div class="space-y-1.5">
+              <label class="font-mono text-[11px] text-emerald-400 font-bold uppercase block">2. Envio Rápido</label>
+              <button onclick="sendPatientWhatsAppMessage()"
+                class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 transition-all">
+                <i data-lucide="message-circle" class="w-4 h-4"></i> Enviar Mensagem Pronta no WhatsApp do Paciente
+              </button>
+            </div>
+
+            <!-- QR Code para Leitura na Tela -->
+            <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 flex flex-col sm:flex-row items-center gap-4">
+              <div class="p-2 bg-white rounded-xl shrink-0 shadow-md">
+                <img id="patientQrCodeImg"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html"
+                  alt="QR Code do App do Paciente" class="w-28 h-28">
+              </div>
+              <div class="space-y-1 text-center sm:text-left">
+                <h4 class="font-bold text-white text-xs">Abertura Imediata no Consultório</h4>
+                <p class="text-[11px] text-zinc-400 leading-relaxed">
+                  Aponte a câmera do celular do paciente para escanear o QR Code e abrir o app instantaneamente sem precisar digitar nada.
+                </p>
+                <div class="pt-1 flex flex-wrap gap-2 justify-center sm:justify-start text-[10px] font-mono text-zinc-500">
+                  <span>📱 iOS Safari</span>
+                  <span>•</span>
+                  <span>🤖 Android Chrome</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dicas de Instalação -->
+            <div class="p-3 rounded-xl bg-orange-950/30 border border-orange-800/40 text-[11px] text-zinc-300 space-y-1">
+              <strong class="text-orange-300 block font-bold">💡 Instrução para o Paciente no Celular:</strong>
+              <p>• <strong>iPhone:</strong> No Safari, tocar em <em>Compartilhar</em> ➔ <em>Adicionar à Tela de Início</em>.</p>
+              <p>• <strong>Android:</strong> No Chrome, tocar em <em>Instalar aplicativo</em> (ou no banner na parte superior).</p>
+            </div>
+          </div>
+
+          <!-- Footer do Modal -->
+          <div class="p-4 bg-black/80 border-t border-zinc-800 flex justify-between items-center">
+            <button onclick="window.open('paciente.html', '_blank')"
+              class="text-orange-400 hover:text-orange-300 font-bold text-xs flex items-center gap-1.5 underline">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Testar App no Navegador
+            </button>
+            <button onclick="closePatientShareModal()"
+              class="btn-nax-orange px-5 py-2 rounded-xl text-xs font-bold shadow-[0_0_12px_rgba(249,115,22,0.3)]">
+              Concluído
             </button>
           </div>
 

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-black">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>NutriAx — Disciplina &amp; Hábitos</title>
+  <meta name="description"
+    content="App diário do paciente: acompanhamento de hábitos, hidratação fracionada, refeições e consistência.">
+
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#ea580c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NutriAx Hábitos">
+  <meta name="application-name" content="NutriAx Hábitos">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- Manifest & Icons -->
+  <link rel="manifest" href="manifest_paciente.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="shortcut icon" href="favicon.png" type="image/png">
+
+  <!-- Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            fire: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+              950: '#431407'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons & Canvas Confetti -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #080402;
+      color: #f3f4f6;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .hud-glass-card {
+      background: linear-gradient(135deg, rgba(28, 14, 4, 0.85) 0%, rgba(13, 6, 2, 0.95) 100%);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      border-radius: 1.25rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(254, 215, 170, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .hud-glass-card:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+    }
+
+    .btn-fire-glow {
+      background: linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #f97316 100%);
+      box-shadow: 0 4px 18px rgba(234, 88, 12, 0.45);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-fire-glow:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 10px rgba(234, 88, 12, 0.3);
+    }
+
+    @keyframes flameFlicker {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.8)); }
+      50% { transform: scale(1.12); filter: drop-shadow(0 0 16px rgba(251, 146, 60, 1)); }
+    }
+
+    .flame-anim {
+      animation: flameFlicker 2.2s infinite ease-in-out;
+    }
+
+    /* Custom Checkbox Animation */
+    .checkbox-done {
+      background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+      border-color: #fb923c;
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
+    }
+
+    /* Safe Area Insets for iOS Notch */
+    .safe-top {
+      padding-top: max(env(safe-area-inset-top), 1rem);
+    }
+
+    .safe-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+    }
+  </style>
+</head>
+
+<body class="min-h-full flex flex-col items-center justify-start pb-12 safe-top">
+
+  <!-- Container Mobile Max 480px -->
+  <main class="w-full max-w-md px-4 space-y-4">
+
+    <!-- ═══ 1. BANNER PWA INSTALL (SE NÃO INSTALADO) ═══ -->
+    <div id="pwaInstallBanner"
+      class="hidden p-3.5 rounded-2xl bg-gradient-to-r from-orange-950/90 via-amber-950/80 to-zinc-900 border border-orange-600/60 shadow-lg flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/40 flex items-center justify-center shrink-0">
+          <i data-lucide="smartphone" class="w-5 h-5 text-orange-400"></i>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-white leading-tight">Instalar App no Celular</h4>
+          <p class="text-[10px] text-orange-200/80">Acesse direto da tela inicial com 1 clique</p>
+        </div>
+      </div>
+      <button id="btnPwaInstall" onclick="promptPwaInstall()"
+        class="px-3 py-1.5 rounded-xl bg-orange-600 text-white font-bold text-xs shadow-md active:scale-95 transition-transform shrink-0">
+        Instalar
+      </button>
+    </div>
+
+    <!-- ═══ 2. HEADER DO PACIENTE & STREAK COUNTER ═══ -->
+    <header class="hud-glass-card p-5 space-y-3">
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+            <span class="text-[10px] font-mono font-bold tracking-widest text-orange-400 uppercase">
+              Pilar 2 · Disciplina &amp; Hábitos
+            </span>
+          </div>
+          <h1 class="text-xl font-black text-white mt-1 flex items-center gap-2" id="patientNameDisplay">
+            Paulo Vitor
+          </h1>
+          <p class="text-[11px] text-zinc-400 font-medium mt-0.5" id="currentDateDisplay">
+            Hoje, 31 de Agosto de 2026
+          </p>
+        </div>
+
+        <!-- Streak Badge 🔥 -->
+        <div class="flex flex-col items-end">
+          <div
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-950/90 border border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+            <i data-lucide="flame" class="w-5 h-5 text-orange-400 flame-anim"></i>
+            <div class="text-right">
+              <div class="text-xs font-black text-white tracking-tight" id="streakDaysCount">14 DIAS</div>
+              <div class="text-[8px] font-mono text-orange-300 font-bold uppercase">STREAK INVICTO</div>
+            </div>
+          </div>
+          <span class="text-[9px] font-mono text-zinc-500 mt-1 font-bold" id="disciplineTierBadge">🛡️ Nível: Blindado</span>
+        </div>
+      </div>
+
+      <!-- Barra do Score IDC do Dia -->
+      <div class="bg-black/60 p-3 rounded-xl border border-zinc-800/80 space-y-2">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-zinc-300 font-bold flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-orange-400"></i> Score do Dia (IDC)
+          </span>
+          <span class="font-black text-orange-400 text-sm" id="dailyScoreDisplay">85%</span>
+        </div>
+        <div class="w-full bg-zinc-800/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-zinc-700/50">
+          <div id="dailyScoreProgressBar"
+            class="h-full rounded-full bg-gradient-to-r from-orange-600 via-amber-500 to-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.8)] transition-all duration-500"
+            style="width: 85%;"></div>
+        </div>
+        <p class="text-[10px] text-zinc-400 text-center font-medium" id="dailyScoreFeedback">
+          ⚡ Quase perfeito! Falta apenas concluir a ceia e o check de sono.
+        </p>
+      </div>
+    </header>
+
+    <!-- ═══ 3. HIDRATAÇÃO FRACIONADA (CONTADOR RÁPIDO) ═══ -->
+    <section class="hud-glass-card p-4 space-y-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+            <i data-lucide="droplets" class="w-4 h-4 text-blue-400"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-black text-white">Hidratação Fracionada</h2>
+            <p class="text-[10px] text-zinc-400">Meta Prescrita: <strong class="text-blue-300" id="waterTargetDisplay">4.000 ml</strong>/dia</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-lg font-black text-blue-400" id="waterCurrentDisplay">2.500</span>
+          <span class="text-[10px] text-zinc-400 font-bold">ml</span>
+        </div>
+      </div>
+
+      <!-- Barra Hídrica -->
+      <div class="w-full bg-zinc-900 h-3 rounded-full overflow-hidden p-0.5 border border-blue-900/40">
+        <div id="waterProgressBar"
+          class="h-full rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-400 transition-all duration-300"
+          style="width: 62.5%;"></div>
+      </div>
+
+      <!-- Botões de Incremento com 1 Toque -->
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <button onclick="addWater(250)"
+          class="py-2 px-2 rounded-xl bg-zinc-900/90 border border-blue-900/40 hover:border-blue-500 text-blue-200 font-bold text-xs flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all">
+          <span class="text-sm">💧</span>
+          <span>+250 ml</span>
+          <span class="text-[8px] text-zinc-500 font-mono">Copo</span>
+        </button>
+        <button onclick="addWater(500)"
+          class="py-2 px-2 rounded-xl bg-blue-950/40 border border-blue-600/50 hover:border-blue-400 text-blue-100 font-black text-xs flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all shadow-[0_0_10px_rgba(59,130,246,0.15)]">
+          <span class="text-sm">🍶</span>
+          <span>+500 ml</span>
+          <span class="text-[8px] text-blue-300/80 font-mono">Garrafa</span>
+        </button>
+        <button onclick="addWater(1000)"
+          class="py-2 px-2 rounded-xl bg-zinc-900/90 border border-blue-900/40 hover:border-blue-500 text-blue-200 font-bold text-xs flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all">
+          <span class="text-sm">🥤</span>
+          <span>+1.000 ml</span>
+          <span class="text-[8px] text-zinc-500 font-mono">Shake</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ═══ 4. CHECKLIST DE REFEIÇÕES DO PLANO ALIMENTAR ═══ -->
+    <section class="hud-glass-card p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-zinc-800/80 pb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
+            <i data-lucide="utensils" class="w-4 h-4 text-orange-400"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-black text-white">Refeições &amp; Timing</h2>
+            <p class="text-[10px] text-zinc-400">Toque para confirmar o consumo</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-mono font-bold text-orange-400 bg-orange-950/80 border border-orange-800/80 px-2 py-0.5 rounded-full"
+          id="mealsCompletedTag">
+          3 de 5 Feitas
+        </span>
+      </div>
+
+      <!-- Lista de Refeições -->
+      <div class="space-y-2.5" id="patientMealsList">
+        <!-- Inserido dinamicamente via JS -->
+      </div>
+    </section>
+
+    <!-- ═══ 5. TREINO & PERFORMANCE (PILAR 4 INTEGRADO) ═══ -->
+    <section class="hud-glass-card p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-zinc-800/80 pb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+            <i data-lucide="dumbbell" class="w-4 h-4 text-blue-400"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-black text-white">Estímulo Físico &amp; Treino</h2>
+            <p class="text-[10px] text-zinc-400">Prescrição sincronizada do Pilar 4</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <!-- Treino de Musculação -->
+        <div onclick="toggleWorkoutCheck()"
+          class="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+          id="workoutCard">
+          <div class="flex items-center gap-3">
+            <div id="workoutCheckIcon"
+              class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-black text-white" id="workoutName">Treino A: Peitoral + Deltoide + Tríceps</h3>
+              <p class="text-[10px] text-zinc-400">Volume Prescrito · 18 séries efetivas</p>
+            </div>
+          </div>
+          <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300">
+            MUSCULAÇÃO
+          </span>
+        </div>
+
+        <!-- Cardio Zona 2 -->
+        <div onclick="toggleCardioCheck()"
+          class="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+          id="cardioCard">
+          <div class="flex items-center gap-3">
+            <div id="cardioCheckIcon"
+              class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-black text-white" id="cardioName">Cardio 25 min (Zona 2 · 120-135 bpm)</h3>
+              <p class="text-[10px] text-zinc-400">Oxidação lipídica e biogênese mitocondrial</p>
+            </div>
+          </div>
+          <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300">
+            CARDIO
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. SONO & HÁBITOS COMPORTAMENTAIS ═══ -->
+    <section class="hud-glass-card p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-zinc-800/80 pb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center">
+            <i data-lucide="moon" class="w-4 h-4 text-purple-400"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-black text-white">Janela Circadiana &amp; Sono</h2>
+            <p class="text-[10px] text-zinc-400">Recuperação do Sistema Nervoso Central</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <!-- Horas de Sono -->
+        <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
+          <label class="text-[9px] font-mono text-zinc-400 uppercase font-bold block">Horas Dormidas</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="sleepHoursInput" min="4" max="12" step="0.5" value="7.5"
+              onchange="updateSleepData()"
+              class="w-16 bg-black border border-zinc-700 text-white font-mono font-bold text-sm px-2 py-1 rounded-lg text-center focus:border-purple-500 outline-none">
+            <span class="text-xs text-zinc-400 font-bold">horas</span>
+          </div>
+        </div>
+
+        <!-- Qualidade do Sono -->
+        <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
+          <label class="text-[9px] font-mono text-zinc-400 uppercase font-bold block">Qualidade</label>
+          <div class="flex gap-1.5 justify-around pt-0.5">
+            <button onclick="setSleepQuality('bad')" id="sqBad"
+              class="p-1 rounded-lg border border-zinc-800 hover:border-red-500 text-sm">🥱</button>
+            <button onclick="setSleepQuality('ok')" id="sqOk"
+              class="p-1 rounded-lg border border-zinc-800 hover:border-amber-500 text-sm">😐</button>
+            <button onclick="setSleepQuality('good')" id="sqGood"
+              class="p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm shadow-[0_0_8px_rgba(168,85,247,0.4)]">😊</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 7. BOTÃO SOS & PROTOCOLO DE DESLIZES ═══ -->
+    <div class="pt-1">
+      <button onclick="openSosModal()"
+        class="w-full py-3 px-4 rounded-2xl bg-zinc-950 border border-amber-800/60 hover:border-amber-500/80 text-amber-300 font-bold text-xs flex items-center justify-between shadow-lg active:scale-98 transition-all">
+        <span class="flex items-center gap-2">
+          <i data-lucide="life-buoy" class="w-4 h-4 text-amber-400 animate-pulse"></i>
+          <span>Protocolo SOS: Deslizei na dieta, o que fazer?</span>
+        </span>
+        <span class="text-[9px] font-mono bg-amber-950 text-amber-200 border border-amber-800 px-2 py-0.5 rounded-full font-bold">
+          RESGATE
+        </span>
+      </button>
+    </div>
+
+    <!-- ═══ FOOTER & STATUS DE SINCRONIZAÇÃO ═══ -->
+    <footer class="text-center pt-2 space-y-1">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-500" id="syncDot"></span>
+        <span id="syncStatusText">Conectado ao Painel NutriAx Pro</span>
+      </div>
+      <p class="text-[9px] text-zinc-600 font-mono">NutriAx System · Versão 3.0 · Disciplina &amp; Hábitos</p>
+    </footer>
+
+  </main>
+
+  <!-- ═══ MODAL SOS: RESGATE IMEDIATO DE DESLIZE ═══ -->
+  <div id="sosModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-zinc-950 border border-amber-600/60 rounded-3xl p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
+          <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400"></i>
+          <span>Protocolo SOS de Contenção de Danos</span>
+        </div>
+        <button onclick="closeSosModal()" class="text-zinc-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-zinc-300">
+        <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-800/50 space-y-1">
+          <strong class="text-amber-300 block font-black">1. Regra de Ouro: Sem Culpa, Sem Punição</strong>
+          <p class="text-[11px] text-zinc-300 leading-relaxed">
+            Uma refeição fora do plano não destrói semanas de esforço. O que estraga o resultado é o efeito dominó de "chutar o balde" pelo resto do dia.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">💧</span>
+            <p><strong class="text-white">Beba 500ml de água agora:</strong> Ajuda a digestão e reduz a retenção hídrica do excesso de sódio.</p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">🥗</span>
+            <p><strong class="text-white">Próxima refeição normal:</strong> Não faça jejum forçado. Siga a próxima refeição prescrita exatamente como está na dieta.</p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">🏋️</span>
+            <p><strong class="text-white">Mantenha o treino:</strong> As calorias extras serão aproveitadas para recarregar o glicogênio muscular e render mais força.</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="closeSosModal()"
+        class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black text-xs shadow-lg active:scale-95 transition-transform">
+        Entendido! Voltando ao Foco 🔥
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ JAVASCRIPT DO APP DO PACIENTE ═══ -->
+  <script>
+    // 1. ESTADO INICIAL DOS DADOS
+    const STORAGE_KEY = 'nutriax_patient_discipline_v3';
+
+    let patientState = {
+      name: 'Paulo Vitor',
+      streakDays: 14,
+      tier: 'Blindado',
+      waterCurrent: 2500,
+      waterTarget: 4000,
+      workoutDone: true,
+      cardioDone: true,
+      sleepHours: 7.5,
+      sleepQuality: 'good',
+      meals: [
+        { id: 'm1', time: '07:30', name: 'Café da Manhã', detail: '3 Ovos + 2 Fatias Pão Integral + 150ml Café', kcal: 380, prot: 24, done: true },
+        { id: 'm2', time: '10:30', name: 'Lanche da Manhã', detail: '30g Whey Protein + 1 Fruta', kcal: 190, prot: 25, done: true },
+        { id: 'm3', time: '13:00', name: 'Almoço Estruturado', detail: '200g Frango + 200g Arroz + Legumes à vontade', kcal: 580, prot: 55, done: true },
+        { id: 'm4', time: '16:30', name: 'Pré-Treino', detail: '100g Banana + 40g Aveia + Canela', kcal: 240, prot: 6, done: false },
+        { id: 'm5', time: '20:00', name: 'Jantar Pós-Treino', detail: '200g Patinho Moído + 250g Batata Doce + Salada', kcal: 590, prot: 52, done: false }
+      ]
+    };
+
+    // 2. INICIALIZAÇÃO
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderAll();
+      setupPwaPrompt();
+      if (window.lucide) window.lucide.createIcons();
+    });
+
+    // 3. PERSISTÊNCIA LOCAL
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          patientState = Object.assign(patientState, JSON.parse(saved));
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar state local', e);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(patientState));
+        // Dispara evento para caso o painel do nutricionista esteja aberto na mesma aba/navegador
+        window.dispatchEvent(new Event('nutriax_data_updated'));
+      } catch (e) {
+        console.warn('Erro ao salvar state local', e);
+      }
+    }
+
+    // 4. RENDERIZAÇÃO
+    function renderAll() {
+      // Nome e Data
+      document.getElementById('patientNameDisplay').textContent = patientState.name;
+      document.getElementById('streakDaysCount').textContent = `${patientState.streakDays} DIAS`;
+      document.getElementById('disciplineTierBadge').textContent = `🛡️ Nível: ${patientState.tier}`;
+
+      // Hidratação
+      document.getElementById('waterCurrentDisplay').textContent = patientState.waterCurrent.toLocaleString('pt-BR');
+      document.getElementById('waterTargetDisplay').textContent = `${patientState.waterTarget.toLocaleString('pt-BR')} ml`;
+      const waterPct = Math.min(100, Math.round((patientState.waterCurrent / patientState.waterTarget) * 100));
+      document.getElementById('waterProgressBar').style.width = `${waterPct}%`;
+
+      // Refeições
+      renderMeals();
+
+      // Treino & Cardio
+      updateWorkoutVisuals();
+      updateCardioVisuals();
+
+      // Sono
+      document.getElementById('sleepHoursInput').value = patientState.sleepHours;
+      setSleepQualityVisuals(patientState.sleepQuality);
+
+      // Score IDC Geral do Dia
+      calculateDailyIDC();
+
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function renderMeals() {
+      const container = document.getElementById('patientMealsList');
+      if (!container) return;
+
+      const doneCount = patientState.meals.filter(m => m.done).length;
+      document.getElementById('mealsCompletedTag').textContent = `${doneCount} de ${patientState.meals.length} Feitas`;
+
+      container.innerHTML = patientState.meals.map(m => `
+        <div onclick="toggleMeal('${m.id}')"
+          class="p-3 rounded-xl ${m.done ? 'bg-orange-950/20 border-orange-500/40' : 'bg-zinc-900/80 border-zinc-800'} border flex items-center justify-between cursor-pointer active:scale-98 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-lg ${m.done ? 'checkbox-done text-white' : 'bg-zinc-800 border border-zinc-700 text-zinc-500'} flex items-center justify-center transition-all">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono font-bold text-orange-400">${m.time}</span>
+                <h3 class="text-xs font-bold ${m.done ? 'text-white line-through opacity-80' : 'text-white'}">${m.name}</h3>
+              </div>
+              <p class="text-[10px] text-zinc-400 truncate max-w-[210px]">${m.detail}</p>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="text-[10px] font-mono font-bold text-zinc-300">${m.prot}g P</span>
+            <span class="block text-[9px] text-zinc-500">${m.kcal} kcal</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 5. INTERAÇÕES COM 1 TOQUE
+    function toggleMeal(mealId) {
+      const meal = patientState.meals.find(m => m.id === mealId);
+      if (meal) {
+        meal.done = !meal.done;
+        if (meal.done && window.confetti) {
+          window.confetti({ particleCount: 25, spread: 45, origin: { y: 0.8 }, colors: ['#ea580c', '#fb923c', '#fbbf24'] });
+        }
+        saveState();
+        renderAll();
+      }
+    }
+
+    function addWater(amount) {
+      patientState.waterCurrent = Math.min(8000, patientState.waterCurrent + amount);
+      if (patientState.waterCurrent >= patientState.waterTarget && window.confetti) {
+        window.confetti({ particleCount: 30, spread: 60, origin: { y: 0.6 }, colors: ['#38bdf8', '#60a5fa', '#3b82f6'] });
+      }
+      saveState();
+      renderAll();
+    }
+
+    function toggleWorkoutCheck() {
+      patientState.workoutDone = !patientState.workoutDone;
+      saveState();
+      renderAll();
+    }
+
+    function toggleCardioCheck() {
+      patientState.cardioDone = !patientState.cardioDone;
+      saveState();
+      renderAll();
+    }
+
+    function updateWorkoutVisuals() {
+      const card = document.getElementById('workoutCard');
+      const icon = document.getElementById('workoutCheckIcon');
+      if (patientState.workoutDone) {
+        card.className = "p-3 rounded-xl bg-blue-950/30 border border-blue-500/50 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
+        icon.className = "w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-[0_0_8px_rgba(59,130,246,0.6)]";
+      } else {
+        card.className = "p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
+        icon.className = "w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500";
+      }
+    }
+
+    function updateCardioVisuals() {
+      const card = document.getElementById('cardioCard');
+      const icon = document.getElementById('cardioCheckIcon');
+      if (patientState.cardioDone) {
+        card.className = "p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/50 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
+        icon.className = "w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.6)]";
+      } else {
+        card.className = "p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
+        icon.className = "w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500";
+      }
+    }
+
+    function updateSleepData() {
+      const val = parseFloat(document.getElementById('sleepHoursInput').value);
+      if (!isNaN(val)) {
+        patientState.sleepHours = val;
+        saveState();
+        calculateDailyIDC();
+      }
+    }
+
+    function setSleepQuality(q) {
+      patientState.sleepQuality = q;
+      saveState();
+      renderAll();
+    }
+
+    function setSleepQualityVisuals(q) {
+      ['sqBad', 'sqOk', 'sqGood'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = "p-1 rounded-lg border border-zinc-800 text-sm";
+      });
+      if (q === 'bad') document.getElementById('sqBad').className = "p-1 rounded-lg border border-red-500 bg-red-950/60 text-sm";
+      if (q === 'ok') document.getElementById('sqOk').className = "p-1 rounded-lg border border-amber-500 bg-amber-950/60 text-sm";
+      if (q === 'good') document.getElementById('sqGood').className = "p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm shadow-[0_0_8px_rgba(168,85,247,0.4)]";
+    }
+
+    // 6. CÁLCULO DO SCORE IDC DO DIA
+    function calculateDailyIDC() {
+      // 1. Refeições (40 pts)
+      const totalMeals = patientState.meals.length || 1;
+      const doneMeals = patientState.meals.filter(m => m.done).length;
+      const mealsScore = (doneMeals / totalMeals) * 40;
+
+      // 2. Treino e Cardio (30 pts)
+      const workoutScore = (patientState.workoutDone ? 15 : 0) + (patientState.cardioDone ? 15 : 0);
+
+      // 3. Hidratação (15 pts)
+      const waterRatio = Math.min(1, patientState.waterCurrent / (patientState.waterTarget || 1));
+      const waterScore = waterRatio * 15;
+
+      // 4. Sono (15 pts)
+      let sleepScore = (patientState.sleepHours >= 7 ? 10 : 5);
+      if (patientState.sleepQuality === 'good') sleepScore += 5;
+      else if (patientState.sleepQuality === 'ok') sleepScore += 3;
+
+      const totalScore = Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
+
+      document.getElementById('dailyScoreDisplay').textContent = `${totalScore}%`;
+      document.getElementById('dailyScoreProgressBar').style.width = `${totalScore}%`;
+
+      const fb = document.getElementById('dailyScoreFeedback');
+      if (totalScore >= 95) {
+        fb.innerHTML = "🏆 <strong>Perfeição Total!</strong> Todas as metas do dia foram executadas com maestria.";
+      } else if (totalScore >= 80) {
+        fb.innerHTML = "🔥 <strong>Excelente consistência!</strong> Foco total para bater os 100% hoje.";
+      } else if (totalScore >= 50) {
+        fb.innerHTML = "⚡ <strong>Em andamento.</strong> Continue executando os rituais para blindar seu resultado.";
+      } else {
+        fb.innerHTML = "🎯 <strong>Início de jornada.</strong> Marque suas refeições e hidratação para elevar o score.";
+      }
+    }
+
+    // 7. MODAL SOS
+    function openSosModal() {
+      document.getElementById('sosModal').classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeSosModal() {
+      document.getElementById('sosModal').classList.add('hidden');
+    }
+
+    // 8. PWA INSTALL PROMPT
+    let deferredPrompt = null;
+    function setupPwaPrompt() {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const banner = document.getElementById('pwaInstallBanner');
+        if (banner) banner.classList.remove('hidden');
+      });
+
+      window.addEventListener('appinstalled', () => {
+        const banner = document.getElementById('pwaInstallBanner');
+        if (banner) banner.classList.add('hidden');
+        deferredPrompt = null;
+      });
+    }
+
+    function promptPwaInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          const banner = document.getElementById('pwaInstallBanner');
+          if (banner) banner.classList.add('hidden');
+        });
+      } else {
+        alert('Para instalar no iPhone: toque no botão Compartilhar do Safari e selecione "Adicionar à Tela de Início". No Android: abra o menu do Chrome e selecione "Instalar aplicativo".');
+      }
+    }
+  </script>
+</body>
+
+</html>

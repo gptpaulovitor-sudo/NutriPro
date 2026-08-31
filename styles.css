@@ -166,6 +166,82 @@ option {
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(216, 180, 254, 0.3) !important;
 }
 
+/* Pilar 2: Disciplina & Hábitos (Laranja Solar / Lava Neon) */
+.hud-card-orange {
+  background: linear-gradient(135deg, #1c0e04 0%, #0d0602 50%, #080301 100%) !important;
+  border: 1px solid rgba(249, 115, 22, 0.4) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(249, 115, 22, 0.08) !important;
+}
+
+.hud-card-orange:hover {
+  border-color: rgba(251, 146, 60, 0.6) !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(249, 115, 22, 0.18) !important;
+}
+
+.btn-nax-orange {
+  background: linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #f97316 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 14px rgba(234, 88, 12, 0.45) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-nax-orange:hover {
+  box-shadow: 0 0 22px rgba(249, 115, 22, 0.8) !important;
+  transform: translateY(-1px);
+}
+
+.hud-tab-btn-orange {
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  background: rgba(249, 115, 22, 0.05);
+  color: #fed7aa;
+  transition: all 0.2s ease;
+}
+
+.hud-tab-btn-orange:hover {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #ffffff;
+}
+
+.hud-tab-btn-orange.active {
+  color: #ffffff !important;
+  background: rgba(194, 65, 12, 0.6) !important;
+  border-color: #f97316 !important;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.4), inset 0 1px 0 rgba(254, 215, 170, 0.3) !important;
+}
+
+/* Heatmap de Hábitos & Consistência (Estilo GitHub / Laranja) */
+.heatmap-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.3);
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.8);
+}
+
+.heatmap-cell-0 { background-color: rgba(39, 39, 42, 0.5); border: 1px solid rgba(63, 63, 70, 0.4); }
+.heatmap-cell-1 { background-color: #7c2d12; border: 1px solid #9a3412; }
+.heatmap-cell-2 { background-color: #c2410c; border: 1px solid #ea580c; }
+.heatmap-cell-3 { background-color: #f97316; border: 1px solid #fb923c; box-shadow: 0 0 4px rgba(249, 115, 22, 0.4); }
+.heatmap-cell-4 { background-color: #fbbf24; border: 1px solid #fef08a; box-shadow: 0 0 8px rgba(251, 191, 36, 0.8); }
+
+@keyframes streakGlow {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(251, 146, 60, 0.9)); }
+}
+
+.streak-fire-pulse {
+  animation: streakGlow 2.5s infinite ease-in-out;
+}
+
 /* ═══════════════════════════════════════════════════════════
    CLASSES DE ALTERNÂNCIA DE TREINO (AZUL VS ROXO)
 ═══════════════════════════════════════════════════════════ */
