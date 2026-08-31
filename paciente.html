@@ -5,9 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>NutriAx — Disciplina &amp; Hábitos</title>
+  <title>NutriAx — Disciplina, Hábitos &amp; Treino</title>
   <meta name="description"
-    content="App diário do paciente: acompanhamento de hábitos, hidratação fracionada, refeições e consistência.">
+    content="App do paciente: acompanhamento de hábitos, agenda semanal de treinos, GIFs de execução biomecânica, hidratação fracionada e Score IDC.">
 
   <!-- PWA Meta Tags -->
   <meta name="theme-color" content="#ea580c">
@@ -70,22 +70,30 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background: #080402;
+      background: #060302;
       color: #f3f4f6;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
 
     .hud-glass-card {
-      background: linear-gradient(135deg, rgba(28, 14, 4, 0.85) 0%, rgba(13, 6, 2, 0.95) 100%);
+      background: linear-gradient(135deg, rgba(26, 12, 4, 0.9) 0%, rgba(10, 5, 2, 0.98) 100%);
       border: 1px solid rgba(249, 115, 22, 0.25);
       border-radius: 1.25rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(254, 215, 170, 0.1);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(254, 215, 170, 0.1);
+      backdrop-filter: blur(14px);
+    }
+
+    .hud-glass-card-blue {
+      background: linear-gradient(135deg, rgba(8, 18, 38, 0.92) 0%, rgba(3, 7, 18, 0.98) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 1.25rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(147, 197, 253, 0.1);
+      backdrop-filter: blur(14px);
     }
 
     .hud-glass-card:hover {
-      border-color: rgba(249, 115, 22, 0.4);
+      border-color: rgba(249, 115, 22, 0.45);
     }
 
     .btn-fire-glow {
@@ -115,6 +123,21 @@
       box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
     }
 
+    .checkbox-done-blue {
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      border-color: #60a5fa;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+    }
+
+    /* Horizontal scrollbar styling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
     /* Safe Area Insets for iOS Notch */
     .safe-top {
       padding-top: max(env(safe-area-inset-top), 1rem);
@@ -126,10 +149,10 @@
   </style>
 </head>
 
-<body class="min-h-full flex flex-col items-center justify-start pb-12 safe-top">
+<body class="min-h-full flex flex-col items-center justify-start pb-16 safe-top">
 
-  <!-- Container Mobile Max 480px -->
-  <main class="w-full max-w-md px-4 space-y-4">
+  <!-- Container Mobile Max 520px -->
+  <main class="w-full max-w-lg px-3.5 sm:px-4 space-y-4">
 
     <!-- ═══ 1. BANNER PWA INSTALL (SE NÃO INSTALADO) ═══ -->
     <div id="pwaInstallBanner"
@@ -150,7 +173,7 @@
     </div>
 
     <!-- ═══ 2. HEADER DO PACIENTE & STREAK COUNTER ═══ -->
-    <header class="hud-glass-card p-5 space-y-3">
+    <header class="hud-glass-card p-4 sm:p-5 space-y-3">
       <div class="flex justify-between items-start">
         <div>
           <div class="flex items-center gap-2">
@@ -200,7 +223,140 @@
       </div>
     </header>
 
-    <!-- ═══ 3. HIDRATAÇÃO FRACIONADA (CONTADOR RÁPIDO) ═══ -->
+    <!-- ═══ 3. AGENDA SEMANAL & SINERGIA NUTRICIONAL (7 DIAS) ═══ -->
+    <section class="hud-glass-card-blue p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-blue-900/40 pb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+            <i data-lucide="calendar" class="w-4 h-4 text-blue-400"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h2 class="text-sm font-black text-white">Agenda Semanal &amp; Sinergia</h2>
+              <span class="text-[9px] font-mono font-bold text-blue-400 bg-blue-950 border border-blue-800 px-1.5 py-0.2 rounded">
+                7 Dias
+              </span>
+            </div>
+            <p class="text-[10px] text-zinc-400">Diretrizes de Carbo, Proteína e Treino do Dia</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carrossel Horizontal de 7 Dias -->
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5" id="weeklyScheduleCarousel">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <!-- Card Expandido de Sinergia Nutricional do Dia Selecionado -->
+      <div id="scheduleSynergyCard" class="p-3 rounded-xl bg-black/60 border border-blue-900/50 space-y-2.5 text-xs">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>SINERGIA NUTRICIONAL DO DIA</span>
+          </div>
+          <span id="synergyDayLabel" class="text-[10px] font-mono font-bold text-blue-300 bg-blue-950/80 border border-blue-800 px-2 py-0.5 rounded">
+            DIA 1 · TREINO A
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-[11px]">
+          <div class="p-2 rounded-lg bg-zinc-950/80 border border-amber-900/40">
+            <span class="text-amber-400 font-bold flex items-center gap-1 text-[10px]">
+              <span>🍞</span> Carbo Pré-Treino:
+            </span>
+            <p id="synergyCarbo" class="text-zinc-200 font-medium text-[11px] mt-0.5">80-100g denso (Aveia/Arroz/Mel)</p>
+          </div>
+
+          <div class="p-2 rounded-lg bg-zinc-950/80 border border-red-900/40">
+            <span class="text-rose-400 font-bold flex items-center gap-1 text-[10px]">
+              <span>🥩</span> Aporte Proteico:
+            </span>
+            <p id="synergyProt" class="text-zinc-200 font-medium text-[11px] mt-0.5">2.0 g/kg (232g/dia)</p>
+          </div>
+
+          <div class="p-2 rounded-lg bg-zinc-950/80 border border-blue-900/40">
+            <span class="text-blue-400 font-bold flex items-center gap-1 text-[10px]">
+              <span>💧</span> Meta Hídrica:
+            </span>
+            <p id="synergyWater" class="text-zinc-200 font-medium text-[11px] mt-0.5">4.632 mL (40 mL/kg)</p>
+          </div>
+
+          <div class="p-2 rounded-lg bg-zinc-950/80 border border-emerald-900/40">
+            <span class="text-emerald-400 font-bold flex items-center gap-1 text-[10px]">
+              <span>⚡</span> Foco Anabólico:
+            </span>
+            <p id="synergyFocus" class="text-zinc-200 font-medium text-[11px] mt-0.5">Superávit peri-treino p/ força</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. ESTÍMULO FÍSICO & FICHA COMPLETA DE TREINO (ESTILO FIGURA 3) ═══ -->
+    <section class="hud-glass-card-blue p-4 space-y-3.5">
+      
+      <!-- Cabeçalho do Treino Selecionado -->
+      <div class="p-3.5 rounded-xl bg-gradient-to-r from-blue-950/90 via-zinc-950 to-blue-950/80 border border-blue-600/60 shadow-lg space-y-2">
+        <div class="flex justify-between items-start">
+          <div class="flex items-center gap-3">
+            <div id="workoutRoutineBadge" class="w-8 h-8 rounded-xl bg-blue-600 border border-blue-400 text-white font-black flex items-center justify-center text-sm shadow-[0_0_12px_rgba(59,130,246,0.6)]">
+              A
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 id="workoutRoutineTitle" class="text-sm sm:text-base font-black text-white tracking-tight">
+                  Treino A · Push A (Força Mecânica e Potência)
+                </h2>
+                <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-700">
+                  ALVO ATIVO
+                </span>
+              </div>
+              <p id="workoutRoutineSubtitle" class="text-[11px] text-zinc-400 font-mono mt-0.5">
+                6 exercícios estruturados · Volume: 21 sets
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ação Rápida de Concluir Treino Todo -->
+        <div class="pt-1 flex items-center justify-between gap-2">
+          <button id="btnCompleteFullWorkout" onclick="toggleWorkoutCheck()"
+            class="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 transition-all">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span id="btnCompleteWorkoutText">Concluir Treino de Hoje</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Exercícios Prescritos (Ficha Detalhada com Badges e Botão GIF) -->
+      <div class="space-y-3" id="patientExercisesList">
+        <!-- Renderizado dinamicamente via JS com cada exercício exatamente como a Figura 3 -->
+      </div>
+
+      <!-- Rodapé de Progressão de Cargas -->
+      <div class="p-2.5 rounded-xl bg-black/60 border border-emerald-900/50 flex items-center gap-2 text-xs text-emerald-300">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+        <span class="text-[11px]"><strong>Diretriz de Progressão:</strong> Busque +1 repetição por série antes de aumentar a carga total.</span>
+      </div>
+
+      <!-- Seção de Cardio Integrado -->
+      <div class="p-3 rounded-xl bg-zinc-950/90 border border-emerald-900/50 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div id="cardioCheckIcon" onclick="toggleCardioCheck()"
+            class="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all">
+            <i data-lucide="check" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-black text-white" id="cardioName">Cardio 25-45 min (Zona 2 · 112-130 bpm)</h3>
+            <p class="text-[10px] text-zinc-400">Oxidação lipídica pura &amp; biogênese mitocondrial</p>
+          </div>
+        </div>
+        <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 shrink-0">
+          CARDIO
+        </span>
+      </div>
+    </section>
+
+    <!-- ═══ 5. HIDRATAÇÃO FRACIONADA (CONTADOR RÁPIDO) ═══ -->
     <section class="hud-glass-card p-4 space-y-3">
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
@@ -248,7 +404,7 @@
       </div>
     </section>
 
-    <!-- ═══ 4. CHECKLIST DE REFEIÇÕES DO PLANO ALIMENTAR ═══ -->
+    <!-- ═══ 6. CHECKLIST DE REFEIÇÕES DO PLANO ALIMENTAR ═══ -->
     <section class="hud-glass-card p-4 space-y-3">
       <div class="flex justify-between items-center border-b border-zinc-800/80 pb-2">
         <div class="flex items-center gap-2">
@@ -272,62 +428,7 @@
       </div>
     </section>
 
-    <!-- ═══ 5. TREINO & PERFORMANCE (PILAR 4 INTEGRADO) ═══ -->
-    <section class="hud-glass-card p-4 space-y-3">
-      <div class="flex justify-between items-center border-b border-zinc-800/80 pb-2">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
-            <i data-lucide="dumbbell" class="w-4 h-4 text-blue-400"></i>
-          </div>
-          <div>
-            <h2 class="text-sm font-black text-white">Estímulo Físico &amp; Treino</h2>
-            <p class="text-[10px] text-zinc-400">Prescrição sincronizada do Pilar 4</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <!-- Treino de Musculação -->
-        <div onclick="toggleWorkoutCheck()"
-          class="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all"
-          id="workoutCard">
-          <div class="flex items-center gap-3">
-            <div id="workoutCheckIcon"
-              class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400">
-              <i data-lucide="check" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <h3 class="text-xs font-black text-white" id="workoutName">Treino A: Peitoral + Deltoide + Tríceps</h3>
-              <p class="text-[10px] text-zinc-400">Volume Prescrito · 18 séries efetivas</p>
-            </div>
-          </div>
-          <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300">
-            MUSCULAÇÃO
-          </span>
-        </div>
-
-        <!-- Cardio Zona 2 -->
-        <div onclick="toggleCardioCheck()"
-          class="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all"
-          id="cardioCard">
-          <div class="flex items-center gap-3">
-            <div id="cardioCheckIcon"
-              class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400">
-              <i data-lucide="check" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <h3 class="text-xs font-black text-white" id="cardioName">Cardio 25 min (Zona 2 · 120-135 bpm)</h3>
-              <p class="text-[10px] text-zinc-400">Oxidação lipídica e biogênese mitocondrial</p>
-            </div>
-          </div>
-          <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300">
-            CARDIO
-          </span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 6. SONO & HÁBITOS COMPORTAMENTAIS ═══ -->
+    <!-- ═══ 7. SONO & HÁBITOS COMPORTAMENTAIS ═══ -->
     <section class="hud-glass-card p-4 space-y-3">
       <div class="flex justify-between items-center border-b border-zinc-800/80 pb-2">
         <div class="flex items-center gap-2">
@@ -348,55 +449,165 @@
           <div class="flex items-center gap-2">
             <input type="number" id="sleepHoursInput" min="4" max="12" step="0.5" value="7.5"
               onchange="updateSleepData()"
-              class="w-16 bg-black border border-zinc-700 text-white font-mono font-bold text-sm px-2 py-1 rounded-lg text-center focus:border-purple-500 outline-none">
-            <span class="text-xs text-zinc-400 font-bold">horas</span>
+              class="w-full bg-black border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-purple-500">
+            <span class="text-xs text-zinc-400 font-bold">h</span>
           </div>
         </div>
 
-        <!-- Qualidade do Sono -->
+        <!-- Qualidade Subjetiva -->
         <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
           <label class="text-[9px] font-mono text-zinc-400 uppercase font-bold block">Qualidade</label>
-          <div class="flex gap-1.5 justify-around pt-0.5">
+          <div class="grid grid-cols-3 gap-1 pt-0.5">
             <button onclick="setSleepQuality('bad')" id="sqBad"
-              class="p-1 rounded-lg border border-zinc-800 hover:border-red-500 text-sm">🥱</button>
+              class="p-1 rounded-lg border border-zinc-800 hover:border-red-500 text-sm flex items-center justify-center">
+              😴
+            </button>
             <button onclick="setSleepQuality('ok')" id="sqOk"
-              class="p-1 rounded-lg border border-zinc-800 hover:border-amber-500 text-sm">😐</button>
+              class="p-1 rounded-lg border border-zinc-800 hover:border-amber-500 text-sm flex items-center justify-center">
+              😐
+            </button>
             <button onclick="setSleepQuality('good')" id="sqGood"
-              class="p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm shadow-[0_0_8px_rgba(168,85,247,0.4)]">😊</button>
+              class="p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm flex items-center justify-center shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+              😊
+            </button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ═══ 7. BOTÃO SOS & PROTOCOLO DE DESLIZES ═══ -->
-    <div class="pt-1">
+    <!-- ═══ 8. BOTÃO SOS "DESLIZEI NA DIETA" ═══ -->
+    <div class="pt-2">
       <button onclick="openSosModal()"
-        class="w-full py-3 px-4 rounded-2xl bg-zinc-950 border border-amber-800/60 hover:border-amber-500/80 text-amber-300 font-bold text-xs flex items-center justify-between shadow-lg active:scale-98 transition-all">
-        <span class="flex items-center gap-2">
-          <i data-lucide="life-buoy" class="w-4 h-4 text-amber-400 animate-pulse"></i>
-          <span>Protocolo SOS: Deslizei na dieta, o que fazer?</span>
-        </span>
-        <span class="text-[9px] font-mono bg-amber-950 text-amber-200 border border-amber-800 px-2 py-0.5 rounded-full font-bold">
-          RESGATE
-        </span>
+        class="w-full p-3.5 rounded-2xl bg-gradient-to-r from-red-950/60 via-amber-950/60 to-zinc-900 border border-amber-600/40 hover:border-amber-500 text-amber-200 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all">
+        <i data-lucide="life-buoy" class="w-4 h-4 text-amber-400"></i>
+        <span>🚨 Deslizei na Dieta? Ativar Protocolo SOS Sem Culpa</span>
       </button>
     </div>
 
-    <!-- ═══ FOOTER & STATUS DE SINCRONIZAÇÃO ═══ -->
-    <footer class="text-center pt-2 space-y-1">
-      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-400">
-        <span class="w-2 h-2 rounded-full bg-emerald-500" id="syncDot"></span>
-        <span id="syncStatusText">Conectado ao Painel NutriAx Pro</span>
-      </div>
-      <p class="text-[9px] text-zinc-600 font-mono">NutriAx System · Versão 3.0 · Disciplina &amp; Hábitos</p>
-    </footer>
-
   </main>
 
-  <!-- ═══ MODAL SOS: RESGATE IMEDIATO DE DESLIZE ═══ -->
-  <div id="sosModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-zinc-950 border border-amber-600/60 rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL DE DEMONSTRAÇÃO VISUAL & BIOMECÂNICA (GIF & GUIA)
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="exerciseGuideModal"
+    class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div
+      class="bg-zinc-950 border border-blue-600/60 rounded-2xl w-full max-w-lg overflow-hidden shadow-[0_0_50px_rgba(37,99,235,0.4)] animate-in fade-in zoom-in-95 duration-200 my-auto">
+
+      <!-- Modal Header -->
+      <div
+        class="p-4 bg-gradient-to-r from-blue-950/90 via-black to-zinc-950 border-b border-blue-800/60 flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-1.5 flex-wrap mb-1">
+            <span
+              class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-700/80 uppercase tracking-wider flex items-center gap-1">
+              <i data-lucide="video" class="w-3 h-3 text-blue-400"></i> Demonstração Visual
+            </span>
+            <span id="guideModalGroup"
+              class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">Peitoral</span>
+            <span id="guideModalEquip"
+              class="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-800/60">Barra · Composto</span>
+          </div>
+          <h2 id="guideModalTitle" class="text-base sm:text-lg font-black text-white tracking-tight">Supino Reto com Barra</h2>
+          <p id="guideModalSubtitle" class="text-[10px] text-zinc-400 mt-0.5 font-mono">Referência: Delavier · Evans · gifdotreino.com</p>
+        </div>
+        <button onclick="closeExerciseGuideModal()"
+          class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors border border-zinc-800"
+          title="Fechar">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (GIF + Instruções) -->
+      <div class="p-4 space-y-3.5 max-h-[75vh] overflow-y-auto">
+
+        <!-- Preview do GIF Animado -->
+        <div class="relative w-full rounded-xl overflow-hidden bg-black border border-blue-900/60 flex items-center justify-center min-h-[220px] shadow-inner">
+          <img id="guideModalGif" src="" alt="Demonstração do Exercício" referrerpolicy="no-referrer"
+            class="w-full h-auto max-h-[240px] object-contain rounded-lg transition-opacity duration-300"
+            onerror="handleGuideGifError(this);" />
+
+          <div
+            class="absolute bottom-2 left-2 right-2 bg-black/80 backdrop-blur-sm border border-zinc-800 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-[10px]">
+            <span class="text-zinc-400 font-mono flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> GIF 60 FPS
+            </span>
+            <span id="guideModalCadence" class="text-blue-300 font-mono font-bold">Cadência: 3-0-1-0</span>
+          </div>
+        </div>
+
+        <!-- Músculos Alvo -->
+        <div class="p-2.5 rounded-xl bg-blue-950/30 border border-blue-800/40 space-y-1 text-xs">
+          <div class="flex items-center gap-1 text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+            <i data-lucide="target" class="w-3.5 h-3.5"></i> Mapeamento Muscular
+          </div>
+          <div><span class="text-zinc-400">Músculo Primário:</span> <strong id="guideModalPrimary" class="text-white font-semibold">Peitoral Maior</strong></div>
+          <div><span class="text-zinc-400">Sinérgicos:</span> <span id="guideModalSecondary" class="text-zinc-300">Deltoide Anterior, Tríceps</span></div>
+        </div>
+
+        <!-- Passo a Passo de Execução -->
+        <div class="space-y-1.5">
+          <h4 class="text-[11px] font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-emerald-400"></i> Passo a Passo de Execução
+          </h4>
+          <div id="guideModalSteps" class="space-y-1 text-xs text-zinc-300">
+            <!-- Preenchido dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Respiração e Cuidados -->
+        <div class="grid grid-cols-1 gap-2">
+          <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs space-y-0.5">
+            <span class="text-purple-400 font-bold flex items-center gap-1 text-[10px]">
+              <i data-lucide="wind" class="w-3 h-3"></i> Padrão Respiratório:
+            </span>
+            <p id="guideModalBreathing" class="text-zinc-300 text-[11px] leading-relaxed">
+              Inspire na descida (excêntrica) e expire no esforço da subida (concêntrica).
+            </p>
+          </div>
+
+          <div class="p-2.5 rounded-xl bg-red-950/30 border border-red-900/40 text-xs space-y-0.5">
+            <span class="text-red-400 font-bold flex items-center gap-1 text-[10px]">
+              <i data-lucide="alert-triangle" class="w-3 h-3"></i> Erros Comuns a Evitar:
+            </span>
+            <p id="guideModalMistakes" class="text-zinc-400 text-[11px] leading-relaxed">
+              Não elevar os ombros ou hiperextender a lombar durante o movimento.
+            </p>
+          </div>
+        </div>
+
+        <!-- Cronômetro de Descanso / Timer de Séries -->
+        <div class="p-3 rounded-xl bg-blue-950/40 border border-blue-600/40 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-[10px] font-mono text-blue-300 font-bold uppercase block">Timer de Descanso</span>
+            <span id="restTimerDisplay" class="text-lg font-black text-white font-mono">02:00</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="startRestTimer(60)" class="px-2.5 py-1 rounded-lg bg-blue-900/60 hover:bg-blue-800 border border-blue-700 text-xs font-mono text-white font-bold active:scale-95">
+              60s
+            </button>
+            <button onclick="startRestTimer(90)" class="px-2.5 py-1 rounded-lg bg-blue-900/60 hover:bg-blue-800 border border-blue-700 text-xs font-mono text-white font-bold active:scale-95">
+              90s
+            </button>
+            <button onclick="startRestTimer(120)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-mono text-white font-black shadow-md active:scale-95">
+              120s
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL SOS: "DESLIZEI NA DIETA"
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="sosModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-zinc-950 border border-amber-500/60 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-[0_0_40px_rgba(245,158,11,0.3)] animate-in fade-in zoom-in-95 duration-200">
+
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
         <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
           <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400"></i>
           <span>Protocolo SOS de Contenção de Danos</span>
@@ -439,7 +650,431 @@
 
   <!-- ═══ JAVASCRIPT DO APP DO PACIENTE ═══ -->
   <script>
-    // 1. ESTADO INICIAL DOS DADOS
+    // 1. BANCO DE DADOS DE ROTINAS, EXERCÍCIOS E GIFS (SINCRONIZADO COM PILAR 4)
+    const WORKOUT_DATABASE = {
+      'A': {
+        id: 'A',
+        name: 'Treino A · Push A (Força Mecânica e Potência)',
+        badge: 'A',
+        subtitle: '6 exercícios estruturados · Volume: 21 sets',
+        exercises: [
+          {
+            num: 1,
+            id: 'pe01',
+            name: 'Supino Reto com Barra',
+            group: 'Peitoral',
+            equip: 'Barra · Composto',
+            primary: 'Peitoral Maior (Feixe Esternocostal)',
+            secondary: 'Deltoide Anterior, Tríceps Braquial',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            resistColor: 'red',
+            sets: 4,
+            reps: '5-7',
+            rpe: 8,
+            rest: 150,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+            steps: [
+              'Deite no banco mantendo 5 pontos de contato: pés no chão, glúteos, escápulas retraídas e cabeça apoiada.',
+              'Desça a barra controladamente em 3 segundos até a linha dos mamilos sem rebater no esterno.',
+              'Empurre a barra com força máxima concêntrica mantendo as escápulas aduzidas e os cotovelos a ~45-60° do tronco.'
+            ],
+            breathing: 'Inspire na descida (excêntrica) e solte o ar no final da subida (concêntrica).',
+            mistakes: 'Não elevar os ombros em direção às orelhas e evitar a perda do arco torácico durante o esforço.'
+          },
+          {
+            num: 2,
+            id: 'sh01',
+            name: 'Desenvolvimento Militar em Pé com Barra',
+            group: 'Ombros',
+            equip: 'Barra · Composto',
+            primary: 'Deltoide Anterior & Medial',
+            secondary: 'Tríceps, Trapézio Superior, Core',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            resistColor: 'red',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8,
+            rest: 120,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/barbell-standing-military-press.gif',
+            steps: [
+              'Em pé com pés na largura dos ombros, glúteos e abdômen contraídos para travar a pelve.',
+              'Segure a barra ligeiramente fora da linha dos ombros, cotovelos apontados para frente.',
+              'Empurre a barra na vertical, passando rente ao rosto e finalizando com a cabeça ligeiramente à frente sob a barra.'
+            ],
+            breathing: 'Inspire antes de iniciar a subida, trave o core e expire ao passar o topo da cabeça.',
+            mistakes: 'Não hiperextender a coluna lombar para compensar a carga.'
+          },
+          {
+            num: 3,
+            id: 'pe05',
+            name: 'Supino Inclinado com Halteres',
+            group: 'Peitoral',
+            equip: 'Halteres · Composto',
+            primary: 'Peitoral Maior (Porção Superior / Clavicular)',
+            secondary: 'Deltoide Anterior, Tríceps',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            resistColor: 'blue',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-incline-bench-press.gif',
+            steps: [
+              'Ajuste o banco em inclinação de 30° a 45°.',
+              'Desça os halteres em 3s sentindo o alongamento do feixe superior do peito.',
+              'Empurre os halteres convergindo levemente no topo sem bater os pesos.'
+            ],
+            breathing: 'Inspire profundamente durante a descida e expire no terço final da subida.',
+            mistakes: 'Evitar inclinar o banco a mais de 45° para não transferir a carga excessivamente para o deltoide.'
+          },
+          {
+            num: 4,
+            id: 'pe12',
+            name: 'Paralelas (Dips) com Sobrepesa',
+            group: 'Peitoral',
+            equip: 'Peso Corporal · Composto',
+            primary: 'Peitoral Maior (Tronco Inclinado à frente)',
+            secondary: 'Tríceps Braquial, Deltoide Anterior',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            resistColor: 'blue',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/chest-dip.gif',
+            steps: [
+              'Suspenda o corpo nas barras paralelas, incline o tronco 30° à frente e flexione os joelhos.',
+              'Desça de forma controlada até os cotovelos formarem ângulo de 90°.',
+              'Empurre o corpo para cima focando na contração do peitoral inferior.'
+            ],
+            breathing: 'Inspire na descida e expire com força na subida.',
+            mistakes: 'Não descer excessivamente se sentir desconforto anterior no ombro.'
+          },
+          {
+            num: 5,
+            id: 'sh06',
+            name: 'Elevação Lateral com Halteres',
+            group: 'Ombros',
+            equip: 'Halteres · Isolador',
+            primary: 'Deltoide Medial (Feixe Acromial / Largura)',
+            secondary: 'Deltoide Anterior, Trapézio Sup.',
+            cadence: '3-1-1-0 · Exc. 3s / P.fundo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            resistColor: 'red',
+            sets: 4,
+            reps: '10-12',
+            rpe: 8,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/dumbbell-lateral-raise.gif',
+            steps: [
+              'Tronco levemente inclinado para frente (5°), cotovelos semiflexionados.',
+              'Eleve os halteres no plano escapular (~30° à frente da linha coronal) até a altura dos ombros.',
+              'Segure 1 segundo no topo e desça em 3 segundos controlados.'
+            ],
+            breathing: 'Expire ao elevar os braços e inspire ao descer.',
+            mistakes: 'Evitar dar impulso com o tronco ou elevar as mãos acima dos cotovelos.'
+          },
+          {
+            num: 6,
+            id: 'tr04',
+            name: 'Tríceps Testa com Barra W na Prancha',
+            group: 'Tríceps',
+            equip: 'Barra · Isolador',
+            primary: 'Tríceps Braquial (Cabeça Longa & Lateral)',
+            secondary: 'Ancôneo',
+            cadence: '3-1-1-0 · Exc. 3s / P.fundo 1s / Conc. 1s',
+            resist: 'Pico Alongado',
+            resistColor: 'blue',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8,
+            rest: 75,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-lying-triceps-extension-skull-crusher.gif',
+            steps: [
+              'Deitado no banco, segure a barra W com pegada pronada na largura dos ombros.',
+              'Mantenha os cotovelos fixos apontando para o teto e desça a barra em direção à testa/topo da cabeça.',
+              'Estenda os cotovelos com força sem mover a posição dos braços.'
+            ],
+            breathing: 'Inspire na descida até a testa e expire na extensão completa.',
+            mistakes: 'Não abrir os cotovelos excessivamente para fora durante a descida.'
+          }
+        ]
+      },
+      'B': {
+        id: 'B',
+        name: 'Treino B · Pull B (Largura & Densidade Miofibrilar)',
+        badge: 'B',
+        subtitle: '6 exercícios estruturados · Volume: 20 sets',
+        exercises: [
+          {
+            num: 1,
+            id: 'do01',
+            name: 'Barra Fixa Pronada (Pull-up)',
+            group: 'Dorsal',
+            equip: 'Peso Corporal · Composto',
+            primary: 'Latíssimo do Dorso (Fibras Verticais)',
+            secondary: 'Bíceps, Romboides, Braquial',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            resistColor: 'blue',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8.5,
+            rest: 120,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/pull-up.gif',
+            steps: ['Segure na barra com pegada pronada afastada.', 'Puxe o peito em direção à barra retraindo as escápulas.', 'Desça até a extensão completa dos braços em 3s.'],
+            breathing: 'Expire na subida e inspire na descida.',
+            mistakes: 'Evitar balançar as pernas ou encurtar a descida.'
+          },
+          {
+            num: 2,
+            id: 'do08',
+            name: 'Remada Curvada com Barra',
+            group: 'Dorsal',
+            equip: 'Barra · Composto',
+            primary: 'Latíssimo do Dorso, Trapézio Médio & Romboides',
+            secondary: 'Bíceps, Eretores da Espinha',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Curva Uniforme',
+            resistColor: 'amber',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8.5,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/back/barbell-bent-over-row.gif',
+            steps: ['Tronco inclinado a 45° com a coluna neutra.', 'Puxe a barra em direção ao umbigo cotovelos junto ao corpo.', 'Segure 1s na contração máxima.'],
+            breathing: 'Expire na puxada e inspire na descida.',
+            mistakes: 'Não arredondar a coluna lombar.'
+          },
+          {
+            num: 3,
+            id: 'sh15',
+            name: 'Face Pull na Polia com Corda',
+            group: 'Ombros',
+            equip: 'Cabo · Isolador',
+            primary: 'Deltoide Posterior & Manguito Rotador',
+            secondary: 'Trapézio Médio/Inferior',
+            cadence: '2-1-1-0 · Exc. 2s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            resistColor: 'red',
+            sets: 3,
+            reps: '12-15',
+            rpe: 8,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/cable-face-pull.gif',
+            steps: ['Puxe a corda em direção aos olhos separando as mãos.', 'Faça rotação externa no final mantendo cotovelos altos.'],
+            breathing: 'Expire na puxada e inspire no retorno.',
+            mistakes: 'Não puxar para o queixo ou abaixar os cotovelos.'
+          },
+          {
+            num: 4,
+            id: 'bi01',
+            name: 'Rosca Direta com Barra Reta',
+            group: 'Bíceps',
+            equip: 'Barra · Isolador',
+            primary: 'Bíceps Braquial (Cabeça Longa & Curta)',
+            secondary: 'Braquial, Braquiorradial',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Curva Uniforme',
+            resistColor: 'amber',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8,
+            rest: 75,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
+            steps: ['Pés firmes, cotovelos colados ao lado do tronco.', 'Flexione os cotovelos sem movimentar os ombros.', 'Desça em 3 segundos controlados.'],
+            breathing: 'Expire na subida e inspire na descida.',
+            mistakes: 'Não balance o tronco para iniciar a repetição.'
+          }
+        ]
+      },
+      'C': {
+        id: 'C',
+        name: 'Treino C · Legs A (Quadríceps, Glúteos & Isquiotibiais)',
+        badge: 'C',
+        subtitle: '6 exercícios estruturados · Volume: 22 sets',
+        exercises: [
+          {
+            num: 1,
+            id: 'lg01',
+            name: 'Agachamento Livre com Barra (Back Squat)',
+            group: 'Pernas',
+            equip: 'Barra · Composto',
+            primary: 'Quadríceps & Glúteo Máximo',
+            secondary: 'Isquiotibiais, Core, Eretores',
+            cadence: '4-0-1-0 · Exc. 4s / Conc. 1s',
+            resist: 'Curva Uniforme',
+            resistColor: 'amber',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8.5,
+            rest: 150,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif',
+            steps: ['Barra apoiada no trapézio, pés na largura dos ombros.', 'Inicie o movimento pelos quadris e joelhos simultaneamente.', 'Desça até a linha paralela com controle de 4 segundos.'],
+            breathing: 'Inspire profundamente no topo, trave a manobra de Valsalva e expire ao passar o ponto de maior esforço.',
+            mistakes: 'Evitar valgo dinâmico (joelhos para dentro) e retroversão pélvica excessiva.'
+          },
+          {
+            num: 2,
+            id: 'lg10',
+            name: 'Stiff com Barra (Terra Romeno)',
+            group: 'Pernas',
+            equip: 'Barra · Composto',
+            primary: 'Isquiotibiais & Glúteo Máximo',
+            secondary: 'Eretores da Espinha, Trapézio',
+            cadence: '4-0-1-0 · Exc. 4s / Conc. 1s',
+            resist: 'Pico Alongado',
+            resistColor: 'blue',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8.5,
+            rest: 120,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/hamstrings/barbell-romanian-deadlift.gif',
+            steps: ['Pés na largura do quadril, joelhos semiflexionados.', 'Empurre o quadril para trás mantendo a coluna neutra.', 'Desça a barra rente às pernas até sentir o alongamento máximo dos isquiotibiais.'],
+            breathing: 'Inspire na descida e expire na extensão do quadril.',
+            mistakes: 'Nunca arredondar as costas ou flexionar os joelhos como agachamento.'
+          },
+          {
+            num: 3,
+            id: 'lg06',
+            name: 'Cadeira Extensora',
+            group: 'Pernas',
+            equip: 'Máquina · Isolador',
+            primary: 'Reto Femoral & Vasto Lateral',
+            secondary: 'Vasto Medial',
+            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            resistColor: 'red',
+            sets: 3,
+            reps: '10-12',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif',
+            steps: ['Ajuste o eixo da máquina exatamente na linha do joelho.', 'Estenda as pernas até a contração máxima e segure 1 segundo no topo.', 'Desça em 3 segundos sob tensão contínua.'],
+            breathing: 'Expire na subida e inspire na descida.',
+            mistakes: 'Não descolar o glúteo do assento durante a extensão.'
+          }
+        ]
+      }
+    };
+
+    // 2. AGENDA SEMANAL DE 7 DIAS COM SINERGIA NUTRICIONAL
+    const WEEKLY_SCHEDULE_DATA = [
+      {
+        dayNum: 1,
+        dayName: 'DIA 1',
+        type: 'Treino',
+        color: 'blue',
+        routineKey: 'A',
+        title: 'Treino A · Upper Power',
+        sub: 'Carga Máxima Supino & OHP',
+        synergy: {
+          carbo: '80-100g carbo denso pré-treino (Aveia / Tapioca / Mel)',
+          prot: '2.0 g/kg (232g/dia)',
+          water: '4.632 mL (40 mL/kg)',
+          focus: 'Superávit anabólico peri-treino para força máxima'
+        }
+      },
+      {
+        dayNum: 2,
+        dayName: 'DIA 2',
+        type: 'Treino',
+        color: 'purple',
+        routineKey: 'B',
+        title: 'Treino B · Lower Power',
+        sub: 'Agachamento Livre & Stiff',
+        synergy: {
+          carbo: '80-100g carbo pré-treino + Creatina 5g',
+          prot: '2.0 g/kg (232g/dia)',
+          water: '5.232 mL (45 mL/kg)',
+          focus: 'Sobrecarga miofibrilar pesada e recarga de fosfocreatina'
+        }
+      },
+      {
+        dayNum: 3,
+        dayName: 'DIA 3',
+        type: 'Cardio',
+        color: 'amber',
+        routineKey: 'Cardio',
+        title: 'Zona 2 Base Aeróbica',
+        sub: 'FC 112-130 bpm · 45 min',
+        synergy: {
+          carbo: 'Carbo moderado 40g para preservação de glicogênio',
+          prot: '2.0 g/kg (232g/dia)',
+          water: '5.132 mL',
+          focus: 'Sensibilidade insulínica para otimização do superávit'
+        }
+      },
+      {
+        dayNum: 4,
+        dayName: 'DIA 4',
+        type: 'Treino',
+        color: 'blue',
+        routineKey: 'C',
+        title: 'Treino C · Costas/Ombros Hyp',
+        sub: 'Hipertrofia Miofibrilar',
+        synergy: {
+          carbo: '70-80g carbo pré-treino (Arroz / Batata)',
+          prot: '2.0 g/kg (232g/dia)',
+          water: '4.632 mL (40 mL/kg)',
+          focus: 'Volume volumétrico com alto influxo de glicogênio'
+        }
+      },
+      {
+        dayNum: 5,
+        dayName: 'DIA 5',
+        type: 'Treino',
+        color: 'purple',
+        routineKey: 'A',
+        title: 'Treino D · Pernas Hipertrofia',
+        sub: 'Hack Squat, Cadeira Ext.',
+        synergy: {
+          carbo: '80g carbo denso pré e pós-treino',
+          prot: '2.0 g/kg (232g/dia)',
+          water: '5.232 mL',
+          focus: 'Recarga glicêmica pós-treino para hipertrofia de membros inferiores'
+        }
+      },
+      {
+        dayNum: 6,
+        dayName: 'DIA 6',
+        type: 'Treino',
+        color: 'blue',
+        routineKey: 'B',
+        title: 'Treino E · Peitoral & Braços',
+        sub: 'Densidade Miofibrilar...',
+        synergy: {
+          carbo: '70g carbo com refeição completa pré-treino',
+          prot: '2.0 g/kg (232g/dia)',
+          water: '4.632 mL',
+          focus: 'Refeição de recarga livre planejada pós-treino'
+        }
+      },
+      {
+        dayNum: 7,
+        dayName: 'DIA 7',
+        type: 'Off',
+        color: 'zinc',
+        routineKey: 'OFF',
+        title: 'Descanso Total (OFF)',
+        sub: 'Supercompensação e Sono',
+        synergy: {
+          carbo: 'Carboidratos equilibrados de lenta absorção',
+          prot: '2.0 g/kg (Síntese proteica contínua)',
+          water: '4.632 mL',
+          focus: 'Supercompensação miofibrilar total com 8-9h de sono'
+        }
+      }
+    ];
+
+    let selectedScheduleDay = 1;
+    let selectedRoutineKey = 'A';
+
+    // 3. ESTADO INICIAL DOS DADOS
     const STORAGE_KEY = 'nutriax_patient_discipline_v3';
 
     let patientState = {
@@ -452,6 +1087,7 @@
       cardioDone: true,
       sleepHours: 7.5,
       sleepQuality: 'good',
+      exerciseChecks: {},
       meals: [
         { id: 'm1', time: '07:30', name: 'Café da Manhã', detail: '3 Ovos + 2 Fatias Pão Integral + 150ml Café', kcal: 380, prot: 24, done: true },
         { id: 'm2', time: '10:30', name: 'Lanche da Manhã', detail: '30g Whey Protein + 1 Fruta', kcal: 190, prot: 25, done: true },
@@ -461,7 +1097,7 @@
       ]
     };
 
-    // 2. INICIALIZAÇÃO
+    // 4. INICIALIZAÇÃO
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
       renderAll();
@@ -469,7 +1105,7 @@
       if (window.lucide) window.lucide.createIcons();
     });
 
-    // 3. PERSISTÊNCIA LOCAL
+    // 5. PERSISTÊNCIA LOCAL
     function loadState() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -484,19 +1120,27 @@
     function saveState() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(patientState));
-        // Dispara evento para caso o painel do nutricionista esteja aberto na mesma aba/navegador
         window.dispatchEvent(new Event('nutriax_data_updated'));
       } catch (e) {
         console.warn('Erro ao salvar state local', e);
       }
     }
 
-    // 4. RENDERIZAÇÃO
+    // 6. RENDERIZAÇÃO GERAL
     function renderAll() {
       // Nome e Data
       document.getElementById('patientNameDisplay').textContent = patientState.name;
       document.getElementById('streakDaysCount').textContent = `${patientState.streakDays} DIAS`;
       document.getElementById('disciplineTierBadge').textContent = `🛡️ Nível: ${patientState.tier}`;
+
+      // Agenda Semanal
+      renderWeeklyCarousel();
+      updateSynergyCard();
+
+      // Treino e Ficha Detalhada (Figura 3)
+      renderWorkoutExercises();
+      updateWorkoutVisuals();
+      updateCardioVisuals();
 
       // Hidratação
       document.getElementById('waterCurrentDisplay').textContent = patientState.waterCurrent.toLocaleString('pt-BR');
@@ -507,20 +1151,284 @@
       // Refeições
       renderMeals();
 
-      // Treino & Cardio
-      updateWorkoutVisuals();
-      updateCardioVisuals();
-
       // Sono
       document.getElementById('sleepHoursInput').value = patientState.sleepHours;
       setSleepQualityVisuals(patientState.sleepQuality);
 
-      // Score IDC Geral do Dia
+      // Score IDC
       calculateDailyIDC();
 
       if (window.lucide) window.lucide.createIcons();
     }
 
+    // 7. AGENDA SEMANAL INTERATIVA
+    function renderWeeklyCarousel() {
+      const container = document.getElementById('weeklyScheduleCarousel');
+      if (!container) return;
+
+      container.innerHTML = WEEKLY_SCHEDULE_DATA.map(d => {
+        const isSelected = d.dayNum === selectedScheduleDay;
+        const colorBorder = isSelected ? 'border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.5)] bg-blue-950/80' : 'border-zinc-800 bg-black/60 hover:border-zinc-700';
+        const badgeColor = d.type === 'Treino' ? 'bg-blue-950 text-blue-300 border-blue-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-400 border-zinc-800');
+
+        return `
+          <div onclick="selectScheduleDay(${d.dayNum})"
+            class="min-w-[130px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : 'bg-zinc-500'}"></span>
+                ${d.dayName}
+              </span>
+              <span class="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border ${badgeColor}">
+                ${d.type}
+              </span>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white line-clamp-1">${d.title}</h4>
+              <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectScheduleDay(dayNum) {
+      selectedScheduleDay = dayNum;
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
+      if (dayData) {
+        if (dayData.routineKey && WORKOUT_DATABASE[dayData.routineKey]) {
+          selectedRoutineKey = dayData.routineKey;
+        } else if (dayData.routineKey === 'Cardio') {
+          selectedRoutineKey = 'A';
+        }
+      }
+      renderWeeklyCarousel();
+      updateSynergyCard();
+      renderWorkoutExercises();
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function updateSynergyCard() {
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) || WEEKLY_SCHEDULE_DATA[0];
+      
+      document.getElementById('synergyDayLabel').textContent = `${dayData.dayName} · ${dayData.title.toUpperCase()}`;
+      document.getElementById('synergyCarbo').textContent = dayData.synergy.carbo;
+      document.getElementById('synergyProt').textContent = dayData.synergy.prot;
+      document.getElementById('synergyWater').textContent = dayData.synergy.water;
+      document.getElementById('synergyFocus').textContent = dayData.synergy.focus;
+    }
+
+    // 8. FICHA DE EXERCÍCIOS DETALHADA (ESTILO FIGURA 3)
+    function renderWorkoutExercises() {
+      const container = document.getElementById('patientExercisesList');
+      if (!container) return;
+
+      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+
+      // Atualiza Header do Treino
+      document.getElementById('workoutRoutineBadge').textContent = routine.badge;
+      document.getElementById('workoutRoutineTitle').textContent = routine.name;
+      document.getElementById('workoutRoutineSubtitle').textContent = routine.subtitle;
+
+      container.innerHTML = routine.exercises.map(ex => {
+        const isDone = !!patientState.exerciseChecks[ex.id];
+        const resistBadge = ex.resist === 'Pico Alongado' 
+          ? '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">🔵 Pico Alongado</span>'
+          : (ex.resist === 'Pico Encurtado' 
+            ? '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">🔴 Pico Encurtado</span>'
+            : '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">⚪ Curva Mista</span>');
+
+        return `
+          <div class="p-3.5 rounded-xl ${isDone ? 'bg-blue-950/20 border-blue-500/50' : 'bg-black/60 border-zinc-800'} border space-y-2.5 transition-all">
+            
+            <!-- Topo do Exercício: Número, Nome e Botão GIF -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-start gap-2">
+                <span class="text-xs font-mono font-black text-blue-400 bg-blue-950/80 border border-blue-800 px-1.5 py-0.5 rounded shrink-0">
+                  #${ex.num}
+                </span>
+                <div>
+                  <h3 class="text-xs sm:text-sm font-black ${isDone ? 'text-blue-300' : 'text-white'}">${ex.name}</h3>
+                  
+                  <!-- Tags de Grupo & Equipamento -->
+                  <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                    <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                      ${ex.group}
+                    </span>
+                    <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-900/40 text-blue-300 border border-blue-800/60">
+                      ${ex.equip}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botão GIF & Execução em Destaque -->
+              <button onclick="openExerciseGuideModal('${ex.id}')"
+                class="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(59,130,246,0.3)] active:scale-95 transition-all shrink-0">
+                <i data-lucide="video" class="w-3.5 h-3.5"></i>
+                <span>GIF &amp; Execução</span>
+              </button>
+            </div>
+
+            <!-- Mapeamento Biomecânico & Cadência -->
+            <div class="text-[10px] text-zinc-400 space-y-0.5 border-t border-zinc-800/60 pt-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span>🎯 <strong class="text-zinc-300">Primário:</strong> ${ex.primary}</span>
+                <span>⚡ <strong class="text-zinc-300">Sinérgicos:</strong> ${ex.secondary}</span>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap pt-0.5">
+                <span class="font-mono text-zinc-300">⏱️ ${ex.cadence}</span>
+                ${resistBadge}
+              </div>
+            </div>
+
+            <!-- Grade de Parâmetros Prescritos (Séries, Reps, RPE, Pausa) e Checkbox -->
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <div class="grid grid-cols-4 gap-1.5 text-center flex-1">
+                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">Séries</span>
+                  <span class="text-xs font-black text-white font-mono">${ex.sets}</span>
+                </div>
+                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">Reps</span>
+                  <span class="text-xs font-black text-white font-mono">${ex.reps}</span>
+                </div>
+                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                  <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe}</span>
+                </div>
+                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 cursor-pointer hover:border-blue-500" onclick="startRestTimer(${ex.rest})">
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
+                  <span class="text-xs font-black text-blue-400 font-mono">${ex.rest}s</span>
+                </div>
+              </div>
+
+              <!-- Checkbox de Conclusão do Exercício -->
+              <button onclick="toggleExerciseCheck('${ex.id}')"
+                class="w-10 h-10 rounded-xl ${isDone ? 'checkbox-done-blue text-white' : 'bg-zinc-900 border border-zinc-700 text-zinc-500'} flex items-center justify-center shrink-0 active:scale-95 transition-all">
+                <i data-lucide="check" class="w-5 h-5"></i>
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleExerciseCheck(exId) {
+      patientState.exerciseChecks = patientState.exerciseChecks || {};
+      patientState.exerciseChecks[exId] = !patientState.exerciseChecks[exId];
+
+      if (patientState.exerciseChecks[exId] && window.confetti) {
+        window.confetti({ particleCount: 20, spread: 40, origin: { y: 0.7 }, colors: ['#3b82f6', '#60a5fa', '#93c5fd'] });
+      }
+
+      saveState();
+      renderWorkoutExercises();
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    // 9. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
+    function openExerciseGuideModal(exId) {
+      let foundEx = null;
+      for (const rKey in WORKOUT_DATABASE) {
+        const match = WORKOUT_DATABASE[rKey].exercises.find(e => e.id === exId);
+        if (match) { foundEx = match; break; }
+      }
+      if (!foundEx) foundEx = WORKOUT_DATABASE['A'].exercises[0];
+
+      document.getElementById('guideModalTitle').textContent = foundEx.name;
+      document.getElementById('guideModalGroup').textContent = foundEx.group;
+      document.getElementById('guideModalEquip').textContent = foundEx.equip;
+      document.getElementById('guideModalPrimary').textContent = foundEx.primary;
+      document.getElementById('guideModalSecondary').textContent = foundEx.secondary;
+      document.getElementById('guideModalCadence').textContent = `Cadência: ${foundEx.cadence}`;
+
+      const gifImg = document.getElementById('guideModalGif');
+      gifImg.dataset.exname = foundEx.name;
+      gifImg.dataset.exgroup = foundEx.group;
+      gifImg.dataset.triedFallback = 'false';
+      gifImg.src = foundEx.gif;
+
+      // Passos
+      const stepsContainer = document.getElementById('guideModalSteps');
+      stepsContainer.innerHTML = foundEx.steps.map((step, idx) => `
+        <div class="flex items-start gap-2">
+          <span class="w-4 h-4 rounded-full bg-blue-950 border border-blue-800 text-blue-300 font-mono text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+            ${idx + 1}
+          </span>
+          <p class="text-zinc-300 leading-relaxed text-[11px]">${step}</p>
+        </div>
+      `).join('');
+
+      document.getElementById('guideModalBreathing').textContent = foundEx.breathing;
+      document.getElementById('guideModalMistakes').textContent = foundEx.mistakes;
+
+      document.getElementById('exerciseGuideModal').classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeExerciseGuideModal() {
+      document.getElementById('exerciseGuideModal').classList.add('hidden');
+      stopRestTimer();
+    }
+
+    function handleGuideGifError(imgEl) {
+      if (!imgEl || imgEl.dataset.triedFallback === 'true') return;
+      imgEl.dataset.triedFallback = 'true';
+      const name = (imgEl.dataset.exname || 'Exercício').replace(/</g, '&lt;');
+      const group = (imgEl.dataset.exgroup || 'Biomecânica').replace(/</g, '&lt;');
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="260" viewBox="0 0 400 260">
+        <rect width="400" height="260" fill="#030712"/>
+        <circle cx="200" cy="100" r="45" fill="none" stroke="#1e3a8a" stroke-width="2" stroke-dasharray="4 4"/>
+        <circle cx="200" cy="100" r="12" fill="#3b82f6" opacity="0.3"/>
+        <circle cx="200" cy="100" r="5" fill="#60a5fa"/>
+        <text x="200" y="165" fill="#60a5fa" font-family="sans-serif" font-size="10" font-weight="bold" letter-spacing="2" text-anchor="middle">${group.toUpperCase()}</text>
+        <text x="200" y="190" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">${name}</text>
+        <rect x="130" y="210" width="140" height="22" rx="11" fill="#1e293b" stroke="#334155"/>
+        <text x="200" y="225" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle">🎬 BIOMECÂNICA 60 FPS</text>
+      </svg>`;
+
+      imgEl.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    // 10. CRONÔMETRO DE DESCANSO REGRESSIVO
+    let restTimerInterval = null;
+    let remainingRestSeconds = 0;
+
+    function startRestTimer(seconds) {
+      stopRestTimer();
+      remainingRestSeconds = seconds;
+      updateRestTimerDisplay();
+
+      restTimerInterval = setInterval(() => {
+        remainingRestSeconds--;
+        if (remainingRestSeconds <= 0) {
+          stopRestTimer();
+          alert('⏰ Tempo de descanso encerrado! Inicie a próxima série.');
+        } else {
+          updateRestTimerDisplay();
+        }
+      }, 1000);
+    }
+
+    function stopRestTimer() {
+      if (restTimerInterval) {
+        clearInterval(restTimerInterval);
+        restTimerInterval = null;
+      }
+    }
+
+    function updateRestTimerDisplay() {
+      const display = document.getElementById('restTimerDisplay');
+      if (!display) return;
+      const mins = Math.floor(remainingRestSeconds / 60);
+      const secs = remainingRestSeconds % 60;
+      display.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    // 11. REFEIÇÕES
     function renderMeals() {
       const container = document.getElementById('patientMealsList');
       if (!container) return;
@@ -551,7 +1459,6 @@
       `).join('');
     }
 
-    // 5. INTERAÇÕES COM 1 TOQUE
     function toggleMeal(mealId) {
       const meal = patientState.meals.find(m => m.id === mealId);
       if (meal) {
@@ -575,37 +1482,40 @@
 
     function toggleWorkoutCheck() {
       patientState.workoutDone = !patientState.workoutDone;
+      if (patientState.workoutDone && window.confetti) {
+        window.confetti({ particleCount: 40, spread: 70, origin: { y: 0.5 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
+      }
       saveState();
       renderAll();
     }
 
     function toggleCardioCheck() {
       patientState.cardioDone = !patientState.cardioDone;
+      if (patientState.cardioDone && window.confetti) {
+        window.confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 }, colors: ['#10b981', '#34d399', '#6ee7b7'] });
+      }
       saveState();
       renderAll();
     }
 
     function updateWorkoutVisuals() {
-      const card = document.getElementById('workoutCard');
-      const icon = document.getElementById('workoutCheckIcon');
+      const btn = document.getElementById('btnCompleteFullWorkout');
+      const text = document.getElementById('btnCompleteWorkoutText');
       if (patientState.workoutDone) {
-        card.className = "p-3 rounded-xl bg-blue-950/30 border border-blue-500/50 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
-        icon.className = "w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-[0_0_8px_rgba(59,130,246,0.6)]";
+        btn.className = "w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95 transition-all";
+        text.textContent = "Treino Concluído com Sucesso! 🏆";
       } else {
-        card.className = "p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
-        icon.className = "w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500";
+        btn.className = "w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 transition-all";
+        text.textContent = "Concluir Treino de Hoje";
       }
     }
 
     function updateCardioVisuals() {
-      const card = document.getElementById('cardioCard');
       const icon = document.getElementById('cardioCheckIcon');
       if (patientState.cardioDone) {
-        card.className = "p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/50 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
-        icon.className = "w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.6)]";
+        icon.className = "w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.6)] cursor-pointer active:scale-95 transition-all";
       } else {
-        card.className = "p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between cursor-pointer active:scale-98 transition-all";
-        icon.className = "w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500";
+        icon.className = "w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-500 cursor-pointer active:scale-95 transition-all";
       }
     }
 
@@ -634,7 +1544,7 @@
       if (q === 'good') document.getElementById('sqGood').className = "p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm shadow-[0_0_8px_rgba(168,85,247,0.4)]";
     }
 
-    // 6. CÁLCULO DO SCORE IDC DO DIA
+    // 12. CÁLCULO DO SCORE IDC DO DIA
     function calculateDailyIDC() {
       // 1. Refeições (40 pts)
       const totalMeals = patientState.meals.length || 1;
@@ -670,7 +1580,7 @@
       }
     }
 
-    // 7. MODAL SOS
+    // 13. MODAL SOS
     function openSosModal() {
       document.getElementById('sosModal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
@@ -680,7 +1590,7 @@
       document.getElementById('sosModal').classList.add('hidden');
     }
 
-    // 8. PWA INSTALL PROMPT
+    // 14. PWA INSTALL PROMPT
     let deferredPrompt = null;
     function setupPwaPrompt() {
       window.addEventListener('beforeinstallprompt', (e) => {
