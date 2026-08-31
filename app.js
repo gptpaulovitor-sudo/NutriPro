@@ -10461,7 +10461,7 @@ const PERF_SPLIT_PRESETS = {
         { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '5-7', rpe: 8.0, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Pausa controlada de 1s no esterno · arco torácico firme.' },
         { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Core travado e cotovelos apontados à frente.' },
         { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Halteres ampliam ADM · foco no feixe clavicular.' },
-        { exerciseId: 'pe12', name: 'Paralelas (Dips) com Sobrepesa', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Tronco inclinado 30° à frente · foco peitoral inferior.' },
+        { exerciseId: 'pe19', name: 'Paralelas (Dips) com Sobrepesa', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Tronco inclinado 30° à frente · foco peitoral inferior.' },
         { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de torque a 90° com 1s de isometria.' },
         { exerciseId: 'tr04', name: 'Tríceps Testa com Barra W na Prancha', sets: 3, reps: '8-10', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Cabeça longa em máximo alongamento.' }
       ]
@@ -10471,11 +10471,11 @@ const PERF_SPLIT_PRESETS = {
       name: 'Treino B · Pull A (Tração e Força Escapular)',
       description: 'Levantamento terra pesado, barra fixa e remadas para espessura e densidade.',
       exercises: [
-        { exerciseId: 'lg09', name: 'Levantamento Terra Convencional', sets: 4, reps: '4-6', rpe: 8.0, rest: 180, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Tração neural máxima · coluna rigorosamente neutra.' },
+        { exerciseId: 'do16', name: 'Levantamento Terra Convencional', sets: 4, reps: '4-6', rpe: 8.0, rest: 180, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Tração neural máxima · coluna rigorosamente neutra.' },
         { exerciseId: 'do01', name: 'Barra Fixa (Weighted Pull-up)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Hang completo no fundo · latíssimo em máx. comprimento.' },
         { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pegada Pronada)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Retração escapular estrita para romboides e trapézio.' },
-        { exerciseId: 'do09', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Alongamento máximo da dorsal na posição inferior.' },
-        { exerciseId: 'sh14', name: 'Crucifixo Invertido na Polia Alta', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Isolamento de deltoide posterior com tensão contínua.' },
+        { exerciseId: 'do11', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Alongamento máximo da dorsal na posição inferior.' },
+        { exerciseId: 'sh21', name: 'Crucifixo Invertido na Polia Alta', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Isolamento de deltoide posterior com tensão contínua.' },
         { exerciseId: 'bi01', name: 'Rosca Direta com Barra Reta', sets: 3, reps: '8-10', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'uniform', obs: 'Supinação completa sem balanço lombar.' }
       ]
     },
@@ -10486,7 +10486,7 @@ const PERF_SPLIT_PRESETS = {
       exercises: [
         { exerciseId: 'lg01', name: 'Agachamento Livre com Barra High Bar', sets: 4, reps: '5-7', rpe: 8.0, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Excêntrica controlada de 3s protege tendão patelar.' },
         { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Amplitude máxima (joelhos > 90°) sem retroversão.' },
-        { exerciseId: 'lg08', name: 'Afundo Deslocado com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Passada firme com estabilidade de joelho.' },
+        { exerciseId: 'lg25', name: 'Afundo Deslocado com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Passada firme com estabilidade de joelho.' },
         { exerciseId: 'lg06', name: 'Cadeira Extensora', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de EMG no encurtamento do reto femoral.' },
         { exerciseId: 'lg20', name: 'Gêmeos em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Gastrocnêmio em máximo comprimento com 1s pausa.' },
         { exerciseId: 'ab02', name: 'Abdominal Supra na Polia com Carga', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Carga progressiva no reto abdominal.' }
@@ -10498,10 +10498,10 @@ const PERF_SPLIT_PRESETS = {
       description: 'Volume metabólico no supino inclinado, crossover e tríceps corda.',
       exercises: [
         { exerciseId: 'pe02', name: 'Supino Inclinado com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Barra desce até a clavícula · foco feixe superior.' },
-        { exerciseId: 'pe06', name: 'Supino Reto com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Maior amplitude e adução no pico concêntrico.' },
-        { exerciseId: 'sh04', name: 'Desenvolvimento Seletivo com Halteres (Sentado)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Trajetória convergente sem travar cotovelos.' },
-        { exerciseId: 'pe10', name: 'Crossover na Polia Média', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Tensão contínua esternal com 1s no pico.' },
-        { exerciseId: 'sh08', name: 'Elevação Lateral na Polia Baixa (Unilateral)', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Tensão do cabo desde o início da abdução.' },
+        { exerciseId: 'pe04', name: 'Supino Reto com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Maior amplitude e adução no pico concêntrico.' },
+        { exerciseId: 'sh02', name: 'Desenvolvimento Seletivo com Halteres (Sentado)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Trajetória convergente sem travar cotovelos.' },
+        { exerciseId: 'pe11', name: 'Crossover na Polia Média', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Tensão contínua esternal com 1s no pico.' },
+        { exerciseId: 'sh07', name: 'Elevação Lateral na Polia Baixa (Unilateral)', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Tensão do cabo desde o início da abdução.' },
         { exerciseId: 'tr02', name: 'Tríceps Pulley com Corda', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Abertura no final ativa cabeça lateral e medial.' }
       ]
     },
@@ -10510,12 +10510,12 @@ const PERF_SPLIT_PRESETS = {
       name: 'Treino E · Pull B (Espessura e Cadeia Posterior)',
       description: 'Puxadas neutras, remada T-Bar e roscas em banco inclinado.',
       exercises: [
-        { exerciseId: 'do05', name: 'Puxada Alta Articulada ou Polia (Pegada Neutra)', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Fibras superiores do latíssimo no maior comprimento.' },
+        { exerciseId: 'do04', name: 'Puxada Alta Articulada ou Polia (Pegada Neutra)', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Fibras superiores do latíssimo no maior comprimento.' },
         { exerciseId: 'do10', name: 'Remada T-Bar (Cavalo) com Apoio', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Sem estresse lombar · retração escapular pesada.' },
-        { exerciseId: 'do11', name: 'Remada Baixa no Cabo com Puxador Triângulo', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Pico de contração nos romboides e dorsal.' },
+        { exerciseId: 'do12', name: 'Remada Baixa no Cabo com Puxador Triângulo', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Pico de contração nos romboides e dorsal.' },
         { exerciseId: 'sh15', name: 'Face Pull no Cabo com Corda', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Deltoide posterior e manguito rotador.' },
         { exerciseId: 'bi09', name: 'Rosca Alternada com Halteres no Banco Inclinado', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Cabeça longa do bíceps no comprimento máximo.' },
-        { exerciseId: 'bi04', name: 'Rosca Martelo na Polia Baixa com Corda', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Braquiorradial e braquial em tensão contínua.' }
+        { exerciseId: 'bi05', name: 'Rosca Martelo na Polia Baixa com Corda', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Braquiorradial e braquial em tensão contínua.' }
       ]
     },
     {
