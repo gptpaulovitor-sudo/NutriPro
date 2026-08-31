@@ -237,7 +237,7 @@
                 7 Dias
               </span>
             </div>
-            <p class="text-[10px] text-zinc-400">Diretrizes de Carbo, Proteína e Treino do Dia</p>
+            <p class="text-[10px] text-zinc-400">Toque em qualquer dia para carregar o treino e a dieta</p>
           </div>
         </div>
       </div>
@@ -292,13 +292,26 @@
     </section>
 
     <!-- ═══ 4. ESTÍMULO FÍSICO & FICHA COMPLETA DE TREINO (ESTILO FIGURA 3) ═══ -->
-    <section class="hud-glass-card-blue p-4 space-y-3.5">
+    <section id="workoutSectionContainer" class="hud-glass-card-blue p-4 space-y-3.5 transition-all duration-300">
       
+      <!-- Seletor Rápido de Treino (Pills Rápidas) -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-zinc-300 font-bold flex items-center gap-1.5 text-[11px]">
+            <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400"></i> Seletor de Rotina:
+          </span>
+          <span class="text-[10px] text-zinc-400 font-mono" id="selectedRoutineNameTag">Treino A</span>
+        </div>
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="quickRoutinePills">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </div>
+
       <!-- Cabeçalho do Treino Selecionado -->
       <div class="p-3.5 rounded-xl bg-gradient-to-r from-blue-950/90 via-zinc-950 to-blue-950/80 border border-blue-600/60 shadow-lg space-y-2">
         <div class="flex justify-between items-start">
           <div class="flex items-center gap-3">
-            <div id="workoutRoutineBadge" class="w-8 h-8 rounded-xl bg-blue-600 border border-blue-400 text-white font-black flex items-center justify-center text-sm shadow-[0_0_12px_rgba(59,130,246,0.6)]">
+            <div id="workoutRoutineBadge" class="w-9 h-9 rounded-xl bg-blue-600 border border-blue-400 text-white font-black flex items-center justify-center text-sm shadow-[0_0_12px_rgba(59,130,246,0.6)] shrink-0">
               A
             </div>
             <div>
@@ -333,7 +346,7 @@
       </div>
 
       <!-- Rodapé de Progressão de Cargas -->
-      <div class="p-2.5 rounded-xl bg-black/60 border border-emerald-900/50 flex items-center gap-2 text-xs text-emerald-300">
+      <div id="workoutFooterProgression" class="p-2.5 rounded-xl bg-black/60 border border-emerald-900/50 flex items-center gap-2 text-xs text-emerald-300">
         <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
         <span class="text-[11px]"><strong>Diretriz de Progressão:</strong> Busque +1 repetição por série antes de aumentar a carga total.</span>
       </div>
@@ -650,13 +663,15 @@
 
   <!-- ═══ JAVASCRIPT DO APP DO PACIENTE ═══ -->
   <script>
-    // 1. BANCO DE DADOS DE ROTINAS, EXERCÍCIOS E GIFS (SINCRONIZADO COM PILAR 4)
+    // 1. BANCO DE DADOS DE TODAS AS ROTINAS DE TREINO (A, B, C, D, E, CARDIO, OFF)
     const WORKOUT_DATABASE = {
       'A': {
         id: 'A',
         name: 'Treino A · Push A (Força Mecânica e Potência)',
         badge: 'A',
         subtitle: '6 exercícios estruturados · Volume: 21 sets',
+        isCardio: false,
+        isOff: false,
         exercises: [
           {
             num: 1,
@@ -668,7 +683,6 @@
             secondary: 'Deltoide Anterior, Tríceps Braquial',
             cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
             resist: 'Pico Encurtado',
-            resistColor: 'red',
             sets: 4,
             reps: '5-7',
             rpe: 8,
@@ -692,7 +706,6 @@
             secondary: 'Tríceps, Trapézio Superior, Core',
             cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
             resist: 'Pico Encurtado',
-            resistColor: 'red',
             sets: 4,
             reps: '6-8',
             rpe: 8,
@@ -716,7 +729,6 @@
             secondary: 'Deltoide Anterior, Tríceps',
             cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
             resist: 'Pico Alongado',
-            resistColor: 'blue',
             sets: 3,
             reps: '8-10',
             rpe: 8,
@@ -740,7 +752,6 @@
             secondary: 'Tríceps Braquial, Deltoide Anterior',
             cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
             resist: 'Pico Alongado',
-            resistColor: 'blue',
             sets: 3,
             reps: '8-10',
             rpe: 8,
@@ -764,7 +775,6 @@
             secondary: 'Deltoide Anterior, Trapézio Sup.',
             cadence: '3-1-1-0 · Exc. 3s / P.fundo 1s / Conc. 1s',
             resist: 'Pico Encurtado',
-            resistColor: 'red',
             sets: 4,
             reps: '10-12',
             rpe: 8,
@@ -788,7 +798,6 @@
             secondary: 'Ancôneo',
             cadence: '3-1-1-0 · Exc. 3s / P.fundo 1s / Conc. 1s',
             resist: 'Pico Alongado',
-            resistColor: 'blue',
             sets: 3,
             reps: '8-10',
             rpe: 8,
@@ -806,97 +815,11 @@
       },
       'B': {
         id: 'B',
-        name: 'Treino B · Pull B (Largura & Densidade Miofibrilar)',
+        name: 'Treino B · Lower Power (Agachamento Livre & Stiff)',
         badge: 'B',
-        subtitle: '6 exercícios estruturados · Volume: 20 sets',
-        exercises: [
-          {
-            num: 1,
-            id: 'do01',
-            name: 'Barra Fixa Pronada (Pull-up)',
-            group: 'Dorsal',
-            equip: 'Peso Corporal · Composto',
-            primary: 'Latíssimo do Dorso (Fibras Verticais)',
-            secondary: 'Bíceps, Romboides, Braquial',
-            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
-            resist: 'Pico Alongado',
-            resistColor: 'blue',
-            sets: 4,
-            reps: '6-8',
-            rpe: 8.5,
-            rest: 120,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/pull-up.gif',
-            steps: ['Segure na barra com pegada pronada afastada.', 'Puxe o peito em direção à barra retraindo as escápulas.', 'Desça até a extensão completa dos braços em 3s.'],
-            breathing: 'Expire na subida e inspire na descida.',
-            mistakes: 'Evitar balançar as pernas ou encurtar a descida.'
-          },
-          {
-            num: 2,
-            id: 'do08',
-            name: 'Remada Curvada com Barra',
-            group: 'Dorsal',
-            equip: 'Barra · Composto',
-            primary: 'Latíssimo do Dorso, Trapézio Médio & Romboides',
-            secondary: 'Bíceps, Eretores da Espinha',
-            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
-            resist: 'Curva Uniforme',
-            resistColor: 'amber',
-            sets: 4,
-            reps: '6-8',
-            rpe: 8.5,
-            rest: 90,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/back/barbell-bent-over-row.gif',
-            steps: ['Tronco inclinado a 45° com a coluna neutra.', 'Puxe a barra em direção ao umbigo cotovelos junto ao corpo.', 'Segure 1s na contração máxima.'],
-            breathing: 'Expire na puxada e inspire na descida.',
-            mistakes: 'Não arredondar a coluna lombar.'
-          },
-          {
-            num: 3,
-            id: 'sh15',
-            name: 'Face Pull na Polia com Corda',
-            group: 'Ombros',
-            equip: 'Cabo · Isolador',
-            primary: 'Deltoide Posterior & Manguito Rotador',
-            secondary: 'Trapézio Médio/Inferior',
-            cadence: '2-1-1-0 · Exc. 2s / P.topo 1s / Conc. 1s',
-            resist: 'Pico Encurtado',
-            resistColor: 'red',
-            sets: 3,
-            reps: '12-15',
-            rpe: 8,
-            rest: 60,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/cable-face-pull.gif',
-            steps: ['Puxe a corda em direção aos olhos separando as mãos.', 'Faça rotação externa no final mantendo cotovelos altos.'],
-            breathing: 'Expire na puxada e inspire no retorno.',
-            mistakes: 'Não puxar para o queixo ou abaixar os cotovelos.'
-          },
-          {
-            num: 4,
-            id: 'bi01',
-            name: 'Rosca Direta com Barra Reta',
-            group: 'Bíceps',
-            equip: 'Barra · Isolador',
-            primary: 'Bíceps Braquial (Cabeça Longa & Curta)',
-            secondary: 'Braquial, Braquiorradial',
-            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
-            resist: 'Curva Uniforme',
-            resistColor: 'amber',
-            sets: 3,
-            reps: '8-10',
-            rpe: 8,
-            rest: 75,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
-            steps: ['Pés firmes, cotovelos colados ao lado do tronco.', 'Flexione os cotovelos sem movimentar os ombros.', 'Desça em 3 segundos controlados.'],
-            breathing: 'Expire na subida e inspire na descida.',
-            mistakes: 'Não balance o tronco para iniciar a repetição.'
-          }
-        ]
-      },
-      'C': {
-        id: 'C',
-        name: 'Treino C · Legs A (Quadríceps, Glúteos & Isquiotibiais)',
-        badge: 'C',
         subtitle: '6 exercícios estruturados · Volume: 22 sets',
+        isCardio: false,
+        isOff: false,
         exercises: [
           {
             num: 1,
@@ -908,7 +831,6 @@
             secondary: 'Isquiotibiais, Core, Eretores',
             cadence: '4-0-1-0 · Exc. 4s / Conc. 1s',
             resist: 'Curva Uniforme',
-            resistColor: 'amber',
             sets: 4,
             reps: '6-8',
             rpe: 8.5,
@@ -928,7 +850,6 @@
             secondary: 'Eretores da Espinha, Trapézio',
             cadence: '4-0-1-0 · Exc. 4s / Conc. 1s',
             resist: 'Pico Alongado',
-            resistColor: 'blue',
             sets: 4,
             reps: '6-8',
             rpe: 8.5,
@@ -940,23 +861,609 @@
           },
           {
             num: 3,
-            id: 'lg06',
-            name: 'Cadeira Extensora',
+            id: 'lg04',
+            name: 'Leg Press 45° com Amplitude Máxima',
+            group: 'Pernas',
+            equip: 'Máquina · Composto',
+            primary: 'Quadríceps & Glúteo Máximo',
+            secondary: 'Isquiotibiais, Adutores',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 4,
+            reps: '8-10',
+            rpe: 8,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/sled-45-degrees-leg-press.gif',
+            steps: ['Pés posicionados na largura dos ombros no meio da plataforma.', 'Destrave a máquina e desça o carrinho até o joelho passar dos 90° sem descolar a lombar.', 'Empurre pelos calcanhares até a extensão quase completa.'],
+            breathing: 'Inspire na descida e expire na extensão.',
+            mistakes: 'Nunca travar (hiperextender) os joelhos no final da subida.'
+          },
+          {
+            num: 4,
+            id: 'lg13',
+            name: 'Cadeira Flexora Sentada',
             group: 'Pernas',
             equip: 'Máquina · Isolador',
-            primary: 'Reto Femoral & Vasto Lateral',
-            secondary: 'Vasto Medial',
-            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            primary: 'Isquiotibiais (Bíceps Femoral, Semitendíneo)',
+            secondary: 'Gastrocnêmio',
+            cadence: '3-1-1-0 · Exc. 3s / P.fundo 1s / Conc. 1s',
             resist: 'Pico Encurtado',
-            resistColor: 'red',
             sets: 3,
             reps: '10-12',
             rpe: 8.5,
             rest: 60,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif',
-            steps: ['Ajuste o eixo da máquina exatamente na linha do joelho.', 'Estenda as pernas até a contração máxima e segure 1 segundo no topo.', 'Desça em 3 segundos sob tensão contínua.'],
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/hamstrings/lever-seated-leg-curl.gif',
+            steps: ['Ajuste o apoio sobre as coxas bem firme.', 'Flexione os joelhos levando os calcanhares para baixo do assento.', 'Segure 1 segundo no pico de contração.'],
+            breathing: 'Expire na flexão e inspire no retorno controlado.',
+            mistakes: 'Não levantar o quadril do assento durante a contração.'
+          },
+          {
+            num: 5,
+            id: 'lg20',
+            name: 'Panturrilha em Pé na Máquina',
+            group: 'Panturrilha',
+            equip: 'Máquina · Isolador',
+            primary: 'Gastrocnêmio (Cabeça Medial & Lateral)',
+            secondary: 'Sóleo',
+            cadence: '3-1-1-0 · Exc. 3s / P.along 1s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 4,
+            reps: '10-12',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/standing-calf-raise.gif',
+            steps: ['Apoie a ponta dos pés na plataforma com joelhos totalmente estendidos.', 'Desça os calcanhares sentindo o alongamento máximo do tendão de Aquiles.', 'Eleve os calcanhares no topo máximo com 1 segundo de isometria.'],
+            breathing: 'Inspire no alongamento e expire na flexão plantar máxima.',
+            mistakes: 'Não dobrar os joelhos nem rebater no fundo.'
+          },
+          {
+            num: 6,
+            id: 'ab02',
+            name: 'Abdominal Cable Crunch na Polia Alta',
+            group: 'Abdômen',
+            equip: 'Cabo · Isolador',
+            primary: 'Reto Abdominal (Porção Superior e Média)',
+            secondary: 'Oblíquos',
+            cadence: '3-1-1-0 · Exc. 3s / P.encurt 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 3,
+            reps: '12-15',
+            rpe: 8,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
+            steps: ['Ajoelhe-se em frente à polia segurando a corda junto à cabeça.', 'Flexione a coluna arredondando as costas e aproximando os cotovelos das coxas.', 'Segure 1 segundo no pico de contração abdominal.'],
+            breathing: 'Expire fortemente na flexão do tronco e inspire na extensão.',
+            mistakes: 'Não movimentar os quadris para trás; o movimento deve vir exclusivamente da flexão espinhal.'
+          }
+        ]
+      },
+      'Cardio': {
+        id: 'Cardio',
+        name: 'Zona 2 Base Aeróbica & Engine (45 min)',
+        badge: 'Z2',
+        subtitle: '3 blocos de oxidação mitocondrial pura · FC 112-130 bpm',
+        isCardio: true,
+        isOff: false,
+        exercises: [
+          {
+            num: 1,
+            id: 'card_row',
+            name: 'Remo Seco (RowErg) · Tração Cíclica',
+            group: 'Cardio',
+            equip: 'Ergômetro',
+            primary: 'Oxidação Lipídica & Sistema Cardiovascular',
+            secondary: 'Pernas, Dorsais, Core',
+            cadence: 'Pace estável 2:15-2:25/500m',
+            resist: 'Zona 2 (112-130 bpm)',
+            sets: 1,
+            reps: '15 min',
+            rpe: 6,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/rowing-machine.gif',
+            steps: [
+              'Ajuste o drag damper entre 4 e 5 para trabalho aeróbio limpo.',
+              'Empurre forte com as pernas, incline o tronco 10° para trás e finalize com a puxada dos braços.',
+              'Mantenha cadência de 22 a 24 SPM (strokes per minute) com respiração nasal contínua.'
+            ],
+            breathing: 'Respiração nasal rítmica de 2 tempos de puxada para 1 de recuperação.',
+            mistakes: 'Não puxar com os braços antes de estender as pernas.'
+          },
+          {
+            num: 2,
+            id: 'card_bike',
+            name: 'AirBike / Echo Bike · Cadência Sem Impacto',
+            group: 'Cardio',
+            equip: 'AirBike',
+            primary: 'Biogênese Mitocondrial & Fração de Ejeção',
+            secondary: 'Membros Superiores e Inferiores',
+            cadence: 'RPM 50-55 estável',
+            resist: 'Zona 2 (115-128 bpm)',
+            sets: 1,
+            reps: '15 min',
+            rpe: 6,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike.gif',
+            steps: [
+              'Ajuste o selim na altura do osso ilíaco para extensão articular ótima.',
+              'Pedale com força síncrona de braços e pernas mantendo RPM constante de 50 a 55.',
+              'Zero picos de esforço anaeróbio: converse em frases completas se testado.'
+            ],
+            breathing: 'Inspire pelo nariz e expire pela boca com fluxo constante.',
+            mistakes: 'Não fazer sprints no meio da sessão; a intensidade deve ser estável.'
+          },
+          {
+            num: 3,
+            id: 'card_tread',
+            name: 'Caminhada Inclinada na Esteira (Anti-Impacto)',
+            group: 'Cardio',
+            equip: 'Esteira',
+            primary: 'Oxidação de Ácidos Graxos Livres',
+            secondary: 'Panturrilhas, Glúteos, Cadeia Posterior',
+            cadence: 'Inclinação 8-10% · Vel 5.5-6.0 km/h',
+            resist: 'Zona 2 (115-130 bpm)',
+            sets: 1,
+            reps: '15 min',
+            rpe: 6,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+            steps: [
+              'Ajuste a esteira para inclinação entre 8,0% e 10,0% e velocidade de 5,5 a 6,0 km/h.',
+              'Caminhe com passada ampla sem se segurar nos apoios da esteira.',
+              'Mantenha a postura ereta e o olhar para frente.'
+            ],
+            breathing: 'Respiração nasal profunda, sem ofegar.',
+            mistakes: 'Não segurar nas barras laterais (isso reduz em 30% o gasto calórico real).'
+          }
+        ]
+      },
+      'C': {
+        id: 'C',
+        name: 'Treino C · Costas / Ombros & Pull Hyp',
+        badge: 'C',
+        subtitle: '6 exercícios estruturados · Volume: 21 sets',
+        isCardio: false,
+        isOff: false,
+        exercises: [
+          {
+            num: 1,
+            id: 'do01',
+            name: 'Barra Fixa Pronada (Pull-up)',
+            group: 'Dorsal',
+            equip: 'Peso Corporal · Composto',
+            primary: 'Latíssimo do Dorso (Fibras Verticais)',
+            secondary: 'Bíceps, Romboides, Braquial',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8.5,
+            rest: 120,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/pull-up.gif',
+            steps: ['Segure na barra com pegada pronada afastada.', 'Puxe o peito em direção à barra retraindo as escápulas.', 'Desça até a extensão completa dos braços em 3s.'],
             breathing: 'Expire na subida e inspire na descida.',
-            mistakes: 'Não descolar o glúteo do assento durante a extensão.'
+            mistakes: 'Evitar balançar as pernas ou encurtar a descida.'
+          },
+          {
+            num: 2,
+            id: 'do08',
+            name: 'Remada Curvada com Barra (Pronada)',
+            group: 'Dorsal',
+            equip: 'Barra · Composto',
+            primary: 'Latíssimo do Dorso, Trapézio Médio & Romboides',
+            secondary: 'Bíceps, Eretores da Espinha',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Curva Uniforme',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8.5,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/back/barbell-bent-over-row.gif',
+            steps: ['Tronco inclinado a 45° com a coluna neutra.', 'Puxe a barra em direção ao umbigo cotovelos junto ao corpo.', 'Segure 1s na contração máxima.'],
+            breathing: 'Expire na puxada e inspire na descida.',
+            mistakes: 'Não arredondar a coluna lombar.'
+          },
+          {
+            num: 3,
+            id: 'do04',
+            name: 'Puxada Frontal Aberta no Pulley',
+            group: 'Dorsal',
+            equip: 'Cabo · Composto',
+            primary: 'Latíssimo do Dorso (Porção Superior)',
+            secondary: 'Bíceps, Redondo Maior',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8,
+            rest: 75,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif',
+            steps: ['Sente-se com as pernas bem presas nos rolos.', 'Puxe a barra em direção à parte superior do peito projetando o esterno para cima.', 'Retorne em 3s estendendo os braços por completo.'],
+            breathing: 'Expire na puxada e inspire no retorno.',
+            mistakes: 'Não puxar a barra atrás da nuca nem deitar excessivamente para trás.'
+          },
+          {
+            num: 4,
+            id: 'sh15',
+            name: 'Face Pull na Polia com Corda',
+            group: 'Ombros',
+            equip: 'Cabo · Isolador',
+            primary: 'Deltoide Posterior & Manguito Rotador',
+            secondary: 'Trapézio Médio/Inferior',
+            cadence: '2-1-1-0 · Exc. 2s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 3,
+            reps: '12-15',
+            rpe: 8,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/cable-face-pull.gif',
+            steps: ['Puxe a corda em direção aos olhos separando as mãos.', 'Faça rotação externa no final mantendo cotovelos altos.'],
+            breathing: 'Expire na puxada e inspire no retorno.',
+            mistakes: 'Não puxar para o queixo ou abaixar os cotovelos.'
+          },
+          {
+            num: 5,
+            id: 'bi09',
+            name: 'Rosca Inclinada no Banco 45° com Halteres',
+            group: 'Bíceps',
+            equip: 'Halteres · Isolador',
+            primary: 'Bíceps Braquial (Cabeça Longa / Alongamento)',
+            secondary: 'Braquial Anterior',
+            cadence: '3-1-1-0 · Exc. 3s / P.along 1s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-incline-biceps-curl.gif',
+            steps: ['Banco a 45°, braços totalmente estendidos para trás sentindo o alongamento do bíceps.', 'Flexione os cotovelos supinando os punhos sem projetar os ombros para frente.', 'Desça em 3 segundos até a posição esticada.'],
+            breathing: 'Expire na subida e inspire no alongamento.',
+            mistakes: 'Não balançar os ombros para gerar impulso.'
+          },
+          {
+            num: 6,
+            id: 'sh19',
+            name: 'Encolhimento de Ombros com Halteres (Shrug)',
+            group: 'Trapézio',
+            equip: 'Halteres · Isolador',
+            primary: 'Trapézio Superior',
+            secondary: 'Elevador da Escápula',
+            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 4,
+            reps: '10-12',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/dumbbell-shrug.gif',
+            steps: ['Em pé segurando halteres pesados ao lado do corpo.', 'Eleve os ombros em direção às orelhas em linha reta.', 'Segure 1 segundo no pico de contração máxima.'],
+            breathing: 'Expire na elevação e inspire na descida.',
+            mistakes: 'Nunca girar os ombros em círculo (risco de lesão no manguito rotador).'
+          }
+        ]
+      },
+      'D': {
+        id: 'D',
+        name: 'Treino D · Pernas Hipertrofia & Cadeia Anterior/Posterior',
+        badge: 'D',
+        subtitle: '6 exercícios estruturados · Volume: 22 sets',
+        isCardio: false,
+        isOff: false,
+        exercises: [
+          {
+            num: 1,
+            id: 'lg03',
+            name: 'Agachamento Hack na Máquina',
+            group: 'Pernas',
+            equip: 'Máquina · Composto',
+            primary: 'Quadríceps (Vastos & Reto Femoral)',
+            secondary: 'Glúteo Máximo',
+            cadence: '4-0-1-0 · Exc. 4s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 4,
+            reps: '8-10',
+            rpe: 8.5,
+            rest: 120,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/sled-hack-squat.gif',
+            steps: ['Apoie as costas e ombros no encosto do Hack.', 'Desça controladamente em 4 segundos até a flexão profunda dos joelhos.', 'Empurre a plataforma pelos calcanhares sem travar os joelhos no topo.'],
+            breathing: 'Inspire na descida e expire com força na subida.',
+            mistakes: 'Não retirar a região lombar do encosto.'
+          },
+          {
+            num: 2,
+            id: 'lg07',
+            name: 'Agachamento Búlgaro com Halteres',
+            group: 'Pernas',
+            equip: 'Halteres · Composto',
+            primary: 'Glúteo Máximo & Quadríceps',
+            secondary: 'Adutores, Isquiotibiais',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 3,
+            reps: '8-10 cada',
+            rpe: 8,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-bulgarian-split-squat.gif',
+            steps: ['Um pé apoiado atrás no banco e o outro à frente.', 'Desça o quadril na vertical até o joelho de trás quase tocar o solo.', 'Suba com força na perna da frente.'],
+            breathing: 'Inspire na descida e expire na subida.',
+            mistakes: 'Não deixar o joelho da frente colapsar para dentro.'
+          },
+          {
+            num: 3,
+            id: 'lg06',
+            name: 'Cadeira Extensora (com Isometria 1s)',
+            group: 'Pernas',
+            equip: 'Máquina · Isolador',
+            primary: 'Quadríceps (Reto Femoral)',
+            secondary: 'Vasto Medial/Lateral',
+            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 4,
+            reps: '10-12',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif',
+            steps: ['Ajuste o eixo no joelho e estenda as pernas até a linha horizontal.', 'Segure 1 segundo no pico de contração máxima.', 'Retorne em 3 segundos.'],
+            breathing: 'Expire na extensão e inspire na descida.',
+            mistakes: 'Não descolar o quadril do banco.'
+          },
+          {
+            num: 4,
+            id: 'lg12',
+            name: 'Mesa Flexora Deitada',
+            group: 'Pernas',
+            equip: 'Máquina · Isolador',
+            primary: 'Isquiotibiais (Cabeça Curta do Bíceps Femoral)',
+            secondary: 'Gastrocnêmio',
+            cadence: '3-1-1-0 · Exc. 3s / P.fundo 1s / Conc. 1s',
+            resist: 'Curva Uniforme',
+            sets: 4,
+            reps: '10-12',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/hamstrings/lever-lying-leg-curl.gif',
+            steps: ['Deitado de bruços, ajuste o rolete logo acima dos calcanhares.', 'Flexione os joelhos trazendo o rolete em direção aos glúteos.', 'Desça em 3 segundos sem encostar os pesos na pilha.'],
+            breathing: 'Expire na flexão e inspire no retorno.',
+            mistakes: 'Não arquear a coluna lombar ao puxar a carga.'
+          },
+          {
+            num: 5,
+            id: 'lg15',
+            name: 'Elevação Pélvica com Barra (Hip Thrust)',
+            group: 'Glúteo',
+            equip: 'Barra · Composto',
+            primary: 'Glúteo Máximo (Pico de Ativação EMG)',
+            secondary: 'Isquiotibiais, Adutores',
+            cadence: '2-1-1-0 · Exc. 2s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8.5,
+            rest: 90,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-hip-thrust.gif',
+            steps: ['Escápulas apoiadas no banco, barra acolchoada sobre o quadril.', 'Empurre o quadril para cima até o tronco ficar alinhado com as coxas.', 'Segure 1 segundo no topo contraindo o glúteo no máximo.'],
+            breathing: 'Expire no topo e inspire na descida.',
+            mistakes: 'Não hiperestender a coluna lombar no topo.'
+          },
+          {
+            num: 6,
+            id: 'lg21',
+            name: 'Panturrilha Sentado na Máquina',
+            group: 'Panturrilha',
+            equip: 'Máquina · Isolador',
+            primary: 'Sóleo (Isolamento)',
+            secondary: 'Tibial Posterior',
+            cadence: '3-1-1-0 · Exc. 3s / P.along 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 4,
+            reps: '12-15',
+            rpe: 8.5,
+            rest: 45,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-seated-calf-raise.gif',
+            steps: ['Com os joelhos flexionados a 90°, o gastrocnêmio é inibido e o sóleo assume 100% da carga.', 'Desça os calcanhares sentindo o alongamento e eleve no pico com 1s de pausa.'],
+            breathing: 'Inspire na descida e expire na elevação.',
+            mistakes: 'Não usar impulso das mãos nas coxas.'
+          }
+        ]
+      },
+      'E': {
+        id: 'E',
+        name: 'Treino E · Peitoral & Braços (Densidade & Arm Day)',
+        badge: 'E',
+        subtitle: '6 exercícios estruturados · Volume: 20 sets',
+        isCardio: false,
+        isOff: false,
+        exercises: [
+          {
+            num: 1,
+            id: 'pe02',
+            name: 'Supino Inclinado com Barra',
+            group: 'Peitoral',
+            equip: 'Barra · Composto',
+            primary: 'Peitoral Maior (Porção Clavicular)',
+            secondary: 'Deltoide Anterior, Tríceps',
+            cadence: '3-0-1-0 · Exc. 3s / Conc. 1s',
+            resist: 'Curva Uniforme',
+            sets: 4,
+            reps: '6-8',
+            rpe: 8,
+            rest: 120,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-incline-bench-press.gif',
+            steps: ['Banco inclinado a 30°, desça a barra até a clavícula.', 'Empurre na vertical com pegada firme.', '3 segundos de descida controlada.'],
+            breathing: 'Inspire na descida e expire na subida.',
+            mistakes: 'Não deixar os cotovelos abrirem a 90° com os ombros.'
+          },
+          {
+            num: 2,
+            id: 'pe07',
+            name: 'Crucifixo Reto com Halteres',
+            group: 'Peitoral',
+            equip: 'Halteres · Isolador',
+            primary: 'Peitoral Maior (Alongamento Máximo)',
+            secondary: 'Deltoide Anterior',
+            cadence: '3-1-1-0 · Exc. 3s / P.along 1s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 3,
+            reps: '10-12',
+            rpe: 8,
+            rest: 75,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-fly.gif',
+            steps: ['Abra os braços com cotovelos levemente fletidos sentindo o peito esticar.', 'Feche os braços como se estivesse abraçando uma árvore.', 'Pausa de 1s no ponto de maior alongamento.'],
+            breathing: 'Inspire na abertura e expire no fechamento.',
+            mistakes: 'Não estender os cotovelos totalmente durante a descida.'
+          },
+          {
+            num: 3,
+            id: 'pe13',
+            name: 'Peck Deck / Voador na Máquina',
+            group: 'Peitoral',
+            equip: 'Máquina · Isolador',
+            primary: 'Peitoral Maior (Pico de Adução)',
+            secondary: 'Deltoide Anterior',
+            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 3,
+            reps: '12-15',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/butterfly.gif',
+            steps: ['Ajuste o assento para que os braços fiquem na linha do peitoral médio.', 'Aduza os braços até as mãos se aproximarem e segure 1 segundo.', 'Retorne em 3 segundos.'],
+            breathing: 'Expire na contração e inspire na abertura.',
+            mistakes: 'Não elevar os ombros durante a contração.'
+          },
+          {
+            num: 4,
+            id: 'bi06',
+            name: 'Rosca Scott com Barra W (Banco Scott)',
+            group: 'Bíceps',
+            equip: 'Barra · Isolador',
+            primary: 'Bíceps Braquial (Foco Cabeça Curta/Braquial)',
+            secondary: 'Braquial Anterior',
+            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 3,
+            reps: '8-10',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/ez-barbell-preacher-curl.gif',
+            steps: ['Braços bem apoiados na almofada do banco Scott.', 'Flexione os cotovelos com a barra W até a contração máxima.', 'Desça controladamente sem estender excessivamente os cotovelos.'],
+            breathing: 'Expire na subida e inspire na descida.',
+            mistakes: 'Não retirar os cotovelos do acolchoado.'
+          },
+          {
+            num: 5,
+            id: 'tr06',
+            name: 'Tríceps Francês com Halter no Banco',
+            group: 'Tríceps',
+            equip: 'Halteres · Isolador',
+            primary: 'Tríceps Braquial (Cabeça Longa / Alongamento)',
+            secondary: 'Ancôneo',
+            cadence: '3-1-1-0 · Exc. 3s / P.along 1s / Conc. 1s',
+            resist: 'Pico Alongado',
+            sets: 3,
+            reps: '10-12',
+            rpe: 8,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/dumbbell-seated-triceps-extension.gif',
+            steps: ['Segure um halter com as duas mãos acima e atrás da cabeça.', 'Desça o halter flexionando os cotovelos até sentir o tríceps alongar por completo.', 'Estenda os braços na vertical.'],
+            breathing: 'Inspire na descida atrás da cabeça e expire na extensão.',
+            mistakes: 'Não abrir os cotovelos excessivamente para os lados.'
+          },
+          {
+            num: 6,
+            id: 'tr01',
+            name: 'Tríceps na Polia com Barra Reta (Pushdown)',
+            group: 'Tríceps',
+            equip: 'Cabo · Isolador',
+            primary: 'Tríceps Braquial (Cabeça Lateral)',
+            secondary: 'Ancôneo',
+            cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s',
+            resist: 'Pico Encurtado',
+            sets: 3,
+            reps: '10-12',
+            rpe: 8.5,
+            rest: 60,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif',
+            steps: ['Cotovelos travados ao lado das costelas.', 'Empurre a barra para baixo até a extensão total e segure 1 segundo.', 'Retorne até 90° em 3 segundos.'],
+            breathing: 'Expire na descida e inspire na subida.',
+            mistakes: 'Não movimentar os ombros para frente e para trás.'
+          }
+        ]
+      },
+      'OFF': {
+        id: 'OFF',
+        name: 'Descanso Total & Supercompensação (OFF)',
+        badge: 'OFF',
+        subtitle: 'Recuperação neuromuscular & Síntese proteica contínua',
+        isCardio: false,
+        isOff: true,
+        exercises: [
+          {
+            num: 1,
+            id: 'rec_sleep',
+            name: 'Janela de Sono Profundo (8 a 9 horas)',
+            group: 'Recuperação',
+            equip: 'Higiene do Sono',
+            primary: 'Pico de Liberação de GH & Restauração do SNC',
+            secondary: 'Regulação do Cortisol e Sensibilidade Insulínica',
+            cadence: 'Ambiente 100% escuro e fresco (19-21°C)',
+            resist: 'Zero Telas 1h antes',
+            sets: 1,
+            reps: '8-9h',
+            rpe: 1,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+            steps: [
+              'Desligue telas azuis e luzes fortes 60 minutos antes de deitar.',
+              'Mantenha o quarto escuro, silencioso e refrigerado.',
+              'Garanta 8 a 9 horas de sono contínuo para síntese proteica miofibrilar plena.'
+            ],
+            breathing: 'Respiração diafragmática 4-7-8 para ativação do sistema parassimpático.',
+            mistakes: 'Evitar cafeína após as 15h00 em dias de descanso.'
+          },
+          {
+            num: 2,
+            id: 'rec_mob',
+            name: 'Mobilidade Articular & Liberação Miofascial',
+            group: 'Recuperação',
+            equip: 'Rolo de Espuma / Solo',
+            primary: 'Alívio da Tensão e Aumento do Fluxo Sanguíneo',
+            secondary: 'Cadeia Posterior, Ombros e Quadril',
+            cadence: '15 minutos suaves sem dor aguda',
+            resist: 'Relaxamento Ativo',
+            sets: 1,
+            reps: '15 min',
+            rpe: 2,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
+            steps: [
+              'Passe o rolo de espuma suavemente sobre quadríceps, panturrilhas e latíssimo.',
+              'Faça mobilidade de tornozelos e abertura de quadril (90-90 stretch).',
+              'Alongamentos estáticos leves de peitoral e deltoides.'
+            ],
+            breathing: 'Respiração profunda e ritmada durante as posturas.',
+            mistakes: 'Não forçar além do limite de conforto articular.'
+          },
+          {
+            num: 3,
+            id: 'rec_elec',
+            name: 'Hidratação Eletrolítica & Síntese Proteica Fracionada',
+            group: 'Nutrição',
+            equip: 'Garrafa de Água + Dieta',
+            primary: 'Reposição de Sódio, Potássio e Magnésio',
+            secondary: 'Aporte de 30-40g de Proteína a cada 3-4 horas',
+            cadence: 'Fracionado ao longo do dia',
+            resist: 'Meta: 4.632 mL',
+            sets: 5,
+            reps: 'Refeições',
+            rpe: 1,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+            steps: [
+              'Beba no mínimo 4.632 mL de água ao longo do dia.',
+              'Mantenha as refeições prescritas sem pular horários para manter o balanço nitrogenado positivo.',
+              'Aproveite carboidratos complexos para recarregar o glicogênio muscular para a próxima semana.'
+            ],
+            breathing: 'Mantenha-se relaxado e sem estresse.',
+            mistakes: 'Não cortar carboidratos ou fazer jejum excessivo em dia de recuperação.'
           }
         ]
       }
@@ -1029,7 +1536,7 @@
         dayName: 'DIA 5',
         type: 'Treino',
         color: 'purple',
-        routineKey: 'A',
+        routineKey: 'D',
         title: 'Treino D · Pernas Hipertrofia',
         sub: 'Hack Squat, Cadeira Ext.',
         synergy: {
@@ -1044,9 +1551,9 @@
         dayName: 'DIA 6',
         type: 'Treino',
         color: 'blue',
-        routineKey: 'B',
+        routineKey: 'E',
         title: 'Treino E · Peitoral & Braços',
-        sub: 'Densidade Miofibrilar...',
+        sub: 'Densidade Miofibrilar & Arms',
         synergy: {
           carbo: '70g carbo com refeição completa pré-treino',
           prot: '2.0 g/kg (232g/dia)',
@@ -1069,6 +1576,16 @@
           focus: 'Supercompensação miofibrilar total com 8-9h de sono'
         }
       }
+    ];
+
+    const ROUTINE_OPTIONS = [
+      { key: 'A', name: 'Treino A · Push A', badge: 'A' },
+      { key: 'B', name: 'Treino B · Lower', badge: 'B' },
+      { key: 'Cardio', name: 'Cardio Zona 2', badge: 'Z2' },
+      { key: 'C', name: 'Treino C · Costas', badge: 'C' },
+      { key: 'D', name: 'Treino D · Pernas', badge: 'D' },
+      { key: 'E', name: 'Treino E · Braços', badge: 'E' },
+      { key: 'OFF', name: 'OFF · Descanso', badge: 'OFF' }
     ];
 
     let selectedScheduleDay = 1;
@@ -1137,7 +1654,8 @@
       renderWeeklyCarousel();
       updateSynergyCard();
 
-      // Treino e Ficha Detalhada (Figura 3)
+      // Pills Rápidas e Ficha Detalhada de Treino
+      renderQuickRoutinePills();
       renderWorkoutExercises();
       updateWorkoutVisuals();
       updateCardioVisuals();
@@ -1168,15 +1686,15 @@
 
       container.innerHTML = WEEKLY_SCHEDULE_DATA.map(d => {
         const isSelected = d.dayNum === selectedScheduleDay;
-        const colorBorder = isSelected ? 'border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.5)] bg-blue-950/80' : 'border-zinc-800 bg-black/60 hover:border-zinc-700';
+        const colorBorder = isSelected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]' : 'border-zinc-800 bg-black/60 hover:border-zinc-700';
         const badgeColor = d.type === 'Treino' ? 'bg-blue-950 text-blue-300 border-blue-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-400 border-zinc-800');
 
         return `
           <div onclick="selectScheduleDay(${d.dayNum})"
-            class="min-w-[130px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
+            class="min-w-[135px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : 'bg-zinc-500'}"></span>
+                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : 'bg-zinc-600'}"></span>
                 ${d.dayName}
               </span>
               <span class="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border ${badgeColor}">
@@ -1184,7 +1702,7 @@
               </span>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-white line-clamp-1">${d.title}</h4>
+              <h4 class="text-xs font-black text-white line-clamp-1">${d.title}</h4>
               <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub}</p>
             </div>
           </div>
@@ -1196,15 +1714,20 @@
       selectedScheduleDay = dayNum;
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
       if (dayData) {
-        if (dayData.routineKey && WORKOUT_DATABASE[dayData.routineKey]) {
-          selectedRoutineKey = dayData.routineKey;
-        } else if (dayData.routineKey === 'Cardio') {
-          selectedRoutineKey = 'A';
-        }
+        selectedRoutineKey = dayData.routineKey || 'A';
       }
       renderWeeklyCarousel();
       updateSynergyCard();
+      renderQuickRoutinePills();
       renderWorkoutExercises();
+
+      // Feedback visual suave no quadro de treino
+      const sec = document.getElementById('workoutSectionContainer');
+      if (sec) {
+        sec.classList.add('ring-2', 'ring-blue-500/80');
+        setTimeout(() => sec.classList.remove('ring-2', 'ring-blue-500/80'), 500);
+      }
+
       if (window.lucide) window.lucide.createIcons();
     }
 
@@ -1218,7 +1741,45 @@
       document.getElementById('synergyFocus').textContent = dayData.synergy.focus;
     }
 
-    // 8. FICHA DE EXERCÍCIOS DETALHADA (ESTILO FIGURA 3)
+    // 8. SELETOR RÁPIDO DE ROTINAS (PILLS)
+    function renderQuickRoutinePills() {
+      const container = document.getElementById('quickRoutinePills');
+      if (!container) return;
+
+      container.innerHTML = ROUTINE_OPTIONS.map(opt => {
+        const isSelected = opt.key === selectedRoutineKey;
+        const cls = isSelected 
+          ? 'bg-blue-600 border-blue-400 text-white font-black shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+          : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold';
+
+        return `
+          <button onclick="selectRoutineDirect('${opt.key}')"
+            class="px-2.5 py-1 rounded-lg border text-[10px] font-mono whitespace-nowrap active:scale-95 transition-all ${cls}">
+            ${opt.name}
+          </button>
+        `;
+      }).join('');
+
+      const curRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      const tagEl = document.getElementById('selectedRoutineNameTag');
+      if (tagEl) tagEl.textContent = curRoutine.name;
+    }
+
+    function selectRoutineDirect(routineKey) {
+      selectedRoutineKey = routineKey;
+      renderQuickRoutinePills();
+      renderWorkoutExercises();
+
+      const sec = document.getElementById('workoutSectionContainer');
+      if (sec) {
+        sec.classList.add('ring-2', 'ring-blue-500/80');
+        setTimeout(() => sec.classList.remove('ring-2', 'ring-blue-500/80'), 500);
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    // 9. FICHA DE EXERCÍCIOS DETALHADA (ESTILO FIGURA 3)
     function renderWorkoutExercises() {
       const container = document.getElementById('patientExercisesList');
       if (!container) return;
@@ -1230,16 +1791,32 @@
       document.getElementById('workoutRoutineTitle').textContent = routine.name;
       document.getElementById('workoutRoutineSubtitle').textContent = routine.subtitle;
 
+      // Oculta/Exibe a diretriz de progressão dependendo do tipo
+      const progEl = document.getElementById('workoutFooterProgression');
+      if (progEl) {
+        progEl.style.display = (routine.isOff || routine.isCardio) ? 'none' : 'flex';
+      }
+
       container.innerHTML = routine.exercises.map(ex => {
         const isDone = !!patientState.exerciseChecks[ex.id];
-        const resistBadge = ex.resist === 'Pico Alongado' 
-          ? '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">🔵 Pico Alongado</span>'
-          : (ex.resist === 'Pico Encurtado' 
-            ? '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">🔴 Pico Encurtado</span>'
-            : '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">⚪ Curva Mista</span>');
+        
+        let resistBadge = '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">🔵 Pico Alongado</span>';
+        if (ex.resist.includes('Encurtado')) {
+          resistBadge = '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">🔴 Pico Encurtado</span>';
+        } else if (ex.resist.includes('Uniforme') || ex.resist.includes('Mista')) {
+          resistBadge = '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">⚪ Curva Uniforme</span>';
+        } else {
+          resistBadge = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-700">⚡ ${ex.resist}</span>`;
+        }
+
+        const setsLabel = routine.isCardio ? 'Bloco' : (routine.isOff ? 'Ação' : 'Séries');
+        const repsLabel = routine.isCardio ? 'Tempo' : (routine.isOff ? 'Meta' : 'Reps');
+        const rpeLabel = routine.isCardio ? 'Esforço' : (routine.isOff ? 'RPE' : 'RPE');
+        const pauseLabel = routine.isCardio ? 'Pausa' : (routine.isOff ? 'Status' : 'Pausa');
+        const pauseValue = routine.isCardio ? '0s' : (routine.isOff ? 'OK' : `${ex.rest}s`);
 
         return `
-          <div class="p-3.5 rounded-xl ${isDone ? 'bg-blue-950/20 border-blue-500/50' : 'bg-black/60 border-zinc-800'} border space-y-2.5 transition-all">
+          <div class="p-3.5 rounded-xl ${isDone ? 'bg-blue-950/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-black/60 border-zinc-800'} border space-y-2.5 transition-all">
             
             <!-- Topo do Exercício: Número, Nome e Botão GIF -->
             <div class="flex items-start justify-between gap-2">
@@ -1274,6 +1851,8 @@
             <div class="text-[10px] text-zinc-400 space-y-0.5 border-t border-zinc-800/60 pt-2">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span>🎯 <strong class="text-zinc-300">Primário:</strong> ${ex.primary}</span>
+              </div>
+              <div class="flex items-center gap-1.5 flex-wrap text-zinc-400">
                 <span>⚡ <strong class="text-zinc-300">Sinérgicos:</strong> ${ex.secondary}</span>
               </div>
               <div class="flex items-center gap-2 flex-wrap pt-0.5">
@@ -1286,20 +1865,20 @@
             <div class="flex items-center justify-between gap-2 pt-1">
               <div class="grid grid-cols-4 gap-1.5 text-center flex-1">
                 <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">Séries</span>
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${setsLabel}</span>
                   <span class="text-xs font-black text-white font-mono">${ex.sets}</span>
                 </div>
                 <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">Reps</span>
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${repsLabel}</span>
                   <span class="text-xs font-black text-white font-mono">${ex.reps}</span>
                 </div>
                 <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${rpeLabel}</span>
                   <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe}</span>
                 </div>
-                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 cursor-pointer hover:border-blue-500" onclick="startRestTimer(${ex.rest})">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
-                  <span class="text-xs font-black text-blue-400 font-mono">${ex.rest}s</span>
+                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
+                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${pauseLabel}</span>
+                  <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
                 </div>
               </div>
 
@@ -1328,7 +1907,7 @@
       if (window.lucide) window.lucide.createIcons();
     }
 
-    // 9. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
+    // 10. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
     function openExerciseGuideModal(exId) {
       let foundEx = null;
       for (const rKey in WORKOUT_DATABASE) {
@@ -1393,7 +1972,7 @@
       imgEl.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
 
-    // 10. CRONÔMETRO DE DESCANSO REGRESSIVO
+    // 11. CRONÔMETRO DE DESCANSO REGRESSIVO
     let restTimerInterval = null;
     let remainingRestSeconds = 0;
 
@@ -1428,7 +2007,7 @@
       display.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    // 11. REFEIÇÕES
+    // 12. REFEIÇÕES
     function renderMeals() {
       const container = document.getElementById('patientMealsList');
       if (!container) return;
@@ -1544,7 +2123,7 @@
       if (q === 'good') document.getElementById('sqGood').className = "p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm shadow-[0_0_8px_rgba(168,85,247,0.4)]";
     }
 
-    // 12. CÁLCULO DO SCORE IDC DO DIA
+    // 13. CÁLCULO DO SCORE IDC DO DIA
     function calculateDailyIDC() {
       // 1. Refeições (40 pts)
       const totalMeals = patientState.meals.length || 1;
@@ -1580,7 +2159,7 @@
       }
     }
 
-    // 13. MODAL SOS
+    // 14. MODAL SOS
     function openSosModal() {
       document.getElementById('sosModal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
@@ -1590,7 +2169,7 @@
       document.getElementById('sosModal').classList.add('hidden');
     }
 
-    // 14. PWA INSTALL PROMPT
+    // 15. PWA INSTALL PROMPT
     let deferredPrompt = null;
     function setupPwaPrompt() {
       window.addEventListener('beforeinstallprompt', (e) => {
