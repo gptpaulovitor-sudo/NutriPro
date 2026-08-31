@@ -7042,7 +7042,69 @@ function perfBuildWeeklySchedule(splitKey) {
   const ctx = perfGetNutritionContext();
   const protStr = `${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia)`;
   const waterStr = `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL (40 mL/kg)`;
+  const waterPlusStr = `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`;
   const preCarbG = ctx.isCutting ? '50-60g' : ctx.isBulking ? '80-100g' : '60-70g';
+
+  // Se o plano ativo possuir rotinas customizadas ou for divisão de 6 rotinas, gera dinamicamente
+  if (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length >= 6) {
+    const r = perfWorkoutPlan;
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: r[0]?.id || 'A', title: r[0]?.name || 'Treino A · Push A',
+        focus: r[0]?.description || 'Força Mecânica e Potência', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré-treino (Aveia / Tapioca / Mel)`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Superávit anabólico peri-treino para força máxima'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: r[1]?.id || 'B', title: r[1]?.name || 'Treino B · Pull A',
+        focus: r[1]?.description || 'Tração e Força Escapular', type: 'Treino',
+        carboTip: `${preCarbG} carbo pré-treino + Creatina 5g`,
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: r[2]?.id || 'C', title: r[2]?.name || 'Treino C · Legs A',
+        focus: r[2]?.description || 'Dominância de Joelho e Potência', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré-treino (Arroz / Mandioca)`,
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Recarga glicêmica peri-treino para suporte a membros inferiores'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: r[3]?.id || 'D', title: r[3]?.name || 'Treino D · Push B',
+        focus: r[3]?.description || 'Hipertrofia e Densidade', type: 'Treino',
+        carboTip: '70-80g carbo pré-treino (Arroz / Batata)',
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Volume volumétrico com alto influxo de glicogênio'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: r[4]?.id || 'E',
+        title: `${r[4]?.name || 'Treino E · Pull B'} + Cardio Z2`,
+        focus: `${r[4]?.description || 'Espessura Dorsal'} · Cardio Zona 2 (45 min pós-força)`,
+        type: 'Treino + Cardio',
+        cardioId: 'cardio_01',
+        hasCardioPost: true,
+        carboTip: '70-80g carbo peri-treino + hidratação reforçada',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Treino de força seguido de cardio Zona 2 no 5º dia'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: r[5]?.id || 'F', title: r[5]?.name || 'Treino F · Legs B',
+        focus: r[5]?.description || 'Dominância de Quadril e Estabilidade', type: 'Treino',
+        carboTip: '80g carbo denso pré e pós-treino',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Recarga glicêmica pós-treino para cadeia posterior'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Supercompensação e Sono Reparador (8-9h)', type: 'Off',
+        carboTip: 'Carboidratos equilibrados de lenta absorção',
+        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Síntese proteica contínua)`,
+        waterTip: waterStr,
+        strategyTip: 'Supercompensação miofibrilar total com 8-9h de sono'
+      }
+    ];
+  }
 
   // 1. UPPER / LOWER (ABCD - 4 Dias · Cutting / Alta Frequência)
   if (splitKey === 'UpperLower') {
@@ -7101,57 +7163,59 @@ function perfBuildWeeklySchedule(splitKey) {
     ];
   }
 
-  // 2. PHAT (5 Dias · Hipertrofia & Força / Bulking)
+  // 2. PHAT (6 Rotinas / 7 Dias · Força Mecânica + Hipertrofia Sarcoplasmática / Bulking)
   else if (splitKey === 'PHAT') {
     return [
       {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Upper Power',
-        focus: 'Carga Máxima Supino, Remada & Militar', type: 'Treino',
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push A (Força)',
+        focus: 'Força Mecânica e Potência (Supino, Militar, Dips)', type: 'Treino',
         carboTip: '80-100g carbo denso pré-treino (Aveia / Tapioca / Mel)',
         proteinTip: protStr, waterTip: waterStr,
         strategyTip: 'Superávit anabólico peri-treino para força máxima'
       },
       {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Lower Power',
-        focus: 'Agachamento Livre & Stiff Pesado (3-5 reps)', type: 'Treino',
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força)',
+        focus: 'Tração e Força Escapular (Terra, Barra Fixa, Remadas)', type: 'Treino',
         carboTip: '80-100g carbo pré-treino + Creatina 5g',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: waterPlusStr,
         strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
       },
       {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Zona 2 Base Aeróbica',
-        focus: 'FC 112-130 bpm Sensibilidade à Insulina', type: 'Cardio', cardioId: 'cardio_01',
-        carboTip: 'Carbo moderado 40g para preservação de glicogênio',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Sensibilidade insulínica para otimização do superávit'
+        dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Legs A (Força)',
+        focus: 'Dominância de Joelho e Potência (Agachamento High Bar)', type: 'Treino',
+        carboTip: '80-100g carbo denso pré-treino (Arroz / Mandioca)',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Recarga glicêmica peri-treino para suporte a membros inferiores'
       },
       {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Costas/Ombros Hyp',
-        focus: 'Hipertrofia Sarcoplasmática Dorsais/Deltoides', type: 'Treino',
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'D', title: 'Treino D · Push B (Hyp)',
+        focus: 'Hipertrofia e Densidade (Inclinado, Crossover, Lateral)', type: 'Treino',
         carboTip: '70-80g carbo pré-treino (Arroz / Batata)',
         proteinTip: protStr, waterTip: waterStr,
         strategyTip: 'Volume volumétrico com alto influxo de glicogênio'
       },
       {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Pernas Hipertrofia',
-        focus: 'Hack Squat, Cadeira Extensora & Flexora', type: 'Treino',
-        carboTip: '80g carbo denso pré e pós-treino',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Recarga glicêmica pós-treino para hipertrofia de membros inferiores'
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'E', title: 'Treino E · Pull B + Cardio Z2',
+        focus: 'Espessura Dorsal + Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
+        cardioId: 'cardio_01',
+        hasCardioPost: true,
+        carboTip: '70-80g carbo peri-treino + hidratação reforçada',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Treino de força seguido de cardio Zona 2 no 5º dia'
       },
       {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: 'E', title: 'Treino E · Peitoral & Braços',
-        focus: 'Densidade Miofibrilar Peito, Bíceps & Tríceps', type: 'Treino',
-        carboTip: '70g carbo com refeição completa pré-treino',
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Refeição de recarga livre planejada pós-treino'
+        dayKey: 'd6', dayName: 'Dia 6', routineId: 'F', title: 'Treino F · Legs B (Hyp)',
+        focus: 'Dominância de Quadril e Estabilidade (Stiff, Búlgaro, Hip Thrust)', type: 'Treino',
+        carboTip: '80g carbo denso pré e pós-treino',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Recarga glicêmica pós-treino para cadeia posterior'
       },
       {
         dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Supercompensação e Crescimento Tecidual', type: 'Off',
+        focus: 'Supercompensação e Sono Reparador (8-9h)', type: 'Off',
         carboTip: 'Carboidratos equilibrados de lenta absorção',
         proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Síntese proteica contínua)`,
-        waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
+        waterTip: waterStr,
         strategyTip: 'Supercompensação miofibrilar total com 8-9h de sono'
       }
     ];
@@ -7464,8 +7528,9 @@ function renderPerfWeeklySchedule() {
 
   let trainingIndex = 0;
   const html = perfWeeklySchedule.map((day, idx) => {
-    const isTreino = day.type === 'Treino';
-    const isCardio = day.type === 'Cardio';
+    const isTreinoCardio = day.type === 'Treino + Cardio' || !!day.hasCardioPost;
+    const isTreino = (day.type === 'Treino' || isTreinoCardio);
+    const isCardio = day.type === 'Cardio' && !isTreinoCardio;
     const isOff = day.type === 'Off';
     const dayLabel = `DIA ${idx + 1}`;
 
@@ -7481,7 +7546,14 @@ function renderPerfWeeklySchedule() {
     let dayNumColor = '';
     let shadowGlow = '';
 
-    if (isTreino) {
+    if (isTreinoCardio) {
+      // Destaque Especial: Treino de Força + Cardio Zona 2 no 5º Dia
+      borderClass = 'border-amber-500/80 bg-gradient-to-b from-blue-950/60 via-amber-950/30 to-zinc-950 hover:border-amber-400';
+      badgeClass = 'bg-gradient-to-r from-blue-950 via-zinc-900 to-amber-950 text-amber-200 border-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.3)] font-bold';
+      titleHoverClass = 'group-hover:text-amber-300';
+      dayNumColor = 'text-amber-400';
+      shadowGlow = 'shadow-[0_0_18px_rgba(245,158,11,0.25)]';
+    } else if (isTreino) {
       if (isColor2) {
         // Cor 2: Roxo / Violeta Elétrico
         borderClass = 'workout-theme-purple-active-card border-purple-600/70 bg-gradient-to-b from-purple-950/40 via-black to-zinc-950 hover:border-purple-400';
@@ -7511,7 +7583,7 @@ function renderPerfWeeklySchedule() {
       shadowGlow = 'shadow-[0_0_15px_rgba(0,0,0,0.4)]';
     }
 
-    let icon = isTreino ? 'dumbbell' : isCardio ? 'flame' : 'coffee';
+    let icon = isTreinoCardio ? 'zap' : isTreino ? 'dumbbell' : isCardio ? 'flame' : 'coffee';
 
     return `
       <div onclick="perfFocusDay('${day.dayKey}')"
@@ -10333,75 +10405,84 @@ const PERF_SPLIT_PRESETS = {
     }
   ],
 
-  // ── 3. PHAT (5 Dias · Hipertrofia Miofibrilar + Sarcoplasmática / Bulking) ──
+  // ── 3. PHAT (6 Rotinas / 7 Dias · Hipertrofia & Força com 36 Exercícios / 125 Séries) ──
   PHAT: [
     {
       id: 'A',
-      name: 'Treino A · Upper Power (Tensão Mecânica Máxima)',
-      description: 'Multiarticulares pesados de tronco com descansos de 120-150s e cadência 4-0-1-0.',
+      name: 'Treino A · Push A (Força Mecânica e Potência)',
+      description: 'Cadeia anterior com alta sobrecarga mecânica nos supinos e desenvolvimento.',
       exercises: [
-        { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 5, reps: '3-5', rpe: 9.0, rest: 150, cadence: '4-0-1-0', resistProfile: 'uniform', obs: 'Excêntrica de 4s · restauração plena de ATP-CP.' },
-        { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pronada)', sets: 5, reps: '4-6', rpe: 9.0, rest: 150, cadence: '4-0-1-0', resistProfile: 'uniform', obs: 'Retração escapular estrita · sobrecarga progressiva.' },
-        { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé (OHP)', sets: 3, reps: '4-6', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Core blindado e glúteos contraídos.' },
-        { exerciseId: 'do01', name: 'Barra Fixa Pronada (Pull-up)', sets: 3, reps: '5-8', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Hang completo no fundo · tração potente.' },
-        { exerciseId: 'bi01', name: 'Rosca Direta com Barra Reta', sets: 3, reps: '5-8', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Zona de força miofibrilar pura.' },
-        { exerciseId: 'tr04', name: 'Tríceps Testa com Barra W (Skull Crusher)', sets: 3, reps: '5-8', rpe: 8.5, rest: 90, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Cabeça longa em máximo estiramento.' }
+        { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '5-7', rpe: 8.0, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Pausa controlada de 1s no esterno · arco torácico firme.' },
+        { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Core travado e cotovelos apontados à frente.' },
+        { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Halteres ampliam ADM · foco no feixe clavicular.' },
+        { exerciseId: 'pe12', name: 'Paralelas (Dips) com Sobrepesa', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Tronco inclinado 30° à frente · foco peitoral inferior.' },
+        { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de torque a 90° com 1s de isometria.' },
+        { exerciseId: 'tr04', name: 'Tríceps Testa com Barra W na Prancha', sets: 3, reps: '8-10', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Cabeça longa em máximo alongamento.' }
       ]
     },
     {
       id: 'B',
-      name: 'Treino B · Lower Power (Força de Pernas & Hinge)',
-      description: 'Carga axial pesada com descanso de 150-180s para tonelagem máxima.',
+      name: 'Treino B · Pull A (Tração e Força Escapular)',
+      description: 'Levantamento terra pesado, barra fixa e remadas para espessura e densidade.',
       exercises: [
-        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 5, reps: '3-5', rpe: 9.0, rest: 180, cadence: '4-0-1-0', resistProfile: 'uniform', obs: 'Excêntrica de 4s protege tendão patelar.' },
-        { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 5, reps: '4-6', rpe: 9.0, rest: 150, cadence: '4-0-1-0', resistProfile: 'stretched', obs: 'Pico de tensão passiva dos isquiotibiais.' },
-        { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '6-8', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Amplitude máxima (joelhos > 90°) sem retroversão.' },
-        { exerciseId: 'lg15', name: 'Elevação Pélvica com Barra (Hip Thrust)', sets: 3, reps: '8-10', rpe: 8.5, rest: 90, cadence: '2-1-1-0', resistProfile: 'shortened', obs: 'Máxima ativação EMG do glúteo com 1s ISO.' },
-        { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '8-10', rpe: 9.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Gastrocnêmio em máximo comprimento.' },
-        { exerciseId: 'ab04', name: 'Elevação de Pernas na Paralela (Capitão)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Flexão pélvica estrita sem impulsos.' }
+        { exerciseId: 'lg09', name: 'Levantamento Terra Convencional', sets: 4, reps: '4-6', rpe: 8.0, rest: 180, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Tração neural máxima · coluna rigorosamente neutra.' },
+        { exerciseId: 'do01', name: 'Barra Fixa (Weighted Pull-up)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Hang completo no fundo · latíssimo em máx. comprimento.' },
+        { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pegada Pronada)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Retração escapular estrita para romboides e trapézio.' },
+        { exerciseId: 'do09', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Alongamento máximo da dorsal na posição inferior.' },
+        { exerciseId: 'sh14', name: 'Crucifixo Invertido na Polia Alta', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Isolamento de deltoide posterior com tensão contínua.' },
+        { exerciseId: 'bi01', name: 'Rosca Direta com Barra Reta', sets: 3, reps: '8-10', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'uniform', obs: 'Supinação completa sem balanço lombar.' }
       ]
     },
     {
       id: 'C',
-      name: 'Treino C · Costas & Ombros Hipertrofia (Volume Metabólico)',
-      description: 'Pareamento completo Stretched+Shortened para dorsal e deltoides.',
+      name: 'Treino C · Legs A (Dominância de Joelho e Potência)',
+      description: 'Agachamento livre pesado e sobrecarga de quadríceps com proteção articular.',
       exercises: [
-        { exerciseId: 'do04', name: 'Puxada Frontal Aberta na Polia', sets: 4, reps: '8-10', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Latíssimo no comprimento máximo.' },
-        { exerciseId: 'do07', name: 'Pulldown na Polia com Braços Retos', sets: 3, reps: '10-12', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Extensão de ombro com 1s ISO no quadril.' },
-        { exerciseId: 'do10', name: 'Remada Cavalinho (T-Bar)', sets: 3, reps: '8-10', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Retração escapular para romboides e trapézio.' },
-        { exerciseId: 'sh09', name: 'Elevação Lateral Inclinada no Banco 45°', sets: 4, reps: '10-12', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Deltoide medial em máximo comprimento.' },
-        { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 3, reps: '10-12', rpe: 9.0, rest: 45, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de torque a 90° com 1s ISO no topo.' },
-        { exerciseId: 'sh15', name: 'Face Pull na Polia com Corda', sets: 3, reps: '12-15', rpe: 9.0, rest: 45, cadence: '2-1-1-0', resistProfile: 'shortened', obs: 'Deltoide posterior + manguito rotador.' },
-        { exerciseId: 'sh18', name: 'Encolhimento com Barra (Shrug)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico do trapézio superior no encurtamento.' }
+        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra High Bar', sets: 4, reps: '5-7', rpe: 8.0, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Excêntrica controlada de 3s protege tendão patelar.' },
+        { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Amplitude máxima (joelhos > 90°) sem retroversão.' },
+        { exerciseId: 'lg08', name: 'Afundo Deslocado com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Passada firme com estabilidade de joelho.' },
+        { exerciseId: 'lg06', name: 'Cadeira Extensora', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de EMG no encurtamento do reto femoral.' },
+        { exerciseId: 'lg20', name: 'Gêmeos em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Gastrocnêmio em máximo comprimento com 1s pausa.' },
+        { exerciseId: 'ab02', name: 'Abdominal Supra na Polia com Carga', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Carga progressiva no reto abdominal.' }
       ]
     },
     {
       id: 'D',
-      name: 'Treino D · Pernas & Glúteos Hipertrofia (Volume Metabólico)',
-      description: 'Pareamento para quadríceps, isquiotibiais e glúteos somando 18-22 séries.',
+      name: 'Treino D · Push B (Hipertrofia e Densidade)',
+      description: 'Volume metabólico no supino inclinado, crossover e tríceps corda.',
       exercises: [
-        { exerciseId: 'lg03', name: 'Agachamento Hack (Máquina)', sets: 4, reps: '8-10', rpe: 8.5, rest: 90, cadence: '4-0-1-0', resistProfile: 'stretched', obs: 'Maior ADM sem sobrecarga axial lombar.' },
-        { exerciseId: 'lg06', name: 'Cadeira Extensora', sets: 4, reps: '12-15', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de EMG no encurtamento total · 1s ISO.' },
-        { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '10-12', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Glúteo em máximo alongamento · par do Hip Thrust.' },
-        { exerciseId: 'lg15', name: 'Elevação Pélvica com Barra (Hip Thrust)', sets: 4, reps: '8-10', rpe: 9.0, rest: 75, cadence: '2-1-1-0', resistProfile: 'shortened', obs: 'Máxima ativação EMG do glúteo com 1s ISO.' },
-        { exerciseId: 'lg13', name: 'Cadeira Flexora Sentada', sets: 3, reps: '12-15', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Isquiotibiais encurtados · par do Stiff.' },
-        { exerciseId: 'lg17', name: 'Cadeira Abdutora', sets: 3, reps: '15-20', rpe: 9.0, rest: 45, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Glúteo médio em abertura total.' },
-        { exerciseId: 'lg21', name: 'Panturrilha Sentado (Gêmeos / Sóleo)', sets: 4, reps: '12-15', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Sóleo isolado no encurtamento.' }
+        { exerciseId: 'pe02', name: 'Supino Inclinado com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Barra desce até a clavícula · foco feixe superior.' },
+        { exerciseId: 'pe06', name: 'Supino Reto com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Maior amplitude e adução no pico concêntrico.' },
+        { exerciseId: 'sh04', name: 'Desenvolvimento Seletivo com Halteres (Sentado)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Trajetória convergente sem travar cotovelos.' },
+        { exerciseId: 'pe10', name: 'Crossover na Polia Média', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Tensão contínua esternal com 1s no pico.' },
+        { exerciseId: 'sh08', name: 'Elevação Lateral na Polia Baixa (Unilateral)', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Tensão do cabo desde o início da abdução.' },
+        { exerciseId: 'tr02', name: 'Tríceps Pulley com Corda', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Abertura no final ativa cabeça lateral e medial.' }
       ]
     },
     {
       id: 'E',
-      name: 'Treino E · Peitoral & Braços Hipertrofia (Volume Metabólico)',
-      description: 'Pareamento completo para peitoral, bíceps e tríceps.',
+      name: 'Treino E · Pull B (Espessura e Cadeia Posterior)',
+      description: 'Puxadas neutras, remada T-Bar e roscas em banco inclinado.',
       exercises: [
-        { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 4, reps: '8-10', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Pico de tensão no alongamento · feixe clavicular.' },
-        { exerciseId: 'pe07', name: 'Crucifixo Reto com Halteres', sets: 3, reps: '10-12', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Pico a 90° de abdução com 1s pausa no fundo.' },
-        { exerciseId: 'pe13', name: 'Peck Deck / Voador (Máquina)', sets: 3, reps: '10-12', rpe: 9.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de torque no encurtamento · 1s ISO.' },
-        { exerciseId: 'bi09', name: 'Rosca Inclinada no Banco 45°', sets: 3, reps: '8-10', rpe: 8.5, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Cabeça longa do bíceps em máximo comprimento.' },
-        { exerciseId: 'bi06', name: 'Rosca Scott com Barra W (Banco Scott)', sets: 3, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de contração no topo com 1s ISO.' },
-        { exerciseId: 'tr06', name: 'Tríceps Francês com Halter', sets: 3, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Ombro em flexão >90° alonga a cabeça longa.' },
-        { exerciseId: 'tr01', name: 'Tríceps na Polia com Barra Reta (Pushdown)', sets: 3, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de EMG no encurtamento com 1s ISO.' },
-        { exerciseId: 'ab02', name: 'Abdominal na Polia Alta com Corda', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Carga progressiva no reto abdominal.' }
+        { exerciseId: 'do05', name: 'Puxada Alta Articulada ou Polia (Pegada Neutra)', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Fibras superiores do latíssimo no maior comprimento.' },
+        { exerciseId: 'do10', name: 'Remada T-Bar (Cavalo) com Apoio', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Sem estresse lombar · retração escapular pesada.' },
+        { exerciseId: 'do11', name: 'Remada Baixa no Cabo com Puxador Triângulo', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Pico de contração nos romboides e dorsal.' },
+        { exerciseId: 'sh15', name: 'Face Pull no Cabo com Corda', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Deltoide posterior e manguito rotador.' },
+        { exerciseId: 'bi09', name: 'Rosca Alternada com Halteres no Banco Inclinado', sets: 3, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Cabeça longa do bíceps no comprimento máximo.' },
+        { exerciseId: 'bi04', name: 'Rosca Martelo na Polia Baixa com Corda', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Braquiorradial e braquial em tensão contínua.' }
+      ]
+    },
+    {
+      id: 'F',
+      name: 'Treino F · Legs B (Dominância de Quadril e Estabilidade)',
+      description: 'Stiff romeno, agachamento búlgaro, mesa flexora e elevação pélvica.',
+      exercises: [
+        { exerciseId: 'lg10', name: 'Stiff com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Pico de tensão passiva dos isquiotibiais.' },
+        { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Glúteo máximo e quadríceps unilateral.' },
+        { exerciseId: 'lg12', name: 'Mesa Flexora', sets: 4, reps: '10-12', rpe: 8.0, rest: 75, cadence: '3-1-1-0', resistProfile: 'uniform', obs: 'Isquiotibiais com 1s de isometria no pico.' },
+        { exerciseId: 'lg15', name: 'Elevação Pélvica com Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Glúteo máximo no pico de contração.' },
+        { exerciseId: 'lg22', name: 'Gêmeos No Leg Press', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'uniform', obs: 'Gastrocnêmio & sóleo com ADM completa.' },
+        { exerciseId: 'ab06', name: 'Prancha Isométrica com Sobrecarga', sets: 3, reps: '45-60s', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'uniform', obs: 'Estabilização do transverso abdominal.' }
       ]
     }
   ],
