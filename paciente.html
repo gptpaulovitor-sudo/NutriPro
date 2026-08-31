@@ -351,20 +351,23 @@
         <span class="text-[11px]"><strong>Diretriz de Progressão:</strong> Busque +1 repetição por série antes de aumentar a carga total.</span>
       </div>
 
-      <!-- Seção de Cardio Integrado -->
-      <div class="p-3 rounded-xl bg-zinc-950/90 border border-emerald-900/50 flex items-center justify-between gap-3">
+      <!-- Seção de Cardio Integrado (Exibido EXCLUSIVAMENTE no 5º dia / Treino E) -->
+      <div id="workoutCardioBlock" class="p-3 rounded-xl bg-zinc-950/90 border border-amber-500/50 flex items-center justify-between gap-3" style="display: none;">
         <div class="flex items-center gap-3">
           <div id="cardioCheckIcon" onclick="toggleCardioCheck()"
             class="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all">
             <i data-lucide="check" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-xs font-black text-white" id="cardioName">Cardio 25-45 min (Zona 2 · 112-130 bpm)</h3>
-            <p class="text-[10px] text-zinc-400">Oxidação lipídica pura &amp; biogênese mitocondrial</p>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9px] font-bold font-mono px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700">5º DIA · PÓS-FORÇA</span>
+              <h3 class="text-xs font-black text-white" id="cardioName">Cardio 45 min (Zona 2 · 112-130 bpm)</h3>
+            </div>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Remo 15m + AirBike 15m + Esteira Inclinada 15m (Mitocondrial)</p>
           </div>
         </div>
-        <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 shrink-0">
-          CARDIO
+        <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 shrink-0">
+          ZONA 2
         </span>
       </div>
     </section>
@@ -1503,10 +1506,18 @@
                 <i data-lucide="check" class="w-5 h-5"></i>
               </button>
             </div>
-
           </div>
         `;
       }).join('');
+
+      // Controla o Card de Cardio Integrado (Exibido EXCLUSIVAMENTE no 5º Dia / Treino E)
+      const cardioBlock = document.getElementById('workoutCardioBlock');
+      if (cardioBlock) {
+        const isDay5OrRoutineE = (selectedRoutineKey === 'E' || (selectedScheduleDay === 5 && selectedRoutineKey !== 'OFF' && selectedRoutineKey !== 'Cardio'));
+        cardioBlock.style.display = isDay5OrRoutineE ? 'flex' : 'none';
+      }
+      updateCardioVisuals();
+      updateWorkoutVisuals();
     }
 
     function toggleExerciseCheck(exId) {
@@ -1519,7 +1530,40 @@
 
       saveState();
       renderWorkoutExercises();
+      calculateDailyIDC();
       if (window.lucide) window.lucide.createIcons();
+    }
+
+    function toggleCardioCheck() {
+      patientState.cardioDone = !patientState.cardioDone;
+      if (patientState.cardioDone && window.confetti) {
+        window.confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 }, colors: ['#f59e0b', '#fbbf24', '#d97706'] });
+      }
+      saveState();
+      updateCardioVisuals();
+      calculateDailyIDC();
+    }
+
+    function updateCardioVisuals() {
+      const icon = document.getElementById('cardioCheckIcon');
+      if (!icon) return;
+      if (patientState.cardioDone) {
+        icon.className = 'w-8 h-8 rounded-xl bg-amber-500 text-black border border-amber-400 flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-[0_0_10px_rgba(245,158,11,0.5)]';
+      } else {
+        icon.className = 'w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all';
+      }
+    }
+
+    function updateWorkoutVisuals() {
+      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      const total = routine.exercises ? routine.exercises.length : 0;
+      let done = 0;
+      if (routine.exercises) {
+        routine.exercises.forEach(e => {
+          if (patientState.exerciseChecks && patientState.exerciseChecks[e.id]) done++;
+        });
+      }
+      patientState.workoutDone = (done > 0 && done >= Math.ceil(total * 0.7));
     }
 
     // 10. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
