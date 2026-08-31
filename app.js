@@ -6703,13 +6703,56 @@ const PERF_RESISTANCE_PAIRS = {
 
 // Estado da Agenda Semanal (7 Dias — Sincronizado com a IA e Pilar Nutrição)
 let perfWeeklySchedule = [
-  { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push', focus: 'Peitoral & Deltoides', type: 'Treino', nutrtip: 'Carbo moderado pré-treino' },
-  { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull', focus: 'Dorsal & Bíceps', type: 'Treino', nutrtip: 'Alta hidratação (4.0L)' },
-  { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio / Descanso', focus: 'Recuperação Ativa', type: 'Cardio', nutrtip: 'Déficit calórico mantido' },
-  { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs', focus: 'Quadríceps & Glúteos', type: 'Treino', nutrtip: 'Carboidratos complexos' },
-  { dayKey: 'd5', dayName: 'Dia 5', routineId: 'A', title: 'Treino A · Push', focus: 'Hipertrofia Ombros', type: 'Treino', nutrtip: 'Aporte proteico 2.0g/kg' },
-  { dayKey: 'd6', dayName: 'Dia 6', routineId: 'B', title: 'Treino B · Pull', focus: 'Densidade & Trapézio', type: 'Treino', nutrtip: 'Refeição livre planejada' },
-  { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total', focus: 'Regeneração Muscular', type: 'Off', nutrtip: 'Sono reparador & Eletrólitos' },
+  {
+    dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push A (Força)',
+    focus: 'Força Mecânica e Potência (Supino, Militar, Dips)', type: 'Treino',
+    carboTip: '80-100g carbo denso pré-treino (Aveia / Tapioca / Mel)',
+    proteinTip: '2.0 g/kg (232g/dia)', waterTip: '4.632 mL (40 mL/kg)',
+    strategyTip: 'Superávit anabólico peri-treino para força máxima'
+  },
+  {
+    dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força)',
+    focus: 'Tração e Força Escapular (Terra, Barra Fixa, Remadas)', type: 'Treino',
+    carboTip: '80-100g carbo pré-treino + Creatina 5g',
+    proteinTip: '2.0 g/kg (232g/dia)', waterTip: '5.232 mL',
+    strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
+  },
+  {
+    dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Legs A (Força)',
+    focus: 'Dominância de Joelho e Potência (Agachamento High Bar)', type: 'Treino',
+    carboTip: '80-100g carbo denso pré-treino (Arroz / Mandioca)',
+    proteinTip: '2.0 g/kg (232g/dia)', waterTip: '5.232 mL',
+    strategyTip: 'Recarga glicêmica peri-treino para suporte a membros inferiores'
+  },
+  {
+    dayKey: 'd4', dayName: 'Dia 4', routineId: 'D', title: 'Treino D · Push B (Hyp)',
+    focus: 'Hipertrofia e Densidade (Inclinado, Crossover, Lateral)', type: 'Treino',
+    carboTip: '70-80g carbo pré-treino (Arroz / Batata)',
+    proteinTip: '2.0 g/kg (232g/dia)', waterTip: '4.632 mL',
+    strategyTip: 'Volume volumétrico com alto influxo de glicogênio'
+  },
+  {
+    dayKey: 'd5', dayName: 'Dia 5', routineId: 'E', title: 'Treino E · Pull B + Cardio Z2',
+    focus: 'Espessura Dorsal + Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
+    cardioId: 'cardio_01', hasCardioPost: true,
+    carboTip: '70-80g carbo peri-treino + hidratação reforçada',
+    proteinTip: '2.0 g/kg (232g/dia)', waterTip: '5.232 mL',
+    strategyTip: 'Treino de força seguido de cardio Zona 2 no 5º dia'
+  },
+  {
+    dayKey: 'd6', dayName: 'Dia 6', routineId: 'F', title: 'Treino F · Legs B (Hyp)',
+    focus: 'Dominância de Quadril e Estabilidade (Stiff, Búlgaro, Hip Thrust)', type: 'Treino',
+    carboTip: '80g carbo denso pré e pós-treino',
+    proteinTip: '2.0 g/kg (232g/dia)', waterTip: '5.232 mL',
+    strategyTip: 'Recarga glicêmica pós-treino para cadeia posterior'
+  },
+  {
+    dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+    focus: 'Supercompensação e Sono Reparador (8-9h)', type: 'Off',
+    carboTip: 'Carboidratos equilibrados de lenta absorção',
+    proteinTip: '2.0 g/kg (Síntese proteica contínua)', waterTip: '4.632 mL',
+    strategyTip: 'Supercompensação miofibrilar total com 8-9h de sono'
+  }
 ];
 
 // Banco de Dados de Protocolos Cardio & Compromised Running (Engine)
@@ -7520,7 +7563,10 @@ function renderPerfWeeklySchedule() {
   if (!container1 && !container2) return;
 
   // Garante que o schedule contenha todas as diretrizes completas e formato numérico (Dia 1 a Dia 7)
-  if (!perfWeeklySchedule || !perfWeeklySchedule[0] || !perfWeeklySchedule[0].carboTip) {
+  const isPhatOr6Routines = perfActiveSplit === 'PHAT' || (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length >= 6);
+  const isOldPhatLayout = isPhatOr6Routines && (perfWeeklySchedule?.[2]?.type === 'Cardio' || perfWeeklySchedule?.[4]?.type !== 'Treino + Cardio');
+
+  if (!perfWeeklySchedule || !perfWeeklySchedule[0] || !perfWeeklySchedule[0].carboTip || isOldPhatLayout) {
     perfWeeklySchedule = perfBuildWeeklySchedule(perfActiveSplit);
   } else {
     perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
@@ -10705,8 +10751,8 @@ const PERF_SPLIT_PRESETS = {
   ]
 };
 
-let perfActiveSplit = 'PPL';
-let perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
+let perfActiveSplit = 'PHAT';
+let perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PHAT));
 let perfTargetRoutine = 'A';
 let perfSearchTerm = '';
 let perfGroupFilter = 'Todos';
@@ -12842,11 +12888,18 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
   }
 
   if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
-    perfActiveSplit = saved.activeSplit || 'PPL';
-    perfWorkoutPlan = saved.workoutPlan;
-    perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7)
-      ? perfNormalizeWeeklySchedule(saved.weeklySchedule)
-      : perfBuildWeeklySchedule(perfActiveSplit);
+    perfActiveSplit = saved.activeSplit || 'PHAT';
+    // Se a divisão salva for PHAT e possuir menos de 6 rotinas, migra para o preset completo
+    if (perfActiveSplit === 'PHAT' && saved.workoutPlan.length < 6) {
+      perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PHAT));
+      perfWeeklySchedule = perfBuildWeeklySchedule('PHAT');
+    } else {
+      perfWorkoutPlan = saved.workoutPlan;
+      const isOldPhat = (perfActiveSplit === 'PHAT' || perfWorkoutPlan.length >= 6) && (saved.weeklySchedule?.[2]?.type === 'Cardio' || saved.weeklySchedule?.[4]?.type !== 'Treino + Cardio');
+      perfWeeklySchedule = (Array.isArray(saved.weeklySchedule) && saved.weeklySchedule.length >= 7 && !isOldPhat)
+        ? perfNormalizeWeeklySchedule(saved.weeklySchedule)
+        : perfBuildWeeklySchedule(perfActiveSplit);
+    }
     perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
     perfAuditData = saved.auditData || null;
     perfCustomHRZones = saved.heartRateZones || null;
