@@ -6187,7 +6187,17 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
 // PILAR 2: DISCIPLINA, HÁBITOS & SCORE IDC ENGINE
 // ═══════════════════════════════════════════════════════════
 
-function selectDisciplineSubView(viewKey) {
+async function selectDisciplineSubView(viewKey) {
+  // Garante que o pilar 2 e a aba discipline estejam ativas
+  if (currentActivePilar !== 2) {
+    await switchPilar(2, 'discipline', false);
+  } else {
+    const disciplineTab = document.getElementById('tab-discipline');
+    if (!disciplineTab || disciplineTab.classList.contains('hidden') || disciplineTab.style.display === 'none') {
+      await switchTab('discipline', false, false);
+    }
+  }
+
   const subBtns = ['dashboard', 'heatmap', 'habits'];
   subBtns.forEach(k => {
     const btn = document.getElementById(`pilar2-subnav-${k}`);
@@ -6214,12 +6224,20 @@ function selectDisciplineSubView(viewKey) {
   }
 }
 
-function renderDisciplineDashboard() {
-  const p = (typeof patients !== 'undefined' && patients[activePatientId]) ? patients[activePatientId] : { name: 'Paulo Vitor' };
+async function renderDisciplineDashboard() {
+  let patientName = 'Paulo Vitor';
+  try {
+    if (typeof db !== 'undefined' && db.patients) {
+      const p = await db.patients.get(activePatientId);
+      if (p && p.name) patientName = p.name;
+    }
+  } catch (e) {
+    console.warn('Erro ao buscar paciente para disciplina:', e);
+  }
   
   // Atualiza tags de paciente
   const nameEl = document.getElementById('disciplinePatientTag');
-  if (nameEl) nameEl.textContent = p.name || 'Paulo Vitor';
+  if (nameEl) nameEl.textContent = patientName;
 
   // Carrega estado do paciente do localStorage ou padrão
   let state = {
