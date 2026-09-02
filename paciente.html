@@ -1308,9 +1308,26 @@
     let selectedRoutineKey = 'A';
 
     // 3. ESTADO INICIAL DOS DADOS
-    // Lê o ID do paciente da URL (ex: paciente.html?id=paulo)
-    // e usa como sufixo da chave de localStorage para isolar os dados de cada paciente
-    const _urlPatientId = (new URLSearchParams(window.location.search).get('id') || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
+    // ─── Lê o payload do link (#data=BASE64) gerado pelo NutriPro ────────────
+    let _syncPayload = null;
+    try {
+      const _hash = window.location.hash;
+      if (_hash && _hash.startsWith('#data=')) {
+        const _b64 = _hash.slice(6);
+        _syncPayload = JSON.parse(decodeURIComponent(escape(atob(_b64))));
+      }
+    } catch (_e) {
+      console.warn('Erro ao decodificar #data da URL', _e);
+    }
+
+    // Determina o ID do paciente: prioridade => payload > ?id= da URL > 'default'
+    const _urlPatientId = (
+      (_syncPayload && _syncPayload.patientId) ||
+      new URLSearchParams(window.location.search).get('id') ||
+      'default'
+    ).replace(/[^a-zA-Z0-9_-]/g, '');
+
+    // Chave de estado (checkboxes, água, sono) — ISOLADA por paciente
     const STORAGE_KEY = `nutriax_patient_discipline_v3_${_urlPatientId}`;
 
     let patientState = {
@@ -1325,9 +1342,9 @@
       sleepQuality: 'good',
       exerciseChecks: {},
       meals: [
-        { id: 'm1', time: '07:30', name: 'Café da Manhã', detail: '3 Ovos + 2 Fatias Pão Integral + 150ml Café', kcal: 380, prot: 24, done: true },
-        { id: 'm2', time: '10:30', name: 'Lanche da Manhã', detail: '30g Whey Protein + 1 Fruta', kcal: 190, prot: 25, done: true },
-        { id: 'm3', time: '13:00', name: 'Almoço Estruturado', detail: '200g Frango + 200g Arroz + Legumes à vontade', kcal: 580, prot: 55, done: true },
+        { id: 'm1', time: '07:30', name: 'Café da Manhã', detail: '3 Ovos + 2 Fatias Pão Integral + 150ml Café', kcal: 380, prot: 24, done: false },
+        { id: 'm2', time: '10:30', name: 'Lanche da Manhã', detail: '30g Whey Protein + 1 Fruta', kcal: 190, prot: 25, done: false },
+        { id: 'm3', time: '13:00', name: 'Almoço Estruturado', detail: '200g Frango + 200g Arroz + Legumes à vontade', kcal: 580, prot: 55, done: false },
         { id: 'm4', time: '16:30', name: 'Pré-Treino', detail: '100g Banana + 40g Aveia + Canela', kcal: 240, prot: 6, done: false },
         { id: 'm5', time: '20:00', name: 'Jantar Pós-Treino', detail: '200g Patinho Moído + 250g Batata Doce + Salada', kcal: 590, prot: 52, done: false }
       ]
@@ -1343,10 +1360,58 @@
 
     // 5. PERSISTÊNCIA LOCAL
     function loadState() {
+      // ── A. Aplica dados prescritos do payload do link (nome, refeições, treinos) ──
+      // Tenta o payload embutido no #data= da URL; senão, tenta o salvo pelo NutriPro
+      let dataPayload = _syncPayload;
+      if (!dataPayload) {
+        try {
+          const _raw = localStorage.getItem(`nutriax_patient_payload_${_urlPatientId}`);
+          if (_raw) dataPayload = JSON.parse(_raw);
+        } catch (_) {}
+      }
+
+      if (dataPayload) {
+        // Grava o payload do link no localStorage para consultas futuras offline
+        try {
+          localStorage.setItem(`nutriax_patient_payload_${_urlPatientId}`, JSON.stringify(dataPayload));
+        } catch (_) {}
+
+        if (dataPayload.patientName) patientState.name = dataPayload.patientName;
+        if (dataPayload.targetWater) patientState.waterTarget = dataPayload.targetWater;
+
+        // Aplica refeições prescritas (preservando `done` salvo localmente)
+        if (Array.isArray(dataPayload.meals) && dataPayload.meals.length > 0) {
+          patientState.meals = dataPayload.meals.map(m => ({ ...m, done: false }));
+        }
+
+        // Aplica banco de treinos e agenda semanal (os exercícios do paciente)
+        if (dataPayload.workoutDatabase && Object.keys(dataPayload.workoutDatabase).length > 0) {
+          Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
+        }
+        if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
+          WEEKLY_SCHEDULE_DATA.length = 0;
+          dataPayload.weeklySchedule.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
+        }
+      }
+
+      // ── B. Aplica estado de interação salvo localmente (checks, água, sono) ──
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-          patientState = Object.assign(patientState, JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          // Preserva refeições prescritas (do payload) mas restaura o `done` de cada uma
+          const mealDoneMap = {};
+          if (Array.isArray(parsed.meals)) {
+            parsed.meals.forEach(m => { mealDoneMap[m.id] = m.done; });
+          }
+          // Mescla o estado sem sobrescrever nome/refeições/treinos do payload
+          const { meals: _m, ...restParsed } = parsed;
+          Object.assign(patientState, restParsed);
+          // Restaura status `done` das refeições
+          patientState.meals = patientState.meals.map(m => ({
+            ...m,
+            done: mealDoneMap[m.id] !== undefined ? mealDoneMap[m.id] : m.done
+          }));
         }
       } catch (e) {
         console.warn('Erro ao carregar state local', e);
