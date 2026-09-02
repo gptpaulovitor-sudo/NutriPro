@@ -1395,13 +1395,41 @@
           patientState.meals = dataPayload.meals.map(m => ({ ...m, done: false }));
         }
 
-        // Aplica banco de treinos e agenda semanal (os exercícios do paciente)
+        // ── Aplica banco de treinos do paciente (substitui o padrão) ──────────
         if (dataPayload.workoutDatabase && Object.keys(dataPayload.workoutDatabase).length > 0) {
+          Object.keys(WORKOUT_DATABASE).forEach(k => delete WORKOUT_DATABASE[k]);
           Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
         }
+
+        // ── Normaliza e aplica agenda semanal ────────────────────────────────
+        // O app.js gera: { dayKey, dayName, routineId, title, focus, type, carboTip, proteinTip, waterTip, strategyTip }
+        // O paciente.html espera: { dayNum, dayName, type, color, routineKey, title, sub, synergy:{carbo,prot,water,focus} }
         if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
+          const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'Off': 'zinc', 'off': 'zinc' };
+          const _normalized = dataPayload.weeklySchedule.map((d, idx) => {
+            const routineKey = d.routineKey || d.routineId || null;
+            const synergy = d.synergy || {
+              carbo: d.carboTip    || '',
+              prot:  d.proteinTip  || '',
+              water: d.waterTip    || '',
+              focus: d.strategyTip || ''
+            };
+            return {
+              dayNum:     idx + 1,
+              dayName:    (d.dayName || ('DIA ' + (idx + 1))).toUpperCase(),
+              type:       d.type || 'Treino',
+              color:      _colorMap[d.type] || 'blue',
+              routineKey: routineKey,
+              title:      d.title || routineKey || 'Descanso',
+              sub:        d.focus || d.sub || '',
+              synergy:    synergy
+            };
+          });
           WEEKLY_SCHEDULE_DATA.length = 0;
-          dataPayload.weeklySchedule.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
+          _normalized.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
+          // Define o treino do primeiro dia como ativo por padrão
+          const _firstRoutine = _normalized.find(d => d.routineKey);
+          if (_firstRoutine) selectedRoutineKey = _firstRoutine.routineKey;
         }
       }
 
