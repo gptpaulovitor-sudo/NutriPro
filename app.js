@@ -6521,6 +6521,10 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
   // 3. Agenda Semanal de 7 Dias Normalizada
   const normalizedSchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule || []);
 
+  const cardioProto = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+    ? (PERF_CARDIO_DB.find(c => c.id === (typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01')) || PERF_CARDIO_DB[0])
+    : null;
+
   const syncPayload = {
     version: 4,
     patientId: pId,
@@ -6529,6 +6533,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     meals: formattedMeals.length > 0 ? formattedMeals : null,
     workoutDatabase: Object.keys(formattedWorkout).length > 0 ? formattedWorkout : null,
     weeklySchedule: normalizedSchedule,
+    prescribedCardio: cardioProto,
     activeSplit: perfActiveSplit,
     updatedAt: new Date().toISOString()
   };

@@ -3,7 +3,7 @@
 // Offline Support & Smart Caching Strategy
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-pro-v1.5.8';
+const CACHE_NAME = 'nutriax-pro-v1.5.9';
 
 const PRECACHE_ASSETS = [
   './',

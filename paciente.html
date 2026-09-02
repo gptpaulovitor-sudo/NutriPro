@@ -358,24 +358,168 @@
         <span class="text-[11px]"><strong>Diretriz de Progressão:</strong> Busque +1 repetição por série antes de aumentar a carga total.</span>
       </div>
 
-      <!-- Seção de Cardio Integrado (Exibido EXCLUSIVAMENTE no 5º dia / Treino E) -->
-      <div id="workoutCardioBlock" class="p-3 rounded-xl bg-zinc-950/90 border border-amber-500/50 flex items-center justify-between gap-3" style="display: none;">
-        <div class="flex items-center gap-3">
-          <div id="cardioCheckIcon" onclick="toggleCardioCheck()"
-            class="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all">
-            <i data-lucide="check" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-[9px] font-bold font-mono px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700">5º DIA · PÓS-FORÇA</span>
-              <h3 class="text-xs font-black text-white" id="cardioName">Cardio 45 min (Zona 2 · 112-130 bpm)</h3>
+      <!-- Seção de Cardio Integrado e Guia de Execução de Zona 2 -->
+      <div id="workoutCardioBlock" class="p-4 rounded-2xl bg-gradient-to-br from-amber-950/30 via-zinc-950 to-zinc-950 border border-amber-500/40 space-y-4 shadow-[0_0_20px_rgba(245,158,11,0.08)]" style="display: none;">
+        
+        <!-- Header Principal do Cardio -->
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <div id="cardioCheckIcon" onclick="toggleCardioCheck()"
+              class="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all shrink-0 mt-0.5 shadow-sm">
+              <i data-lucide="check" class="w-5 h-5"></i>
             </div>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Remo 15m + AirBike 15m + Esteira Inclinada 15m (Mitocondrial)</p>
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700/80 uppercase" id="cardioBadgeTag">
+                  5º DIA · PÓS-FORÇA
+                </span>
+                <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  🔥 OXIDAÇÃO LIPÍDICA PURA
+                </span>
+              </div>
+              <h3 class="text-sm font-black text-white mt-1" id="cardioName">Cardio 45 min · Zona 2 (112 a 130 bpm)</h3>
+              <p class="text-[11px] text-zinc-400 mt-0.5">Biogênese mitocondrial profunda e queima lipídica sem interferir na hipertrofia.</p>
+            </div>
           </div>
+          
+          <button onclick="toggleCardioDetailsCollapse()" id="cardioCollapseBtn" class="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-white text-[10px] font-mono flex items-center gap-1 shrink-0 active:scale-95 transition-all">
+            <span id="cardioCollapseLabel">Ocultar Guia</span>
+            <i data-lucide="chevron-down" id="cardioCollapseIcon" class="w-3.5 h-3.5 rotate-180 transition-transform duration-300"></i>
+          </button>
         </div>
-        <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 shrink-0">
-          ZONA 2
-        </span>
+
+        <!-- Meta de Conclusão Rápida & Status Interativo -->
+        <div id="cardioStatusBanner" onclick="toggleCardioCheck()" class="p-2.5 rounded-xl border border-dashed border-amber-500/30 bg-amber-950/10 flex items-center justify-between cursor-pointer hover:border-amber-500/60 transition-all">
+          <div class="flex items-center gap-2">
+            <i data-lucide="flame" class="w-4 h-4 text-amber-400"></i>
+            <span class="text-xs font-bold text-amber-200" id="cardioStatusText">Toque aqui para registrar o Cardio como concluído</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-900/50 text-amber-300 border border-amber-700/50" id="cardioStatusPts">
+            +10 pts IDC
+          </span>
+        </div>
+
+        <!-- Conteúdo Detalhado de Orientação (Expansível / Padrão Aberto) -->
+        <div id="cardioDetailsContainer" class="space-y-3 pt-1 border-t border-zinc-800/80">
+          
+          <!-- Cards das 3 Etapas / Blocos Fracionados por Máquina (3x 15 min) -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono uppercase tracking-wider font-bold text-zinc-400 flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
+                Estrutura Fracionada por Aparelhos (3x 15 min)
+              </span>
+              <span class="text-[10px] font-mono text-amber-400 font-bold">Total: 45 min</span>
+            </div>
+
+            <!-- Bloco 1: Remo Seco -->
+            <div class="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-2 hover:border-amber-500/30 transition-all">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-5 h-5 rounded-lg bg-amber-950 border border-amber-700 text-amber-300 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
+                  <h4 class="text-xs font-bold text-white">Remo Seco (RowErg) · 15 min</h4>
+                </div>
+                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 border border-zinc-700 shrink-0">
+                  Pace 2:15 - 2:25 / 500m
+                </span>
+              </div>
+              <p class="text-[11px] text-zinc-300 leading-relaxed pl-7">
+                <strong>Diretriz de Execução:</strong> Empurre forte com os calcanhares (60% da força nas pernas), incline levemente o tronco para trás (20%) e finalize puxando os braços até abaixo do peito (20%). Mantenha cadência ritmada (22 a 26 SPM) com FC estritamente abaixo de 130 bpm.
+              </p>
+              <div class="ml-7 p-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-[10px] text-zinc-400 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span>Se a academia não tiver Remo: Substitua por 15 min de Elíptico ou Bicicleta Horizontal.</span>
+              </div>
+            </div>
+
+            <!-- Bloco 2: AirBike -->
+            <div class="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-2 hover:border-amber-500/30 transition-all">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-5 h-5 rounded-lg bg-amber-950 border border-amber-700 text-amber-300 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                  <h4 class="text-xs font-bold text-white">AirBike ou Bike Ergométrica · 15 min</h4>
+                </div>
+                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 border border-zinc-700 shrink-0">
+                  RPM 50 - 55 estável
+                </span>
+              </div>
+              <p class="text-[11px] text-zinc-300 leading-relaxed pl-7">
+                <strong>Diretriz de Execução:</strong> Trabalho cíclico suave e contínuo. Braços e pernas sincronizados sem trancos. <span class="text-rose-400 font-semibold">Proibido sprints anaeróbios</span> — o objetivo é fluxo aeróbio contínuo e oxidação pura de lipídios sem queimação muscular.
+              </p>
+              <div class="ml-7 p-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-[10px] text-zinc-400 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span>Se não houver AirBike: Use Bicicleta Ergométrica comum em carga leve a moderada.</span>
+              </div>
+            </div>
+
+            <!-- Bloco 3: Caminhada Inclinada na Esteira -->
+            <div class="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-2 hover:border-amber-500/30 transition-all">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-5 h-5 rounded-lg bg-amber-950 border border-amber-700 text-amber-300 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                  <h4 class="text-xs font-bold text-white">Caminhada Inclinada na Esteira · 15 min</h4>
+                </div>
+                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 border border-zinc-700 shrink-0">
+                  Inclin. 8-10% · 5.5-6.0 km/h
+                </span>
+              </div>
+              <p class="text-[11px] text-zinc-300 leading-relaxed pl-7">
+                <strong>Diretriz de Execução:</strong> Passadas largas e tronco alinhado. <strong class="text-amber-300">REGRA DE OURO: NÃO segure nas barras de apoio da esteira</strong> (segurar anula o esforço, reduz em até 30% o gasto calórico e prejudica o core). Mantenha os braços oscilando naturalmente.
+              </p>
+              <div class="ml-7 p-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-[10px] text-zinc-400 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span>Se a FC passar de 130 bpm: Reduza a inclinação para 6% ou a velocidade para 5.0 km/h.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Guia Fisiológico de Controle da Zona 2 (Regras de Ouro) -->
+          <div class="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/20 via-black/50 to-zinc-950 border border-amber-500/20 space-y-2.5">
+            <span class="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="heart-pulse" class="w-3.5 h-3.5"></i>
+              Como Monitorar a Intensidade da Zona 2 na Prática
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+              <div class="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex items-start gap-2 text-zinc-300">
+                <span class="text-base shrink-0">💓</span>
+                <div>
+                  <strong class="text-white block text-[10px] uppercase font-mono">Frequência Cardíaca Alvo</strong>
+                  <span>112 a 130 bpm (60-70% FCM). Se passar de 130 bpm, reduza a velocidade imediatamente.</span>
+                </div>
+              </div>
+              <div class="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex items-start gap-2 text-zinc-300">
+                <span class="text-base shrink-0">🗣️</span>
+                <div>
+                  <strong class="text-white block text-[10px] uppercase font-mono">Talk Test (Teste da Conversa)</strong>
+                  <span>Você deve conseguir falar frases completas sem perder o fôlego. Se faltar ar, desacelere!</span>
+                </div>
+              </div>
+              <div class="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex items-start gap-2 text-zinc-300">
+                <span class="text-base shrink-0">👃</span>
+                <div>
+                  <strong class="text-white block text-[10px] uppercase font-mono">Respiração Estritamente Nasal</strong>
+                  <span>Inspire pelo nariz com ritmo cadenciado para oxigenação ótima e depuração de lactato.</span>
+                </div>
+              </div>
+              <div class="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex items-start gap-2 text-zinc-300">
+                <span class="text-base shrink-0">🛡️</span>
+                <div>
+                  <strong class="text-white block text-[10px] uppercase font-mono">Zero Interferência Muscular</strong>
+                  <span>Realizado pós-força, gasta ácidos graxos livres sem interferir na via anabólica mTOR.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dica Geral de Alternativa se não tiver os aparelhos -->
+          <div class="p-2.5 rounded-xl bg-blue-950/20 border border-blue-800/40 flex items-start gap-2 text-[11px] text-blue-200">
+            <i data-lucide="lightbulb" class="w-4 h-4 text-blue-400 shrink-0 mt-0.5"></i>
+            <div>
+              <strong>Dica de Praticidade na Academia:</strong> Se sua academia não tiver Remo ou AirBike disponíveis, você pode realizar os <strong>45 min completos na Caminhada Inclinada na Esteira</strong> (8-10% a 5.5-6.0 km/h) ou mesclar 25 min de Esteira + 20 min de Bicicleta!
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 
@@ -1827,14 +1971,48 @@
         `;
       }).join('');
 
-      // Controla o Card de Cardio Integrado (Exibido EXCLUSIVAMENTE no 5º Dia / Treino E)
+      // Controla o Card de Cardio Integrado (Exibido quando houver cardio prescrito no dia ou rotina)
       const cardioBlock = document.getElementById('workoutCardioBlock');
       if (cardioBlock) {
-        const isDay5OrRoutineE = (selectedRoutineKey === 'E' || (selectedScheduleDay === 5 && selectedRoutineKey !== 'OFF' && selectedRoutineKey !== 'Cardio'));
-        cardioBlock.style.display = isDay5OrRoutineE ? 'flex' : 'none';
+        const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+        const dayHasCardio = dayData && (
+          dayData.type === 'Treino + Cardio' ||
+          dayData.type === 'Cardio' ||
+          dayData.hasCardioPost ||
+          (dayData.title && dayData.title.toLowerCase().includes('cardio'))
+        );
+        const routineHasCardio = (selectedRoutineKey === 'E' || selectedRoutineKey === 'Cardio');
+        const isDay5 = (selectedScheduleDay === 5 && selectedRoutineKey !== 'OFF');
+
+        const shouldShowCardio = dayHasCardio || routineHasCardio || isDay5;
+        cardioBlock.style.display = shouldShowCardio ? 'block' : 'none';
+
+        // Atualiza a tag do cabeçalho de acordo com o dia selecionado
+        const badgeTag = document.getElementById('cardioBadgeTag');
+        if (badgeTag && dayData) {
+          badgeTag.textContent = `${dayData.dayName || 'DIA'} · PÓS-FORÇA`;
+        }
       }
+
       updateCardioVisuals();
       updateWorkoutVisuals();
+    }
+
+    let cardioDetailsExpanded = true;
+    function toggleCardioDetailsCollapse() {
+      cardioDetailsExpanded = !cardioDetailsExpanded;
+      const container = document.getElementById('cardioDetailsContainer');
+      const label = document.getElementById('cardioCollapseLabel');
+      const icon = document.getElementById('cardioCollapseIcon');
+      if (container) {
+        container.style.display = cardioDetailsExpanded ? 'block' : 'none';
+      }
+      if (label) {
+        label.textContent = cardioDetailsExpanded ? 'Ocultar Guia' : 'Ver Guia';
+      }
+      if (icon) {
+        icon.className = `w-3.5 h-3.5 transition-transform duration-300 ${cardioDetailsExpanded ? 'rotate-180' : ''}`;
+      }
     }
 
     function toggleExerciseCheck(exId) {
@@ -1863,12 +2041,44 @@
 
     function updateCardioVisuals() {
       const icon = document.getElementById('cardioCheckIcon');
-      if (!icon) return;
+      const banner = document.getElementById('cardioStatusBanner');
+      const text = document.getElementById('cardioStatusText');
+      const pts = document.getElementById('cardioStatusPts');
+      
       if (patientState.cardioDone) {
-        icon.className = 'w-8 h-8 rounded-xl bg-amber-500 text-black border border-amber-400 flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-[0_0_10px_rgba(245,158,11,0.5)]';
+        if (icon) {
+          icon.className = 'w-9 h-9 rounded-xl bg-amber-500 text-black border border-amber-400 flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-[0_0_15px_rgba(245,158,11,0.6)] shrink-0 mt-0.5';
+          icon.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+        }
+        if (banner) {
+          banner.className = 'p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-950/20 flex items-center justify-between cursor-pointer transition-all shadow-[0_0_12px_rgba(16,185,129,0.15)]';
+        }
+        if (text) {
+          text.className = 'text-xs font-bold text-emerald-300 flex items-center gap-1.5';
+          text.innerHTML = '<span>🎉</span> <span>Cardio Zona 2 Concluído com Sucesso!</span>';
+        }
+        if (pts) {
+          pts.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60';
+          pts.textContent = 'Concluído';
+        }
       } else {
-        icon.className = 'w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all';
+        if (icon) {
+          icon.className = 'w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 cursor-pointer active:scale-95 transition-all shrink-0 mt-0.5';
+          icon.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+        }
+        if (banner) {
+          banner.className = 'p-2.5 rounded-xl border border-dashed border-amber-500/30 bg-amber-950/10 flex items-center justify-between cursor-pointer hover:border-amber-500/60 transition-all';
+        }
+        if (text) {
+          text.className = 'text-xs font-bold text-amber-200';
+          text.innerHTML = 'Toque aqui para registrar o Cardio como concluído';
+        }
+        if (pts) {
+          pts.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-900/50 text-amber-300 border border-amber-700/50';
+          pts.textContent = '+10 pts IDC';
+        }
       }
+      if (window.lucide) window.lucide.createIcons();
     }
 
     function updateWorkoutVisuals() {
@@ -2115,9 +2325,18 @@
       // 2. Treino e Cardio (30 pts)
       const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
       let workoutScore = 0;
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+      const isCardioDay = dayData && (
+        dayData.type === 'Treino + Cardio' ||
+        dayData.type === 'Cardio' ||
+        dayData.hasCardioPost ||
+        (dayData.title && dayData.title.toLowerCase().includes('cardio'))
+      );
+      const hasCardio = isCardioDay || selectedRoutineKey === 'E' || selectedRoutineKey === 'Cardio' || (selectedScheduleDay === 5 && !currentRoutine?.isOff);
+
       if (currentRoutine && currentRoutine.isOff) {
         workoutScore = patientState.workoutDone ? 30 : 0;
-      } else if (selectedRoutineKey === 'E' || (selectedScheduleDay === 5 && !currentRoutine?.isCardio)) {
+      } else if (hasCardio) {
         workoutScore = (patientState.workoutDone ? 20 : 0) + (patientState.cardioDone ? 10 : 0);
       } else {
         workoutScore = patientState.workoutDone ? 30 : 0;
