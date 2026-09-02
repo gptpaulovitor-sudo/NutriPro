@@ -1701,12 +1701,17 @@
       updateDateDisplay();
       updateStreakAndTier();
 
-      // Agenda Semanal
+      // Sincroniza rotina ativa com o dia selecionado na Agenda
+      const curDayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+      if (curDayData) {
+        selectedRoutineKey = curDayData.routineKey || (curDayData.type === 'Off' ? 'OFF' : 'A');
+      }
+
+      // Agenda Semanal e Sinergia
       renderWeeklyCarousel();
       updateSynergyCard();
 
-      // Pills Rápidas e Ficha Detalhada de Treino
-      renderQuickRoutinePills();
+      // Ficha Detalhada de Treino
       renderWorkoutExercises();
       updateWorkoutVisuals();
       updateCardioVisuals();
@@ -1766,11 +1771,10 @@
       selectedScheduleDay = dayNum;
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
       if (dayData) {
-        selectedRoutineKey = dayData.routineKey || 'A';
+        selectedRoutineKey = dayData.routineKey || (dayData.type === 'Off' ? 'OFF' : 'A');
       }
       renderWeeklyCarousel();
       updateSynergyCard();
-      renderQuickRoutinePills();
       renderWorkoutExercises();
 
       // Feedback visual suave no quadro de treino
@@ -1823,8 +1827,15 @@
         exercises: []
       };
 
-      // Atualiza Header do Treino
-      document.getElementById('workoutRoutineSubtitle').textContent = routine.subtitle;
+      // Atualiza Header do Treino Selecionado
+      const bEl = document.getElementById('workoutRoutineBadge');
+      if (bEl) bEl.textContent = routine.badge || selectedRoutineKey;
+
+      const tEl = document.getElementById('workoutRoutineTitle');
+      if (tEl) tEl.textContent = routine.name || `Treino ${selectedRoutineKey}`;
+
+      const sEl = document.getElementById('workoutRoutineSubtitle');
+      if (sEl) sEl.textContent = routine.subtitle || '';
 
       // Oculta/Exibe a diretriz de progressão dependendo do tipo
       const progEl = document.getElementById('workoutFooterProgression');
@@ -2050,7 +2061,7 @@
     }
 
     function updateWorkoutVisuals() {
-      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || { badge: selectedRoutineKey || 'A' };
       const total = routine.exercises ? routine.exercises.length : 0;
       let done = 0;
       if (routine.exercises) {
@@ -2059,6 +2070,19 @@
         });
       }
       patientState.workoutDone = (done > 0 && done >= Math.ceil(total * 0.7));
+
+      const btnText = document.getElementById('btnCompleteWorkoutText');
+      const btn = document.getElementById('btnCompleteFullWorkout');
+      if (btnText && btn) {
+        const badge = routine.badge || selectedRoutineKey || '';
+        if (patientState.workoutDone) {
+          btn.className = "w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95 transition-all";
+          btnText.textContent = `Treino ${badge} Concluído! 🎉`;
+        } else {
+          btn.className = "w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 transition-all";
+          btnText.textContent = `Concluir Treino ${badge}`;
+        }
+      }
     }
 
     // 10. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
