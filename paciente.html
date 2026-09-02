@@ -187,7 +187,7 @@
           </h1>
           <div class="flex items-center gap-2 flex-wrap mt-0.5">
             <p class="text-[11px] text-zinc-400 font-medium" id="currentDateDisplay">
-              Hoje, 31 de Agosto de 2026
+              Hoje
             </p>
             <span class="text-zinc-600">•</span>
             <span id="syncLiveStatusBadge" class="text-[10px] font-mono font-bold text-emerald-400 flex items-center gap-1">
@@ -203,11 +203,11 @@
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-950/90 border border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
             <i data-lucide="flame" class="w-5 h-5 text-orange-400 flame-anim"></i>
             <div class="text-right">
-              <div class="text-xs font-black text-white tracking-tight" id="streakDaysCount">14 DIAS</div>
-              <div class="text-[8px] font-mono text-orange-300 font-bold uppercase">STREAK INVICTO</div>
+              <div class="text-xs font-black text-white tracking-tight" id="streakDaysCount">1 DIA</div>
+              <div class="text-[8px] font-mono text-orange-300 font-bold uppercase" id="streakLabel">PRIMEIRO DIA</div>
             </div>
           </div>
-          <span class="text-[9px] font-mono text-zinc-500 mt-1 font-bold" id="disciplineTierBadge">🛡️ Nível: Blindado</span>
+          <span class="text-[9px] font-mono text-zinc-500 mt-1 font-bold" id="disciplineTierBadge">🌱 Nível: Focado</span>
         </div>
       </div>
 
@@ -217,15 +217,15 @@
           <span class="text-zinc-300 font-bold flex items-center gap-1.5">
             <i data-lucide="shield-check" class="w-4 h-4 text-orange-400"></i> Score do Dia (IDC)
           </span>
-          <span class="font-black text-orange-400 text-sm" id="dailyScoreDisplay">85%</span>
+          <span class="font-black text-orange-400 text-sm" id="dailyScoreDisplay">0%</span>
         </div>
         <div class="w-full bg-zinc-800/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-zinc-700/50">
           <div id="dailyScoreProgressBar"
             class="h-full rounded-full bg-gradient-to-r from-orange-600 via-amber-500 to-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.8)] transition-all duration-500"
-            style="width: 85%;"></div>
+            style="width: 0%;"></div>
         </div>
         <p class="text-[10px] text-zinc-400 text-center font-medium" id="dailyScoreFeedback">
-          ⚡ Quase perfeito! Falta apenas concluir a ceia e o check de sono.
+          🎯 Início de jornada (0%). Registre suas refeições, água e treino para acompanhar seu Score IDC.
         </p>
       </div>
     </header>
@@ -391,9 +391,14 @@
             <p class="text-[10px] text-zinc-400">Meta Prescrita: <strong class="text-blue-300" id="waterTargetDisplay">4.000 ml</strong>/dia</p>
           </div>
         </div>
-        <div class="text-right">
-          <span class="text-lg font-black text-blue-400" id="waterCurrentDisplay">2.500</span>
-          <span class="text-[10px] text-zinc-400 font-bold">ml</span>
+        <div class="text-right flex items-center gap-1.5">
+          <div>
+            <span class="text-lg font-black text-blue-400" id="waterCurrentDisplay">0</span>
+            <span class="text-[10px] text-zinc-400 font-bold">ml</span>
+          </div>
+          <button onclick="resetWater()" title="Zerar água" class="text-[9px] text-zinc-500 hover:text-zinc-300 border border-zinc-800 px-1 py-0.5 rounded transition-colors">
+            Zerar
+          </button>
         </div>
       </div>
 
@@ -401,7 +406,7 @@
       <div class="w-full bg-zinc-900 h-3 rounded-full overflow-hidden p-0.5 border border-blue-900/40">
         <div id="waterProgressBar"
           class="h-full rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-400 transition-all duration-300"
-          style="width: 62.5%;"></div>
+          style="width: 0%;"></div>
       </div>
 
       <!-- Botões de Incremento com 1 Toque -->
@@ -470,7 +475,7 @@
         <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
           <label class="text-[9px] font-mono text-zinc-400 uppercase font-bold block">Horas Dormidas</label>
           <div class="flex items-center gap-2">
-            <input type="number" id="sleepHoursInput" min="4" max="12" step="0.5" value="7.5"
+            <input type="number" id="sleepHoursInput" min="0" max="14" step="0.5" value="" placeholder="Ex: 8"
               onchange="updateSleepData()"
               class="w-full bg-black border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-purple-500">
             <span class="text-xs text-zinc-400 font-bold">h</span>
@@ -482,15 +487,15 @@
           <label class="text-[9px] font-mono text-zinc-400 uppercase font-bold block">Qualidade</label>
           <div class="grid grid-cols-3 gap-1 pt-0.5">
             <button onclick="setSleepQuality('bad')" id="sqBad"
-              class="p-1 rounded-lg border border-zinc-800 hover:border-red-500 text-sm flex items-center justify-center">
+              class="p-1 rounded-lg border border-zinc-800 hover:border-red-500 text-sm flex items-center justify-center transition-all">
               😴
             </button>
             <button onclick="setSleepQuality('ok')" id="sqOk"
-              class="p-1 rounded-lg border border-zinc-800 hover:border-amber-500 text-sm flex items-center justify-center">
+              class="p-1 rounded-lg border border-zinc-800 hover:border-amber-500 text-sm flex items-center justify-center transition-all">
               😐
             </button>
             <button onclick="setSleepQuality('good')" id="sqGood"
-              class="p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm flex items-center justify-center shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+              class="p-1 rounded-lg border border-zinc-800 hover:border-purple-500 text-sm flex items-center justify-center transition-all">
               😊
             </button>
           </div>
@@ -1330,24 +1335,23 @@
     // Chave de estado (checkboxes, água, sono) — ISOLADA por paciente
     const STORAGE_KEY = `nutriax_patient_discipline_v3_${_urlPatientId}`;
 
+    const _todayIso = new Date().toISOString().split('T')[0];
+
     let patientState = {
-      name: 'Paulo Vitor',
-      streakDays: 14,
-      tier: 'Blindado',
-      waterCurrent: 2500,
+      name: 'Paciente',
+      startDate: _todayIso,
+      lastActiveDate: _todayIso,
+      streakDays: 1,
+      tier: 'Focado 🌱',
+      waterCurrent: 0,
       waterTarget: 4000,
-      workoutDone: true,
-      cardioDone: true,
-      sleepHours: 7.5,
-      sleepQuality: 'good',
+      workoutDone: false,
+      cardioDone: false,
+      sleepHours: 0,
+      sleepQuality: null,
+      sleepLogged: false,
       exerciseChecks: {},
-      meals: [
-        { id: 'm1', time: '07:30', name: 'Café da Manhã', detail: '3 Ovos + 2 Fatias Pão Integral + 150ml Café', kcal: 380, prot: 24, done: false },
-        { id: 'm2', time: '10:30', name: 'Lanche da Manhã', detail: '30g Whey Protein + 1 Fruta', kcal: 190, prot: 25, done: false },
-        { id: 'm3', time: '13:00', name: 'Almoço Estruturado', detail: '200g Frango + 200g Arroz + Legumes à vontade', kcal: 580, prot: 55, done: false },
-        { id: 'm4', time: '16:30', name: 'Pré-Treino', detail: '100g Banana + 40g Aveia + Canela', kcal: 240, prot: 6, done: false },
-        { id: 'm5', time: '20:00', name: 'Jantar Pós-Treino', detail: '200g Patinho Moído + 250g Batata Doce + Salada', kcal: 590, prot: 52, done: false }
-      ]
+      meals: []
     };
 
     // 4. INICIALIZAÇÃO
@@ -1438,7 +1442,34 @@
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          // Preserva refeições prescritas (do payload) mas restaura o `done` de cada uma
+
+          // Limpa artefatos legados da versão mock (14 dias, 2500ml de água pré-preenchidos)
+          if (parsed.streakDays === 14 && !parsed.startDate) {
+            parsed.streakDays = 1;
+            parsed.startDate = todayIso;
+          }
+          if (parsed.waterCurrent === 2500 && !parsed.lastActiveDate) {
+            parsed.waterCurrent = 0;
+          }
+          if (parsed.workoutDone === true && !parsed.lastActiveDate && (!parsed.exerciseChecks || Object.keys(parsed.exerciseChecks).length === 0)) {
+            parsed.workoutDone = false;
+          }
+
+          // Se virou o dia, reseta as tarefas diárias para recomeçar o dia com pontuação real
+          if (parsed.lastActiveDate && parsed.lastActiveDate !== todayIso) {
+            parsed.lastActiveDate = todayIso;
+            parsed.waterCurrent = 0;
+            parsed.workoutDone = false;
+            parsed.cardioDone = false;
+            parsed.exerciseChecks = {};
+            parsed.sleepLogged = false;
+            parsed.sleepHours = 0;
+            parsed.sleepQuality = null;
+            if (Array.isArray(parsed.meals)) {
+              parsed.meals.forEach(m => { m.done = false; });
+            }
+          }
+
           const mealDoneMap = {};
           if (Array.isArray(parsed.meals)) {
             parsed.meals.forEach(m => { mealDoneMap[m.id] = m.done; });
@@ -1447,10 +1478,12 @@
           const { meals: _m, name: _savedName, waterTarget: _savedWt, ...restParsed } = parsed;
           Object.assign(patientState, restParsed);
           // Restaura status `done` das refeições
-          patientState.meals = patientState.meals.map(m => ({
-            ...m,
-            done: mealDoneMap[m.id] !== undefined ? mealDoneMap[m.id] : m.done
-          }));
+          if (Array.isArray(patientState.meals)) {
+            patientState.meals = patientState.meals.map(m => ({
+              ...m,
+              done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : false
+            }));
+          }
         }
       } catch (e) {
         console.warn('Erro ao carregar state local', e);
@@ -1458,7 +1491,6 @@
 
       // ── C. Validação final e garantia de identificação correta do paciente ──
       if (dataPayload) {
-        // Se o payload tem nome próprio diferente do padrão de fallback
         if (dataPayload.patientName && (dataPayload.patientName !== 'Paulo Vitor' || !dataPayload.patientId || dataPayload.patientId.toLowerCase().includes('paulo'))) {
           patientState.name = dataPayload.patientName;
         } else if (dataPayload.patientId && dataPayload.patientId !== 'default' && !dataPayload.patientId.toLowerCase().includes('paulo')) {
@@ -1467,6 +1499,9 @@
       } else if (_urlPatientId && _urlPatientId !== 'default' && !_urlPatientId.toLowerCase().includes('paulo')) {
         patientState.name = _urlPatientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       }
+
+      patientState.lastActiveDate = todayIso;
+      if (!patientState.startDate) patientState.startDate = todayIso;
     }
 
     function saveState() {
@@ -1479,11 +1514,55 @@
     }
 
     // 6. RENDERIZAÇÃO GERAL
+    function updateDateDisplay() {
+      const el = document.getElementById('currentDateDisplay');
+      if (!el) return;
+      const now = new Date();
+      const months = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+      const day = now.getDate();
+      const month = months[now.getMonth()];
+      const year = now.getFullYear();
+      el.textContent = `Hoje, ${day} de ${month} de ${year}`;
+    }
+
+    function updateStreakAndTier() {
+      const todayIso = new Date().toISOString().split('T')[0];
+      if (!patientState.startDate) {
+        patientState.startDate = todayIso;
+      }
+      const start = new Date(patientState.startDate + 'T00:00:00');
+      const today = new Date(todayIso + 'T00:00:00');
+      const diffMs = today.getTime() - start.getTime();
+      const diffDays = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1);
+      patientState.streakDays = diffDays;
+
+      if (diffDays >= 30) patientState.tier = 'Lendário 🔥';
+      else if (diffDays >= 14) patientState.tier = 'Blindado 🛡️';
+      else if (diffDays >= 7) patientState.tier = 'Consistente ⚡';
+      else patientState.tier = 'Focado 🌱';
+
+      const streakDaysEl = document.getElementById('streakDaysCount');
+      if (streakDaysEl) {
+        streakDaysEl.textContent = `${diffDays} ${diffDays === 1 ? 'DIA' : 'DIAS'}`;
+      }
+      const streakLabelEl = document.getElementById('streakLabel');
+      if (streakLabelEl) {
+        streakLabelEl.textContent = diffDays === 1 ? 'PRIMEIRO DIA' : 'STREAK INVICTO';
+      }
+      const tierEl = document.getElementById('disciplineTierBadge');
+      if (tierEl) {
+        tierEl.textContent = `Nível: ${patientState.tier}`;
+      }
+    }
+
     function renderAll() {
-      // Nome e Data
+      // Nome, Data Dinâmica e Streak
       document.getElementById('patientNameDisplay').textContent = patientState.name;
-      document.getElementById('streakDaysCount').textContent = `${patientState.streakDays} DIAS`;
-      document.getElementById('disciplineTierBadge').textContent = `🛡️ Nível: ${patientState.tier}`;
+      updateDateDisplay();
+      updateStreakAndTier();
 
       // Agenda Semanal
       renderWeeklyCarousel();
@@ -1496,16 +1575,17 @@
       updateCardioVisuals();
 
       // Hidratação
-      document.getElementById('waterCurrentDisplay').textContent = patientState.waterCurrent.toLocaleString('pt-BR');
-      document.getElementById('waterTargetDisplay').textContent = `${patientState.waterTarget.toLocaleString('pt-BR')} ml`;
-      const waterPct = Math.min(100, Math.round((patientState.waterCurrent / patientState.waterTarget) * 100));
+      document.getElementById('waterCurrentDisplay').textContent = (patientState.waterCurrent || 0).toLocaleString('pt-BR');
+      document.getElementById('waterTargetDisplay').textContent = `${(patientState.waterTarget || 4000).toLocaleString('pt-BR')} ml`;
+      const waterPct = Math.min(100, Math.round(((patientState.waterCurrent || 0) / (patientState.waterTarget || 4000)) * 100));
       document.getElementById('waterProgressBar').style.width = `${waterPct}%`;
 
       // Refeições
       renderMeals();
 
       // Sono
-      document.getElementById('sleepHoursInput').value = patientState.sleepHours;
+      const sleepInp = document.getElementById('sleepHoursInput');
+      if (sleepInp) sleepInp.value = patientState.sleepLogged ? patientState.sleepHours : '';
       setSleepQualityVisuals(patientState.sleepQuality);
 
       // Score IDC
@@ -1927,7 +2007,7 @@
     }
 
     function addWater(amount) {
-      patientState.waterCurrent = Math.min(8000, patientState.waterCurrent + amount);
+      patientState.waterCurrent = Math.min(8000, Math.max(0, (patientState.waterCurrent || 0) + amount));
       if (patientState.waterCurrent >= patientState.waterTarget && window.confetti) {
         window.confetti({ particleCount: 30, spread: 60, origin: { y: 0.6 }, colors: ['#38bdf8', '#60a5fa', '#3b82f6'] });
       }
@@ -1935,56 +2015,55 @@
       renderAll();
     }
 
+    function resetWater() {
+      patientState.waterCurrent = 0;
+      saveState();
+      renderAll();
+    }
+
     function toggleWorkoutCheck() {
       patientState.workoutDone = !patientState.workoutDone;
-      if (patientState.workoutDone && window.confetti) {
-        window.confetti({ particleCount: 40, spread: 70, origin: { y: 0.5 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
-      }
-      saveState();
-      renderAll();
-    }
-
-    function toggleCardioCheck() {
-      patientState.cardioDone = !patientState.cardioDone;
-      if (patientState.cardioDone && window.confetti) {
-        window.confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 }, colors: ['#10b981', '#34d399', '#6ee7b7'] });
-      }
-      saveState();
-      renderAll();
-    }
-
-    function updateWorkoutVisuals() {
-      const btn = document.getElementById('btnCompleteFullWorkout');
-      const text = document.getElementById('btnCompleteWorkoutText');
+      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
       if (patientState.workoutDone) {
-        btn.className = "w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95 transition-all";
-        text.textContent = "Treino Concluído com Sucesso! 🏆";
+        if (routine && routine.exercises) {
+          patientState.exerciseChecks = patientState.exerciseChecks || {};
+          routine.exercises.forEach(ex => {
+            patientState.exerciseChecks[ex.id] = true;
+          });
+        }
+        if (window.confetti) {
+          window.confetti({ particleCount: 40, spread: 70, origin: { y: 0.5 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
+        }
       } else {
-        btn.className = "w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 transition-all";
-        text.textContent = "Concluir Treino de Hoje";
+        if (routine && routine.exercises) {
+          routine.exercises.forEach(ex => {
+            if (patientState.exerciseChecks) delete patientState.exerciseChecks[ex.id];
+          });
+        }
       }
-    }
-
-    function updateCardioVisuals() {
-      const icon = document.getElementById('cardioCheckIcon');
-      if (patientState.cardioDone) {
-        icon.className = "w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.6)] cursor-pointer active:scale-95 transition-all";
-      } else {
-        icon.className = "w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-500 cursor-pointer active:scale-95 transition-all";
-      }
+      saveState();
+      renderAll();
     }
 
     function updateSleepData() {
       const val = parseFloat(document.getElementById('sleepHoursInput').value);
-      if (!isNaN(val)) {
+      if (!isNaN(val) && val > 0) {
         patientState.sleepHours = val;
+        patientState.sleepLogged = true;
+        if (!patientState.sleepQuality) patientState.sleepQuality = 'good';
         saveState();
-        calculateDailyIDC();
+        renderAll();
       }
     }
 
     function setSleepQuality(q) {
       patientState.sleepQuality = q;
+      patientState.sleepLogged = true;
+      if (!patientState.sleepHours || patientState.sleepHours === 0) {
+        patientState.sleepHours = 8;
+        const inp = document.getElementById('sleepHoursInput');
+        if (inp) inp.value = 8;
+      }
       saveState();
       renderAll();
     }
@@ -1992,31 +2071,55 @@
     function setSleepQualityVisuals(q) {
       ['sqBad', 'sqOk', 'sqGood'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.className = "p-1 rounded-lg border border-zinc-800 text-sm";
+        if (el) el.className = "p-1 rounded-lg border border-zinc-800 text-sm flex items-center justify-center transition-all";
       });
-      if (q === 'bad') document.getElementById('sqBad').className = "p-1 rounded-lg border border-red-500 bg-red-950/60 text-sm";
-      if (q === 'ok') document.getElementById('sqOk').className = "p-1 rounded-lg border border-amber-500 bg-amber-950/60 text-sm";
-      if (q === 'good') document.getElementById('sqGood').className = "p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm shadow-[0_0_8px_rgba(168,85,247,0.4)]";
+      if (q === 'bad') {
+        const el = document.getElementById('sqBad');
+        if (el) el.className = "p-1 rounded-lg border border-red-500 bg-red-950/60 text-sm flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+      } else if (q === 'ok') {
+        const el = document.getElementById('sqOk');
+        if (el) el.className = "p-1 rounded-lg border border-amber-500 bg-amber-950/60 text-sm flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+      } else if (q === 'good') {
+        const el = document.getElementById('sqGood');
+        if (el) el.className = "p-1 rounded-lg border border-purple-500 bg-purple-950/60 text-sm flex items-center justify-center shadow-[0_0_8px_rgba(168,85,247,0.4)]";
+      }
     }
 
-    // 13. CÁLCULO DO SCORE IDC DO DIA
+    // 13. CÁLCULO DO SCORE IDC DO DIA (DESEMPENHO REAL DO PACIENTE)
     function calculateDailyIDC() {
       // 1. Refeições (40 pts)
-      const totalMeals = patientState.meals.length || 1;
-      const doneMeals = patientState.meals.filter(m => m.done).length;
-      const mealsScore = (doneMeals / totalMeals) * 40;
+      const totalMeals = patientState.meals ? patientState.meals.length : 0;
+      const doneMeals = patientState.meals ? patientState.meals.filter(m => m.done).length : 0;
+      const mealsScore = totalMeals > 0 ? (doneMeals / totalMeals) * 40 : 0;
 
       // 2. Treino e Cardio (30 pts)
-      const workoutScore = (patientState.workoutDone ? 15 : 0) + (patientState.cardioDone ? 15 : 0);
+      const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      let workoutScore = 0;
+      if (currentRoutine && currentRoutine.isOff) {
+        workoutScore = patientState.workoutDone ? 30 : 0;
+      } else if (selectedRoutineKey === 'E' || (selectedScheduleDay === 5 && !currentRoutine?.isCardio)) {
+        workoutScore = (patientState.workoutDone ? 20 : 0) + (patientState.cardioDone ? 10 : 0);
+      } else {
+        workoutScore = patientState.workoutDone ? 30 : 0;
+      }
 
       // 3. Hidratação (15 pts)
-      const waterRatio = Math.min(1, patientState.waterCurrent / (patientState.waterTarget || 1));
+      const targetWater = patientState.waterTarget || 4000;
+      const waterRatio = Math.min(1, (patientState.waterCurrent || 0) / targetWater);
       const waterScore = waterRatio * 15;
 
-      // 4. Sono (15 pts)
-      let sleepScore = (patientState.sleepHours >= 7 ? 10 : 5);
-      if (patientState.sleepQuality === 'good') sleepScore += 5;
-      else if (patientState.sleepQuality === 'ok') sleepScore += 3;
+      // 4. Sono (15 pts) - apenas se registrado pelo paciente
+      let sleepScore = 0;
+      if (patientState.sleepLogged) {
+        if (patientState.sleepHours >= 7) sleepScore += 10;
+        else if (patientState.sleepHours >= 6) sleepScore += 7;
+        else if (patientState.sleepHours >= 5) sleepScore += 4;
+        else if (patientState.sleepHours > 0) sleepScore += 2;
+
+        if (patientState.sleepQuality === 'good') sleepScore += 5;
+        else if (patientState.sleepQuality === 'ok') sleepScore += 3;
+        else if (patientState.sleepQuality === 'bad') sleepScore += 1;
+      }
 
       const totalScore = Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
 
@@ -2024,14 +2127,18 @@
       document.getElementById('dailyScoreProgressBar').style.width = `${totalScore}%`;
 
       const fb = document.getElementById('dailyScoreFeedback');
-      if (totalScore >= 95) {
-        fb.innerHTML = "🏆 <strong>Perfeição Total!</strong> Todas as metas do dia foram executadas com maestria.";
-      } else if (totalScore >= 80) {
-        fb.innerHTML = "🔥 <strong>Excelente consistência!</strong> Foco total para bater os 100% hoje.";
-      } else if (totalScore >= 50) {
-        fb.innerHTML = "⚡ <strong>Em andamento.</strong> Continue executando os rituais para blindar seu resultado.";
-      } else {
-        fb.innerHTML = "🎯 <strong>Início de jornada.</strong> Marque suas refeições e hidratação para elevar o score.";
+      if (fb) {
+        if (totalScore >= 95) {
+          fb.innerHTML = "🏆 <strong>Perfeição Total (100%)!</strong> Todas as metas do dia foram executadas com maestria.";
+        } else if (totalScore >= 80) {
+          fb.innerHTML = `🔥 <strong>Excelente consistência (${totalScore}%)!</strong> Falta pouco para bater a meta de hoje.`;
+        } else if (totalScore >= 50) {
+          fb.innerHTML = `💪 <strong>Bom ritmo (${totalScore}%)!</strong> Continue executando os rituais para blindar seu resultado.`;
+        } else if (totalScore > 0) {
+          fb.innerHTML = `⚡ <strong>Em andamento (${totalScore}%).</strong> Marque suas refeições, água e treino para elevar o score.`;
+        } else {
+          fb.innerHTML = "🎯 <strong>Início de jornada (0%).</strong> Registre suas refeições, água e treino para acompanhar seu Score IDC.";
+        }
       }
     }
 
