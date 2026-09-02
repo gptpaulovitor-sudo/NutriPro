@@ -1351,21 +1351,28 @@
       sleepQuality: null,
       sleepLogged: false,
       exerciseChecks: {},
-      meals: []
+      meals: [
+        { id: 'm1', time: '07:30', name: 'Café da Manhã', detail: '3 Ovos + 2 Fatias Pão Integral + 150ml Café', kcal: 380, prot: 24, done: false },
+        { id: 'm2', time: '10:30', name: 'Lanche da Manhã', detail: '30g Whey Protein + 1 Fruta', kcal: 190, prot: 25, done: false },
+        { id: 'm3', time: '13:00', name: 'Almoço Estruturado', detail: '200g Frango + 200g Arroz + Legumes à vontade', kcal: 580, prot: 55, done: false },
+        { id: 'm4', time: '16:30', name: 'Pré-Treino', detail: '100g Banana + 40g Aveia + Canela', kcal: 240, prot: 6, done: false },
+        { id: 'm5', time: '20:00', name: 'Jantar Pós-Treino', detail: '200g Patinho Moído + 250g Batata Doce + Salada', kcal: 590, prot: 52, done: false }
+      ]
     };
 
     // 4. INICIALIZAÇÃO
     window.addEventListener('DOMContentLoaded', () => {
-      loadState();
-      renderAll();
-      setupPwaPrompt();
+      try { loadState(); } catch (e) { console.error('Erro em loadState:', e); }
+      try { renderAll(); } catch (e) { console.error('Erro em renderAll:', e); }
+      try { setupPwaPrompt(); } catch (_) {}
       if (window.lucide) window.lucide.createIcons();
     });
 
     // 5. PERSISTÊNCIA LOCAL
     function loadState() {
+      const todayIso = new Date().toISOString().split('T')[0];
+
       // ── A. Aplica dados prescritos do payload do link (nome, refeições, treinos) ──
-      // Prioridade: #data= da URL > payload salvo por ID > paciente ATIVO no NutriPro
       let dataPayload = _syncPayload;
 
       if (!dataPayload && _urlPatientId !== 'default') {
@@ -1375,9 +1382,6 @@
         } catch (_) {}
       }
 
-      // Fallback principal: lê o ÚLTIMO PACIENTE ATIVO salvo pelo app.js (NutriPro)
-      // Isso garante que ao abrir paciente.html diretamente (sem link), o paciente
-      // carregado nos outros módulos seja exibido aqui também.
       if (!dataPayload) {
         try {
           const _raw = localStorage.getItem('nutriax_sync_active_patient');
@@ -1386,12 +1390,17 @@
       }
 
       if (dataPayload) {
-        // Grava o payload do link no localStorage para consultas futuras offline
         try {
           localStorage.setItem(`nutriax_patient_payload_${_urlPatientId}`, JSON.stringify(dataPayload));
         } catch (_) {}
 
-        if (dataPayload.patientName) patientState.name = dataPayload.patientName;
+        if (dataPayload.patientName) {
+          if (dataPayload.patientName === 'Paulo Vitor' && dataPayload.patientId && !dataPayload.patientId.toLowerCase().includes('paulo')) {
+            patientState.name = dataPayload.patientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          } else {
+            patientState.name = dataPayload.patientName;
+          }
+        }
         if (dataPayload.targetWater) patientState.waterTarget = dataPayload.targetWater;
 
         // Aplica refeições prescritas (preservando `done` salvo localmente)
@@ -1399,15 +1408,13 @@
           patientState.meals = dataPayload.meals.map(m => ({ ...m, done: false }));
         }
 
-        // ── Aplica banco de treinos do paciente (substitui o padrão) ──────────
-        if (dataPayload.workoutDatabase && Object.keys(dataPayload.workoutDatabase).length > 0) {
+        // ── Aplica banco de treinos do paciente (substitui o padrão se existir) ──
+        if (dataPayload.workoutDatabase && typeof dataPayload.workoutDatabase === 'object' && Object.keys(dataPayload.workoutDatabase).length > 0) {
           Object.keys(WORKOUT_DATABASE).forEach(k => delete WORKOUT_DATABASE[k]);
           Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
         }
 
         // ── Normaliza e aplica agenda semanal ────────────────────────────────
-        // O app.js gera: { dayKey, dayName, routineId, title, focus, type, carboTip, proteinTip, waterTip, strategyTip }
-        // O paciente.html espera: { dayNum, dayName, type, color, routineKey, title, sub, synergy:{carbo,prot,water,focus} }
         if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
           const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'Off': 'zinc', 'off': 'zinc' };
           const _normalized = dataPayload.weeklySchedule.map((d, idx) => {
@@ -1431,7 +1438,6 @@
           });
           WEEKLY_SCHEDULE_DATA.length = 0;
           _normalized.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
-          // Define o treino do primeiro dia como ativo por padrão
           const _firstRoutine = _normalized.find(d => d.routineKey);
           if (_firstRoutine) selectedRoutineKey = _firstRoutine.routineKey;
         }
@@ -1647,13 +1653,23 @@
     }
 
     function updateSynergyCard() {
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) || WEEKLY_SCHEDULE_DATA[0];
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) || WEEKLY_SCHEDULE_DATA[0] || {
+        dayName: 'DIA 1',
+        title: 'TREINO',
+        synergy: { carbo: '-', prot: '-', water: '-', focus: '-' }
+      };
       
-      document.getElementById('synergyDayLabel').textContent = `${dayData.dayName} · ${dayData.title.toUpperCase()}`;
-      document.getElementById('synergyCarbo').textContent = dayData.synergy.carbo;
-      document.getElementById('synergyProt').textContent = dayData.synergy.prot;
-      document.getElementById('synergyWater').textContent = dayData.synergy.water;
-      document.getElementById('synergyFocus').textContent = dayData.synergy.focus;
+      const syn = dayData.synergy || {};
+      const lbl = document.getElementById('synergyDayLabel');
+      if (lbl) lbl.textContent = `${dayData.dayName || 'DIA'} · ${(dayData.title || '').toUpperCase()}`;
+      const cEl = document.getElementById('synergyCarbo');
+      if (cEl) cEl.textContent = syn.carbo || '-';
+      const pEl = document.getElementById('synergyProt');
+      if (pEl) pEl.textContent = syn.prot || '-';
+      const wEl = document.getElementById('synergyWater');
+      if (wEl) wEl.textContent = syn.water || '-';
+      const fEl = document.getElementById('synergyFocus');
+      if (fEl) fEl.textContent = syn.focus || '-';
     }
 
     // 8. SELETOR RÁPIDO DE ROTINAS (PILLS)
@@ -1668,29 +1684,18 @@
           : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold';
 
         return `
-          <button onclick="selectRoutineDirect('${opt.key}')"
-            class="px-2.5 py-1 rounded-lg border text-[10px] font-mono whitespace-nowrap active:scale-95 transition-all ${cls}">
+          <button onclick="selectRoutine('${opt.key}')"
+            class="px-3 py-1.5 rounded-xl border text-xs whitespace-nowrap active:scale-95 transition-all ${cls}">
             ${opt.name}
           </button>
         `;
       }).join('');
-
-      const curRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
-      const tagEl = document.getElementById('selectedRoutineNameTag');
-      if (tagEl) tagEl.textContent = curRoutine.name;
     }
 
-    function selectRoutineDirect(routineKey) {
-      selectedRoutineKey = routineKey;
+    function selectRoutine(key) {
+      selectedRoutineKey = key;
       renderQuickRoutinePills();
       renderWorkoutExercises();
-
-      const sec = document.getElementById('workoutSectionContainer');
-      if (sec) {
-        sec.classList.add('ring-2', 'ring-blue-500/80');
-        setTimeout(() => sec.classList.remove('ring-2', 'ring-blue-500/80'), 500);
-      }
-
       if (window.lucide) window.lucide.createIcons();
     }
 
@@ -1699,11 +1704,14 @@
       const container = document.getElementById('patientExercisesList');
       if (!container) return;
 
-      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || {
+        badge: selectedRoutineKey || 'A',
+        name: `Treino ${selectedRoutineKey || 'A'}`,
+        subtitle: 'Exercícios estruturados',
+        exercises: []
+      };
 
       // Atualiza Header do Treino
-      document.getElementById('workoutRoutineBadge').textContent = routine.badge;
-      document.getElementById('workoutRoutineTitle').textContent = routine.name;
       document.getElementById('workoutRoutineSubtitle').textContent = routine.subtitle;
 
       // Oculta/Exibe a diretriz de progressão dependendo do tipo
@@ -1712,23 +1720,35 @@
         progEl.style.display = (routine.isOff || routine.isCardio) ? 'none' : 'flex';
       }
 
-      container.innerHTML = routine.exercises.map(ex => {
-        const isDone = !!patientState.exerciseChecks[ex.id];
+      const exList = Array.isArray(routine.exercises) ? routine.exercises : [];
+      if (exList.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-1">
+            <p class="text-sm font-bold text-zinc-300">Dia de Recuperação ou Sem Exercícios</p>
+            <p class="text-xs text-zinc-500">Mantenha a hidratação e a alimentação estruturada.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = exList.map(ex => {
+        const isDone = !!(patientState.exerciseChecks && patientState.exerciseChecks[ex.id]);
         
+        const resistStr = String(ex.resist || '');
         let resistBadge = '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">🔵 Pico Alongado</span>';
-        if (ex.resist.includes('Encurtado')) {
+        if (resistStr.includes('Encurtado')) {
           resistBadge = '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">🔴 Pico Encurtado</span>';
-        } else if (ex.resist.includes('Uniforme') || ex.resist.includes('Mista')) {
+        } else if (resistStr.includes('Uniforme') || resistStr.includes('Mista')) {
           resistBadge = '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">⚪ Curva Uniforme</span>';
-        } else {
-          resistBadge = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-700">⚡ ${ex.resist}</span>`;
+        } else if (resistStr) {
+          resistBadge = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-700">⚡ ${resistStr}</span>`;
         }
 
         const setsLabel = routine.isCardio ? 'Bloco' : (routine.isOff ? 'Ação' : 'Séries');
         const repsLabel = routine.isCardio ? 'Tempo' : (routine.isOff ? 'Meta' : 'Reps');
         const rpeLabel = routine.isCardio ? 'Esforço' : (routine.isOff ? 'RPE' : 'RPE');
         const pauseLabel = routine.isCardio ? 'Pausa' : (routine.isOff ? 'Status' : 'Pausa');
-        const pauseValue = routine.isCardio ? '0s' : (routine.isOff ? 'OK' : `${ex.rest}s`);
+        const pauseValue = routine.isCardio ? '0s' : (routine.isOff ? 'OK' : `${ex.rest || 60}s`);
 
         return `
           <div class="p-3.5 rounded-xl ${isDone ? 'bg-blue-950/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-black/60 border-zinc-800'} border space-y-2.5 transition-all">
