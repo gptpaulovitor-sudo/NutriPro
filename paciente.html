@@ -1361,11 +1361,22 @@
     // 5. PERSISTÊNCIA LOCAL
     function loadState() {
       // ── A. Aplica dados prescritos do payload do link (nome, refeições, treinos) ──
-      // Tenta o payload embutido no #data= da URL; senão, tenta o salvo pelo NutriPro
+      // Prioridade: #data= da URL > payload salvo por ID > paciente ATIVO no NutriPro
       let dataPayload = _syncPayload;
-      if (!dataPayload) {
+
+      if (!dataPayload && _urlPatientId !== 'default') {
         try {
           const _raw = localStorage.getItem(`nutriax_patient_payload_${_urlPatientId}`);
+          if (_raw) dataPayload = JSON.parse(_raw);
+        } catch (_) {}
+      }
+
+      // Fallback principal: lê o ÚLTIMO PACIENTE ATIVO salvo pelo app.js (NutriPro)
+      // Isso garante que ao abrir paciente.html diretamente (sem link), o paciente
+      // carregado nos outros módulos seja exibido aqui também.
+      if (!dataPayload) {
+        try {
+          const _raw = localStorage.getItem('nutriax_sync_active_patient');
           if (_raw) dataPayload = JSON.parse(_raw);
         } catch (_) {}
       }
