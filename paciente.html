@@ -301,19 +301,6 @@
     <!-- ═══ 4. ESTÍMULO FÍSICO & FICHA COMPLETA DE TREINO (ESTILO FIGURA 3) ═══ -->
     <section id="workoutSectionContainer" class="hud-glass-card-blue p-4 space-y-3.5 transition-all duration-300">
       
-      <!-- Seletor Rápido de Treino (Pills Rápidas) -->
-      <div class="space-y-1.5">
-        <div class="flex justify-between items-center text-xs">
-          <span class="text-zinc-300 font-bold flex items-center gap-1.5 text-[11px]">
-            <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-blue-400"></i> Seletor de Rotina:
-          </span>
-          <span class="text-[10px] text-zinc-400 font-mono" id="selectedRoutineNameTag">Treino A</span>
-        </div>
-        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="quickRoutinePills">
-          <!-- Renderizado dinamicamente via JS -->
-        </div>
-      </div>
-
       <!-- Cabeçalho do Treino Selecionado -->
       <div class="p-3.5 rounded-xl bg-gradient-to-r from-blue-950/90 via-zinc-950 to-blue-950/80 border border-blue-600/60 shadow-lg space-y-2">
         <div class="flex justify-between items-start">
@@ -1816,29 +1803,10 @@
       if (fEl) fEl.textContent = syn.focus || '-';
     }
 
-    // 8. SELETOR RÁPIDO DE ROTINAS (PILLS)
-    function renderQuickRoutinePills() {
-      const container = document.getElementById('quickRoutinePills');
-      if (!container) return;
-
-      container.innerHTML = ROUTINE_OPTIONS.map(opt => {
-        const isSelected = opt.key === selectedRoutineKey;
-        const cls = isSelected 
-          ? 'bg-blue-600 border-blue-400 text-white font-black shadow-[0_0_10px_rgba(59,130,246,0.5)]'
-          : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold';
-
-        return `
-          <button onclick="selectRoutine('${opt.key}')"
-            class="px-3 py-1.5 rounded-xl border text-xs whitespace-nowrap active:scale-95 transition-all ${cls}">
-            ${opt.name}
-          </button>
-        `;
-      }).join('');
-    }
-
+    // 8. SELETOR DE ROTINAS (CONTROLADO EXCLUSIVAMENTE PELA AGENDA SEMANAL)
+    function renderQuickRoutinePills() {}
     function selectRoutine(key) {
       selectedRoutineKey = key;
-      renderQuickRoutinePills();
       renderWorkoutExercises();
       if (window.lucide) window.lucide.createIcons();
     }
