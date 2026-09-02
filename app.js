@@ -4,6 +4,7 @@
 // Google Apps Script Web App Endpoint URL Configuration
 let GOOGLE_SCRIPT_URL = localStorage.getItem("NUTRIAX_GOOGLE_SCRIPT_URL") || "https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec";
 let activePatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") || "paulo-vitor";
+let activePatientData = null;
 
 // Active Prescription Items Memory Array
 let currentPrescriptionItems = [
@@ -533,6 +534,7 @@ async function onPatientChange(patientId) {
 
   const p = await db.patients.get(patientId);
   if (!p) return;
+  activePatientData = p;
 
   // ── 1. Atualiza cabeçalhos imediatamente ──────────────────────────────────
   const nameEl = document.getElementById("headerPatientName");
@@ -6390,11 +6392,41 @@ function renderDisciplineTimeline() {
 function syncActivePatientToPatientApp(patientId = activePatientId) {
   const pId = patientId || activePatientId || "paulo-vitor";
 
-  let patientName = "Paulo Vitor";
+  let patientName = "";
   let targetWater = 4000;
-  if (typeof patients !== "undefined" && patients[pId]) {
-    patientName = patients[pId].name || patientName;
-    if (patients[pId].weight) targetWater = Math.round(parseFloat(patients[pId].weight) * 45);
+
+  // 1. Tenta obter do activePatientData em memória
+  if (activePatientData && (activePatientData.id === pId || !patientId)) {
+    patientName = activePatientData.name || "";
+    const w = activePatientData.currentWeight || activePatientData.weight || activePatientData.usualWeight;
+    if (w) targetWater = Math.round(parseFloat(w) * 45);
+  }
+
+  // 2. Tenta obter dos cabeçalhos da interface
+  if (!patientName) {
+    patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
+                  document.getElementById("perfPatientName")?.innerText?.trim() ||
+                  document.getElementById("evalPatientName")?.value?.trim() ||
+                  document.getElementById("whatsappPatientName")?.value?.trim() ||
+                  "";
+  }
+
+  // 3. Tenta obter do select de pacientes ativos
+  if (!patientName) {
+    const sel = document.getElementById("activePatientSelect") || document.getElementById("mobileActivePatientSelect");
+    if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
+      const optText = sel.selectedOptions[0].text;
+      if (optText) patientName = optText.replace(/\s*\(.*?\)\s*$/, '').trim();
+    }
+  }
+
+  // 4. Se ainda assim não encontrou e pId for um identificador (ex: "vitor-gabriel")
+  if (!patientName && pId && pId !== "default" && pId !== "paulo-vitor") {
+    patientName = pId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+
+  if (!patientName) {
+    patientName = "Paulo Vitor";
   }
 
   // 1. Agrupamento estruturado da Prescrição Dietética (Refeições e Alimentos)
@@ -6524,6 +6556,13 @@ function openPatientShareModal() {
   const modal = document.getElementById('patientShareModal');
   if (!modal) return;
 
+  const pId = activePatientId || "paulo-vitor";
+  if (!activePatientData || activePatientData.id !== pId) {
+    if (typeof db !== "undefined" && db.patients) {
+      db.patients.get(pId).then(p => { if (p) activePatientData = p; }).catch(() => {});
+    }
+  }
+
   const payload = syncActivePatientToPatientApp(activePatientId);
 
   // Determina URL pública ou local
@@ -6587,8 +6626,11 @@ function sendPatientWhatsAppMessage() {
   const input = document.getElementById('patientShareLinkInput');
   const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
   
-  const p = (typeof patients !== 'undefined' && patients[activePatientId]) ? patients[activePatientId] : { name: 'Paulo Vitor' };
-  const patientName = p.name ? p.name.split(' ')[0] : 'Paulo';
+  const pName = activePatientData?.name || 
+                document.getElementById("headerPatientName")?.innerText?.trim() ||
+                document.getElementById("perfPatientName")?.innerText?.trim() ||
+                'Paciente';
+  const patientName = pName.split(' ')[0] || 'Paciente';
 
   const message = `Olá, ${patientName}! 🔥\n\nSeu plano de *Dieta & Treinos de Performance* está 100% atualizado e sincronizado!\n\nAcesse seu aplicativo exclusivo pelo link abaixo para acompanhar as refeições, substituições de alimentos, agenda de 7 dias e demonstrações em vídeo dos exercícios:\n\n👉 ${fullShareUrl}\n\n*Dica para Salvar no Celular:*\n• No *iPhone (Safari)*: Toque em Compartilhar ➔ "Adicionar à Tela de Início".\n• No *Android (Chrome)*: Toque em "Instalar aplicativo" ou "Adicionar à tela inicial".\n\nBons treinos e foco total no plano! 🚀`;
 

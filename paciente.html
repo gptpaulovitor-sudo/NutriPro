@@ -1443,8 +1443,8 @@
           if (Array.isArray(parsed.meals)) {
             parsed.meals.forEach(m => { mealDoneMap[m.id] = m.done; });
           }
-          // Mescla o estado sem sobrescrever nome/refeições/treinos do payload
-          const { meals: _m, ...restParsed } = parsed;
+          // Mescla o estado de interação SEM sobrescrever nome ou metas do plano prescrito
+          const { meals: _m, name: _savedName, waterTarget: _savedWt, ...restParsed } = parsed;
           Object.assign(patientState, restParsed);
           // Restaura status `done` das refeições
           patientState.meals = patientState.meals.map(m => ({
@@ -1454,6 +1454,18 @@
         }
       } catch (e) {
         console.warn('Erro ao carregar state local', e);
+      }
+
+      // ── C. Validação final e garantia de identificação correta do paciente ──
+      if (dataPayload) {
+        // Se o payload tem nome próprio diferente do padrão de fallback
+        if (dataPayload.patientName && (dataPayload.patientName !== 'Paulo Vitor' || !dataPayload.patientId || dataPayload.patientId.toLowerCase().includes('paulo'))) {
+          patientState.name = dataPayload.patientName;
+        } else if (dataPayload.patientId && dataPayload.patientId !== 'default' && !dataPayload.patientId.toLowerCase().includes('paulo')) {
+          patientState.name = dataPayload.patientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        }
+      } else if (_urlPatientId && _urlPatientId !== 'default' && !_urlPatientId.toLowerCase().includes('paulo')) {
+        patientState.name = _urlPatientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       }
     }
 
