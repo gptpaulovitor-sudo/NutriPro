@@ -1740,6 +1740,7 @@ function handleAddPrescriptionItem() {
   db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
   renderPrescriptionTotals();
   renderMealItems();
+  try { syncActivePatientToPatientApp(activePatientId); } catch (_) {}
 
   selectedFoodItem = null;
   document.getElementById("prescriptionSearchInput").value = "";
@@ -1753,6 +1754,7 @@ function removePrescriptionItem(id) {
   db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
   renderPrescriptionTotals();
   renderMealItems();
+  try { syncActivePatientToPatientApp(activePatientId); } catch (_) {}
 }
 
 function openEditPrescriptionItem(id) {
@@ -1816,6 +1818,7 @@ async function saveEditPrescriptionItem() {
   closeEditPrescriptionItemModal();
   renderPrescriptionTotals();
   renderMealItems();
+  try { syncActivePatientToPatientApp(activePatientId); } catch (_) {}
 }
 
 function renderPrescriptionTotals() {
@@ -6381,9 +6384,147 @@ function renderDisciplineTimeline() {
   if (window.lucide) window.lucide.createIcons();
 }
 
+// =========================================================================
+// MOTOR DE SINCRONIZAÇÃO TOTAL & BIDIRECIONAL COM O APP DO PACIENTE
+// =========================================================================
+function syncActivePatientToPatientApp(patientId = activePatientId) {
+  const pId = patientId || activePatientId || "paulo-vitor";
+
+  let patientName = "Paulo Vitor";
+  let targetWater = 4000;
+  if (typeof patients !== "undefined" && patients[pId]) {
+    patientName = patients[pId].name || patientName;
+    if (patients[pId].weight) targetWater = Math.round(parseFloat(patients[pId].weight) * 45);
+  }
+
+  // 1. Agrupamento estruturado da Prescrição Dietética (Refeições e Alimentos)
+  const mealsMap = {};
+  (currentPrescriptionItems || []).forEach(item => {
+    const mName = item.mealName || "Refeição";
+    if (!mealsMap[mName]) {
+      mealsMap[mName] = {
+        name: mName,
+        time: item.mealTime || "12:00",
+        items: [],
+        kcal: 0,
+        prot: 0,
+        carbo: 0,
+        lipid: 0
+      };
+    }
+    const itKcal = Math.round(item.calories || 0);
+    const itProt = Math.round((item.protein || 0) * 10) / 10;
+    const itCarbo = Math.round((item.carbohydrate || 0) * 10) / 10;
+    const itLipid = Math.round((item.lipid || 0) * 10) / 10;
+
+    mealsMap[mName].items.push({
+      id: item.id || `f_${Math.random().toString(36).substr(2, 6)}`,
+      name: item.foodName,
+      qty: item.quantity,
+      unit: item.unitDisplay || `${item.quantity}g`,
+      kcal: itKcal,
+      prot: itProt,
+      carbo: itCarbo,
+      lipid: itLipid
+    });
+    mealsMap[mName].kcal += (item.calories || 0);
+    mealsMap[mName].prot += (item.protein || 0);
+    mealsMap[mName].carbo += (item.carbohydrate || 0);
+    mealsMap[mName].lipid += (item.lipid || 0);
+  });
+
+  const formattedMeals = Object.values(mealsMap).map((m, idx) => ({
+    id: `m_${idx + 1}`,
+    time: m.time,
+    name: m.name,
+    detail: m.items.map(it => `${it.qty}g ${it.name}`).join(" + "),
+    items: m.items,
+    kcal: Math.round(m.kcal),
+    prot: Math.round(m.prot),
+    carbo: Math.round(m.carbo),
+    fat: Math.round(m.lipid),
+    done: false
+  }));
+
+  // 2. Banco de Dados Biomecânico de Treinos (Rotinas A-F, Cardio, OFF)
+  const formattedWorkout = {};
+  if (Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length > 0) {
+    perfWorkoutPlan.forEach(r => {
+      const dbExercises = (r.exercises || []).map((ex, idx) => {
+        const canonical = perfFindExercise(ex.exerciseId || ex.id, ex.name);
+        const guideData = perfGetExerciseGuideData(canonical);
+        return {
+          num: idx + 1,
+          id: canonical.id || ex.exerciseId || ex.id,
+          name: ex.name || canonical.name,
+          group: canonical.group || ex.group || "Peitoral",
+          equip: `${canonical.equipment || "Barra/Halter"} · ${canonical.mechanics || "Composto"}`,
+          primary: canonical.primary || ex.primary || "Músculo Alvo",
+          secondary: canonical.secondary || ex.secondary || "Estabilizadores",
+          cadence: ex.cadence || canonical.cadence || "3-0-1-0",
+          resist: ex.resistProfile === 'stretched' ? 'Pico Alongado' : (ex.resistProfile === 'shortened' ? 'Pico Encurtado' : 'Curva Uniforme'),
+          sets: parseInt(ex.sets) || 3,
+          reps: ex.reps || "8-10",
+          rpe: parseInt(ex.rpe) || 8,
+          rest: parseInt(ex.rest) || 60,
+          gif: guideData.gifUrl || GROUP_DEFAULT_GIFS[canonical.group] || GROUP_DEFAULT_GIFS['Peitoral'],
+          steps: guideData.steps,
+          breathing: guideData.breathing,
+          mistakes: guideData.mistakes
+        };
+      });
+
+      formattedWorkout[r.id] = {
+        id: r.id,
+        name: r.name || `Treino ${r.id}`,
+        badge: r.id,
+        subtitle: `${dbExercises.length} exercícios estruturados · Volume: ${dbExercises.reduce((a, b) => a + (b.sets || 3), 0)} sets`,
+        isCardio: r.id === 'Cardio',
+        isOff: r.id === 'OFF',
+        exercises: dbExercises
+      };
+    });
+  }
+
+  // 3. Agenda Semanal de 7 Dias Normalizada
+  const normalizedSchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule || []);
+
+  const syncPayload = {
+    version: 4,
+    patientId: pId,
+    patientName: patientName,
+    targetWater: targetWater,
+    meals: formattedMeals.length > 0 ? formattedMeals : null,
+    workoutDatabase: Object.keys(formattedWorkout).length > 0 ? formattedWorkout : null,
+    weeklySchedule: normalizedSchedule,
+    activeSplit: perfActiveSplit,
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    localStorage.setItem("nutriax_sync_active_patient", JSON.stringify(syncPayload));
+    localStorage.setItem(`nutriax_patient_payload_${pId}`, JSON.stringify(syncPayload));
+    localStorage.setItem("nutriax_sync_timestamp", String(Date.now()));
+  } catch (e) {
+    console.warn("Erro ao salvar syncPayload local", e);
+  }
+
+  // 4. Broadcast instantâneo entre abas abertas no navegador
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      const channel = new BroadcastChannel("nutriax_bidirectional_sync");
+      channel.postMessage({ type: "SYNC_UPDATED", payload: syncPayload });
+    }
+  } catch (e) {}
+
+  return syncPayload;
+}
+
 function openPatientShareModal() {
   const modal = document.getElementById('patientShareModal');
   if (!modal) return;
+
+  const payload = syncActivePatientToPatientApp(activePatientId);
 
   // Determina URL pública ou local
   let patientUrl = 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
@@ -6393,12 +6534,21 @@ function openPatientShareModal() {
     patientUrl = `${origin}${path}paciente.html`;
   }
 
+  let fullShareUrl = patientUrl;
+  try {
+    const compactJson = JSON.stringify(payload);
+    const base64Data = btoa(unescape(encodeURIComponent(compactJson)));
+    fullShareUrl = `${patientUrl}#data=${base64Data}`;
+  } catch (e) {
+    console.warn('Erro ao codificar payload para URL', e);
+  }
+
   const input = document.getElementById('patientShareLinkInput');
-  if (input) input.value = patientUrl;
+  if (input) input.value = fullShareUrl;
 
   const qrImg = document.getElementById('patientQrCodeImg');
   if (qrImg) {
-    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(patientUrl)}`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(fullShareUrl)}`;
   }
 
   modal.classList.remove('hidden');
@@ -6418,7 +6568,7 @@ function copyPatientShareLink() {
     const btn = document.getElementById('btnCopyPatientLink');
     if (btn) {
       const originalHTML = btn.innerHTML;
-      btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Copiado!';
+      btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Link &amp; Dieta Copiados!';
       btn.classList.add('bg-emerald-950', 'border-emerald-700');
       setTimeout(() => {
         btn.innerHTML = originalHTML;
@@ -6435,12 +6585,12 @@ function copyPatientShareLink() {
 
 function sendPatientWhatsAppMessage() {
   const input = document.getElementById('patientShareLinkInput');
-  const patientUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
+  const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
   
   const p = (typeof patients !== 'undefined' && patients[activePatientId]) ? patients[activePatientId] : { name: 'Paulo Vitor' };
   const patientName = p.name ? p.name.split(' ')[0] : 'Paulo';
 
-  const message = `Olá, ${patientName}! 🔥\n\nAqui está o seu acesso exclusivo ao aplicativo *NutriAx — Disciplina & Hábitos* para acompanhar sua dieta, registrar a hidratação diária, treinos e manter sua sequência de consistência:\n\n👉 ${patientUrl}\n\n*Dica de Instalação no Celular:*\n• No *iPhone (Safari)*: Toque em Compartilhar e selecione "Adicionar à Tela de Início".\n• No *Android (Chrome)*: Toque no banner "Instalar aplicativo".\n\nBons treinos e foco total no plano! 🚀`;
+  const message = `Olá, ${patientName}! 🔥\n\nSeu plano de *Dieta & Treinos de Performance* está 100% atualizado e sincronizado!\n\nAcesse seu aplicativo exclusivo pelo link abaixo para acompanhar as refeições, substituições de alimentos, agenda de 7 dias e demonstrações em vídeo dos exercícios:\n\n👉 ${fullShareUrl}\n\n*Dica para Salvar no Celular:*\n• No *iPhone (Safari)*: Toque em Compartilhar ➔ "Adicionar à Tela de Início".\n• No *Android (Chrome)*: Toque em "Instalar aplicativo" ou "Adicionar à tela inicial".\n\nBons treinos e foco total no plano! 🚀`;
 
   const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   window.open(waUrl, '_blank');
@@ -12846,6 +12996,13 @@ async function savePerformanceForPatient(patientId = activePatientId) {
     }
   } catch (err) {
     console.warn("Falha ao salvar performance no Dexie:", err);
+  }
+
+  // 3. Sincroniza instantaneamente com o App do Paciente
+  try {
+    syncActivePatientToPatientApp(pId);
+  } catch (syncErr) {
+    console.warn("Erro ao sincronizar com app do paciente:", syncErr);
   }
 }
 

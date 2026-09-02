@@ -185,9 +185,16 @@
           <h1 class="text-xl font-black text-white mt-1 flex items-center gap-2" id="patientNameDisplay">
             Paulo Vitor
           </h1>
-          <p class="text-[11px] text-zinc-400 font-medium mt-0.5" id="currentDateDisplay">
-            Hoje, 31 de Agosto de 2026
-          </p>
+          <div class="flex items-center gap-2 flex-wrap mt-0.5">
+            <p class="text-[11px] text-zinc-400 font-medium" id="currentDateDisplay">
+              Hoje, 31 de Agosto de 2026
+            </p>
+            <span class="text-zinc-600">•</span>
+            <span id="syncLiveStatusBadge" class="text-[10px] font-mono font-bold text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>100% Sincronizado</span>
+            </span>
+          </div>
         </div>
 
         <!-- Streak Badge 🔥 -->
@@ -616,6 +623,101 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
+       MODAL DE SUBSTITUIÇÃO DE ALIMENTOS EQUIVALENTES
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="foodSubstituteModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-zinc-950 border border-orange-500/50 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-[0_0_40px_rgba(234,88,12,0.3)] animate-in fade-in zoom-in-95 duration-200">
+
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-orange-950 border border-orange-700/60 text-orange-400 flex items-center justify-center font-bold text-xs">
+            🔄
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white">Substituição de Alimentos</h3>
+            <p class="text-[10px] text-zinc-400">Equivalência nutricional calculada</p>
+          </div>
+        </div>
+        <button onclick="closeFoodSubstituteModal()" class="text-zinc-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Alimento Prescrito Atual -->
+      <div class="p-3 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+        <span class="text-[9px] font-mono font-bold text-orange-400 uppercase block">Prescrito na Dieta:</span>
+        <div class="flex items-center justify-between">
+          <span id="substCurrentFoodName" class="text-xs font-bold text-white">Peito de Frango</span>
+          <span id="substCurrentFoodQty" class="text-xs font-mono font-black text-orange-300">200g</span>
+        </div>
+        <p id="substCurrentFoodMacros" class="text-[10px] text-zinc-400 font-mono">330 kcal • 64g P • 0g C • 5.3g G</p>
+      </div>
+
+      <!-- Lista de Opções Equivalentes -->
+      <div class="space-y-1.5">
+        <span class="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Opções Equivalentes em Macros:</span>
+        <div id="substFoodOptionsList" class="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+          <!-- Gerado dinamicamente -->
+        </div>
+      </div>
+
+      <button onclick="closeFoodSubstituteModal()"
+        class="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs active:scale-95 transition-transform">
+        Fechar
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL DE SUBSTITUIÇÃO DE EXERCÍCIO / VARIAÇÕES BIOMECÂNICAS
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="exerciseSwapModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-zinc-950 border border-blue-500/50 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-[0_0_40px_rgba(59,130,246,0.3)] animate-in fade-in zoom-in-95 duration-200">
+
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-blue-950 border border-blue-700/60 text-blue-400 flex items-center justify-center font-bold text-xs">
+            🏋️
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white">Variações &amp; Substitutos</h3>
+            <p class="text-[10px] text-zinc-400">Mesmo grupo muscular e estímulo</p>
+          </div>
+        </div>
+        <button onclick="closeExerciseSwapModal()" class="text-zinc-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Exercício Atual -->
+      <div class="p-3 rounded-xl bg-blue-950/30 border border-blue-800/40 space-y-1">
+        <span class="text-[9px] font-mono font-bold text-blue-400 uppercase block">Exercício Atual:</span>
+        <div class="flex items-center justify-between">
+          <span id="swapCurrentExName" class="text-xs font-bold text-white">Supino Reto com Barra</span>
+          <span id="swapCurrentExGroup" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Peitoral</span>
+        </div>
+      </div>
+
+      <!-- Lista de Variações Alternativas -->
+      <div class="space-y-1.5">
+        <span class="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Escolha uma Variação Alternativa:</span>
+        <div id="swapExerciseOptionsList" class="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+          <!-- Gerado dinamicamente -->
+        </div>
+      </div>
+
+      <button onclick="closeExerciseSwapModal()"
+        class="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs active:scale-95 transition-transform">
+        Manter Exercício Atual
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
        MODAL SOS: "DESLIZEI NA DIETA"
   ═══════════════════════════════════════════════════════════ -->
   <div id="sosModal"
@@ -645,6 +747,7 @@
           <div class="flex items-start gap-2">
             <span class="text-amber-400 font-bold">💧</span>
             <p><strong class="text-white">Beba 500ml de água agora:</strong> Ajuda a digestão e reduz a retenção hídrica do excesso de sódio.</p>
+          </div>
           <div class="flex items-start gap-2">
             <span class="text-amber-400 font-bold">🥗</span>
             <p><strong class="text-white">Próxima refeição normal:</strong> Não faça jejum forçado. Siga a próxima refeição prescrita exatamente como está na dieta.</p>
@@ -660,6 +763,18 @@
         class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black text-xs shadow-lg active:scale-95 transition-transform">
         Entendido! Voltando ao Foco 🔥
       </button>
+    </div>
+  </div>
+
+  <!-- Toast de Sincronização em Tempo Real -->
+  <div id="syncToastNotification"
+    class="fixed top-4 right-4 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none p-3 rounded-2xl bg-gradient-to-r from-emerald-950 via-zinc-900 to-black border border-emerald-500/70 shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-2.5 max-w-xs">
+    <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center shrink-0">
+      <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-400 animate-spin"></i>
+    </div>
+    <div>
+      <h5 class="text-xs font-bold text-white leading-tight" id="syncToastTitle">Sincronizado com NutriPro</h5>
+      <p class="text-[10px] text-emerald-300/90" id="syncToastMessage">Dieta e treinos atualizados!</p>
     </div>
   </div>
 
@@ -1042,6 +1157,20 @@
         isOff: true,
         exercises: [
           {
+            num: 1, id: 'rec_sleep', name: 'Sono Anabólico Reparador (8-9h de Sono Profundo)', group: 'Regeneração', equip: 'Quarto Escuro e Frio',
+            primary: 'Secreção de GH, Reparo Miofibrilar e Restauração do SNC', secondary: 'Sensibilidade à Insulina e Otimização Imunológica',
+            cadence: '8 a 9 horas ininterruptas', resist: 'Zero Luz Azul', sets: 1, reps: '8-9 horas', rpe: 1, rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif',
+            steps: ['Desligue telas e reduza a luz ambiente 1 hora antes de dormir.', 'Mantenha a temperatura do quarto fresca (19-21°C).', 'Garanta 8 a 9 horas de sono para maximizar a síntese proteica miofibrilar.'],
+            breathing: 'Respiração diafragmática profunda 4-7-8.', mistakes: 'Uso de telas na cama ou ingestão de cafeína após as 14h.'
+          },
+          {
+            num: 2, id: 'rec_mob', name: 'Mobilidade Articular e Liberação Miofascial Leve', group: 'Mobilidade', equip: 'Rolo de Liberação / Solo',
+            primary: 'Descompressão da Coluna, Quadril e Torácica', secondary: 'Fluxo Sanguíneo e Redução de Rigidez',
+            cadence: '15-20 minutos suaves', resist: 'Baixa Intensidade', sets: 1, reps: '15-20 min', rpe: 2, rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-romanian-deadlift.gif',
+            steps: ['Execute 10-15 minutos de mobilidade de tornozelo, quadril e torácica.', 'Use o rolo de espuma nos pontos de maior tensão muscular.', 'Mantenha movimentos suaves sem dor excessiva.'],
+            breathing: 'Respiração nasal lenta e relaxada.', mistakes: 'Aplicar pressão excessiva gerando dor aguda.'
           },
           {
             num: 3, id: 'rec_elec', name: 'Hidratação Eletrolítica & Síntese Proteica Fracionada', group: 'Nutrição', equip: 'Garrafa de Água + Dieta',
@@ -1179,7 +1308,10 @@
     let selectedRoutineKey = 'A';
 
     // 3. ESTADO INICIAL DOS DADOS
-    const STORAGE_KEY = 'nutriax_patient_discipline_v3';
+    // Lê o ID do paciente da URL (ex: paciente.html?id=paulo)
+    // e usa como sufixo da chave de localStorage para isolar os dados de cada paciente
+    const _urlPatientId = (new URLSearchParams(window.location.search).get('id') || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
+    const STORAGE_KEY = `nutriax_patient_discipline_v3_${_urlPatientId}`;
 
     let patientState = {
       name: 'Paulo Vitor',
