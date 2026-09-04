@@ -1613,6 +1613,14 @@
       if (_hash && _hash.startsWith('#data=')) {
         const _b64 = _hash.slice(6);
         _syncPayload = JSON.parse(decodeURIComponent(escape(atob(_b64))));
+        // Salva cópia localmente e limpa a URL para evitar HTTP 414 (URI Too Long) no Google OAuth
+        if (_syncPayload && _syncPayload.patientId) {
+          try {
+            localStorage.setItem(`nutriax_patient_payload_${_syncPayload.patientId}`, JSON.stringify(_syncPayload));
+            const cleanUrl = window.location.origin + window.location.pathname + `?id=${_syncPayload.patientId}`;
+            window.history.replaceState(null, '', cleanUrl);
+          } catch (_) {}
+        }
       }
     } catch (_e) {
       console.warn('Erro ao decodificar #data da URL', _e);
