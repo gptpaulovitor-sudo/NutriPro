@@ -7085,6 +7085,22 @@ function openPatientShareModal() {
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(fullShareUrl)}`;
   }
 
+  // Preenche campo de Gmail do paciente e status do vínculo na nuvem
+  const emailInput = document.getElementById('patientShareGmailInput');
+  const badgeEl = document.getElementById('patientCloudLinkedBadge');
+  const savedEmail = (activePatientData && activePatientData.email) || localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
+
+  if (emailInput) emailInput.value = savedEmail;
+  if (badgeEl) {
+    if (savedEmail) {
+      badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${savedEmail}</span>`;
+      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+    } else {
+      badgeEl.textContent = 'Não vinculado';
+      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700";
+    }
+  }
+
   modal.classList.remove('hidden');
   if (window.lucide) window.lucide.createIcons();
 }
@@ -7092,6 +7108,81 @@ function openPatientShareModal() {
 function closePatientShareModal() {
   const modal = document.getElementById('patientShareModal');
   if (modal) modal.classList.add('hidden');
+}
+
+async function linkPatientEmailFromDashboard() {
+  const pId = activePatientId || "paulo-vitor";
+  const emailInput = document.getElementById('patientShareGmailInput');
+  const btn = document.getElementById('btnLinkPatientGmail');
+  const badgeEl = document.getElementById('patientCloudLinkedBadge');
+  if (!emailInput) return;
+
+  const email = emailInput.value.trim().toLowerCase();
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    alert('Por favor, informe um endereço de Gmail válido para o paciente.');
+    emailInput.focus();
+    return;
+  }
+
+  const pName = activePatientData?.name || 
+                document.getElementById("headerPatientName")?.innerText?.trim() ||
+                document.getElementById("perfPatientName")?.innerText?.trim() ||
+                'Paciente';
+
+  const originalBtnHTML = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Vinculando...';
+  }
+
+  try {
+    // 1. Salva localmente na sessão do nutricionista
+    localStorage.setItem(`nutriax_patient_email_${pId}`, email);
+    if (activePatientData) {
+      activePatientData.email = email;
+    }
+    if (typeof db !== "undefined" && db.patients) {
+      try {
+        await db.patients.update(pId, { email: email });
+      } catch (_) {}
+    }
+
+    // 2. Garante payload de sincronização gerado e salvo na nuvem
+    const payload = syncActivePatientToPatientApp(pId);
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
+      await window.NutriProFirebase.prescription.syncToCloud(pId, payload);
+    }
+
+    // 3. Vincula o e-mail ao ID do paciente no Firebase
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.auth?.linkEmailToPatient === 'function') {
+      await window.NutriProFirebase.auth.linkEmailToPatient(email, pId, { displayName: pName });
+    }
+
+    // 4. Feedback visual de sucesso
+    if (badgeEl) {
+      badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${email}</span>`;
+      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+    }
+
+    if (btn) {
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Vinculado!';
+      btn.className = "px-3.5 py-2 rounded-xl bg-emerald-900/60 text-emerald-300 border border-emerald-700 text-xs font-bold flex items-center gap-1.5 shadow-md";
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHTML;
+        btn.className = "px-3.5 py-2 rounded-xl bg-orange-600/30 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/40 text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all shrink-0";
+        if (window.lucide) window.lucide.createIcons();
+      }, 2500);
+    }
+    if (window.lucide) window.lucide.createIcons();
+  } catch (error) {
+    console.warn('Erro ao vincular email na nuvem:', error);
+    alert('Não foi possível conectar com a nuvem no momento. Verifique sua conexão à internet.');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnHTML;
+    }
+  }
 }
 
 function copyPatientShareLink() {
@@ -7120,6 +7211,8 @@ function copyPatientShareLink() {
 function sendPatientWhatsAppMessage() {
   const input = document.getElementById('patientShareLinkInput');
   const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
+  const pId = activePatientId || "paulo-vitor";
+  const savedEmail = (activePatientData && activePatientData.email) || localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
   
   const pName = activePatientData?.name || 
                 document.getElementById("headerPatientName")?.innerText?.trim() ||
@@ -7127,7 +7220,12 @@ function sendPatientWhatsAppMessage() {
                 'Paciente';
   const patientName = pName.split(' ')[0] || 'Paciente';
 
-  const message = `Olá, ${patientName}! 🔥\n\nSeu plano de *Dieta & Treinos de Performance* está 100% atualizado e sincronizado!\n\nAcesse seu aplicativo exclusivo pelo link abaixo para acompanhar as refeições, substituições de alimentos, agenda de 7 dias e demonstrações em vídeo dos exercícios:\n\n👉 ${fullShareUrl}\n\n*Dica para Salvar no Celular:*\n• No *iPhone (Safari)*: Toque em Compartilhar ➔ "Adicionar à Tela de Início".\n• No *Android (Chrome)*: Toque em "Instalar aplicativo" ou "Adicionar à tela inicial".\n\nBons treinos e foco total no plano! 🚀`;
+  let loginTip = '';
+  if (savedEmail) {
+    loginTip = `\n\n🔑 *Acesso Automático:* Seu app já está vinculado à sua Conta Google (*${savedEmail}*). Você também pode abrir pelo link limpo e clicar em "Conectar com Google"!`;
+  }
+
+  const message = `Olá, ${patientName}! 🔥\n\nSeu plano de *Dieta & Treinos de Performance* está 100% atualizado e sincronizado!\n\nAcesse seu aplicativo exclusivo pelo link abaixo para acompanhar as refeições, substituições de alimentos, agenda de 7 dias e demonstrações em vídeo dos exercícios:\n\n👉 ${fullShareUrl}${loginTip}\n\n*Dica para Salvar no Celular:*\n• No *iPhone (Safari)*: Toque em Compartilhar ➔ "Adicionar à Tela de Início".\n• No *Android (Chrome)*: Toque em "Instalar aplicativo" ou "Adicionar à tela inicial".\n\nBons treinos e foco total no plano! 🚀`;
 
   const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   window.open(waUrl, '_blank');

@@ -306,6 +306,62 @@
     }
   }
 
+  async function loadPrescriptionFromCloud(patientId) {
+    if (!init()) return null;
+    if (!patientId) return null;
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      const docRef = await firestore.collection('patient_prescriptions').doc(sanitizedId).get();
+      if (docRef.exists) {
+        const data = docRef.data();
+        return data.prescription || null;
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar prescrição do Firestore:', error);
+      return null;
+    }
+  }
+
+  async function findPatientIdByEmail(email) {
+    if (!init()) return null;
+    if (!email) return null;
+
+    try {
+      const emailKey = String(email).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const docRef = await firestore.collection('patient_users').doc(emailKey).get();
+      if (docRef.exists) {
+        const data = docRef.data();
+        return data.patientId || null;
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao pesquisar paciente por email:', error);
+      return null;
+    }
+  }
+
+  async function linkEmailToPatient(email, patientId, userProfile = null) {
+    if (!init()) return false;
+    if (!email || !patientId) return false;
+
+    try {
+      const emailKey = String(email).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      await firestore.collection('patient_users').doc(emailKey).set({
+        email: String(email).trim().toLowerCase(),
+        patientId: String(patientId).trim(),
+        displayName: userProfile?.displayName || '',
+        photoURL: userProfile?.photoURL || '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      return true;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao vincular email ao paciente:', error);
+      return false;
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // 4. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
   // ─────────────────────────────────────────────────────────────────────────
@@ -317,7 +373,9 @@
       signInWithGoogle,
       signOut,
       getCurrentUser,
-      onAuthStateChanged
+      onAuthStateChanged,
+      findPatientIdByEmail,
+      linkEmailToPatient
     },
     discipline: {
       syncToCloud: syncDisciplineToCloud,
@@ -326,6 +384,7 @@
     },
     prescription: {
       syncToCloud: syncPrescriptionToCloud,
+      loadFromCloud: loadPrescriptionFromCloud,
       subscribe: listenToPatientPrescription
     }
   };

@@ -1744,7 +1744,72 @@
       if (window.lucide) window.lucide.createIcons();
     });
 
-    // 5. PERSISTÊNCIA LOCAL
+    // 5. PROCESSAMENTO E PERSISTÊNCIA LOCAL
+    function applyPrescriptionPayload(dataPayload) {
+      if (!dataPayload) return;
+      try {
+        if (_urlPatientId && _urlPatientId !== 'default') {
+          localStorage.setItem(`nutriax_patient_payload_${_urlPatientId}`, JSON.stringify(dataPayload));
+        }
+        localStorage.setItem('nutriax_sync_active_patient', JSON.stringify(dataPayload));
+      } catch (_) {}
+
+      if (dataPayload.patientName) {
+        if (dataPayload.patientName === 'Paulo Vitor' && dataPayload.patientId && !dataPayload.patientId.toLowerCase().includes('paulo')) {
+          patientState.name = dataPayload.patientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        } else {
+          patientState.name = dataPayload.patientName;
+        }
+      }
+      if (dataPayload.targetWater) patientState.waterTarget = dataPayload.targetWater;
+
+      // Aplica refeições prescritas (preservando status `done` de hoje se já marcado)
+      if (Array.isArray(dataPayload.meals) && dataPayload.meals.length > 0) {
+        const doneMap = {};
+        if (Array.isArray(patientState.meals)) {
+          patientState.meals.forEach(m => { doneMap[m.id] = m.done; });
+        }
+        patientState.meals = dataPayload.meals.map(m => ({
+          ...m,
+          done: doneMap[m.id] !== undefined ? !!doneMap[m.id] : false
+        }));
+      }
+
+      // Aplica banco de treinos do paciente
+      if (dataPayload.workoutDatabase && typeof dataPayload.workoutDatabase === 'object' && Object.keys(dataPayload.workoutDatabase).length > 0) {
+        Object.keys(WORKOUT_DATABASE).forEach(k => delete WORKOUT_DATABASE[k]);
+        Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
+      }
+
+      // Normaliza e aplica agenda semanal
+      if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
+        const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'Off': 'zinc', 'off': 'zinc' };
+        const _normalized = dataPayload.weeklySchedule.map((d, idx) => {
+          const routineKey = d.routineKey || d.routineId || null;
+          const synergy = d.synergy || {
+            carbo: d.carboTip || '',
+            prot: d.proteinTip || '',
+            water: d.waterTip || '',
+            focus: d.strategyTip || ''
+          };
+          return {
+            dayNum: idx + 1,
+            dayName: (d.dayName || ('DIA ' + (idx + 1))).toUpperCase(),
+            type: d.type || 'Treino',
+            color: _colorMap[d.type] || 'blue',
+            routineKey: routineKey,
+            title: d.title || routineKey || 'Descanso',
+            sub: d.focus || d.sub || '',
+            synergy: synergy
+          };
+        });
+        WEEKLY_SCHEDULE_DATA.length = 0;
+        _normalized.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
+        const _firstRoutine = _normalized.find(d => d.routineKey);
+        if (_firstRoutine) selectedRoutineKey = _firstRoutine.routineKey;
+      }
+    }
+
     function loadState() {
       const todayIso = new Date().toISOString().split('T')[0];
 
@@ -1766,57 +1831,7 @@
       }
 
       if (dataPayload) {
-        try {
-          localStorage.setItem(`nutriax_patient_payload_${_urlPatientId}`, JSON.stringify(dataPayload));
-        } catch (_) { }
-
-        if (dataPayload.patientName) {
-          if (dataPayload.patientName === 'Paulo Vitor' && dataPayload.patientId && !dataPayload.patientId.toLowerCase().includes('paulo')) {
-            patientState.name = dataPayload.patientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-          } else {
-            patientState.name = dataPayload.patientName;
-          }
-        }
-        if (dataPayload.targetWater) patientState.waterTarget = dataPayload.targetWater;
-
-        // Aplica refeições prescritas (preservando `done` salvo localmente)
-        if (Array.isArray(dataPayload.meals) && dataPayload.meals.length > 0) {
-          patientState.meals = dataPayload.meals.map(m => ({ ...m, done: false }));
-        }
-
-        // ── Aplica banco de treinos do paciente (substitui o padrão se existir) ──
-        if (dataPayload.workoutDatabase && typeof dataPayload.workoutDatabase === 'object' && Object.keys(dataPayload.workoutDatabase).length > 0) {
-          Object.keys(WORKOUT_DATABASE).forEach(k => delete WORKOUT_DATABASE[k]);
-          Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
-        }
-
-        // ── Normaliza e aplica agenda semanal ────────────────────────────────
-        if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
-          const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'Off': 'zinc', 'off': 'zinc' };
-          const _normalized = dataPayload.weeklySchedule.map((d, idx) => {
-            const routineKey = d.routineKey || d.routineId || null;
-            const synergy = d.synergy || {
-              carbo: d.carboTip || '',
-              prot: d.proteinTip || '',
-              water: d.waterTip || '',
-              focus: d.strategyTip || ''
-            };
-            return {
-              dayNum: idx + 1,
-              dayName: (d.dayName || ('DIA ' + (idx + 1))).toUpperCase(),
-              type: d.type || 'Treino',
-              color: _colorMap[d.type] || 'blue',
-              routineKey: routineKey,
-              title: d.title || routineKey || 'Descanso',
-              sub: d.focus || d.sub || '',
-              synergy: synergy
-            };
-          });
-          WEEKLY_SCHEDULE_DATA.length = 0;
-          _normalized.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
-          const _firstRoutine = _normalized.find(d => d.routineKey);
-          if (_firstRoutine) selectedRoutineKey = _firstRoutine.routineKey;
-        }
+        applyPrescriptionPayload(dataPayload);
       }
 
       // ── B. Aplica estado de interação salvo localmente (checks, água, sono) ──
@@ -3239,6 +3254,103 @@
       if (window.lucide) window.lucide.createIcons();
     }
 
+    let _activeCloudUnsubscribe = null;
+
+    function applyCloudDiscipline(cloud) {
+      if (!cloud) return;
+      const todayIso = new Date().toISOString().split('T')[0];
+      if (cloud.streakDays && Number(cloud.streakDays) > Number(patientState.streakDays || 0)) {
+        patientState.streakDays = Number(cloud.streakDays);
+      }
+      if (cloud.tier) patientState.tier = cloud.tier;
+      if (cloud.history && typeof cloud.history === 'object') {
+        patientState.history = { ...(patientState.history || {}), ...cloud.history };
+      }
+      if (Array.isArray(cloud.timeline) && cloud.timeline.length > 0) {
+        const existingIds = new Set((patientState.timeline || []).map(t => t.id || t.timestamp));
+        const newItems = cloud.timeline.filter(t => !existingIds.has(t.id || t.timestamp));
+        patientState.timeline = [...newItems, ...(patientState.timeline || [])].slice(0, 40);
+      }
+      if (cloud.history && cloud.history[todayIso]) {
+        const h = cloud.history[todayIso];
+        if ((h.waterCurrent || 0) > (patientState.waterCurrent || 0)) {
+          patientState.waterCurrent = h.waterCurrent;
+        }
+        if (h.workoutDone) patientState.workoutDone = true;
+        if (h.cardioDone) patientState.cardioDone = true;
+        if (h.sleepLogged && !patientState.sleepLogged) {
+          patientState.sleepLogged = true;
+          patientState.sleepHours = h.sleepHours || 0;
+          patientState.sleepQuality = h.sleepQuality || null;
+        }
+      }
+      saveState();
+    }
+
+    async function onUserAuthenticated(user) {
+      if (!user || !user.email) return;
+
+      try {
+        let pId = _urlPatientId;
+        // Se pId for 'default' ou genérico, tenta resolver pelo e-mail
+        if ((!pId || pId === 'default') && window.NutriProFirebase?.auth?.findPatientIdByEmail) {
+          const mapped = await window.NutriProFirebase.auth.findPatientIdByEmail(user.email);
+          if (mapped) pId = mapped;
+        }
+
+        if (!pId || pId === 'default') {
+          pId = 'paulo-vitor';
+        }
+
+        // Vincula a conta Google com o paciente no Firestore
+        if (window.NutriProFirebase?.auth?.linkEmailToPatient) {
+          await window.NutriProFirebase.auth.linkEmailToPatient(user.email, pId, user);
+        }
+
+        // 1. Hidrata Prescrição da Nuvem (Dieta, Treinos, Macros)
+        if (window.NutriProFirebase?.prescription?.loadFromCloud) {
+          const cloudPrescription = await window.NutriProFirebase.prescription.loadFromCloud(pId);
+          if (cloudPrescription) {
+            console.info('[NutriPro Nuvem] Prescrição carregada com sucesso do Firestore:', cloudPrescription);
+            applyPrescriptionPayload(cloudPrescription);
+            renderAll();
+          }
+        }
+
+        // 2. Hidrata Disciplina da Nuvem (Histórico, Streak, Pontuação)
+        if (window.NutriProFirebase?.discipline?.loadFromCloud) {
+          const cloudDiscipline = await window.NutriProFirebase.discipline.loadFromCloud(pId);
+          if (cloudDiscipline) {
+            console.info('[NutriPro Nuvem] Histórico de disciplina carregado do Firestore:', cloudDiscipline);
+            applyCloudDiscipline(cloudDiscipline);
+            renderAll();
+          }
+        }
+
+        // 3. Sincroniza estado atual garantindo consistência
+        if (window.NutriProFirebase?.discipline?.syncToCloud) {
+          await window.NutriProFirebase.discipline.syncToCloud(pId, patientState, user);
+        }
+
+        // 4. Ouvinte em tempo real da prescrição: se o nutricionista salvar no consultório, a dieta atualiza na hora no celular do paciente
+        if (window.NutriProFirebase?.prescription?.subscribe) {
+          if (typeof _activeCloudUnsubscribe === 'function') {
+            _activeCloudUnsubscribe();
+            _activeCloudUnsubscribe = null;
+          }
+          _activeCloudUnsubscribe = window.NutriProFirebase.prescription.subscribe(pId, (updatedPrescription) => {
+            if (updatedPrescription) {
+              console.info('[NutriPro Nuvem] Prescrição atualizada em tempo real!', updatedPrescription);
+              applyPrescriptionPayload(updatedPrescription);
+              renderAll();
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Erro ao sincronizar com a nuvem após login:', err);
+      }
+    }
+
     async function handleGoogleAuthToggle() {
       if (!window.NutriProFirebase) {
         alert('Serviço de nuvem inicializando, tente novamente em alguns instantes.');
@@ -3247,6 +3359,10 @@
       const user = window.NutriProFirebase.auth.getCurrentUser();
       if (user) {
         if (confirm(`Deseja desconectar a conta ${user.email}?`)) {
+          if (typeof _activeCloudUnsubscribe === 'function') {
+            _activeCloudUnsubscribe();
+            _activeCloudUnsubscribe = null;
+          }
           await window.NutriProFirebase.auth.signOut();
           updateGoogleAuthVisuals(null);
         }
@@ -3254,8 +3370,7 @@
         try {
           const profile = await window.NutriProFirebase.auth.signInWithGoogle();
           updateGoogleAuthVisuals(profile);
-          // Envia estado local para a nuvem logo após o login
-          await window.NutriProFirebase.discipline.syncToCloud(_urlPatientId || 'paulo-vitor', patientState, profile);
+          await onUserAuthenticated(profile);
         } catch (e) {
           if (e.code !== 'auth/popup-closed-by-user') {
             console.warn('Erro ao conectar Google:', e);
@@ -3269,10 +3384,10 @@
     window.addEventListener('load', () => {
       setTimeout(() => {
         if (window.NutriProFirebase && typeof window.NutriProFirebase.auth?.onAuthStateChanged === 'function') {
-          window.NutriProFirebase.auth.onAuthStateChanged((user) => {
+          window.NutriProFirebase.auth.onAuthStateChanged(async (user) => {
             updateGoogleAuthVisuals(user);
             if (user) {
-              window.NutriProFirebase.discipline.syncToCloud(_urlPatientId || 'paulo-vitor', patientState, user);
+              await onUserAuthenticated(user);
             }
           });
         }
