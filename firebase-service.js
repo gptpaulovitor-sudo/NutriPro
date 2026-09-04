@@ -177,6 +177,8 @@
         sleepQuality: disciplineState.sleepQuality || null,
         sleepLogged: !!disciplineState.sleepLogged,
         meals: Array.isArray(disciplineState.meals) ? disciplineState.meals : [],
+        exerciseChecks: disciplineState.exerciseChecks || {},
+        foodItemChecks: disciplineState.foodItemChecks || {},
         timeline: Array.isArray(disciplineState.timeline) ? disciplineState.timeline.slice(0, 40) : [],
         history: disciplineState.history || {},
         updatedAtClient: new Date().toISOString(),
