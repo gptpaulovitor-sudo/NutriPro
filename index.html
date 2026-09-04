@@ -5822,10 +5822,11 @@
 
             <!-- QR Code para Leitura na Tela -->
             <div class="p-4 rounded-2xl bg-black/60 border border-zinc-800 flex flex-col sm:flex-row items-center gap-4">
-              <div class="p-2 bg-white rounded-xl shrink-0 shadow-md">
+              <div class="p-2 bg-white rounded-xl shrink-0 shadow-md flex items-center justify-center min-w-[120px] min-h-[120px]">
                 <img id="patientQrCodeImg"
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html"
-                  alt="QR Code do App do Paciente" class="w-28 h-28">
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html"
+                  onerror="this.onerror=null;this.src='https://quickchart.io/qr?size=160&text=https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html'"
+                  alt="QR Code do App do Paciente" class="w-28 h-28 object-contain">
               </div>
               <div class="space-y-1 text-center sm:text-left">
                 <h4 class="font-bold text-white text-xs">Abertura Imediata no Consultório</h4>

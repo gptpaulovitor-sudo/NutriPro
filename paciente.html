@@ -3382,7 +3382,24 @@
 
     // Monitora autenticação e nuvem ao iniciar
     window.addEventListener('load', () => {
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Se a página foi aberta com ?id= (ex: pelo QR Code) e ainda não possui dados locais salvos, busca da nuvem
+        if (_urlPatientId && _urlPatientId !== 'default' && window.NutriProFirebase?.prescription?.loadFromCloud) {
+          try {
+            const hasLocalData = localStorage.getItem(`nutriax_patient_payload_${_urlPatientId}`);
+            if (!hasLocalData) {
+              const cloudP = await window.NutriProFirebase.prescription.loadFromCloud(_urlPatientId);
+              if (cloudP) {
+                console.info('[NutriPro Nuvem] Prescrição carregada via QR Code (?id):', _urlPatientId);
+                applyPrescriptionPayload(cloudP);
+                renderAll();
+              }
+            }
+          } catch (e) {
+            console.warn('Erro ao carregar dados do ID na nuvem:', e);
+          }
+        }
+
         if (window.NutriProFirebase && typeof window.NutriProFirebase.auth?.onAuthStateChanged === 'function') {
           window.NutriProFirebase.auth.onAuthStateChanged(async (user) => {
             updateGoogleAuthVisuals(user);

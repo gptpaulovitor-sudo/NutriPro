@@ -7082,7 +7082,12 @@ function openPatientShareModal() {
 
   const qrImg = document.getElementById('patientQrCodeImg');
   if (qrImg) {
-    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(fullShareUrl)}`;
+    const qrTargetUrl = `${patientUrl}?id=${encodeURIComponent(pId)}`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(qrTargetUrl)}`;
+    qrImg.onerror = function () {
+      this.onerror = null;
+      this.src = `https://quickchart.io/qr?size=160&text=${encodeURIComponent(qrTargetUrl)}`;
+    };
   }
 
   // Preenche campo de Gmail do paciente e status do vínculo na nuvem
