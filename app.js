@@ -7047,18 +7047,26 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
   return syncPayload;
 }
 
-function openPatientShareModal() {
+async function openPatientShareModal() {
   const modal = document.getElementById('patientShareModal');
   if (!modal) return;
 
-  const pId = activePatientId || "paulo-vitor";
+  const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+
+  // Garante que os dados do paciente ativo estão carregados do Dexie
   if (!activePatientData || activePatientData.id !== pId) {
     if (typeof db !== "undefined" && db.patients) {
-      db.patients.get(pId).then(p => { if (p) activePatientData = p; }).catch(() => {});
+      try {
+        let p = await db.patients.get(pId);
+        if (!p && !isNaN(Number(pId))) {
+          p = await db.patients.get(Number(pId));
+        }
+        if (p) activePatientData = p;
+      } catch (_) {}
     }
   }
 
-  const payload = syncActivePatientToPatientApp(activePatientId);
+  const payload = syncActivePatientToPatientApp(pId);
 
   // Determina URL pública ou local
   let patientUrl = 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
@@ -7093,11 +7101,28 @@ function openPatientShareModal() {
   // Preenche campo de Gmail do paciente e status do vínculo na nuvem
   const emailInput = document.getElementById('patientShareGmailInput');
   const badgeEl = document.getElementById('patientCloudLinkedBadge');
-  const savedEmail = (activePatientData && activePatientData.email) || localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
 
-  if (emailInput) emailInput.value = savedEmail;
+  // Busca resiliente do email salvo (localStorage, Dexie, activePatientData)
+  let savedEmail = '';
+  if (activePatientData && activePatientData.email && !activePatientData.email.endsWith('@nutriax.com')) {
+    savedEmail = activePatientData.email;
+  }
+  if (!savedEmail) {
+    savedEmail = localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
+  }
+  if (!savedEmail && activePatientData && activePatientData.id) {
+    savedEmail = localStorage.getItem(`nutriax_patient_email_${activePatientData.id}`) || '';
+  }
+  if (!savedEmail) {
+    savedEmail = localStorage.getItem('nutriax_patient_email_last') || '';
+  }
+
+  if (emailInput) {
+    emailInput.value = savedEmail;
+  }
+
   if (badgeEl) {
-    if (savedEmail) {
+    if (savedEmail && savedEmail.includes('@')) {
       badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${savedEmail}</span>`;
       badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
     } else {
@@ -7110,13 +7135,73 @@ function openPatientShareModal() {
   if (window.lucide) window.lucide.createIcons();
 }
 
+function onPatientShareGmailInputChange() {
+  const emailInput = document.getElementById('patientShareGmailInput');
+  if (!emailInput) return;
+  const email = emailInput.value.trim().toLowerCase();
+  const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+  const badgeEl = document.getElementById('patientCloudLinkedBadge');
+
+  if (email) {
+    localStorage.setItem(`nutriax_patient_email_${pId}`, email);
+    localStorage.setItem('nutriax_patient_email_last', email);
+    if (activePatientData) {
+      activePatientData.email = email;
+    }
+    if (typeof db !== "undefined" && db.patients) {
+      try {
+        db.patients.get(pId).then(existing => {
+          if (existing) {
+            db.patients.update(pId, { email: email });
+          } else if (activePatientData) {
+            db.patients.put({ ...activePatientData, id: pId, email: email });
+          }
+        }).catch(() => {});
+      } catch (_) {}
+    }
+    if (badgeEl && email.includes('@') && email.includes('.')) {
+      badgeEl.innerHTML = `● Digitado: <span class="text-amber-300 font-bold">${email}</span>`;
+      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-400 border border-amber-800";
+    }
+  } else {
+    localStorage.removeItem(`nutriax_patient_email_${pId}`);
+    if (activePatientData) activePatientData.email = '';
+    if (badgeEl) {
+      badgeEl.textContent = 'Não vinculado';
+      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700";
+    }
+  }
+}
+
 function closePatientShareModal() {
+  // Salva o valor atual do input antes de fechar para garantir que nunca se perca
+  const emailInput = document.getElementById('patientShareGmailInput');
+  if (emailInput) {
+    const email = emailInput.value.trim().toLowerCase();
+    const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+    if (email) {
+      localStorage.setItem(`nutriax_patient_email_${pId}`, email);
+      localStorage.setItem('nutriax_patient_email_last', email);
+      if (activePatientData) activePatientData.email = email;
+      if (typeof db !== "undefined" && db.patients) {
+        try {
+          db.patients.get(pId).then(existing => {
+            if (existing) {
+              db.patients.update(pId, { email: email });
+            } else if (activePatientData) {
+              db.patients.put({ ...activePatientData, id: pId, email: email });
+            }
+          }).catch(() => {});
+        } catch (_) {}
+      }
+    }
+  }
   const modal = document.getElementById('patientShareModal');
   if (modal) modal.classList.add('hidden');
 }
 
 async function linkPatientEmailFromDashboard() {
-  const pId = activePatientId || "paulo-vitor";
+  const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
   const emailInput = document.getElementById('patientShareGmailInput');
   const btn = document.getElementById('btnLinkPatientGmail');
   const badgeEl = document.getElementById('patientCloudLinkedBadge');
@@ -7134,39 +7219,54 @@ async function linkPatientEmailFromDashboard() {
                 document.getElementById("perfPatientName")?.innerText?.trim() ||
                 'Paciente';
 
+  // 1. SALVAMENTO LOCAL IMEDIATO (GARANTIA TOTAL DE PERSISTÊNCIA)
+  localStorage.setItem(`nutriax_patient_email_${pId}`, email);
+  localStorage.setItem('nutriax_patient_email_last', email);
+  if (activePatientData) {
+    activePatientData.email = email;
+  }
+  if (typeof db !== "undefined" && db.patients) {
+    try {
+      const existing = await db.patients.get(pId);
+      if (existing) {
+        await db.patients.update(pId, { email: email });
+      } else if (activePatientData) {
+        await db.patients.put({ ...activePatientData, id: pId, email: email });
+      }
+    } catch (e) {
+      console.warn("Aviso ao salvar email no Dexie:", e);
+    }
+  }
+
+  // Atualiza badge visual imediatamente
+  if (badgeEl) {
+    badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${email}</span>`;
+    badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+  }
+
   const originalBtnHTML = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Vinculando...';
   }
 
+  // 2. SINCRONIZAÇÃO EM NUVEM (RESILIENTE)
   try {
-    // 1. Salva localmente na sessão do nutricionista
-    localStorage.setItem(`nutriax_patient_email_${pId}`, email);
-    if (activePatientData) {
-      activePatientData.email = email;
-    }
-    if (typeof db !== "undefined" && db.patients) {
-      try {
-        await db.patients.update(pId, { email: email });
-      } catch (_) {}
-    }
-
-    // 2. Garante payload de sincronização gerado e salvo na nuvem
     const payload = syncActivePatientToPatientApp(pId);
     if (window.NutriProFirebase && typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
-      await window.NutriProFirebase.prescription.syncToCloud(pId, payload);
+      try {
+        await window.NutriProFirebase.prescription.syncToCloud(pId, payload);
+      } catch (err) {
+        console.warn("Aviso na sincronização da prescrição com Firebase:", err);
+      }
     }
 
-    // 3. Vincula o e-mail ao ID do paciente no Firebase
     if (window.NutriProFirebase && typeof window.NutriProFirebase.auth?.linkEmailToPatient === 'function') {
-      await window.NutriProFirebase.auth.linkEmailToPatient(email, pId, { displayName: pName });
-    }
-
-    // 4. Feedback visual de sucesso
-    if (badgeEl) {
-      badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${email}</span>`;
-      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+      try {
+        await window.NutriProFirebase.auth.linkEmailToPatient(email, pId, { displayName: pName });
+      } catch (err) {
+        console.warn("Aviso na vinculação do e-mail com Firebase:", err);
+      }
     }
 
     if (btn) {
@@ -7181,11 +7281,14 @@ async function linkPatientEmailFromDashboard() {
     }
     if (window.lucide) window.lucide.createIcons();
   } catch (error) {
-    console.warn('Erro ao vincular email na nuvem:', error);
-    alert('Não foi possível conectar com a nuvem no momento. Verifique sua conexão à internet.');
+    console.warn('Erro ao sincronizar com nuvem:', error);
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = originalBtnHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Salvo!';
+      setTimeout(() => {
+        btn.innerHTML = originalBtnHTML;
+        if (window.lucide) window.lucide.createIcons();
+      }, 2500);
     }
   }
 }

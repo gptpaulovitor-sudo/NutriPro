@@ -5809,6 +5809,7 @@
               </div>
               <div class="flex gap-2">
                 <input type="email" id="patientShareGmailInput" placeholder="exemplo: paciente@gmail.com"
+                  oninput="onPatientShareGmailInputChange()"
                   class="flex-1 bg-black border border-zinc-700 text-zinc-200 font-mono text-xs px-3 py-2 rounded-xl outline-none focus:border-orange-500 transition-colors">
                 <button onclick="linkPatientEmailFromDashboard()" id="btnLinkPatientGmail"
                   class="px-3.5 py-2 rounded-xl bg-orange-600/30 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/40 text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all shrink-0">
