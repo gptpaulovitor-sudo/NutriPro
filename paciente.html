@@ -2060,12 +2060,58 @@
         const curScore = calculateDailyIDCValue();
         patientState.scoreIDC = curScore;
 
+        let hTotalItems = 0;
+        let hCheckedItems = 0;
+        let hConsumedKcal = 0;
+        let hConsumedProt = 0;
+        let hConsumedCarb = 0;
+        let hConsumedFat = 0;
+
+        if (Array.isArray(patientState.meals)) {
+          patientState.meals.forEach(m => {
+            if (Array.isArray(m.items) && m.items.length > 0) {
+              m.items.forEach((it, idx) => {
+                hTotalItems++;
+                if (isFoodItemChecked(m, it, idx)) {
+                  hCheckedItems++;
+                  hConsumedKcal += Number(it.kcal) || 0;
+                  hConsumedProt += Number(it.prot) || 0;
+                  hConsumedCarb += Number(it.carbo) || 0;
+                  hConsumedFat += Number(it.lipid || it.fat) || 0;
+                }
+              });
+            } else {
+              hTotalItems++;
+              if (m.done) {
+                hCheckedItems++;
+                hConsumedKcal += Number(m.kcal) || 0;
+                hConsumedProt += Number(m.prot) || 0;
+                hConsumedCarb += Number(m.carbo) || 0;
+                hConsumedFat += Number(m.fat) || 0;
+              }
+            }
+          });
+        }
+
+        patientState.itemsChecked = hCheckedItems;
+        patientState.itemsTotal = hTotalItems;
+        patientState.consumedKcal = Math.round(hConsumedKcal);
+        patientState.consumedProt = Math.round(hConsumedProt);
+        patientState.consumedCarb = Math.round(hConsumedCarb);
+        patientState.consumedFat = Math.round(hConsumedFat);
+
         if (!patientState.history) patientState.history = {};
         patientState.history[todayIso] = {
           date: todayIso,
           scoreIDC: curScore,
           mealsDone: patientState.meals ? patientState.meals.filter(m => m.done).length : 0,
           mealsTotal: patientState.meals ? patientState.meals.length : 0,
+          itemsChecked: hCheckedItems,
+          itemsTotal: hTotalItems,
+          consumedKcal: Math.round(hConsumedKcal),
+          consumedProt: Math.round(hConsumedProt),
+          consumedCarb: Math.round(hConsumedCarb),
+          consumedFat: Math.round(hConsumedFat),
           waterCurrent: patientState.waterCurrent || 0,
           waterTarget: patientState.waterTarget || 4000,
           workoutDone: !!patientState.workoutDone,

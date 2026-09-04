@@ -3778,6 +3778,25 @@
       </div>
     </div>
 
+    <!-- ═══ 3.1 RAIO-X DE REFEIÇÕES & ALIMENTOS CONSUMIDOS ═══ -->
+    <div class="hud-card p-5 sm:p-6 space-y-4 border border-zinc-800 bg-zinc-950/90 rounded-2xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-zinc-800 pb-3">
+        <div>
+          <h2 class="font-black text-white text-sm sm:text-base flex items-center gap-2">
+            <i data-lucide="utensils" class="w-4 h-4 text-orange-500"></i> Raio-X de Alimentos e Refeições Consumidas
+          </h2>
+          <p class="text-xs text-zinc-400">Detalhamento item por item: acompanhe em tempo real o que o paciente consumiu e o que pulou.</p>
+        </div>
+        <div id="disciplineMealsSummaryBadge" class="text-xs font-mono font-bold text-orange-300 bg-orange-950/80 border border-orange-800/80 px-2.5 py-1 rounded-lg">
+          0 alimentos consumidos
+        </div>
+      </div>
+
+      <div id="disciplineMealsBreakdownList" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <!-- Renderizado dinamicamente via renderDisciplineMealsBreakdown() no app.js -->
+      </div>
+    </div>
+
     <!-- ═══ 4. FEED CRONOLÓGICO DE REGISTROS ═══ -->
     <div class="hud-card p-6 space-y-4 border border-zinc-800 bg-zinc-950/90 rounded-2xl">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-zinc-800 pb-3">

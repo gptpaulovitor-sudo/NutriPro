@@ -6310,10 +6310,103 @@ async function renderDisciplineDashboard() {
     }));
   }
 
-  // 1. Refeições e Adesão Alimentar
+  // 1. Refeições e Adesão Alimentar (Suporte Completo a Seleção Individual de Alimentos)
   const totalMeals = Array.isArray(pState.meals) ? pState.meals.length : 0;
-  const doneMeals = Array.isArray(pState.meals) ? pState.meals.filter(m => m.done).length : 0;
-  const dietPct = totalMeals > 0 ? Math.round((doneMeals / totalMeals) * 100) : 0;
+  let doneMeals = 0;
+  let partialMeals = 0;
+  let totalItemsCount = 0;
+  let checkedItemsCount = 0;
+  let consumedKcal = 0;
+  let consumedProt = 0;
+  let consumedCarb = 0;
+  let consumedFat = 0;
+
+  function isItemCheckedInDashboard(m, item, idx) {
+    if (!m) return false;
+    const k = `${m.id}_${idx}`;
+    if (pState.foodItemChecks && pState.foodItemChecks[k] !== undefined) {
+      return !!pState.foodItemChecks[k];
+    }
+    return !!m.done;
+  }
+
+  if (Array.isArray(pState.meals)) {
+    pState.meals.forEach(m => {
+      let mTotal = 0;
+      let mChecked = 0;
+
+      if (Array.isArray(m.items) && m.items.length > 0) {
+        mTotal = m.items.length;
+        m.items.forEach((it, idx) => {
+          totalItemsCount++;
+          if (isItemCheckedInDashboard(m, it, idx)) {
+            mChecked++;
+            checkedItemsCount++;
+            consumedKcal += Number(it.kcal) || 0;
+            consumedProt += Number(it.prot) || 0;
+            consumedCarb += Number(it.carbo) || 0;
+            consumedFat += Number(it.lipid || it.fat) || 0;
+          }
+        });
+      } else if (m.detail && m.detail.includes('+')) {
+        const parts = m.detail.split(/\s*\+\s*/).filter(Boolean);
+        mTotal = parts.length;
+        const pKcal = (Number(m.kcal) || 0) / (mTotal || 1);
+        const pProt = (Number(m.prot) || 0) / (mTotal || 1);
+        const pCarb = (Number(m.carbo) || 0) / (mTotal || 1);
+        const pFat = (Number(m.fat) || 0) / (mTotal || 1);
+        parts.forEach((p, idx) => {
+          totalItemsCount++;
+          if (isItemCheckedInDashboard(m, { name: p }, idx)) {
+            mChecked++;
+            checkedItemsCount++;
+            consumedKcal += pKcal;
+            consumedProt += pProt;
+            consumedCarb += pCarb;
+            consumedFat += pFat;
+          }
+        });
+      } else {
+        mTotal = 1;
+        totalItemsCount++;
+        if (m.done) {
+          mChecked = 1;
+          checkedItemsCount++;
+          consumedKcal += Number(m.kcal) || 0;
+          consumedProt += Number(m.prot) || 0;
+          consumedCarb += Number(m.carbo) || 0;
+          consumedFat += Number(m.fat) || 0;
+        }
+      }
+
+      if (mTotal > 0 && mChecked === mTotal) {
+        doneMeals++;
+      } else if (mChecked > 0) {
+        partialMeals++;
+      }
+    });
+  }
+
+  // Fallbacks de consolidação caso venham no payload
+  if (pState.itemsChecked !== undefined && checkedItemsCount === 0 && pState.itemsChecked > 0) {
+    checkedItemsCount = Number(pState.itemsChecked) || 0;
+  }
+  if (pState.itemsTotal !== undefined && totalItemsCount === 0 && pState.itemsTotal > 0) {
+    totalItemsCount = Number(pState.itemsTotal) || 0;
+  }
+  if (pState.consumedKcal !== undefined && consumedKcal === 0 && pState.consumedKcal > 0) {
+    consumedKcal = Number(pState.consumedKcal) || 0;
+  }
+
+  consumedKcal = Math.round(consumedKcal);
+  consumedProt = Math.round(consumedProt);
+  consumedCarb = Math.round(consumedCarb);
+  consumedFat = Math.round(consumedFat);
+
+  // Taxa de Adesão Alimentar proporcional (alimentos consumidos vs prescritos)
+  const dietPct = totalItemsCount > 0
+    ? Math.round((checkedItemsCount / totalItemsCount) * 100)
+    : (totalMeals > 0 ? Math.round((doneMeals / totalMeals) * 100) : 0);
 
   // 2. Hidratação
   const waterVolume = Number(pState.waterCurrent) || 0;
@@ -6346,8 +6439,11 @@ async function renderDisciplineDashboard() {
     sleepPct = Math.min(100, sleepPct);
   }
 
-  // 5. Cálculo transparente do Score IDC Real do Dia
-  const mealsScore = totalMeals > 0 ? (doneMeals / totalMeals) * 40 : 0;
+  // 5. Cálculo do Score IDC Real do Dia (Proporcional aos alimentos checados pelo paciente)
+  const mealsScore = totalItemsCount > 0
+    ? (checkedItemsCount / totalItemsCount) * 40
+    : (totalMeals > 0 ? (doneMeals / totalMeals) * 40 : 0);
+
   let workoutScore = 0;
   if (workoutDone && cardioDone) workoutScore = 30;
   else if (workoutDone) workoutScore = 20;
@@ -6368,7 +6464,10 @@ async function renderDisciplineDashboard() {
     else if (sleepQuality === 'bad') sleepScore += 1;
   }
 
-  const realScoreIDC = Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
+  const calculatedScore = Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
+  const realScoreIDC = (pState.scoreIDC !== undefined && pState.scoreIDC > 0)
+    ? pState.scoreIDC
+    : calculatedScore;
 
   // Determinação do Nível / Tier baseado no Score IDC
   let tier = 'Aguardando ⏳';
@@ -6386,6 +6485,12 @@ async function renderDisciplineDashboard() {
     scoreIDC: realScoreIDC,
     mealsDone: doneMeals,
     mealsTotal: totalMeals,
+    itemsChecked: checkedItemsCount,
+    itemsTotal: totalItemsCount,
+    consumedKcal,
+    consumedProt,
+    consumedCarb,
+    consumedFat,
     waterCurrent: waterVolume,
     waterTarget,
     workoutDone,
@@ -6417,7 +6522,7 @@ async function renderDisciplineDashboard() {
     } else if (realScoreIDC >= 50) {
       kpiStreakFb.innerHTML = `⚡ <strong>Em progresso:</strong> Hábitos sendo executados ao longo do dia`;
     } else if (realScoreIDC > 0) {
-      kpiStreakFb.innerHTML = `🌱 <strong>Início do dia:</strong> Primeiros check-ins registrados`;
+      kpiStreakFb.innerHTML = `🌱 <strong>Início do dia:</strong> Primeiros check-ins registrados (${checkedItemsCount} alimentos • ${waterVolume.toLocaleString('pt-BR')}ml água)`;
     } else {
       kpiStreakFb.innerHTML = `⏳ <strong>Aguardando check-in:</strong> Paciente ainda não marcou hábitos hoje`;
     }
@@ -6428,7 +6533,19 @@ async function renderDisciplineDashboard() {
   if (kpiDiet) kpiDiet.textContent = `${dietPct}%`;
 
   const kpiDietDet = document.getElementById('kpiDietDetail');
-  if (kpiDietDet) kpiDietDet.textContent = `${doneMeals} de ${totalMeals} refeições no plano`;
+  if (kpiDietDet) {
+    if (totalItemsCount > 0) {
+      if (doneMeals === totalMeals && totalMeals > 0) {
+        kpiDietDet.textContent = `${totalMeals} de ${totalMeals} refeições concluídas (${checkedItemsCount} alimentos)`;
+      } else if (partialMeals > 0 || checkedItemsCount > 0) {
+        kpiDietDet.textContent = `${checkedItemsCount} de ${totalItemsCount} alimentos (${doneMeals} de ${totalMeals} refeições 100%)`;
+      } else {
+        kpiDietDet.textContent = `0 de ${totalItemsCount} alimentos (${totalMeals} refeições no plano)`;
+      }
+    } else {
+      kpiDietDet.textContent = `${doneMeals} de ${totalMeals} refeições no plano`;
+    }
+  }
 
   const kpiDietBadge = document.getElementById('kpiDietBadge');
   if (kpiDietBadge) {
@@ -6438,7 +6555,7 @@ async function renderDisciplineDashboard() {
     } else if (dietPct >= 50) {
       kpiDietBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
       kpiDietBadge.textContent = "Bom";
-    } else if (dietPct > 0) {
+    } else if (dietPct > 0 || checkedItemsCount > 0) {
       kpiDietBadge.className = "bg-orange-950 text-orange-300 border border-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
       kpiDietBadge.textContent = "Em Curso";
     } else {
@@ -6450,10 +6567,9 @@ async function renderDisciplineDashboard() {
   const kpiDietFb = document.getElementById('kpiDietFeedback');
   if (kpiDietFb) {
     if (doneMeals === totalMeals && totalMeals > 0) {
-      kpiDietFb.textContent = "✓ Todas as refeições prescritas foram cumpridas!";
-    } else if (doneMeals > 0) {
-      const nextMeal = pState.meals?.find(m => !m.done);
-      kpiDietFb.textContent = `Próxima checagem: ${nextMeal?.name || 'Refeição pendente'}`;
+      kpiDietFb.textContent = `✓ 100% da dieta cumprida! (${consumedKcal} kcal • ${consumedProt}g P • ${consumedCarb}g C • ${consumedFat}g G)`;
+    } else if (checkedItemsCount > 0) {
+      kpiDietFb.innerHTML = `🔥 <strong>${consumedKcal.toLocaleString('pt-BR')} kcal consumidas</strong> (${consumedProt}g P • ${consumedCarb}g C • ${consumedFat}g G)`;
     } else if (totalMeals > 0) {
       kpiDietFb.textContent = `0 de ${totalMeals} refeições consumidas até o momento`;
     } else {
@@ -6541,7 +6657,11 @@ async function renderDisciplineDashboard() {
     waterTarget,
     waterPct,
     doneMeals,
+    partialMeals,
     totalMeals,
+    totalItemsCount,
+    checkedItemsCount,
+    consumedKcal,
     dietPct,
     workoutDone,
     cardioDone,
@@ -6550,6 +6670,9 @@ async function renderDisciplineDashboard() {
     sleepQuality,
     sleepPct
   });
+
+  // Renderiza o Raio-X Detalhado de Alimentos e Refeições
+  renderDisciplineMealsBreakdown(pState);
 
   // Renderiza o Heatmap com histórico real
   renderDisciplineHeatmap(pState, realScoreIDC);
@@ -6583,6 +6706,147 @@ async function renderDisciplineDashboard() {
   if (window.lucide) window.lucide.createIcons();
 }
 
+function renderDisciplineMealsBreakdown(pState) {
+  const container = document.getElementById('disciplineMealsBreakdownList');
+  const badgeEl = document.getElementById('disciplineMealsSummaryBadge');
+  if (!container) return;
+
+  if (!pState || !Array.isArray(pState.meals) || pState.meals.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-zinc-400 text-xs">
+        Nenhuma refeição registrada para o paciente até o momento.
+      </div>
+    `;
+    if (badgeEl) badgeEl.textContent = '0 refeições';
+    return;
+  }
+
+  function isItemChecked(m, item, idx) {
+    if (!m) return false;
+    const k = `${m.id}_${idx}`;
+    if (pState.foodItemChecks && pState.foodItemChecks[k] !== undefined) {
+      return !!pState.foodItemChecks[k];
+    }
+    return !!m.done;
+  }
+
+  let totalItemsCount = 0;
+  let checkedItemsCount = 0;
+  let totalPrescribedKcal = 0;
+  let totalConsumedKcal = 0;
+
+  const mealsHtml = pState.meals.map(m => {
+    let mTotal = 0;
+    let mChecked = 0;
+    let mKcal = Math.round(m.kcal || 0);
+    let mConsumedKcal = 0;
+    totalPrescribedKcal += mKcal;
+
+    let itemsHtml = '';
+
+    if (Array.isArray(m.items) && m.items.length > 0) {
+      mTotal = m.items.length;
+      itemsHtml = m.items.map((it, idx) => {
+        totalItemsCount++;
+        const isChk = isItemChecked(m, it, idx);
+        if (isChk) {
+          mChecked++;
+          checkedItemsCount++;
+          mConsumedKcal += Number(it.kcal) || 0;
+          totalConsumedKcal += Number(it.kcal) || 0;
+        }
+        const itKcal = Math.round(it.kcal || 0);
+        const itProt = Math.round((it.prot || 0) * 10) / 10;
+        const itQty = it.unit || (it.qty ? `${it.qty}g` : '');
+
+        return `
+          <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg text-xs ${isChk ? 'bg-orange-950/20 text-white font-medium' : 'text-zinc-500 opacity-60'}">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${isChk ? 'bg-emerald-600 text-white shadow-sm' : 'border border-zinc-700 bg-zinc-900 text-zinc-600'}">
+                ${isChk ? '✓' : '✕'}
+              </span>
+              <span class="truncate ${isChk ? 'text-zinc-200 font-semibold' : 'text-zinc-500 line-through'}">
+                ${it.name} ${itQty ? `<span class="text-[10px] text-zinc-400 font-mono">(${itQty})</span>` : ''}
+              </span>
+            </div>
+            <div class="text-[10px] font-mono shrink-0 ${isChk ? 'text-orange-300 font-bold' : 'text-zinc-600'}">
+              ${isChk ? `${itKcal} kcal • ${itProt}g P` : 'Pulado'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else if (m.detail) {
+      const parts = m.detail.split(/\s*\+\s*/).filter(Boolean);
+      mTotal = parts.length > 1 ? parts.length : 1;
+      itemsHtml = parts.map((p, idx) => {
+        totalItemsCount++;
+        const isChk = isItemChecked(m, { name: p }, idx);
+        if (isChk) {
+          mChecked++;
+          checkedItemsCount++;
+          mConsumedKcal += (mKcal / mTotal);
+          totalConsumedKcal += (mKcal / mTotal);
+        }
+        return `
+          <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg text-xs ${isChk ? 'bg-orange-950/20 text-white font-medium' : 'text-zinc-500 opacity-60'}">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${isChk ? 'bg-emerald-600 text-white shadow-sm' : 'border border-zinc-700 bg-zinc-900 text-zinc-600'}">
+                ${isChk ? '✓' : '✕'}
+              </span>
+              <span class="truncate ${isChk ? 'text-zinc-200 font-semibold' : 'text-zinc-500 line-through'}">${p}</span>
+            </div>
+            <span class="text-[10px] font-mono shrink-0 ${isChk ? 'text-emerald-400 font-bold' : 'text-zinc-600'}">${isChk ? '✓ Consumido' : 'Pulado'}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const isAll = mTotal > 0 && mChecked === mTotal;
+    const isPartial = mTotal > 0 && mChecked > 0 && mChecked < mTotal;
+
+    let badgeStatus = '';
+    let cardBorder = 'border-zinc-800/80 bg-black/40';
+    if (isAll) {
+      badgeStatus = '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">✓ 100% Concluída</span>';
+      cardBorder = 'border-emerald-900/60 bg-emerald-950/10 shadow-[0_0_15px_rgba(16,185,129,0.06)]';
+    } else if (isPartial) {
+      badgeStatus = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">⚡ ${mChecked}/${mTotal} itens</span>`;
+      cardBorder = 'border-amber-900/60 bg-amber-950/10';
+    } else {
+      badgeStatus = '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-900 text-zinc-500 border border-zinc-800">⏳ 0/' + mTotal + ' itens</span>';
+    }
+
+    return `
+      <div class="p-3.5 rounded-xl border ${cardBorder} space-y-2.5 transition-all">
+        <div class="flex items-center justify-between gap-2 border-b border-zinc-800/60 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-orange-950 text-orange-400 border border-orange-900">
+              ${m.time || '12:00'}
+            </span>
+            <h4 class="text-xs font-bold text-white">${m.name}</h4>
+          </div>
+          ${badgeStatus}
+        </div>
+
+        <div class="space-y-1">
+          ${itemsHtml}
+        </div>
+
+        <div class="pt-1 border-t border-zinc-800/50 flex items-center justify-between text-[10px] font-mono text-zinc-400">
+          <span>Consumo: <strong class="${isPartial ? 'text-amber-300' : (isAll ? 'text-emerald-300' : 'text-zinc-500')}">${Math.round(mConsumedKcal)} / ${mKcal} kcal</strong></span>
+          <span>${mChecked}/${mTotal} validados</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = mealsHtml;
+
+  if (badgeEl) {
+    badgeEl.textContent = `${checkedItemsCount} de ${totalItemsCount} alimentos consumidos (${Math.round(totalConsumedKcal)} / ${Math.round(totalPrescribedKcal)} kcal)`;
+  }
+}
+
 function renderDisciplineHabitsList(pState, m) {
   const container = document.getElementById('disciplineHabitsList');
   if (!container) return;
@@ -6596,6 +6860,10 @@ function renderDisciplineHabitsList(pState, m) {
   const sleepDesc = m.sleepLogged 
     ? `${m.sleepHours}h registradas · Qualidade: ${m.sleepQuality === 'good' ? 'Boa / Reparadora' : m.sleepQuality === 'ok' ? 'Regular' : 'Ruim'}`
     : 'Aguardando paciente registrar horas e qualidade do descanso';
+
+  const mealDetailText = m.totalItemsCount > 0
+    ? `${m.checkedItemsCount} de ${m.totalItemsCount} alimentos consumidos (${m.consumedKcal.toLocaleString('pt-BR')} kcal) • ${m.doneMeals} refeições 100%`
+    : `${m.doneMeals} de ${m.totalMeals} refeições prescritas consumidas no plano`;
 
   container.innerHTML = `
     <!-- Hábito 1: Água -->
@@ -6616,7 +6884,7 @@ function renderDisciplineHabitsList(pState, m) {
         <span class="text-base">🥗</span>
         <div>
           <strong class="text-white block">Aderência ao Cardápio</strong>
-          <span class="text-[10px] text-zinc-400">${m.doneMeals} de ${m.totalMeals} refeições prescritas consumidas no plano</span>
+          <span class="text-[10px] text-zinc-400">${mealDetailText}</span>
         </div>
       </div>
       <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${dietBadgeClass}">${m.dietPct}% Cumprido</span>
