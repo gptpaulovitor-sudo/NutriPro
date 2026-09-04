@@ -74,6 +74,12 @@
 
   <!-- Chart.js CDN for Evolution Graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase SDK & NutriPro Cloud Service -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-service.js"></script>
 </head>
 
 <!-- Watermark Holográfica no Fundo -->
@@ -3537,9 +3543,16 @@
           <i data-lucide="smartphone-charging" class="w-5 h-5 text-orange-400"></i>
         </div>
         <div>
-          <h3 class="text-orange-200 font-bold text-xs">App do Paciente Conectado via PWA Dedicado</h3>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="text-orange-200 font-bold text-xs">App do Paciente Conectado via PWA Dedicado</h3>
+            <span id="disciplineFirebaseLiveBadge"
+              class="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.2 rounded-full flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Firebase Ao Vivo
+            </span>
+          </div>
           <p class="text-orange-300/80 text-[11px]">
-            O paciente registra hidratação, refeições, treinos e sono pelo celular em <strong class="text-white font-mono">paciente.html</strong> e alimenta este painel automaticamente.
+            O paciente registra hidratação, refeições, treinos e sono pelo celular em <strong class="text-white font-mono">paciente.html</strong> e alimenta este painel automaticamente via Nuvem e Google Account.
           </p>
         </div>
       </div>

@@ -6557,6 +6557,29 @@ async function renderDisciplineDashboard() {
   // Renderiza o Feed Cronológico com eventos reais
   renderDisciplineTimeline(pState);
 
+  // Conecta ouvinte em tempo real do Firebase Firestore para o paciente ativo
+  try {
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.subscribe === 'function') {
+      window.NutriProFirebase.discipline.subscribe(pId, (cloudData) => {
+        if (cloudData && (cloudData.scoreIDC !== undefined || cloudData.meals || cloudData.history)) {
+          const rawKey = `nutriax_patient_discipline_v3_${pId}`;
+          const currentLocal = localStorage.getItem(rawKey);
+          const newJson = JSON.stringify(cloudData);
+          if (currentLocal !== newJson) {
+            localStorage.setItem(rawKey, newJson);
+            localStorage.setItem('nutriax_patient_discipline_v3', newJson);
+            if (!window._isFirebaseSyncRendering) {
+              window._isFirebaseSyncRendering = true;
+              renderDisciplineDashboard().finally(() => {
+                window._isFirebaseSyncRendering = false;
+              });
+            }
+          }
+        }
+      });
+    }
+  } catch (_) {}
+
   if (window.lucide) window.lucide.createIcons();
 }
 
@@ -7013,6 +7036,13 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
       channel.postMessage({ type: "SYNC_UPDATED", payload: syncPayload });
     }
   } catch (e) {}
+
+  // 5. Sincronização em nuvem da prescrição para o Firebase Firestore
+  try {
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
+      window.NutriProFirebase.prescription.syncToCloud(pId, syncPayload);
+    }
+  } catch (_) {}
 
   return syncPayload;
 }
