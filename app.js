@@ -6469,7 +6469,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     id: `m_${idx + 1}`,
     time: m.time,
     name: m.name,
-    detail: m.items.map(it => `${it.qty}g ${it.name}`).join(" + "),
+    detail: m.items.map(it => `${it.unit && it.unit !== `${it.qty}g` ? `${it.unit} (${it.qty}g)` : `${it.qty}g`} ${it.name}`).join(" + "),
     items: m.items,
     kcal: Math.round(m.kcal),
     prot: Math.round(m.prot),
@@ -6531,6 +6531,12 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     patientName: patientName,
     targetWater: targetWater,
     meals: formattedMeals.length > 0 ? formattedMeals : null,
+    macroTotals: formattedMeals.length > 0 ? {
+      kcal: Math.round(formattedMeals.reduce((acc, m) => acc + (m.kcal || 0), 0)),
+      prot: Math.round(formattedMeals.reduce((acc, m) => acc + (m.prot || 0), 0)),
+      carbo: Math.round(formattedMeals.reduce((acc, m) => acc + (m.carbo || 0), 0)),
+      fat: Math.round(formattedMeals.reduce((acc, m) => acc + (m.fat || 0), 0))
+    } : null,
     workoutDatabase: Object.keys(formattedWorkout).length > 0 ? formattedWorkout : null,
     weeklySchedule: normalizedSchedule,
     prescribedCardio: cardioProto,
