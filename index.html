@@ -3566,7 +3566,7 @@
         <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
           <div id="kpiIdcProgress" class="h-full bg-gradient-to-r from-orange-600 to-amber-400" style="width: 85%;"></div>
         </div>
-        <p class="text-[10px] text-zinc-400">🔥 14 dias seguidos acima de 80%</p>
+        <p id="kpiIdcStreakFeedback" class="text-[10px] text-zinc-400">⚡ Monitoramento ativo do dia</p>
       </div>
 
       <!-- 2. Taxa de Adesão Alimentar -->
@@ -3578,43 +3578,43 @@
           </span>
         </div>
         <div class="flex items-baseline gap-2">
-          <span id="kpiDietPercent" class="text-3xl font-black text-white">86.7%</span>
+          <span id="kpiDietPercent" class="text-3xl font-black text-white">0%</span>
           <span class="text-xs text-zinc-400">refeições</span>
         </div>
-        <p id="kpiDietDetail" class="text-[11px] text-zinc-300 font-medium">13 de 15 refeições no plano</p>
-        <p class="text-[10px] text-zinc-400">Maior ponto de atenção: Lanche 16h30</p>
+        <p id="kpiDietDetail" class="text-[11px] text-zinc-300 font-medium">0 de 0 refeições no plano</p>
+        <p id="kpiDietFeedback" class="text-[10px] text-zinc-400">Aguardando check-in do paciente</p>
       </div>
 
       <!-- 3. Hidratação Fracionada -->
       <div class="hud-card-orange p-5 rounded-2xl space-y-2">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Hidratação Média</span>
-          <span class="bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+          <span id="kpiWaterBadge" class="bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
             Consumo
           </span>
         </div>
         <div class="flex items-baseline gap-2">
-          <span id="kpiWaterVolume" class="text-3xl font-black text-blue-400">3.800</span>
+          <span id="kpiWaterVolume" class="text-3xl font-black text-blue-400">0</span>
           <span class="text-xs text-zinc-400">ml / dia</span>
         </div>
-        <p class="text-[11px] text-zinc-300 font-medium">Meta Prescrita: 4.000 ml (95%)</p>
-        <p class="text-[10px] text-zinc-400">6 de 7 dias com meta batida</p>
+        <p id="kpiWaterDetail" class="text-[11px] text-zinc-300 font-medium">Meta Prescrita: 4.000 ml</p>
+        <p id="kpiWaterFeedback" class="text-[10px] text-zinc-400">Nenhum consumo registrado hoje</p>
       </div>
 
       <!-- 4. Treino & Cardio (Pilar 4) -->
       <div class="hud-card-orange p-5 rounded-2xl space-y-2">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Estímulo Físico</span>
-          <span class="bg-purple-950 text-purple-300 border border-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+          <span id="kpiWorkoutBadge" class="bg-purple-950 text-purple-300 border border-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
             Pilar 4
           </span>
         </div>
         <div class="flex items-baseline gap-2">
-          <span id="kpiWorkoutPercent" class="text-3xl font-black text-emerald-400">100%</span>
+          <span id="kpiWorkoutPercent" class="text-3xl font-black text-emerald-400">0%</span>
           <span class="text-xs text-zinc-400">cumprido</span>
         </div>
-        <p class="text-[11px] text-zinc-300 font-medium">Musculação + Cardio Zona 2</p>
-        <p class="text-[10px] text-zinc-400">5 treinos + 4 sessões de cardio</p>
+        <p id="kpiWorkoutDetail" class="text-[11px] text-zinc-300 font-medium">Musculação + Cardio Zona 2</p>
+        <p id="kpiWorkoutFeedback" class="text-[10px] text-zinc-400">Aguardando registro de treino</p>
       </div>
     </div>
 
@@ -3647,7 +3647,7 @@
         </div>
         <div id="heatmapDayTooltip" class="p-3 rounded-xl bg-orange-950/40 border border-orange-800/50 text-xs text-orange-200 flex items-center justify-between">
           <span id="heatmapTooltipText">Passe o cursor sobre um dia para ver o detalhamento do Score IDC e hábitos.</span>
-          <span class="text-[10px] font-mono text-orange-400 font-bold">MÉDIA 30 DIAS: 84.8%</span>
+          <span id="heatmapAverageBadge" class="text-[10px] font-mono text-orange-400 font-bold">MÉDIA 30 DIAS: 0.0%</span>
         </div>
       </div>
     </div>

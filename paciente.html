@@ -1868,12 +1868,115 @@
 
       patientState.lastActiveDate = todayIso;
       if (!patientState.startDate) patientState.startDate = todayIso;
+      if (!Array.isArray(patientState.timeline)) patientState.timeline = [];
+      if (!patientState.history) patientState.history = {};
+    }
+
+    function logPatientActivity(action) {
+      if (!Array.isArray(patientState.timeline)) patientState.timeline = [];
+      const now = new Date();
+      const timeStr = `Hoje, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
+      const entry = {
+        id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        timestamp: Date.now(),
+        dateIso: new Date().toISOString().split('T')[0],
+        time: timeStr,
+        title: action.title,
+        desc: action.desc,
+        type: action.type || 'general',
+        icon: action.icon || 'check-circle',
+        color: action.color || 'orange'
+      };
+
+      patientState.timeline.unshift(entry);
+      if (patientState.timeline.length > 40) {
+        patientState.timeline = patientState.timeline.slice(0, 40);
+      }
+    }
+
+    function calculateDailyIDCValue() {
+      const totalMeals = patientState.meals ? patientState.meals.length : 0;
+      const doneMeals = patientState.meals ? patientState.meals.filter(m => m.done).length : 0;
+      const mealsScore = totalMeals > 0 ? (doneMeals / totalMeals) * 40 : 0;
+
+      const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      let workoutScore = 0;
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+      const isCardioDay = dayData && (
+        dayData.type === 'Treino + Cardio' ||
+        dayData.type === 'Cardio' ||
+        dayData.hasCardioPost ||
+        (dayData.title && dayData.title.toLowerCase().includes('cardio'))
+      );
+      const hasCardio = isCardioDay || selectedRoutineKey === 'E' || selectedRoutineKey === 'Cardio' || (selectedScheduleDay === 5 && !currentRoutine?.isOff);
+
+      if (currentRoutine && currentRoutine.isOff) {
+        workoutScore = patientState.workoutDone ? 30 : 0;
+      } else if (hasCardio) {
+        workoutScore = (patientState.workoutDone ? 20 : 0) + (patientState.cardioDone ? 10 : 0);
+      } else {
+        workoutScore = patientState.workoutDone ? 30 : 0;
+      }
+
+      const targetWater = patientState.waterTarget || 4000;
+      const waterRatio = Math.min(1, (patientState.waterCurrent || 0) / targetWater);
+      const waterScore = waterRatio * 15;
+
+      let sleepScore = 0;
+      if (patientState.sleepLogged) {
+        if (patientState.sleepHours >= 7) sleepScore += 10;
+        else if (patientState.sleepHours >= 6) sleepScore += 7;
+        else if (patientState.sleepHours >= 5) sleepScore += 4;
+        else if (patientState.sleepHours > 0) sleepScore += 2;
+
+        if (patientState.sleepQuality === 'good') sleepScore += 5;
+        else if (patientState.sleepQuality === 'ok') sleepScore += 3;
+        else if (patientState.sleepQuality === 'bad') sleepScore += 1;
+      }
+
+      return Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
     }
 
     function saveState() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(patientState));
+        const todayIso = new Date().toISOString().split('T')[0];
+        const curScore = calculateDailyIDCValue();
+        patientState.scoreIDC = curScore;
+
+        if (!patientState.history) patientState.history = {};
+        patientState.history[todayIso] = {
+          date: todayIso,
+          scoreIDC: curScore,
+          mealsDone: patientState.meals ? patientState.meals.filter(m => m.done).length : 0,
+          mealsTotal: patientState.meals ? patientState.meals.length : 0,
+          waterCurrent: patientState.waterCurrent || 0,
+          waterTarget: patientState.waterTarget || 4000,
+          workoutDone: !!patientState.workoutDone,
+          cardioDone: !!patientState.cardioDone,
+          sleepHours: patientState.sleepHours || 0,
+          sleepQuality: patientState.sleepQuality,
+          updatedAt: new Date().toISOString()
+        };
+
+        const stateJson = JSON.stringify(patientState);
+        localStorage.setItem(STORAGE_KEY, stateJson);
+        localStorage.setItem('nutriax_patient_discipline_v3', stateJson);
+        if (_urlPatientId && _urlPatientId !== 'default') {
+          localStorage.setItem(`nutriax_patient_discipline_v3_${_urlPatientId}`, stateJson);
+        }
+
         window.dispatchEvent(new Event('nutriax_data_updated'));
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('nutriax_bidirectional_sync');
+            bc.postMessage({
+              type: 'PATIENT_DISCIPLINE_UPDATED',
+              patientId: _urlPatientId,
+              payload: patientState
+            });
+          }
+        } catch (_) {}
       } catch (e) {
         console.warn('Erro ao salvar state local', e);
       }
@@ -2227,8 +2330,23 @@
       patientState.exerciseChecks = patientState.exerciseChecks || {};
       patientState.exerciseChecks[exId] = !patientState.exerciseChecks[exId];
 
-      if (patientState.exerciseChecks[exId] && window.confetti) {
-        window.confetti({ particleCount: 20, spread: 40, origin: { y: 0.7 }, colors: ['#3b82f6', '#60a5fa', '#93c5fd'] });
+      let exName = 'Exercício';
+      for (const rKey in WORKOUT_DATABASE) {
+        const found = WORKOUT_DATABASE[rKey]?.exercises?.find(e => e.id === exId);
+        if (found) { exName = found.name; break; }
+      }
+
+      if (patientState.exerciseChecks[exId]) {
+        if (window.confetti) {
+          window.confetti({ particleCount: 20, spread: 40, origin: { y: 0.7 }, colors: ['#3b82f6', '#60a5fa', '#93c5fd'] });
+        }
+        logPatientActivity({
+          title: `Exercício Concluído`,
+          desc: `${exName} executado com sucesso`,
+          type: 'workout',
+          icon: 'dumbbell',
+          color: 'blue'
+        });
       }
 
       saveState();
@@ -2239,8 +2357,25 @@
 
     function toggleCardioCheck() {
       patientState.cardioDone = !patientState.cardioDone;
-      if (patientState.cardioDone && window.confetti) {
-        window.confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 }, colors: ['#f59e0b', '#fbbf24', '#d97706'] });
+      if (patientState.cardioDone) {
+        if (window.confetti) {
+          window.confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 }, colors: ['#f59e0b', '#fbbf24', '#d97706'] });
+        }
+        logPatientActivity({
+          title: 'Cardio Zona 2 Concluído',
+          desc: 'Sessão de cardio pós-treino registrada com sucesso',
+          type: 'cardio',
+          icon: 'flame',
+          color: 'amber'
+        });
+      } else {
+        logPatientActivity({
+          title: 'Cardio Desmarcado',
+          desc: 'Sessão de cardio desmarcada pelo paciente',
+          type: 'cardio',
+          icon: 'rotate-ccw',
+          color: 'zinc'
+        });
       }
       saveState();
       updateCardioVisuals();
@@ -2757,8 +2892,25 @@
       const meal = patientState.meals.find(m => m.id === mealId);
       if (meal) {
         meal.done = !meal.done;
-        if (meal.done && window.confetti) {
-          window.confetti({ particleCount: 25, spread: 45, origin: { y: 0.8 }, colors: ['#ea580c', '#fb923c', '#fbbf24'] });
+        if (meal.done) {
+          if (window.confetti) {
+            window.confetti({ particleCount: 25, spread: 45, origin: { y: 0.8 }, colors: ['#ea580c', '#fb923c', '#fbbf24'] });
+          }
+          logPatientActivity({
+            title: `Refeição: ${meal.name}`,
+            desc: `${meal.time || '12:00'} • ${Math.round(meal.kcal || 0)} kcal • Consumo registrado no plano`,
+            type: 'meal',
+            icon: 'utensils',
+            color: 'orange'
+          });
+        } else {
+          logPatientActivity({
+            title: `Refeição Desmarcada`,
+            desc: `${meal.name} desmarcada pelo paciente`,
+            type: 'meal',
+            icon: 'rotate-ccw',
+            color: 'zinc'
+          });
         }
         saveState();
         renderAll();
@@ -2767,22 +2919,37 @@
 
     function addWater(amount) {
       patientState.waterCurrent = Math.min(8000, Math.max(0, (patientState.waterCurrent || 0) + amount));
-      if (patientState.waterCurrent >= patientState.waterTarget && window.confetti) {
+      const target = patientState.waterTarget || 4000;
+      if (patientState.waterCurrent >= target && window.confetti) {
         window.confetti({ particleCount: 30, spread: 60, origin: { y: 0.6 }, colors: ['#38bdf8', '#60a5fa', '#3b82f6'] });
       }
+      logPatientActivity({
+        title: `Hidratação +${amount}ml`,
+        desc: `Total acumulado hoje: ${(patientState.waterCurrent || 0).toLocaleString('pt-BR')} ml de ${target.toLocaleString('pt-BR')} ml`,
+        type: 'water',
+        icon: 'droplets',
+        color: 'blue'
+      });
       saveState();
       renderAll();
     }
 
     function resetWater() {
       patientState.waterCurrent = 0;
+      logPatientActivity({
+        title: 'Hidratação Reiniciada',
+        desc: 'Contador de água zerado',
+        type: 'water',
+        icon: 'rotate-ccw',
+        color: 'zinc'
+      });
       saveState();
       renderAll();
     }
 
     function toggleWorkoutCheck() {
       patientState.workoutDone = !patientState.workoutDone;
-      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || { badge: selectedRoutineKey || 'A', name: `Treino ${selectedRoutineKey || 'A'}` };
       if (patientState.workoutDone) {
         if (routine && routine.exercises) {
           patientState.exerciseChecks = patientState.exerciseChecks || {};
@@ -2793,12 +2960,26 @@
         if (window.confetti) {
           window.confetti({ particleCount: 40, spread: 70, origin: { y: 0.5 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
         }
+        logPatientActivity({
+          title: `Treino ${routine.badge || selectedRoutineKey} Concluído`,
+          desc: `${routine.name || 'Treino completo'} marcado como realizado`,
+          type: 'workout',
+          icon: 'dumbbell',
+          color: 'emerald'
+        });
       } else {
         if (routine && routine.exercises) {
           routine.exercises.forEach(ex => {
             if (patientState.exerciseChecks) delete patientState.exerciseChecks[ex.id];
           });
         }
+        logPatientActivity({
+          title: `Treino ${routine.badge || selectedRoutineKey} Desmarcado`,
+          desc: 'Treino desmarcado pelo paciente',
+          type: 'workout',
+          icon: 'rotate-ccw',
+          color: 'zinc'
+        });
       }
       saveState();
       renderAll();
@@ -2810,6 +2991,14 @@
         patientState.sleepHours = val;
         patientState.sleepLogged = true;
         if (!patientState.sleepQuality) patientState.sleepQuality = 'good';
+        const qLabel = patientState.sleepQuality === 'good' ? 'Boa / Reparadora' : (patientState.sleepQuality === 'ok' ? 'Regular' : 'Ruim');
+        logPatientActivity({
+          title: `Sono Registrado: ${val}h`,
+          desc: `Qualidade subjetiva: ${qLabel}`,
+          type: 'sleep',
+          icon: 'moon',
+          color: 'purple'
+        });
         saveState();
         renderAll();
       }
@@ -2823,6 +3012,14 @@
         const inp = document.getElementById('sleepHoursInput');
         if (inp) inp.value = 8;
       }
+      const qLabel = q === 'good' ? 'Boa / Reparadora' : (q === 'ok' ? 'Regular' : 'Ruim');
+      logPatientActivity({
+        title: `Qualidade do Sono: ${qLabel}`,
+        desc: `${patientState.sleepHours}h de descanso registradas`,
+        type: 'sleep',
+        icon: 'moon',
+        color: 'purple'
+      });
       saveState();
       renderAll();
     }
@@ -2912,6 +3109,14 @@
 
     // 14. MODAL SOS
     function openSosModal() {
+      logPatientActivity({
+        title: 'Protocolo SOS Acionado',
+        desc: 'Paciente consultou plano de contingência para recaídas',
+        type: 'sos',
+        icon: 'life-buoy',
+        color: 'rose'
+      });
+      saveState();
       document.getElementById('sosModal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
     }

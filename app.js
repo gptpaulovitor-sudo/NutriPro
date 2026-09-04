@@ -567,6 +567,9 @@ async function onPatientChange(patientId) {
   if (typeof renderPatientAppView === "function") {
     renderPatientAppView(patientId);
   }
+  if (typeof renderDisciplineDashboard === "function") {
+    renderDisciplineDashboard();
+  }
 
   // ── 3. Sync com a nuvem em background (sem bloquear a UI) ───────────────
   if (GOOGLE_SCRIPT_URL) {
@@ -6230,151 +6233,566 @@ async function selectDisciplineSubView(viewKey) {
 }
 
 async function renderDisciplineDashboard() {
-  let patientName = 'Paulo Vitor';
+  const pId = activePatientId || "paulo-vitor";
+  let patientName = "Paulo Vitor";
   try {
     if (typeof db !== 'undefined' && db.patients) {
-      const p = await db.patients.get(activePatientId);
+      const p = await db.patients.get(pId);
       if (p && p.name) patientName = p.name;
     }
   } catch (e) {
     console.warn('Erro ao buscar paciente para disciplina:', e);
+  }
+
+  if (!patientName || patientName === 'Paulo Vitor') {
+    const domName = document.getElementById("headerPatientName")?.innerText?.trim() ||
+                    document.getElementById("perfPatientName")?.innerText?.trim() ||
+                    document.getElementById("evalPatientName")?.value?.trim();
+    if (domName) patientName = domName;
   }
   
   // Atualiza tags de paciente
   const nameEl = document.getElementById('disciplinePatientTag');
   if (nameEl) nameEl.textContent = patientName;
 
-  // Carrega estado do paciente do localStorage ou padrão
-  let state = {
-    streakDays: 14,
-    tier: 'Blindado',
-    scoreIDC: 85.0,
-    dietPercent: 86.7,
-    mealsDone: 13,
-    mealsTotal: 15,
-    waterVolume: 3800,
-    waterTarget: 4000,
-    workoutPercent: 100
-  };
+  // Busca estado real do paciente nas chaves do localStorage
+  let pState = null;
+  const candidateKeys = [
+    `nutriax_patient_discipline_v3_${pId}`,
+    `nutriax_patient_discipline_v3_${String(pId).toLowerCase().replace(/\s+/g, '-')}`,
+    'nutriax_patient_discipline_v3',
+    'nutriax_patient_discipline_v3_paulo-vitor',
+    'nutriax_patient_discipline_v3_default'
+  ];
 
-  try {
-    const saved = localStorage.getItem('nutriax_patient_discipline_v3');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.streakDays) state.streakDays = parsed.streakDays;
-      if (parsed.tier) state.tier = parsed.tier;
-      if (parsed.waterCurrent) state.waterVolume = parsed.waterCurrent;
-      if (parsed.waterTarget) state.waterTarget = parsed.waterTarget;
-      if (parsed.meals && parsed.meals.length > 0) {
-        const done = parsed.meals.filter(m => m.done).length;
-        state.mealsDone = done;
-        state.mealsTotal = parsed.meals.length;
-        state.dietPercent = Math.round((done / parsed.meals.length) * 100);
+  for (const key of candidateKeys) {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.meals || parsed.waterCurrent !== undefined || parsed.history || parsed.timeline)) {
+          pState = parsed;
+          break;
+        }
       }
-    }
-  } catch (e) {
-    console.warn('Erro ao ler estado do paciente', e);
+    } catch (_) {}
   }
 
-  // Atualiza KPIs
+  if (!pState) {
+    pState = {
+      name: patientName,
+      streakDays: 1,
+      tier: 'Aguardando ⏳',
+      scoreIDC: 0,
+      waterCurrent: 0,
+      waterTarget: 4000,
+      workoutDone: false,
+      cardioDone: false,
+      sleepHours: 0,
+      sleepQuality: null,
+      sleepLogged: false,
+      meals: [],
+      timeline: [],
+      history: {}
+    };
+  }
+
+  // Se não houver refeições no estado do paciente, obtém da prescrição ativa
+  if ((!pState.meals || pState.meals.length === 0) && typeof currentPrescriptionItems !== 'undefined' && Array.isArray(currentPrescriptionItems) && currentPrescriptionItems.length > 0) {
+    const mealNames = [...new Set(currentPrescriptionItems.map(it => it.mealName || 'Refeição'))];
+    pState.meals = mealNames.map((mName, idx) => ({
+      id: `m_${idx + 1}`,
+      name: mName,
+      time: currentPrescriptionItems.find(it => it.mealName === mName)?.mealTime || '12:00',
+      done: false,
+      items: currentPrescriptionItems.filter(it => it.mealName === mName),
+      kcal: Math.round(currentPrescriptionItems.filter(it => it.mealName === mName).reduce((s, it) => s + (it.calories || 0), 0))
+    }));
+  }
+
+  // 1. Refeições e Adesão Alimentar
+  const totalMeals = Array.isArray(pState.meals) ? pState.meals.length : 0;
+  const doneMeals = Array.isArray(pState.meals) ? pState.meals.filter(m => m.done).length : 0;
+  const dietPct = totalMeals > 0 ? Math.round((doneMeals / totalMeals) * 100) : 0;
+
+  // 2. Hidratação
+  const waterVolume = Number(pState.waterCurrent) || 0;
+  const waterTarget = Number(pState.waterTarget) || 4000;
+  const waterPct = waterTarget > 0 ? Math.min(100, Math.round((waterVolume / waterTarget) * 100)) : 0;
+
+  // 3. Treino e Cardio
+  const workoutDone = !!pState.workoutDone;
+  const cardioDone = !!pState.cardioDone;
+  let workoutPct = 0;
+  if (workoutDone && cardioDone) workoutPct = 100;
+  else if (workoutDone) workoutPct = 70;
+  else if (cardioDone) workoutPct = 30;
+  else workoutPct = 0;
+
+  // 4. Sono
+  const sleepHours = Number(pState.sleepHours) || 0;
+  const sleepLogged = !!pState.sleepLogged || sleepHours > 0;
+  const sleepQuality = pState.sleepQuality;
+  let sleepPct = 0;
+  if (sleepLogged) {
+    if (sleepHours >= 7) sleepPct += 60;
+    else if (sleepHours >= 6) sleepPct += 40;
+    else if (sleepHours >= 5) sleepPct += 25;
+    else sleepPct += 15;
+
+    if (sleepQuality === 'good') sleepPct += 40;
+    else if (sleepQuality === 'ok') sleepPct += 25;
+    else if (sleepQuality === 'bad') sleepPct += 10;
+    sleepPct = Math.min(100, sleepPct);
+  }
+
+  // 5. Cálculo transparente do Score IDC Real do Dia
+  const mealsScore = totalMeals > 0 ? (doneMeals / totalMeals) * 40 : 0;
+  let workoutScore = 0;
+  if (workoutDone && cardioDone) workoutScore = 30;
+  else if (workoutDone) workoutScore = 20;
+  else if (cardioDone) workoutScore = 10;
+
+  const waterRatio = Math.min(1, waterVolume / waterTarget);
+  const waterScore = waterRatio * 15;
+
+  let sleepScore = 0;
+  if (sleepLogged) {
+    if (sleepHours >= 7) sleepScore += 10;
+    else if (sleepHours >= 6) sleepScore += 7;
+    else if (sleepHours >= 5) sleepScore += 4;
+    else if (sleepHours > 0) sleepScore += 2;
+
+    if (sleepQuality === 'good') sleepScore += 5;
+    else if (sleepQuality === 'ok') sleepScore += 3;
+    else if (sleepQuality === 'bad') sleepScore += 1;
+  }
+
+  const realScoreIDC = Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
+
+  // Determinação do Nível / Tier baseado no Score IDC
+  let tier = 'Aguardando ⏳';
+  if (realScoreIDC >= 95) tier = 'Lendário 🔥';
+  else if (realScoreIDC >= 80) tier = 'Blindado 🛡️';
+  else if (realScoreIDC >= 60) tier = 'Consistente ⚡';
+  else if (realScoreIDC > 0) tier = 'Em Progresso 🏃';
+  else tier = pState.tier || 'Focado 🌱';
+
+  // Sincroniza hoje no histórico local
+  const todayIso = new Date().toISOString().split('T')[0];
+  if (!pState.history) pState.history = {};
+  pState.history[todayIso] = {
+    date: todayIso,
+    scoreIDC: realScoreIDC,
+    mealsDone: doneMeals,
+    mealsTotal: totalMeals,
+    waterCurrent: waterVolume,
+    waterTarget,
+    workoutDone,
+    cardioDone,
+    sleepHours,
+    sleepQuality,
+    updatedAt: new Date().toISOString()
+  };
+
+  // ─── ATUALIZAÇÃO DOS 4 TOP KPI CARDS ───
+  // Card 1: Score IDC Geral
   const kpiScore = document.getElementById('kpiIdcScore');
-  if (kpiScore) kpiScore.textContent = `${state.scoreIDC.toFixed(1)}%`;
+  if (kpiScore) kpiScore.textContent = `${realScoreIDC.toFixed(1)}%`;
   
   const kpiProg = document.getElementById('kpiIdcProgress');
-  if (kpiProg) kpiProg.style.width = `${state.scoreIDC}%`;
+  if (kpiProg) kpiProg.style.width = `${realScoreIDC}%`;
 
   const kpiTier = document.getElementById('kpiIdcTierBadge');
-  if (kpiTier) kpiTier.textContent = state.tier;
+  if (kpiTier) kpiTier.textContent = tier;
 
   const headerStreak = document.getElementById('disciplineHeaderStreak');
-  if (headerStreak) headerStreak.textContent = `${state.streakDays} Dias Invicto`;
+  const streakDaysCount = pState.streakDays || 1;
+  if (headerStreak) headerStreak.textContent = `${streakDaysCount} ${streakDaysCount === 1 ? 'Dia Ativo' : 'Dias Invictos'}`;
 
+  const kpiStreakFb = document.getElementById('kpiIdcStreakFeedback');
+  if (kpiStreakFb) {
+    if (realScoreIDC >= 80) {
+      kpiStreakFb.innerHTML = `🔥 <strong>Alta consistência:</strong> ${streakDaysCount} ${streakDaysCount === 1 ? 'dia ativo' : 'dias ativos'} acima da média`;
+    } else if (realScoreIDC >= 50) {
+      kpiStreakFb.innerHTML = `⚡ <strong>Em progresso:</strong> Hábitos sendo executados ao longo do dia`;
+    } else if (realScoreIDC > 0) {
+      kpiStreakFb.innerHTML = `🌱 <strong>Início do dia:</strong> Primeiros check-ins registrados`;
+    } else {
+      kpiStreakFb.innerHTML = `⏳ <strong>Aguardando check-in:</strong> Paciente ainda não marcou hábitos hoje`;
+    }
+  }
+
+  // Card 2: Taxa de Adesão Alimentar
   const kpiDiet = document.getElementById('kpiDietPercent');
-  if (kpiDiet) kpiDiet.textContent = `${state.dietPercent}%`;
+  if (kpiDiet) kpiDiet.textContent = `${dietPct}%`;
 
   const kpiDietDet = document.getElementById('kpiDietDetail');
-  if (kpiDietDet) kpiDietDet.textContent = `${state.mealsDone} de ${state.mealsTotal} refeições no plano`;
+  if (kpiDietDet) kpiDietDet.textContent = `${doneMeals} de ${totalMeals} refeições no plano`;
 
+  const kpiDietBadge = document.getElementById('kpiDietBadge');
+  if (kpiDietBadge) {
+    if (dietPct >= 80) {
+      kpiDietBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiDietBadge.textContent = "Excelente";
+    } else if (dietPct >= 50) {
+      kpiDietBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiDietBadge.textContent = "Bom";
+    } else if (dietPct > 0) {
+      kpiDietBadge.className = "bg-orange-950 text-orange-300 border border-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiDietBadge.textContent = "Em Curso";
+    } else {
+      kpiDietBadge.className = "bg-zinc-900 text-zinc-400 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiDietBadge.textContent = "Aguardando";
+    }
+  }
+
+  const kpiDietFb = document.getElementById('kpiDietFeedback');
+  if (kpiDietFb) {
+    if (doneMeals === totalMeals && totalMeals > 0) {
+      kpiDietFb.textContent = "✓ Todas as refeições prescritas foram cumpridas!";
+    } else if (doneMeals > 0) {
+      const nextMeal = pState.meals?.find(m => !m.done);
+      kpiDietFb.textContent = `Próxima checagem: ${nextMeal?.name || 'Refeição pendente'}`;
+    } else if (totalMeals > 0) {
+      kpiDietFb.textContent = `0 de ${totalMeals} refeições consumidas até o momento`;
+    } else {
+      kpiDietFb.textContent = "Aguardando prescrição ou check-in";
+    }
+  }
+
+  // Card 3: Hidratação
   const kpiWater = document.getElementById('kpiWaterVolume');
-  if (kpiWater) kpiWater.textContent = state.waterVolume.toLocaleString('pt-BR');
+  if (kpiWater) kpiWater.textContent = waterVolume.toLocaleString('pt-BR');
 
-  // Renderiza o Heatmap e Feed
-  renderDisciplineHeatmap();
-  renderDisciplineTimeline();
+  const kpiWaterDet = document.getElementById('kpiWaterDetail');
+  if (kpiWaterDet) kpiWaterDet.textContent = `Meta Prescrita: ${waterTarget.toLocaleString('pt-BR')} ml (${waterPct}%)`;
+
+  const kpiWaterBadge = document.getElementById('kpiWaterBadge');
+  if (kpiWaterBadge) {
+    if (waterPct >= 100) {
+      kpiWaterBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWaterBadge.textContent = "Meta Batida";
+    } else if (waterPct >= 60) {
+      kpiWaterBadge.className = "bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWaterBadge.textContent = "Consumo Regular";
+    } else if (waterPct > 0) {
+      kpiWaterBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWaterBadge.textContent = "Em Andamento";
+    } else {
+      kpiWaterBadge.className = "bg-zinc-900 text-zinc-400 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWaterBadge.textContent = "Sem Registro";
+    }
+  }
+
+  const kpiWaterFb = document.getElementById('kpiWaterFeedback');
+  if (kpiWaterFb) {
+    if (waterPct >= 100) {
+      kpiWaterFb.textContent = `✓ Meta diária de hidratação cumprida com sucesso!`;
+    } else if (waterVolume > 0) {
+      kpiWaterFb.textContent = `Faltam ${(Math.max(0, waterTarget - waterVolume)).toLocaleString('pt-BR')} ml para bater a meta`;
+    } else {
+      kpiWaterFb.textContent = "Nenhum consumo de água registrado hoje";
+    }
+  }
+
+  // Card 4: Estímulo Físico (Treino & Cardio)
+  const kpiWorkout = document.getElementById('kpiWorkoutPercent');
+  if (kpiWorkout) kpiWorkout.textContent = `${workoutPct}%`;
+
+  const kpiWorkoutDet = document.getElementById('kpiWorkoutDetail');
+  if (kpiWorkoutDet) {
+    kpiWorkoutDet.textContent = `${workoutDone ? '✓ Treino Realizado' : '○ Treino Pendente'} • ${cardioDone ? '✓ Cardio Realizado' : '○ Cardio Pendente'}`;
+  }
+
+  const kpiWorkoutBadge = document.getElementById('kpiWorkoutBadge');
+  if (kpiWorkoutBadge) {
+    if (workoutDone && cardioDone) {
+      kpiWorkoutBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWorkoutBadge.textContent = "100% Cumprido";
+    } else if (workoutDone) {
+      kpiWorkoutBadge.className = "bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWorkoutBadge.textContent = "Treino Concluído";
+    } else if (cardioDone) {
+      kpiWorkoutBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWorkoutBadge.textContent = "Cardio Realizado";
+    } else {
+      kpiWorkoutBadge.className = "bg-zinc-900 text-zinc-400 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWorkoutBadge.textContent = "Aguardando";
+    }
+  }
+
+  const kpiWorkoutFb = document.getElementById('kpiWorkoutFeedback');
+  if (kpiWorkoutFb) {
+    if (workoutDone && cardioDone) {
+      kpiWorkoutFb.textContent = "✓ Musculação e cardio zona 2 concluídos hoje";
+    } else if (workoutDone) {
+      kpiWorkoutFb.textContent = "Musculação concluída. Cardio ainda pendente.";
+    } else if (cardioDone) {
+      kpiWorkoutFb.textContent = "Cardio concluído. Musculação ainda pendente.";
+    } else {
+      kpiWorkoutFb.textContent = "Nenhum estímulo físico registrado hoje";
+    }
+  }
+
+  // Renderiza a Matriz de Hábitos com dados reais
+  renderDisciplineHabitsList(pState, {
+    waterVolume,
+    waterTarget,
+    waterPct,
+    doneMeals,
+    totalMeals,
+    dietPct,
+    workoutDone,
+    cardioDone,
+    sleepHours,
+    sleepLogged,
+    sleepQuality,
+    sleepPct
+  });
+
+  // Renderiza o Heatmap com histórico real
+  renderDisciplineHeatmap(pState, realScoreIDC);
+
+  // Renderiza o Feed Cronológico com eventos reais
+  renderDisciplineTimeline(pState);
 
   if (window.lucide) window.lucide.createIcons();
 }
 
-function renderDisciplineHeatmap() {
+function renderDisciplineHabitsList(pState, m) {
+  const container = document.getElementById('disciplineHabitsList');
+  if (!container) return;
+
+  const waterBadgeClass = m.waterPct >= 100 ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800' : (m.waterPct > 0 ? 'bg-blue-950/60 text-blue-400 border-blue-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800');
+  const dietBadgeClass = m.dietPct >= 80 ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800' : (m.dietPct > 0 ? 'bg-amber-950/60 text-amber-400 border-amber-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800');
+  const workoutBadgeClass = m.workoutDone ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800';
+  const cardioBadgeClass = m.cardioDone ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800';
+  const sleepBadgeClass = m.sleepPct >= 70 ? 'bg-purple-950/60 text-purple-300 border-purple-800' : (m.sleepLogged ? 'bg-amber-950/60 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800');
+
+  const sleepDesc = m.sleepLogged 
+    ? `${m.sleepHours}h registradas · Qualidade: ${m.sleepQuality === 'good' ? 'Boa / Reparadora' : m.sleepQuality === 'ok' ? 'Regular' : 'Ruim'}`
+    : 'Aguardando paciente registrar horas e qualidade do descanso';
+
+  container.innerHTML = `
+    <!-- Hábito 1: Água -->
+    <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-base">💧</span>
+        <div>
+          <strong class="text-white block">Hidratação Estruturada</strong>
+          <span class="text-[10px] text-zinc-400">Consumo: ${m.waterVolume.toLocaleString('pt-BR')} ml de ${m.waterTarget.toLocaleString('pt-BR')} ml prescritos</span>
+        </div>
+      </div>
+      <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${waterBadgeClass}">${m.waterPct}% Cumprido</span>
+    </div>
+
+    <!-- Hábito 2: Refeições -->
+    <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-base">🥗</span>
+        <div>
+          <strong class="text-white block">Aderência ao Cardápio</strong>
+          <span class="text-[10px] text-zinc-400">${m.doneMeals} de ${m.totalMeals} refeições prescritas consumidas no plano</span>
+        </div>
+      </div>
+      <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${dietBadgeClass}">${m.dietPct}% Cumprido</span>
+    </div>
+
+    <!-- Hábito 3: Musculação -->
+    <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-base">🏋️</span>
+        <div>
+          <strong class="text-white block">Treino de Musculação (Pilar 4)</strong>
+          <span class="text-[10px] text-zinc-400">${m.workoutDone ? '✓ Treino do dia executado e checado pelo paciente' : 'Treino de força prescrito aguardando execução'}</span>
+        </div>
+      </div>
+      <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${workoutBadgeClass}">${m.workoutDone ? '100% Cumprido' : '0% Pendente'}</span>
+    </div>
+
+    <!-- Hábito 4: Cardio -->
+    <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-base">⚡</span>
+        <div>
+          <strong class="text-white block">Cardio Zona 2 (Pilar 4)</strong>
+          <span class="text-[10px] text-zinc-400">${m.cardioDone ? '✓ Sessão de cardio concluída e registrada' : 'Cardio Zona 2 (120-135 bpm) aguardando registro'}</span>
+        </div>
+      </div>
+      <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${cardioBadgeClass}">${m.cardioDone ? '100% Cumprido' : '0% Pendente'}</span>
+    </div>
+
+    <!-- Hábito 5: Sono -->
+    <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-base">🌙</span>
+        <div>
+          <strong class="text-white block">Higiene do Sono &amp; Descanso</strong>
+          <span class="text-[10px] text-zinc-400">${sleepDesc}</span>
+        </div>
+      </div>
+      <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${sleepBadgeClass}">${m.sleepLogged ? `${m.sleepPct}% Cumprido` : 'Pendente'}</span>
+    </div>
+  `;
+}
+
+function renderDisciplineHeatmap(pState, realScoreIDC) {
   const container = document.getElementById('disciplineHeatmapGrid');
   if (!container) return;
 
-  // Gera histórico dos últimos 35 dias
   const daysData = [];
   const today = new Date();
-  
-  for (let i = 34; i >= 0; i--) {
+  const history = pState?.history || {};
+  let totalScoreSum = 0;
+  let daysWithLogsCount = 0;
+
+  for (let i = 29; i >= 0; i--) {
     const d = new Date();
     d.setDate(today.getDate() - i);
+    const isoDate = d.toISOString().split('T')[0];
     const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    
-    // Nível de consistência realista
-    let score = 85;
-    let level = 3;
-    if (i === 0) { score = 85; level = 3; }
-    else if (i === 1) { score = 95; level = 4; }
-    else if (i === 2) { score = 100; level = 4; }
-    else if (i === 6 || i === 13 || i === 20) { score = 70; level = 2; }
-    else if (i === 15) { score = 40; level = 1; }
-    else if (i > 25) { score = Math.floor(Math.random() * 20) + 75; level = score > 85 ? 3 : 2; }
-    else { score = Math.floor(Math.random() * 15) + 85; level = score > 90 ? 4 : 3; }
 
-    daysData.push({ date: dateStr, score, level });
+    let score = 0;
+    let hasData = false;
+    let details = '';
+
+    if (i === 0) {
+      score = realScoreIDC;
+      hasData = score > 0;
+      details = `Refeições: ${pState.meals ? pState.meals.filter(m => m.done).length : 0}/${pState.meals ? pState.meals.length : 0} • Água: ${(pState.waterCurrent || 0).toLocaleString('pt-BR')}ml`;
+    } else if (history[isoDate]) {
+      const h = history[isoDate];
+      score = Number(h.scoreIDC) || 0;
+      hasData = true;
+      details = `Refeições: ${h.mealsDone || 0}/${h.mealsTotal || 0} • Água: ${(h.waterCurrent || 0).toLocaleString('pt-BR')}ml${h.workoutDone ? ' • Treino OK' : ''}`;
+    }
+
+    let level = 0;
+    if (!hasData || score === 0) level = 0;
+    else if (score <= 35) level = 1;
+    else if (score <= 65) level = 2;
+    else if (score <= 85) level = 3;
+    else level = 4;
+
+    if (hasData) {
+      totalScoreSum += score;
+      daysWithLogsCount++;
+    }
+
+    daysData.push({ date: dateStr, iso: isoDate, score, level, hasData, details });
+  }
+
+  const avgScore = daysWithLogsCount > 0 ? (totalScoreSum / daysWithLogsCount) : (realScoreIDC > 0 ? realScoreIDC : 0);
+  const avgBadge = document.getElementById('heatmapAverageBadge');
+  if (avgBadge) {
+    avgBadge.textContent = `MÉDIA 30 DIAS: ${avgScore.toFixed(1)}%`;
   }
 
   container.innerHTML = daysData.map((d) => `
     <div class="heatmap-cell heatmap-cell-${d.level}"
-         onmouseenter="showHeatmapTooltip('${d.date}', ${d.score})"
+         onmouseenter="showHeatmapTooltip('${d.date}', ${d.score}, '${d.details.replace(/'/g, "\\'")}', ${d.hasData})"
          title="${d.date} · Score IDC: ${d.score}%">
     </div>
   `).join('');
 }
 
-function showHeatmapTooltip(dateStr, score) {
+function showHeatmapTooltip(dateStr, score, details, hasData) {
   const el = document.getElementById('heatmapTooltipText');
   if (el) {
-    let qual = "Excelente (Consistência Alta)";
-    if (score >= 95) qual = "Perfeito (100% dos hábitos batidos)";
-    else if (score < 60) qual = "Atenção (Deslize registrado)";
-    el.innerHTML = `📅 <strong>${dateStr}:</strong> Score IDC de <strong class="text-white font-mono">${score}%</strong> · <em>${qual}</em>`;
+    if (hasData || score > 0) {
+      let qual = "Excelente (Consistência Alta)";
+      if (score >= 95) qual = "Perfeito (100% dos hábitos batidos)";
+      else if (score >= 70) qual = "Bom ritmo (Metas prioritárias cumpridas)";
+      else if (score < 50) qual = "Atenção (Pontos de melhoria)";
+      el.innerHTML = `📅 <strong>${dateStr}:</strong> Score IDC de <strong class="text-white font-mono">${score}%</strong> · <em>${qual}</em> ${details ? `<span class="text-zinc-400 text-[10px] block mt-0.5">(${details})</span>` : ''}`;
+    } else {
+      el.innerHTML = `📅 <strong>${dateStr}:</strong> <span class="text-zinc-400">Sem registros do paciente neste dia</span>`;
+    }
   }
 }
 
-function renderDisciplineTimeline() {
+function renderDisciplineTimeline(pState) {
   const container = document.getElementById('disciplineTimelineFeed');
   if (!container) return;
 
-  const events = [
-    { time: 'Hoje, 13:05', title: 'Almoço Estruturado Consumido', desc: '200g Frango + 200g Arroz + Legumes (580 kcal, 55g P)', type: 'meal', icon: 'utensils', color: 'orange' },
-    { time: 'Hoje, 12:00', title: 'Hidratação Fracionada (+500ml)', desc: 'Total acumulado no dia: 2.500 ml / 4.000 ml', type: 'water', icon: 'droplets', color: 'blue' },
-    { time: 'Hoje, 10:35', title: 'Lanche da Manhã Consumido', desc: '30g Whey Protein + 1 Fruta (190 kcal, 25g P)', type: 'meal', icon: 'utensils', color: 'orange' },
-    { time: 'Hoje, 07:45', title: 'Café da Manhã Consumido', desc: '3 Ovos + Pão Integral + Café (380 kcal, 24g P)', type: 'meal', icon: 'utensils', color: 'orange' },
-    { time: 'Ontem, 22:30', title: 'Janela de Sono Registrada', desc: '7.5 horas de sono · Qualidade subjetiva: Boa 😊', type: 'sleep', icon: 'moon', color: 'purple' },
-    { time: 'Ontem, 19:40', title: 'Treino A + Cardio Concluídos', desc: 'Peitoral + Deltoide + Tríceps + 25 min Cardio Zona 2', type: 'workout', icon: 'dumbbell', color: 'emerald' }
-  ];
+  const timelineEvents = Array.isArray(pState?.timeline) ? pState.timeline : [];
 
-  container.innerHTML = events.map(e => `
+  // Se não houver eventos no log mas houver itens concluídos hoje, sintetiza o feed inicial
+  let displayEvents = [...timelineEvents];
+
+  if (displayEvents.length === 0 && pState) {
+    const now = new Date();
+    const timeStr = `Hoje, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    if (pState.workoutDone) {
+      displayEvents.push({
+        time: timeStr,
+        title: 'Treino de Força Concluído',
+        desc: 'Sessão de musculação realizada no app do paciente',
+        icon: 'dumbbell',
+        color: 'emerald'
+      });
+    }
+    if (pState.cardioDone) {
+      displayEvents.push({
+        time: timeStr,
+        title: 'Cardio Zona 2 Concluído',
+        desc: 'Cardio pós-treino registrado com sucesso',
+        icon: 'flame',
+        color: 'amber'
+      });
+    }
+    if (pState.waterCurrent > 0) {
+      displayEvents.push({
+        time: timeStr,
+        title: 'Hidratação Registrada',
+        desc: `${pState.waterCurrent.toLocaleString('pt-BR')} ml consumidos de ${pState.waterTarget || 4000} ml meta`,
+        icon: 'droplets',
+        color: 'blue'
+      });
+    }
+    if (Array.isArray(pState.meals)) {
+      pState.meals.filter(m => m.done).forEach(m => {
+        displayEvents.push({
+          time: m.time ? `Hoje, ${m.time}` : timeStr,
+          title: `Refeição Consumida: ${m.name}`,
+          desc: `${Math.round(m.kcal || 0)} kcal • Consumo confirmado no plano`,
+          icon: 'utensils',
+          color: 'orange'
+        });
+      });
+    }
+  }
+
+  if (displayEvents.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 rounded-2xl bg-black/40 border border-zinc-800/80 text-center space-y-2">
+        <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+          <i data-lucide="inbox" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-zinc-300">Nenhum registro recebido do paciente hoje</p>
+        <p class="text-[11px] text-zinc-500 max-w-sm mx-auto">
+          As marcações de refeições, ingestão de água, treino e sono efetuadas pelo paciente no aplicativo serão sincronizadas e exibidas aqui em tempo real.
+        </p>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = displayEvents.slice(0, 30).map(e => `
     <div class="p-3.5 rounded-xl bg-black/50 border border-zinc-800/80 flex items-start justify-between gap-3 hover:border-orange-500/30 transition-all">
       <div class="flex items-start gap-3">
-        <div class="w-8 h-8 rounded-lg bg-${e.color}-950/80 border border-${e.color}-800/60 flex items-center justify-center shrink-0 mt-0.5">
-          <i data-lucide="${e.icon}" class="w-4 h-4 text-${e.color}-400"></i>
+        <div class="w-8 h-8 rounded-lg bg-${e.color || 'orange'}-950/80 border border-${e.color || 'orange'}-800/60 flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="${e.icon || 'check-circle'}" class="w-4 h-4 text-${e.color || 'orange'}-400"></i>
         </div>
         <div>
           <div class="flex items-center gap-2">
             <h4 class="text-xs font-bold text-white">${e.title}</h4>
-            <span class="text-[9px] font-mono text-zinc-500">${e.time}</span>
+            <span class="text-[9px] font-mono text-zinc-500">${e.time || 'Hoje'}</span>
           </div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">${e.desc}</p>
+          <p class="text-[11px] text-zinc-400 mt-0.5">${e.desc || ''}</p>
         </div>
       </div>
       <span class="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded shrink-0">
@@ -6385,6 +6803,42 @@ function renderDisciplineTimeline() {
 
   if (window.lucide) window.lucide.createIcons();
 }
+
+// Inicializa ouvinte para sincronização em tempo real do Pilar 2 Disciplina
+if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) {
+  window._nutriaxDisciplineSyncInitialized = true;
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const discChannel = new BroadcastChannel('nutriax_bidirectional_sync');
+      discChannel.onmessage = (event) => {
+        if (event.data && (event.data.type === 'PATIENT_DISCIPLINE_UPDATED' || event.data.type === 'SYNC_UPDATED')) {
+          const discSec = document.getElementById('tab-discipline');
+          if (discSec && !discSec.classList.contains('hidden')) {
+            renderDisciplineDashboard();
+          }
+        }
+      };
+    }
+  } catch (_) {}
+
+  window.addEventListener('storage', (e) => {
+    if (e.key && e.key.includes('nutriax_patient_discipline')) {
+      const discSec = document.getElementById('tab-discipline');
+      if (discSec && !discSec.classList.contains('hidden')) {
+        renderDisciplineDashboard();
+      }
+    }
+  });
+
+  window.addEventListener('nutriax_data_updated', () => {
+    const discSec = document.getElementById('tab-discipline');
+    if (discSec && !discSec.classList.contains('hidden')) {
+      renderDisciplineDashboard();
+    }
+  });
+}
+
 
 // =========================================================================
 // MOTOR DE SINCRONIZAÇÃO TOTAL & BIDIRECIONAL COM O APP DO PACIENTE
