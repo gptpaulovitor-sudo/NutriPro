@@ -1680,52 +1680,38 @@
     function isStateFromPreviousDay(state, todayIso) {
       if (!state) return false;
 
-      // 1. Se lastActiveDate estiver definido
+      // 1. Se lastActiveDate existe
       if (state.lastActiveDate) {
+        // Se a data ativa for diferente de hoje, certamente pertence a outro dia
         if (state.lastActiveDate !== todayIso) return true;
-        // Se lastActiveDate é igual a todayIso, mas foi gravado ontem à noite (antigo bug do UTC toISOString):
+
+        // Se lastActiveDate é hoje, mas o registro de hoje no histórico foi gravado ontem à noite
+        // (caso resíduo do antigo bug do UTC toISOString registrado ontem após as 21h):
         if (state.history && state.history[todayIso] && state.history[todayIso].updatedAt) {
           const histLocalDate = getLocalDateIso(new Date(state.history[todayIso].updatedAt));
-          if (histLocalDate !== todayIso) return true;
+          if (histLocalDate !== todayIso) {
+            return true;
+          }
         }
-        if (state.updatedAtClient) {
-          const clientLocalDate = getLocalDateIso(new Date(state.updatedAtClient));
-          if (clientLocalDate !== todayIso) return true;
-        }
-        if (Array.isArray(state.timeline) && state.timeline.length > 0 && state.timeline[0].timestamp) {
-          const timelineLocalDate = getLocalDateIso(new Date(state.timeline[0].timestamp));
-          if (timelineLocalDate !== todayIso) return true;
-        }
+
+        // Se lastActiveDate === todayIso e não é resíduo do bug UTC, pertence a HOJE!
         return false;
       }
 
-      // 2. Se lastActiveDate não existe (ou veio da nuvem sem ele)
-      if (state.updatedAtClient) {
-        const clientLocalDate = getLocalDateIso(new Date(state.updatedAtClient));
-        if (clientLocalDate !== todayIso) return true;
-      }
-
+      // 2. Se lastActiveDate não existe (legado):
       if (state.history && state.history[todayIso] && state.history[todayIso].updatedAt) {
         const histLocalDate = getLocalDateIso(new Date(state.history[todayIso].updatedAt));
         if (histLocalDate === todayIso) return false;
       }
 
-      if (Array.isArray(state.timeline) && state.timeline.length > 0 && state.timeline[0].timestamp) {
-        const timelineLocalDate = getLocalDateIso(new Date(state.timeline[0].timestamp));
-        if (timelineLocalDate !== todayIso) return true;
-      }
-
+      // Se não tem confirmação de hoje, mas tem marcações feitas:
       const hasMarkings = (state.waterCurrent && state.waterCurrent > 0) ||
         !!state.workoutDone || !!state.cardioDone || !!state.sleepLogged ||
         (state.exerciseChecks && Object.keys(state.exerciseChecks).length > 0) ||
         (state.foodItemChecks && Object.keys(state.foodItemChecks).length > 0) ||
         (Array.isArray(state.meals) && state.meals.some(m => m.done));
 
-      if (hasMarkings) {
-        return true;
-      }
-
-      return false;
+      return !!hasMarkings;
     }
 
     function resetDailyState(state, todayIso) {
@@ -1976,7 +1962,16 @@
       // ── B. Aplica estado de interação salvo localmente (checks, água, sono) ──
       let needsPersistReset = false;
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        let saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved && _urlPatientId === 'default') {
+          saved = localStorage.getItem('nutriax_patient_discipline_v3');
+        }
+        if (!saved && dataPayload && dataPayload.patientId && dataPayload.patientId !== 'default') {
+          saved = localStorage.getItem(`nutriax_patient_discipline_v3_${dataPayload.patientId}`);
+        }
+        if (!saved) {
+          saved = localStorage.getItem('nutriax_patient_discipline_v3');
+        }
         if (saved) {
           const parsed = JSON.parse(saved);
 
@@ -2174,6 +2169,7 @@
       try {
         const todayIso = getLocalDateIso();
         patientState.lastActiveDate = todayIso;
+        patientState.updatedAtClient = new Date().toISOString();
         const curScore = calculateDailyIDCValue();
         patientState.scoreIDC = curScore;
 
@@ -3750,6 +3746,25 @@
         const newItems = cloud.timeline.filter(t => !existingIds.has(t.id || t.timestamp));
         patientState.timeline = [...newItems, ...(patientState.timeline || [])].slice(0, 40);
       }
+
+      // Se a nuvem tem registros de HOJE, mescla sem desmarcar o que já foi feito localmente
+      if (cloud.lastActiveDate === todayIso) {
+        if (cloud.foodItemChecks && typeof cloud.foodItemChecks === 'object') {
+          patientState.foodItemChecks = { ...(cloud.foodItemChecks || {}), ...(patientState.foodItemChecks || {}) };
+        }
+        if (cloud.exerciseChecks && typeof cloud.exerciseChecks === 'object') {
+          patientState.exerciseChecks = { ...(cloud.exerciseChecks || {}), ...(patientState.exerciseChecks || {}) };
+        }
+        if (Array.isArray(cloud.meals) && Array.isArray(patientState.meals)) {
+          cloud.meals.forEach(cm => {
+            if (cm.done) {
+              const localM = patientState.meals.find(m => m.id === cm.id);
+              if (localM) localM.done = true;
+            }
+          });
+        }
+      }
+
       // Aplica dados de HOJE apenas se realmente foram atualizados hoje
       if (patientState.history && patientState.history[todayIso]) {
         const h = patientState.history[todayIso];
