@@ -1745,7 +1745,7 @@ function handleAddPrescriptionItem() {
   db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
   renderPrescriptionTotals();
   renderMealItems();
-  try { syncActivePatientToPatientApp(activePatientId); } catch (_) {}
+  try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
 
   selectedFoodItem = null;
   document.getElementById("prescriptionSearchInput").value = "";
@@ -1759,7 +1759,7 @@ function removePrescriptionItem(id) {
   db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
   renderPrescriptionTotals();
   renderMealItems();
-  try { syncActivePatientToPatientApp(activePatientId); } catch (_) {}
+  try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
 }
 
 function openEditPrescriptionItem(id) {
@@ -1823,7 +1823,7 @@ async function saveEditPrescriptionItem() {
   closeEditPrescriptionItemModal();
   renderPrescriptionTotals();
   renderMealItems();
-  try { syncActivePatientToPatientApp(activePatientId); } catch (_) {}
+  try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
 }
 
 function renderPrescriptionTotals() {
@@ -6232,6 +6232,15 @@ async function selectDisciplineSubView(viewKey) {
   }
 }
 
+function getLocalDateIso(d = new Date()) {
+  const date = (d instanceof Date && !isNaN(d)) ? d : new Date(d);
+  if (isNaN(date.getTime())) return new Date().toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 async function renderDisciplineDashboard() {
   const pId = activePatientId || "paulo-vitor";
   let patientName = "Paulo Vitor";
@@ -6246,11 +6255,11 @@ async function renderDisciplineDashboard() {
 
   if (!patientName || patientName === 'Paulo Vitor') {
     const domName = document.getElementById("headerPatientName")?.innerText?.trim() ||
-                    document.getElementById("perfPatientName")?.innerText?.trim() ||
-                    document.getElementById("evalPatientName")?.value?.trim();
+      document.getElementById("perfPatientName")?.innerText?.trim() ||
+      document.getElementById("evalPatientName")?.value?.trim();
     if (domName) patientName = domName;
   }
-  
+
   // Atualiza tags de paciente
   const nameEl = document.getElementById('disciplinePatientTag');
   if (nameEl) nameEl.textContent = patientName;
@@ -6275,7 +6284,7 @@ async function renderDisciplineDashboard() {
           break;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   if (!pState) {
@@ -6295,6 +6304,34 @@ async function renderDisciplineDashboard() {
       timeline: [],
       history: {}
     };
+  }
+
+  const todayIso = getLocalDateIso();
+
+  // Se o estado do paciente pertencer a um dia anterior, reseta as tarefas diárias
+  const isPreviousDay = pState.lastActiveDate
+    ? pState.lastActiveDate !== todayIso
+    : (pState.updatedAtClient ? getLocalDateIso(new Date(pState.updatedAtClient)) !== todayIso : false);
+
+  if (isPreviousDay) {
+    pState.lastActiveDate = todayIso;
+    pState.waterCurrent = 0;
+    pState.workoutDone = false;
+    pState.cardioDone = false;
+    pState.exerciseChecks = {};
+    pState.foodItemChecks = {};
+    pState.sleepLogged = false;
+    pState.sleepHours = 0;
+    pState.sleepQuality = null;
+    pState.scoreIDC = 0;
+    pState.itemsChecked = 0;
+    pState.consumedKcal = 0;
+    pState.consumedProt = 0;
+    pState.consumedCarb = 0;
+    pState.consumedFat = 0;
+    if (Array.isArray(pState.meals)) {
+      pState.meals.forEach(m => { m.done = false; });
+    }
   }
 
   // Se não houver refeições no estado do paciente, obtém da prescrição ativa
@@ -6478,7 +6515,7 @@ async function renderDisciplineDashboard() {
   else tier = pState.tier || 'Focado 🌱';
 
   // Sincroniza hoje no histórico local
-  const todayIso = new Date().toISOString().split('T')[0];
+  pState.lastActiveDate = todayIso;
   if (!pState.history) pState.history = {};
   pState.history[todayIso] = {
     date: todayIso,
@@ -6504,7 +6541,7 @@ async function renderDisciplineDashboard() {
   // Card 1: Score IDC Geral
   const kpiScore = document.getElementById('kpiIdcScore');
   if (kpiScore) kpiScore.textContent = `${realScoreIDC.toFixed(1)}%`;
-  
+
   const kpiProg = document.getElementById('kpiIdcProgress');
   if (kpiProg) kpiProg.style.width = `${realScoreIDC}%`;
 
@@ -6701,7 +6738,7 @@ async function renderDisciplineDashboard() {
         }
       });
     }
-  } catch (_) {}
+  } catch (_) { }
 
   if (window.lucide) window.lucide.createIcons();
 }
@@ -6857,7 +6894,7 @@ function renderDisciplineHabitsList(pState, m) {
   const cardioBadgeClass = m.cardioDone ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800';
   const sleepBadgeClass = m.sleepPct >= 70 ? 'bg-purple-950/60 text-purple-300 border-purple-800' : (m.sleepLogged ? 'bg-amber-950/60 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-500 border-zinc-800');
 
-  const sleepDesc = m.sleepLogged 
+  const sleepDesc = m.sleepLogged
     ? `${m.sleepHours}h registradas · Qualidade: ${m.sleepQuality === 'good' ? 'Boa / Reparadora' : m.sleepQuality === 'ok' ? 'Regular' : 'Ruim'}`
     : 'Aguardando paciente registrar horas e qualidade do descanso';
 
@@ -6941,7 +6978,7 @@ function renderDisciplineHeatmap(pState, realScoreIDC) {
   for (let i = 29; i >= 0; i--) {
     const d = new Date();
     d.setDate(today.getDate() - i);
-    const isoDate = d.toISOString().split('T')[0];
+    const isoDate = getLocalDateIso(d);
     const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
     let score = 0;
@@ -7111,7 +7148,7 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
         }
       };
     }
-  } catch (_) {}
+  } catch (_) { }
 
   window.addEventListener('storage', (e) => {
     if (e.key && e.key.includes('nutriax_patient_discipline')) {
@@ -7150,10 +7187,10 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
   // 2. Tenta obter dos cabeçalhos da interface
   if (!patientName) {
     patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
-                  document.getElementById("perfPatientName")?.innerText?.trim() ||
-                  document.getElementById("evalPatientName")?.value?.trim() ||
-                  document.getElementById("whatsappPatientName")?.value?.trim() ||
-                  "";
+      document.getElementById("perfPatientName")?.innerText?.trim() ||
+      document.getElementById("evalPatientName")?.value?.trim() ||
+      document.getElementById("whatsappPatientName")?.value?.trim() ||
+      "";
   }
 
   // 3. Tenta obter do select de pacientes ativos
@@ -7303,14 +7340,14 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
       const channel = new BroadcastChannel("nutriax_bidirectional_sync");
       channel.postMessage({ type: "SYNC_UPDATED", payload: syncPayload });
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // 5. Sincronização em nuvem da prescrição para o Firebase Firestore
   try {
     if (window.NutriProFirebase && typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
       window.NutriProFirebase.prescription.syncToCloud(pId, syncPayload);
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return syncPayload;
 }
@@ -7330,7 +7367,7 @@ async function openPatientShareModal() {
           p = await db.patients.get(Number(pId));
         }
         if (p) activePatientData = p;
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
@@ -7424,8 +7461,8 @@ function onPatientShareGmailInputChange() {
           } else if (activePatientData) {
             db.patients.put({ ...activePatientData, id: pId, email: email });
           }
-        }).catch(() => {});
-      } catch (_) {}
+        }).catch(() => { });
+      } catch (_) { }
     }
     if (badgeEl && email.includes('@') && email.includes('.')) {
       badgeEl.innerHTML = `● Digitado: <span class="text-amber-300 font-bold">${email}</span>`;
@@ -7459,8 +7496,8 @@ function closePatientShareModal() {
             } else if (activePatientData) {
               db.patients.put({ ...activePatientData, id: pId, email: email });
             }
-          }).catch(() => {});
-        } catch (_) {}
+          }).catch(() => { });
+        } catch (_) { }
       }
     }
   }
@@ -7482,10 +7519,10 @@ async function linkPatientEmailFromDashboard() {
     return;
   }
 
-  const pName = activePatientData?.name || 
-                document.getElementById("headerPatientName")?.innerText?.trim() ||
-                document.getElementById("perfPatientName")?.innerText?.trim() ||
-                'Paciente';
+  const pName = activePatientData?.name ||
+    document.getElementById("headerPatientName")?.innerText?.trim() ||
+    document.getElementById("perfPatientName")?.innerText?.trim() ||
+    'Paciente';
 
   // 1. SALVAMENTO LOCAL IMEDIATO (GARANTIA TOTAL DE PERSISTÊNCIA)
   localStorage.setItem(`nutriax_patient_email_${pId}`, email);
@@ -7589,11 +7626,11 @@ function sendPatientWhatsAppMessage() {
   const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
   const pId = activePatientId || "paulo-vitor";
   const savedEmail = (activePatientData && activePatientData.email) || localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
-  
-  const pName = activePatientData?.name || 
-                document.getElementById("headerPatientName")?.innerText?.trim() ||
-                document.getElementById("perfPatientName")?.innerText?.trim() ||
-                'Paciente';
+
+  const pName = activePatientData?.name ||
+    document.getElementById("headerPatientName")?.innerText?.trim() ||
+    document.getElementById("perfPatientName")?.innerText?.trim() ||
+    'Paciente';
   const patientName = pName.split(' ')[0] || 'Paciente';
 
   let loginTip = '';

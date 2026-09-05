@@ -24,6 +24,15 @@
   let isInitialized = false;
   let activeDisciplineUnsubscribe = null;
 
+  function getLocalDateIso(d = new Date()) {
+    const date = (d instanceof Date && !isNaN(d)) ? d : new Date(d);
+    if (isNaN(date.getTime())) return new Date().toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // Inicializa o Firebase de forma segura e resiliente
   function init() {
     if (isInitialized) return true;
@@ -166,6 +175,7 @@
       // Prepara payload compacto e estruturado para o Firestore
       const payload = {
         patientId: sanitizedId,
+        lastActiveDate: disciplineState.lastActiveDate || getLocalDateIso(),
         scoreIDC: Number(disciplineState.scoreIDC) || 0,
         streakDays: Number(disciplineState.streakDays) || 1,
         tier: disciplineState.tier || 'Focado 🌱',

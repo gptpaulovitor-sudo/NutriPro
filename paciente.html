@@ -1668,7 +1668,113 @@
     // Chave de estado (checkboxes, água, sono) — ISOLADA por paciente
     const STORAGE_KEY = `nutriax_patient_discipline_v3_${_urlPatientId}`;
 
-    const _todayIso = new Date().toISOString().split('T')[0];
+    function getLocalDateIso(d = new Date()) {
+      const date = (d instanceof Date && !isNaN(d)) ? d : new Date(d);
+      if (isNaN(date.getTime())) return new Date().toISOString().split('T')[0];
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function isStateFromPreviousDay(state, todayIso) {
+      if (!state) return false;
+
+      // 1. Se lastActiveDate estiver definido
+      if (state.lastActiveDate) {
+        if (state.lastActiveDate !== todayIso) return true;
+        // Se lastActiveDate é igual a todayIso, mas foi gravado ontem à noite (antigo bug do UTC toISOString):
+        if (state.history && state.history[todayIso] && state.history[todayIso].updatedAt) {
+          const histLocalDate = getLocalDateIso(new Date(state.history[todayIso].updatedAt));
+          if (histLocalDate !== todayIso) return true;
+        }
+        if (state.updatedAtClient) {
+          const clientLocalDate = getLocalDateIso(new Date(state.updatedAtClient));
+          if (clientLocalDate !== todayIso) return true;
+        }
+        if (Array.isArray(state.timeline) && state.timeline.length > 0 && state.timeline[0].timestamp) {
+          const timelineLocalDate = getLocalDateIso(new Date(state.timeline[0].timestamp));
+          if (timelineLocalDate !== todayIso) return true;
+        }
+        return false;
+      }
+
+      // 2. Se lastActiveDate não existe (ou veio da nuvem sem ele)
+      if (state.updatedAtClient) {
+        const clientLocalDate = getLocalDateIso(new Date(state.updatedAtClient));
+        if (clientLocalDate !== todayIso) return true;
+      }
+
+      if (state.history && state.history[todayIso] && state.history[todayIso].updatedAt) {
+        const histLocalDate = getLocalDateIso(new Date(state.history[todayIso].updatedAt));
+        if (histLocalDate === todayIso) return false;
+      }
+
+      if (Array.isArray(state.timeline) && state.timeline.length > 0 && state.timeline[0].timestamp) {
+        const timelineLocalDate = getLocalDateIso(new Date(state.timeline[0].timestamp));
+        if (timelineLocalDate !== todayIso) return true;
+      }
+
+      const hasMarkings = (state.waterCurrent && state.waterCurrent > 0) ||
+        !!state.workoutDone || !!state.cardioDone || !!state.sleepLogged ||
+        (state.exerciseChecks && Object.keys(state.exerciseChecks).length > 0) ||
+        (state.foodItemChecks && Object.keys(state.foodItemChecks).length > 0) ||
+        (Array.isArray(state.meals) && state.meals.some(m => m.done));
+
+      if (hasMarkings) {
+        return true;
+      }
+
+      return false;
+    }
+
+    function resetDailyState(state, todayIso) {
+      if (!state) return;
+
+      // Preserva histórico caso o dia anterior tenha sido gravado sob todayIso (bug do UTC toISOString)
+      if (state.history && state.history[todayIso]) {
+        const h = state.history[todayIso];
+        const realLocalDate = h.updatedAt ? getLocalDateIso(new Date(h.updatedAt)) : null;
+        if (realLocalDate && realLocalDate !== todayIso) {
+          state.history[realLocalDate] = { ...h, date: realLocalDate };
+          delete state.history[todayIso];
+        }
+      }
+
+      state.lastActiveDate = todayIso;
+      state.waterCurrent = 0;
+      state.workoutDone = false;
+      state.cardioDone = false;
+      state.exerciseChecks = {};
+      state.foodItemChecks = {};
+      state.sleepLogged = false;
+      state.sleepHours = 0;
+      state.sleepQuality = null;
+      state.scoreIDC = 0;
+      state.itemsChecked = 0;
+      state.itemsTotal = 0;
+      state.consumedKcal = 0;
+      state.consumedProt = 0;
+      state.consumedCarb = 0;
+      state.consumedFat = 0;
+
+      if (Array.isArray(state.meals)) {
+        state.meals.forEach(m => { m.done = false; });
+      }
+
+      // Sincroniza dia selecionado da Agenda Semanal com o dia da semana atual
+      const dayOfWeek = new Date().getDay(); // 0 = Dom, 1 = Seg, ..., 6 = Sáb
+      const todayScheduleNum = dayOfWeek === 0 ? 7 : dayOfWeek;
+      if (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.some(d => d.dayNum === todayScheduleNum)) {
+        selectedScheduleDay = todayScheduleNum;
+        const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === todayScheduleNum);
+        if (curDay) {
+          selectedRoutineKey = curDay.routineKey || (curDay.type === 'Off' ? 'OFF' : 'A');
+        }
+      }
+    }
+
+    const _todayIso = getLocalDateIso();
 
     let patientState = {
       name: 'Paciente',
@@ -1844,7 +1950,7 @@
     }
 
     function loadState() {
-      const todayIso = new Date().toISOString().split('T')[0];
+      const todayIso = getLocalDateIso();
 
       // ── A. Aplica dados prescritos do payload do link (nome, refeições, treinos) ──
       let dataPayload = _syncPayload;
@@ -1868,6 +1974,7 @@
       }
 
       // ── B. Aplica estado de interação salvo localmente (checks, água, sono) ──
+      let needsPersistReset = false;
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -1885,20 +1992,10 @@
             parsed.workoutDone = false;
           }
 
-          // Se virou o dia, reseta as tarefas diárias para recomeçar o dia com pontuação real
-          if (parsed.lastActiveDate && parsed.lastActiveDate !== todayIso) {
-            parsed.lastActiveDate = todayIso;
-            parsed.waterCurrent = 0;
-            parsed.workoutDone = false;
-            parsed.cardioDone = false;
-            parsed.exerciseChecks = {};
-            parsed.foodItemChecks = {};
-            parsed.sleepLogged = false;
-            parsed.sleepHours = 0;
-            parsed.sleepQuality = null;
-            if (Array.isArray(parsed.meals)) {
-              parsed.meals.forEach(m => { m.done = false; });
-            }
+          // Se virou o dia (ou se os dados pertencem a um dia anterior), reseta as tarefas diárias
+          if (isStateFromPreviousDay(parsed, todayIso)) {
+            resetDailyState(parsed, todayIso);
+            needsPersistReset = true;
           }
 
           const mealDoneMap = {};
@@ -1915,6 +2012,10 @@
               done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : false
             }));
           }
+        } else {
+          // Sem estado salvo anterior: inicializa dia zerado
+          resetDailyState(patientState, todayIso);
+          needsPersistReset = true;
         }
       } catch (e) {
         console.warn('Erro ao carregar state local', e);
@@ -1962,6 +2063,21 @@
       if (!patientState.startDate) patientState.startDate = todayIso;
       if (!Array.isArray(patientState.timeline)) patientState.timeline = [];
       if (!patientState.history) patientState.history = {};
+
+      // Sincroniza dia selecionado na agenda com o dia de hoje se ainda no padrão inicial
+      const dayOfWeek = new Date().getDay();
+      const todayScheduleNum = dayOfWeek === 0 ? 7 : dayOfWeek;
+      if (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.some(d => d.dayNum === todayScheduleNum) && selectedScheduleDay === 1 && todayScheduleNum !== 1) {
+        selectedScheduleDay = todayScheduleNum;
+        const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === todayScheduleNum);
+        if (curDay) {
+          selectedRoutineKey = curDay.routineKey || (curDay.type === 'Off' ? 'OFF' : 'A');
+        }
+      }
+
+      if (needsPersistReset) {
+        saveState();
+      }
     }
 
     function logPatientActivity(action) {
@@ -1972,7 +2088,7 @@
       const entry = {
         id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         timestamp: Date.now(),
-        dateIso: new Date().toISOString().split('T')[0],
+        dateIso: getLocalDateIso(),
         time: timeStr,
         title: action.title,
         desc: action.desc,
@@ -2056,7 +2172,8 @@
 
     function saveState() {
       try {
-        const todayIso = new Date().toISOString().split('T')[0];
+        const todayIso = getLocalDateIso();
+        patientState.lastActiveDate = todayIso;
         const curScore = calculateDailyIDCValue();
         patientState.scoreIDC = curScore;
 
@@ -2167,7 +2284,7 @@
     }
 
     function updateStreakAndTier() {
-      const todayIso = new Date().toISOString().split('T')[0];
+      const todayIso = getLocalDateIso();
       if (!patientState.startDate) {
         patientState.startDate = todayIso;
       }
@@ -3607,30 +3724,47 @@
 
     function applyCloudDiscipline(cloud) {
       if (!cloud) return;
-      const todayIso = new Date().toISOString().split('T')[0];
+      const todayIso = getLocalDateIso();
       if (cloud.streakDays && Number(cloud.streakDays) > Number(patientState.streakDays || 0)) {
         patientState.streakDays = Number(cloud.streakDays);
       }
       if (cloud.tier) patientState.tier = cloud.tier;
       if (cloud.history && typeof cloud.history === 'object') {
-        patientState.history = { ...(patientState.history || {}), ...cloud.history };
+        const cleanHistory = { ...(patientState.history || {}) };
+        Object.entries(cloud.history).forEach(([dateKey, entry]) => {
+          if (!entry) return;
+          // Se a chave for todayIso, mas o updatedAt for comprovadamente de ontem (antigo bug do UTC toISOString)
+          if (dateKey === todayIso && entry.updatedAt) {
+            const entryLocalDate = getLocalDateIso(new Date(entry.updatedAt));
+            if (entryLocalDate !== todayIso) {
+              cleanHistory[entryLocalDate] = { ...entry, date: entryLocalDate };
+              return;
+            }
+          }
+          cleanHistory[dateKey] = entry;
+        });
+        patientState.history = cleanHistory;
       }
       if (Array.isArray(cloud.timeline) && cloud.timeline.length > 0) {
         const existingIds = new Set((patientState.timeline || []).map(t => t.id || t.timestamp));
         const newItems = cloud.timeline.filter(t => !existingIds.has(t.id || t.timestamp));
         patientState.timeline = [...newItems, ...(patientState.timeline || [])].slice(0, 40);
       }
-      if (cloud.history && cloud.history[todayIso]) {
-        const h = cloud.history[todayIso];
-        if ((h.waterCurrent || 0) > (patientState.waterCurrent || 0)) {
-          patientState.waterCurrent = h.waterCurrent;
-        }
-        if (h.workoutDone) patientState.workoutDone = true;
-        if (h.cardioDone) patientState.cardioDone = true;
-        if (h.sleepLogged && !patientState.sleepLogged) {
-          patientState.sleepLogged = true;
-          patientState.sleepHours = h.sleepHours || 0;
-          patientState.sleepQuality = h.sleepQuality || null;
+      // Aplica dados de HOJE apenas se realmente foram atualizados hoje
+      if (patientState.history && patientState.history[todayIso]) {
+        const h = patientState.history[todayIso];
+        const hLocalDate = h.updatedAt ? getLocalDateIso(new Date(h.updatedAt)) : todayIso;
+        if (hLocalDate === todayIso) {
+          if ((h.waterCurrent || 0) > (patientState.waterCurrent || 0)) {
+            patientState.waterCurrent = h.waterCurrent;
+          }
+          if (h.workoutDone) patientState.workoutDone = true;
+          if (h.cardioDone) patientState.cardioDone = true;
+          if (h.sleepLogged && !patientState.sleepLogged) {
+            patientState.sleepLogged = true;
+            patientState.sleepHours = h.sleepHours || 0;
+            patientState.sleepQuality = h.sleepQuality || null;
+          }
         }
       }
       saveState();
@@ -3759,6 +3893,33 @@
         }
       }, 300);
     });
+
+    function checkDayChangeOnEvent() {
+      const todayIso = getLocalDateIso();
+      if (patientState && patientState.lastActiveDate && patientState.lastActiveDate !== todayIso) {
+        console.info('[NutriPro] Novo dia detectado em tempo de execução:', todayIso);
+        resetDailyState(patientState, todayIso);
+        saveState();
+        renderAll();
+        return true;
+      }
+      updateDateDisplay();
+      return false;
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkDayChangeOnEvent();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      checkDayChangeOnEvent();
+    });
+
+    setInterval(() => {
+      checkDayChangeOnEvent();
+    }, 60000);
   </script>
 </body>
 
