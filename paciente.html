@@ -2114,8 +2114,12 @@
         let totalItems = 0;
         let checkedItems = 0;
         patientState.meals.forEach(m => {
-          if (Array.isArray(m.items) && m.items.length > 0) {
-            m.items.forEach((it, idx) => {
+          const items = (Array.isArray(m.items) && m.items.length > 0)
+            ? m.items
+            : (m.detail && m.detail.includes('+') ? m.detail.split(/\s*\+\s*/).filter(Boolean).map(p => ({ name: p })) : null);
+
+          if (items && items.length > 0) {
+            items.forEach((it, idx) => {
               totalItems++;
               if (isFoodItemChecked(m, it, idx)) checkedItems++;
             });
@@ -2182,15 +2186,20 @@
 
         if (Array.isArray(patientState.meals)) {
           patientState.meals.forEach(m => {
-            if (Array.isArray(m.items) && m.items.length > 0) {
-              m.items.forEach((it, idx) => {
+            const items = (Array.isArray(m.items) && m.items.length > 0)
+              ? m.items
+              : (m.detail && m.detail.includes('+') ? m.detail.split(/\s*\+\s*/).filter(Boolean).map(p => ({ name: p })) : null);
+
+            if (items && items.length > 0) {
+              const pCount = items.length;
+              items.forEach((it, idx) => {
                 hTotalItems++;
                 if (isFoodItemChecked(m, it, idx)) {
                   hCheckedItems++;
-                  hConsumedKcal += Number(it.kcal) || 0;
-                  hConsumedProt += Number(it.prot) || 0;
-                  hConsumedCarb += Number(it.carbo) || 0;
-                  hConsumedFat += Number(it.lipid || it.fat) || 0;
+                  hConsumedKcal += Number(it.kcal) || ((Number(m.kcal) || 0) / pCount);
+                  hConsumedProt += Number(it.prot) || ((Number(m.prot) || 0) / pCount);
+                  hConsumedCarb += Number(it.carbo) || ((Number(m.carbo) || 0) / pCount);
+                  hConsumedFat += Number(it.lipid || it.fat) || ((Number(m.fat) || 0) / pCount);
                 }
               });
             } else {
@@ -2856,17 +2865,22 @@
         let mTotal = 0;
         let mChecked = 0;
 
-        if (Array.isArray(m.items) && m.items.length > 0) {
-          mTotal = m.items.length;
-          m.items.forEach((it, idx) => {
+        const items = (Array.isArray(m.items) && m.items.length > 0)
+          ? m.items
+          : (m.detail && m.detail.includes('+') ? m.detail.split(/\s*\+\s*/).filter(Boolean).map(p => ({ name: p })) : null);
+
+        if (items && items.length > 0) {
+          mTotal = items.length;
+          const pCount = items.length;
+          items.forEach((it, idx) => {
             totalItemsCount++;
             if (isFoodItemChecked(m, it, idx)) {
               mChecked++;
               checkedItemsCount++;
-              consumedKcal += Number(it.kcal) || 0;
-              consumedProt += Number(it.prot) || 0;
-              consumedCarb += Number(it.carbo) || 0;
-              consumedFat += Number(it.lipid || it.fat) || 0;
+              consumedKcal += Number(it.kcal) || ((Number(m.kcal) || 0) / pCount);
+              consumedProt += Number(it.prot) || ((Number(m.prot) || 0) / pCount);
+              consumedCarb += Number(it.carbo) || ((Number(m.carbo) || 0) / pCount);
+              consumedFat += Number(it.lipid || it.fat) || ((Number(m.fat) || 0) / pCount);
             }
           });
           if (mTotal > 0 && mChecked === mTotal) {
@@ -3570,53 +3584,14 @@
 
     // 13. CÁLCULO DO SCORE IDC DO DIA (DESEMPENHO REAL DO PACIENTE)
     function calculateDailyIDC() {
-      // 1. Refeições (40 pts)
-      const totalMeals = patientState.meals ? patientState.meals.length : 0;
-      const doneMeals = patientState.meals ? patientState.meals.filter(m => m.done).length : 0;
-      const mealsScore = totalMeals > 0 ? (doneMeals / totalMeals) * 40 : 0;
+      const totalScore = calculateDailyIDCValue();
+      patientState.scoreIDC = totalScore;
 
-      // 2. Treino e Cardio (30 pts)
-      const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
-      let workoutScore = 0;
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
-      const isCardioDay = dayData && (
-        dayData.type === 'Treino + Cardio' ||
-        dayData.type === 'Cardio' ||
-        dayData.hasCardioPost ||
-        (dayData.title && dayData.title.toLowerCase().includes('cardio'))
-      );
-      const hasCardio = isCardioDay || selectedRoutineKey === 'E' || selectedRoutineKey === 'Cardio' || (selectedScheduleDay === 5 && !currentRoutine?.isOff);
+      const scoreDisplay = document.getElementById('dailyScoreDisplay');
+      if (scoreDisplay) scoreDisplay.textContent = `${totalScore}%`;
 
-      if (currentRoutine && currentRoutine.isOff) {
-        workoutScore = patientState.workoutDone ? 30 : 0;
-      } else if (hasCardio) {
-        workoutScore = (patientState.workoutDone ? 20 : 0) + (patientState.cardioDone ? 10 : 0);
-      } else {
-        workoutScore = patientState.workoutDone ? 30 : 0;
-      }
-
-      // 3. Hidratação (15 pts)
-      const targetWater = patientState.waterTarget || 4000;
-      const waterRatio = Math.min(1, (patientState.waterCurrent || 0) / targetWater);
-      const waterScore = waterRatio * 15;
-
-      // 4. Sono (15 pts) - apenas se registrado pelo paciente
-      let sleepScore = 0;
-      if (patientState.sleepLogged) {
-        if (patientState.sleepHours >= 7) sleepScore += 10;
-        else if (patientState.sleepHours >= 6) sleepScore += 7;
-        else if (patientState.sleepHours >= 5) sleepScore += 4;
-        else if (patientState.sleepHours > 0) sleepScore += 2;
-
-        if (patientState.sleepQuality === 'good') sleepScore += 5;
-        else if (patientState.sleepQuality === 'ok') sleepScore += 3;
-        else if (patientState.sleepQuality === 'bad') sleepScore += 1;
-      }
-
-      const totalScore = Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
-
-      document.getElementById('dailyScoreDisplay').textContent = `${totalScore}%`;
-      document.getElementById('dailyScoreProgressBar').style.width = `${totalScore}%`;
+      const progressBar = document.getElementById('dailyScoreProgressBar');
+      if (progressBar) progressBar.style.width = `${totalScore}%`;
 
       const fb = document.getElementById('dailyScoreFeedback');
       if (fb) {
@@ -3632,6 +3607,8 @@
           fb.innerHTML = "🎯 <strong>Início de jornada (0%).</strong> Registre suas refeições, água e treino para acompanhar seu Score IDC.";
         }
       }
+
+      return totalScore;
     }
 
     // 14. MODAL SOS
@@ -3725,6 +3702,9 @@
         patientState.streakDays = Number(cloud.streakDays);
       }
       if (cloud.tier) patientState.tier = cloud.tier;
+      if (cloud.foodItemChecks && typeof cloud.foodItemChecks === 'object') {
+        patientState.foodItemChecks = { ...(patientState.foodItemChecks || {}), ...cloud.foodItemChecks };
+      }
       if (cloud.history && typeof cloud.history === 'object') {
         const cleanHistory = { ...(patientState.history || {}) };
         Object.entries(cloud.history).forEach(([dateKey, entry]) => {

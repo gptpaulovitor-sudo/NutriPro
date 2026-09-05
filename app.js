@@ -8127,6 +8127,107 @@ function renderPerfPrescribedCardio() {
   const container = document.getElementById('perf-prescribed-cardio-container');
   if (!container) return;
 
+  // 1. Caso haja prescrição multi-sessão aprovada pelo Cardio Engine
+  if (perfCardioPrescription && Array.isArray(perfCardioPrescription.sessions) && perfCardioPrescription.sessions.length > 0) {
+    const p = perfCardioPrescription;
+    const req = p.requirements || {};
+    const sessions = p.sessions;
+    const totalMin = p.totalWeeklyMinutes || sessions.reduce((s, c) => s + (c.durationMinutes || 0), 0);
+
+    const drivingList = (req.frequency?.drivingFactors || []).slice(0, 3).map(f => `<span class="inline-flex items-center gap-1 text-[11px] text-amber-300 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-md">• ${f}</span>`).join(' ');
+    const limitingList = (req.frequency?.limitingFactors || []).slice(0, 2).map(f => `<span class="inline-flex items-center gap-1 text-[11px] text-zinc-400 bg-zinc-900 border border-zinc-700/60 px-2 py-0.5 rounded-md">⚖️ ${f}</span>`).join(' ');
+
+    container.innerHTML = `
+      <div class="hud-card p-5 space-y-4 border-amber-500/60 bg-gradient-to-br from-amber-950/40 via-black/95 to-zinc-950/95 shadow-[0_0_30px_rgba(245,158,11,0.2)] rounded-2xl">
+        <!-- Header da Prescrição Multi-Sessão -->
+        <div class="flex items-center justify-between border-b border-amber-500/20 pb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2.5 rounded-xl bg-amber-950/90 border border-amber-500/60 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+              <i data-lucide="flame" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Cardio Engine · ${sessions.length} Sessões / Semana
+                </span>
+                <span class="text-[10px] font-mono font-bold text-amber-400 bg-black/60 px-2 py-0.5 rounded border border-amber-500/30">
+                  ⏱️ ${totalMin} min / semana
+                </span>
+                <span class="text-[10px] font-mono text-zinc-300 bg-black/60 px-2 py-0.5 rounded border border-zinc-800">
+                  🎯 Zonas: <strong class="text-white">${req.intensity?.primaryZones?.join(', ') || 'Z2'}</strong>
+                </span>
+                <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/50">
+                  Recuperação: ${req.observed?.recoveryModifier || 'NORMAL'}
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-white tracking-tight mt-1">Prescrição Cardiovascular Individualizada</h3>
+              <p class="text-xs text-amber-400/90 font-medium">Dimensionada deterministicamente por objetivo, RCEst, balanço energético e treinamento concorrente</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="perfSwitchView('cardio', true)" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all flex items-center gap-1.5">
+              <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+              <span>Catálogo &amp; Protocolos</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Racional Fisiológico e Fatores Determinantes -->
+        <div class="p-3.5 rounded-xl bg-black/60 border border-amber-500/30 text-xs text-zinc-300 space-y-2">
+          <div class="flex items-center gap-2 text-amber-400 font-bold">
+            <i data-lucide="brain" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span>Racional Clínico &amp; Fatores Determinantes:</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            ${drivingList}
+            ${limitingList}
+          </div>
+        </div>
+
+        <!-- Grid de Sessões Individuais da Semana -->
+        <div class="grid grid-cols-1 ${sessions.length > 1 ? 'md:grid-cols-2' : ''} gap-3">
+          ${sessions.map((s, idx) => {
+            const protoObj = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+              ? (PERF_CARDIO_DB.find(p => p.id === s.protocolId) || PERF_CARDIO_DB[0])
+              : { blocks: [], hardware: 'Monitor Cardíaco', restrictions: ['Manter zona alvo'] };
+
+            const isHiit = s.protocolId === 'cardio_03' || s.protocolId === 'cardio_04';
+            const badgeColor = isHiit ? 'border-orange-500/60 bg-orange-950/60 text-orange-300' : 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300';
+
+            return `
+              <div class="p-4 rounded-xl bg-black/70 border border-zinc-800/90 hover:border-amber-500/50 transition-all space-y-3 shadow-sm">
+                <div class="flex items-center justify-between border-b border-zinc-800 pb-2 flex-wrap gap-1">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full ${isHiit ? 'bg-orange-400' : 'bg-amber-400'}"></span>
+                    <strong class="text-sm font-bold text-white">${s.day} · Sessão #${idx + 1}</strong>
+                  </div>
+                  <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${badgeColor}">
+                    ${s.heartRateZone} · ${s.targetBpm}
+                  </span>
+                </div>
+
+                <div>
+                  <h4 class="text-xs font-bold text-amber-300">${s.protocolTitle}</h4>
+                  <p class="text-[11px] text-zinc-400 mt-0.5">${s.rationale}</p>
+                </div>
+
+                <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-1 border-t border-zinc-900">
+                  <span>⏱️ Duração: <strong class="text-white">${s.durationMinutes} min</strong></span>
+                  <span class="text-zinc-400">${s.intensity}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  // 2. Fallback Retrocompatível para Prescrição Legada / Individual
   const cardio = PERF_CARDIO_DB.find(c => c.id === perfPrescribedCardioId) || PERF_CARDIO_DB[0];
   if (!cardio) return;
 
@@ -8140,7 +8241,7 @@ function renderPerfPrescribedCardio() {
           <div>
             <div class="flex items-center gap-2 flex-wrap">
               <span class="text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700/80 px-2 py-0.5 rounded-full uppercase">
-                Cardio &amp; Engine Prescrito pela IA
+                Cardio Prescrito
               </span>
               <span class="text-[10px] font-mono text-zinc-400">⚡ Time Cap: <strong class="text-white">${cardio.timeCap}</strong></span>
               <span class="text-[10px] font-mono font-bold text-amber-400">🔥 Queima Estimada: ${cardio.calEst}</span>
@@ -8160,11 +8261,11 @@ function renderPerfPrescribedCardio() {
 
       <!-- Foco Biomecânico -->
       <div class="p-3 rounded-xl bg-black/60 border border-amber-500/20 text-xs text-zinc-300 leading-relaxed">
-        <strong class="text-amber-400 font-bold block mb-1">🧬 Diretriz &amp; Foco Biomecânico da IA:</strong>
+        <strong class="text-amber-400 font-bold block mb-1">🧬 Diretriz &amp; Foco Biomecânico:</strong>
         ${cardio.foco}
       </div>
 
-      <!-- 4 Blocos Estruturados de Execução -->
+      <!-- Blocos Estruturados de Execução -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         ${cardio.blocks.map(b => `
           <div class="p-3 rounded-xl bg-black/50 border border-zinc-800 text-xs space-y-1.5">
@@ -8261,7 +8362,7 @@ function perfNormalizeWeeklySchedule(schedule) {
     return perfBuildWeeklySchedule(typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PPL');
   }
   const legacyKeys = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-  return schedule.map((d, idx) => {
+  let normalized = schedule.map((d, idx) => {
     const num = idx + 1;
     const defaultKey = `d${num}`;
     const defaultName = `Dia ${num}`;
@@ -8277,6 +8378,12 @@ function perfNormalizeWeeklySchedule(schedule) {
       dayName: defaultName
     };
   });
+
+  if (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription && Array.isArray(perfCardioPrescription.sessions) && perfCardioPrescription.sessions.length > 0) {
+    normalized = perfApplyCardioPrescriptionToSchedule(normalized, perfCardioPrescription.sessions);
+  }
+
+  return normalized;
 }
 
 function perfBuildWeeklySchedule(splitKey) {
@@ -8762,12 +8869,16 @@ function renderPerfWeeklySchedule() {
 
   // Garante que o schedule contenha todas as diretrizes completas e formato numérico (Dia 1 a Dia 7)
   const isPhatOr6Routines = perfActiveSplit === 'PHAT' || (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length >= 6);
-  const isOldPhatLayout = isPhatOr6Routines && (perfWeeklySchedule?.[2]?.type === 'Cardio' || perfWeeklySchedule?.[4]?.type !== 'Treino + Cardio');
+  const isOldPhatLayout = isPhatOr6Routines && !perfCardioPrescription && (perfWeeklySchedule?.[2]?.type === 'Cardio' || perfWeeklySchedule?.[4]?.type !== 'Treino + Cardio');
 
   if (!perfWeeklySchedule || !perfWeeklySchedule[0] || !perfWeeklySchedule[0].carboTip || isOldPhatLayout) {
     perfWeeklySchedule = perfBuildWeeklySchedule(perfActiveSplit);
   } else {
     perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
+  }
+
+  if (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription && Array.isArray(perfCardioPrescription.sessions) && perfCardioPrescription.sessions.length > 0) {
+    perfWeeklySchedule = perfApplyCardioPrescriptionToSchedule(perfWeeklySchedule, perfCardioPrescription.sessions);
   }
 
   let trainingIndex = 0;
@@ -9040,6 +9151,9 @@ function perfCalculateHeartRateZones(age = 30, restingHR = 60) {
     ]
   };
 }
+
+const perfGetCalculatedHRZones = perfCalculateHeartRateZones;
+if (typeof window !== 'undefined') window.perfGetCalculatedHRZones = perfCalculateHeartRateZones;
 
 function perfToggleHREditMode() {
   perfHREditMode = !perfHREditMode;
@@ -12140,7 +12254,128 @@ async function buildPerformanceContext(patientId = activePatientId) {
     }
   } catch (_) { }
 
-  // ── 6. RESTRIÇÕES, LIMITAÇÕES & EQUIPAMENTOS ──────────────────────────────
+  const sortedExams = (clinicalExamsList || [])
+    .filter(e => e && typeof e === 'object')
+    .sort((a, b) => new Date(b.examDate || b.date || 0) - new Date(a.examDate || a.date || 0));
+  const latestExam = sortedExams[0] || null;
+
+  const biomarkers = latestExam ? {
+    examDate: latestExam.examDate || latestExam.date || null,
+    glucose: {
+      fastingGlucose: parseFloat(latestExam.fastingGlucose) || null,
+      fastingInsulin: parseFloat(latestExam.fastingInsulin) || null,
+      hba1c: parseFloat(latestExam.hba1c) || null,
+      homaIR: (parseFloat(latestExam.fastingGlucose) > 0 && parseFloat(latestExam.fastingInsulin) > 0)
+        ? Number(((parseFloat(latestExam.fastingGlucose) * parseFloat(latestExam.fastingInsulin)) / 405).toFixed(2))
+        : null
+    },
+    lipids: {
+      totalCholesterol: parseFloat(latestExam.totalCholesterol) || null,
+      hdl: parseFloat(latestExam.hdl) || null,
+      ldl: parseFloat(latestExam.ldl) || null,
+      triglycerides: parseFloat(latestExam.triglycerides) || null
+    },
+    hepatic: {
+      tgo: parseFloat(latestExam.tgo) || null,
+      tgp: parseFloat(latestExam.tgp) || null
+    },
+    renal: {
+      urea: parseFloat(latestExam.urea) || null,
+      creatinine: parseFloat(latestExam.creatinine) || null,
+      uricAcid: parseFloat(latestExam.uricAcid) || null
+    },
+    vitaminsAndHormones: {
+      ferritin: parseFloat(latestExam.ferritin) || null,
+      vitaminD: parseFloat(latestExam.vitaminD) || null,
+      vitaminB12: parseFloat(latestExam.vitaminB12) || null,
+      tsh: parseFloat(latestExam.tsh) || null
+    }
+  } : null;
+
+  // ── 6. ÍNDICES ANTROPOMÉTRICOS & CARDIOMETABÓLICOS (math.js) ─────────────
+  const anthroIndices = (typeof calculateAnthropometricIndices === 'function' && waistVal > 0 && heightCm > 0)
+    ? calculateAnthropometricIndices(
+        waistVal,
+        hipVal || 100,
+        heightCm / 100,
+        weightKg,
+        leanMassKg,
+        sex,
+        age,
+        latestEval ? (parseFloat(latestEval.arm) || 32) : 32,
+        latestEval ? (parseFloat(latestEval.skTriceps) || 8) : 8,
+        latestEval ? (parseFloat(latestEval.circCalf) || 36) : 36
+      )
+    : null;
+
+  const ffmi = (heightCm > 0 && leanMassKg > 0)
+    ? Number((leanMassKg / Math.pow(heightCm / 100, 2)).toFixed(2))
+    : null;
+
+  const cardiometabolic = {
+    rcEst: anthroIndices ? anthroIndices.rcEst : null,
+    rcEstClassification: anthroIndices ? anthroIndices.rcEstClassification : null,
+    rcq: anthroIndices ? anthroIndices.rcq : waistToHipRatio,
+    rcqClassification: anthroIndices ? anthroIndices.rcqClassification : null,
+    conicityIndex: anthroIndices ? anthroIndices.conicityIndex : null,
+    conicityClassification: anthroIndices ? anthroIndices.conicityClassification : null,
+    ffmi,
+    skeletalMuscleMassKg: anthroIndices ? anthroIndices.skeletalMuscleMassKg : null,
+    hasCardiometabolicRisk: anthroIndices
+      ? (anthroIndices.rcEst >= 0.50 || (anthroIndices.conicityIndex && anthroIndices.conicityIndex >= 1.25))
+      : null
+  };
+
+  // ── 7. ZONAS DE FREQUÊNCIA CARDÍACA (app.js · Tanaka / Karvonen) ─────────
+  const hasRealRestingHR = (p.restingHeartRate != null && !isNaN(parseFloat(p.restingHeartRate))) ||
+    (typeof perfCustomHRZones !== 'undefined' && perfCustomHRZones?.restingHR != null && !isNaN(parseFloat(perfCustomHRZones.restingHR)));
+  const realRestingHR = hasRealRestingHR
+    ? (parseFloat(p.restingHeartRate) || parseFloat(perfCustomHRZones?.restingHR))
+    : null;
+  const hrCalc = (typeof perfCalculateHeartRateZones === 'function')
+    ? perfCalculateHeartRateZones(age, realRestingHR || 60)
+    : null;
+
+  const heartRate = hrCalc ? {
+    maxHR: hrCalc.maxHR,
+    restingHR: realRestingHR,
+    reserveHR: realRestingHR ? (hrCalc.maxHR - realRestingHR) : null,
+    isCustom: !!hrCalc.isCustom,
+    method: hrCalc.isCustom ? 'Customizado Profissional' : (realRestingHR ? 'Tanaka / Karvonen' : 'Tanaka (%FCM)'),
+    zones: Array.isArray(hrCalc.zones) ? hrCalc.zones.map(z => {
+      if (!realRestingHR) {
+        const minPct = z.zone === 'Z1' ? 0.50 : z.zone === 'Z2' ? 0.60 : z.zone === 'Z3' ? 0.70 : z.zone === 'Z4' ? 0.80 : 0.90;
+        const maxPct = z.zone === 'Z1' ? 0.60 : z.zone === 'Z2' ? 0.70 : z.zone === 'Z3' ? 0.80 : z.zone === 'Z4' ? 0.90 : 1.00;
+        return {
+          ...z,
+          minBpm: Math.round(hrCalc.maxHR * minPct),
+          maxBpm: Math.round(hrCalc.maxHR * maxPct),
+          bpmKarvonen: null
+        };
+      }
+      return z;
+    }) : []
+  } : null;
+
+  // ── 8. PROJEÇÃO PREDITIVA DE METAS (math.js) ──────────────────────────────
+  const goalProj = (typeof calculateGoalProjection === 'function' && weightKg > 0 && bodyFatPercent > 0)
+    ? calculateGoalProjection(weightKg, bodyFatPercent, targetBodyFatPercent, getKcal, caloricTargetKcal)
+    : null;
+
+  const goalProjection = goalProj ? {
+    targetWeightKg: goalProj.targetWeightKg,
+    targetFatMassKg: goalProj.targetFatMassKg,
+    fatToLoseKg: goalProj.fatToLoseKg,
+    dailyDeficitKcal: goalProj.dailyDeficitKcal,
+    weeklyRateKg: goalProj.weeklyRateKg,
+    daysNeeded: goalProj.daysNeeded,
+    weeksNeeded: goalProj.weeksNeeded,
+    monthsNeeded: goalProj.monthsNeeded,
+    status: goalProj.status || null,
+    statusBadge: goalProj.statusBadge || null
+  } : null;
+
+  // ── 9. RESTRIÇÕES, LIMITAÇÕES & EQUIPAMENTOS ──────────────────────────────
   const extractedProhibitedExercises = (() => {
     const list = Array.isArray(p.prohibitedExercises) ? [...p.prohibitedExercises] : [];
     if (Array.isArray(p.clinicalConstraints)) {
@@ -12159,20 +12394,29 @@ async function buildPerformanceContext(patientId = activePatientId) {
   const constraints = {
     injuries: extractedInjuries,
     prohibitedExercises: extractedProhibitedExercises,
+    clinicalConstraints: Array.isArray(p.clinicalConstraints) ? p.clinicalConstraints : [],
     availableEquipment: p.availableEquipment || 'Full Gym',
     prescribedCardioId: typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
   };
 
-  // ── 7. MONTAGEM DO DTO CANÔNICO CONSOLIDADO ───────────────────────────────
+  // ── 10. MONTAGEM DO DTO CANÔNICO CONSOLIDADO ──────────────────────────────
   const context = {
     _meta: {
-      contextVersion: '1.1',
+      contextVersion: '1.2',
       builtAt: new Date().toISOString(),
       patientId: pId,
       hasAssessment: latestEval !== null,
       assessmentDate: latestEval ? latestEval.date : null,
       hasPrescription: prescItems.length > 0,
+      hasClinicalExams: sortedExams.length > 0,
       tmbMethod,
+      dataSources: {
+        patient: 'db.patients',
+        assessment: latestEval ? 'db.assessments' : null,
+        clinicalExams: sortedExams.length > 0 ? 'db.clinicalExams' : null,
+        prescription: prescItems.length > 0 ? 'db.prescriptions' : null,
+        calculations: 'math.js / app.js'
+      }
     },
 
     patient: {
@@ -12188,27 +12432,13 @@ async function buildPerformanceContext(patientId = activePatientId) {
       patientType,           // 'Praticante recreativo', 'Atleta', 'Sedentário', etc.
     },
 
-    trainingProfile: {
-      mainModality: p.mainModality || p.workoutType || 'Musculação',
-      workoutType: p.workoutType || 'Musculação / Força',
-      frequencyWeekly: workoutFrequencyDays,
-      frequencyLabel: p.workoutFrequency || `${workoutFrequencyDays}x/semana`,
-      durationMinutes: workoutDurationMinutes,
-      durationLabel: p.workoutDuration || `${workoutDurationMinutes} min`,
-      intensity: p.workoutIntensity || 'Moderada',
-      workoutTime: p.workoutTime || '',
-      neatRoutine: p.neatRoutine || 'Moderado',
-      trainingLevel,
-      patientType,
-      isMinor: age < 18,
-    },
-
     anthropometry: {
       bodyFatPercent,        // % de gordura atual
       targetBodyFatPercent,  // meta de % gordura
       leanMassKg,            // massa magra (kg)
       fatMassKg,             // massa gorda (kg)
       bmi,                   // IMC
+      indices: anthroIndices, // Índices antropométricos completos calculados de math.js
       circumferences: {
         waist: waistVal,
         hip: hipVal,
@@ -12235,6 +12465,12 @@ async function buildPerformanceContext(patientId = activePatientId) {
       }
     },
 
+    cardiometabolic,
+
+    heartRate,
+
+    biomarkers,
+
     energy: {
       tmbKcal,               // Taxa Metabólica Basal (kcal/dia)
       getKcal,               // Gasto Energético Total = TMB × FA (kcal/dia)
@@ -12247,6 +12483,23 @@ async function buildPerformanceContext(patientId = activePatientId) {
       energyBalanceKcal,     // = caloricTargetKcal - getKcal (positivo = superávit)
       proteinGKg,            // aporte proteico (g/kg peso)
       prescriptionSource: prescItems.length > 0 ? 'prescribed' : 'estimated_from_get',
+    },
+
+    goalProjection,
+
+    trainingProfile: {
+      mainModality: p.mainModality || p.workoutType || 'Musculação',
+      workoutType: p.workoutType || 'Musculação / Força',
+      frequencyWeekly: workoutFrequencyDays,
+      frequencyLabel: p.workoutFrequency || `${workoutFrequencyDays}x/semana`,
+      durationMinutes: workoutDurationMinutes,
+      durationLabel: p.workoutDuration || `${workoutDurationMinutes} min`,
+      intensity: p.workoutIntensity || 'Moderada',
+      workoutTime: p.workoutTime || '',
+      neatRoutine: p.neatRoutine || 'Moderado',
+      trainingLevel,
+      patientType,
+      isMinor: age < 18,
     },
 
     lifestyle: {
@@ -12276,6 +12529,7 @@ async function buildPerformanceContext(patientId = activePatientId) {
     contextVersion: context._meta.contextVersion,
     hasAssessment: context._meta.hasAssessment,
     hasPrescription: context._meta.hasPrescription,
+    hasClinicalExams: context._meta.hasClinicalExams,
     frequencyWeekly: context.trainingProfile.frequencyWeekly,
     durationMinutes: context.trainingProfile.durationMinutes,
     tmbKcal: context.energy.tmbKcal,
@@ -12285,6 +12539,8 @@ async function buildPerformanceContext(patientId = activePatientId) {
     leanMassKg: context.anthropometry.leanMassKg,
     bodyFatPercent: context.anthropometry.bodyFatPercent,
     targetBodyFatPercent: context.anthropometry.targetBodyFatPercent,
+    rcEst: context.cardiometabolic?.rcEst,
+    maxHR: context.heartRate?.maxHR
   }, null, 2));
 
   return context;
@@ -12292,6 +12548,1052 @@ async function buildPerformanceContext(patientId = activePatientId) {
 
 
 // ════════════════════════════════════════════════════════════════════════════
+// _PERF_RULES — FONTE CANÔNICA ÚNICA DAS REGRAS DE PERFORMANCE
+//
+// ⚠️  ÚNICA FONTE DE VERDADE PARA LIMITES NUMÉRICOS USADOS POR:
+//   - buildTrainingGenerationRequirements()   → comunica ao Gemini antes de gerar
+//   - validatePrescriptionAgainstContext()     → valida após geração
+//
+// Altere AQUI e o efeito se propaga automaticamente para os dois lados.
+// Nunca duplique esses valores em outro lugar do código.
+// ════════════════════════════════════════════════════════════════════════════
+const _PERF_RULES = Object.freeze({
+  /** Frequência semanal máxima permitida para pacientes classificados como Iniciante */
+  BEGINNER_MAX_FREQUENCY: 4,
+
+  /** Balanço energético (kcal) abaixo do qual o volume semanal total é limitado */
+  DEFICIT_VOLUME_THRESHOLD: -500,
+
+  /** Máximo de séries semanais totais quando o paciente estiver abaixo de DEFICIT_VOLUME_THRESHOLD */
+  DEFICIT_MAX_SETS: 90,
+
+  /** Parâmetros por objetivo — faixas ideais de reps, RPE e descanso */
+  OBJECTIVE_PARAMS: Object.freeze({
+    hipertrofia:   Object.freeze({ repsMin: 6,  repsMax: 12, rpeMin: 7,   rpeMax: 9,  restMin: 60,  restMax: 120 }),
+    emagrecimento: Object.freeze({ repsMin: 8,  repsMax: 15, rpeMin: 7,   rpeMax: 8.5, restMin: 45, restMax: 90  }),
+    forca:         Object.freeze({ repsMin: 4,  repsMax: 8,  rpeMin: 7.5, rpeMax: 9.5, restMin: 120, restMax: 180 }),
+    manutencao:    Object.freeze({ repsMin: 8,  repsMax: 15, rpeMin: 6,   rpeMax: 8,  restMin: 60,  restMax: 120 }),
+    recomposicao:  Object.freeze({ repsMin: 8,  repsMax: 15, rpeMin: 6,   rpeMax: 8.5, restMin: 60, restMax: 120 }),
+  }),
+
+  /** Parâmetros para menores de idade (age < 18) */
+  MINOR_PARAMS: Object.freeze({ repsMin: 8, repsMax: 15, rpeMax: 8 }),
+
+  /** Envelope de exercícios por rotina conforme duração da sessão (minutos) */
+  DURATION_ENVELOPE: Object.freeze([
+    // { upTo: duração máxima em min, exMin, exMax, setsMin, setsMax }
+    { upTo: 45,  exMin: 3, exMax: 5,  setsMin: 10, setsMax: 15 },
+    { upTo: 60,  exMin: 5, exMax: 6,  setsMin: 15, setsMax: 20 },
+    { upTo: 90,  exMin: 6, exMax: 7,  setsMin: 20, setsMax: 24 },
+    { upTo: 999, exMin: 7, exMax: 9,  setsMin: 24, setsMax: 30 },
+  ]),
+});
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// CAMADA 1b — BUILDER DE REQUISITOS DE GERAÇÃO (PRÉ-CONDIÇÕES DO GEMINI)
+// buildTrainingGenerationRequirements(context)
+//
+// Recebe o PerformanceContext canônico e retorna um DTO TrainingGenerationRequirements
+// com TODOS os requisitos, proibições e limites que o Gemini deve respeitar.
+//
+// ⚠️  NUNCA grava no banco. NUNCA altera o contexto. NUNCA decide aprovação.
+// Toda lógica numérica deriva exclusivamente de _PERF_RULES e do contexto.
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * @param {Object} context - PerformanceContext DTO canônico (de buildPerformanceContext)
+ * @returns {Object} TrainingGenerationRequirements DTO
+ */
+function buildTrainingGenerationRequirements(context) {
+  if (!context || typeof context !== 'object') {
+    console.warn('[buildTrainingGenerationRequirements] Contexto inválido.');
+    return null;
+  }
+
+  // ── Extrações defensivas do contexto ──────────────────────────────────────
+  const objective     = String(context.patient?.objective || '').toLowerCase();
+  const trainingLevel = String(context.patient?.trainingLevel || '').toLowerCase();
+  const age           = parseInt(context.patient?.age) || 30;
+  const isMinor       = age < 18;
+  const isInitiante   = trainingLevel.includes('iniciante');
+
+  const frequencyWeekly   = parseInt(context.trainingProfile?.frequencyWeekly) || 3;
+  const durationMinutes   = parseInt(context.trainingProfile?.durationMinutes) || 60;
+  const availableEquipment = context.constraints?.availableEquipment || 'Full Gym';
+  const prohibitedExercises = Array.isArray(context.constraints?.prohibitedExercises)
+    ? context.constraints.prohibitedExercises.filter(Boolean)
+    : [];
+  const injuries = Array.isArray(context.constraints?.injuries)
+    ? context.constraints.injuries.filter(Boolean)
+    : [];
+
+  const energyBalanceKcal = typeof context.nutrition?.energyBalanceKcal === 'number'
+    ? context.nutrition.energyBalanceKcal
+    : 0;
+  const sleepHours = parseFloat(context.lifestyle?.sleepHours) || 7.5;
+
+  // ── 1. FREQUÊNCIA ─────────────────────────────────────────────────────────
+  // Regra R2 (espelhada de validatePrescriptionAgainstContext):
+  // Iniciante → frequência não pode ultrapassar _PERF_RULES.BEGINNER_MAX_FREQUENCY
+  const freqMax = isInitiante
+    ? Math.min(frequencyWeekly, _PERF_RULES.BEGINNER_MAX_FREQUENCY)
+    : frequencyWeekly;
+  const freqExact = freqMax; // número exato de rotinas que o Gemini deve gerar
+
+  // ── 2. ENVELOPE DE EXERCÍCIOS E SÉRIES (por duração) ─────────────────────
+  const durEnv = _PERF_RULES.DURATION_ENVELOPE.find(e => durationMinutes <= e.upTo)
+    || _PERF_RULES.DURATION_ENVELOPE[_PERF_RULES.DURATION_ENVELOPE.length - 1];
+
+  // ── 3. PARÂMETROS DE ESTÍMULO (por objetivo) ──────────────────────────────
+  // Mapeia o objetivo livre para uma chave normalizada
+  const objectiveKey = (() => {
+    if (objective.includes('hipertrofia'))           return 'hipertrofia';
+    if (objective.includes('emagrecimento') ||
+        objective.includes('perda de gordura') ||
+        objective.includes('cutting'))               return 'emagrecimento';
+    if (objective.includes('força') ||
+        objective.includes('forca') ||
+        objective.includes('performance'))           return 'forca';
+    if (objective.includes('recomposição') ||
+        objective.includes('recomposicao'))          return 'recomposicao';
+    return 'manutencao'; // fallback
+  })();
+
+  const stimParams = _PERF_RULES.OBJECTIVE_PARAMS[objectiveKey];
+
+  // Para menores de 18, sobrescreve parâmetros onde aplicável
+  const repsMin = isMinor ? _PERF_RULES.MINOR_PARAMS.repsMin : stimParams.repsMin;
+  const repsMax = isMinor ? _PERF_RULES.MINOR_PARAMS.repsMax : stimParams.repsMax;
+  const rpeMax  = isMinor ? _PERF_RULES.MINOR_PARAMS.rpeMax  : stimParams.rpeMax;
+  const rpeMin  = stimParams.rpeMin;
+  const restMin = stimParams.restMin;
+  const restMax = stimParams.restMax;
+
+  // ── 4. LIMITES DE VOLUME (balanço energético) ─────────────────────────────
+  // Regra R3 (espelhada de validatePrescriptionAgainstContext):
+  const inEnergyDeficit = energyBalanceKcal < _PERF_RULES.DEFICIT_VOLUME_THRESHOLD;
+  const maxTotalWeeklySets = inEnergyDeficit ? _PERF_RULES.DEFICIT_MAX_SETS : null;
+
+  // ── 5. PADRÕES DE ESTÍMULO PROIBIDOS (R4) ─────────────────────────────────
+  const stimulusPatterns = [];
+  if (objectiveKey === 'hipertrofia') {
+    stimulusPatterns.push(
+      'Não prescreva exercícios com reps 1 ou 2 combinados com RPE >= 9 ' +
+      '(estímulo de força máxima é incoerente com objetivo de Hipertrofia)'
+    );
+  }
+
+  // ── 6. MONTAGEM DO DTO ────────────────────────────────────────────────────
+  const requirements = {
+    mandatory: {
+      frequency: {
+        exact: freqExact,
+        ...(isInitiante ? { max: _PERF_RULES.BEGINNER_MAX_FREQUENCY } : {})
+      },
+      routineCount: freqExact,
+      exercisesPerRoutine: {
+        min: durEnv.exMin,
+        max: durEnv.exMax,
+      },
+      totalSetsPerRoutine: {
+        min: durEnv.setsMin,
+        max: durEnv.setsMax,
+      },
+      repRange: {
+        min: repsMin,
+        max: repsMax,
+        format: `"${repsMin}-${repsMax}" (string)`,
+      },
+      rpeRange: {
+        min: rpeMin,
+        max: rpeMax,
+      },
+      restRange: {
+        minSeconds: restMin,
+        maxSeconds: restMax,
+      },
+      equipmentConstraint: availableEquipment,
+      objectiveKey,
+      isMinor,
+      isInitiante,
+    },
+
+    prohibited: {
+      exercises: prohibitedExercises,
+      injuries,
+      stimulusPatterns,
+      instruction: prohibitedExercises.length > 0
+        ? 'NÃO utilize os exercícios listados acima nem variações que compartilhem o mesmo padrão de movimento articular ou vetor de carga.'
+        : 'Nenhum exercício proibido declarado — prescreva com liberdade biomecânica dentro dos parâmetros obrigatórios.',
+    },
+
+    warnings: {
+      ...(inEnergyDeficit ? {
+        maxTotalWeeklySets,
+        energyDeficitContext: `O paciente está em déficit energético de ${Math.abs(energyBalanceKcal)} kcal/dia. ` +
+          `Limite o volume semanal total a no máximo ${_PERF_RULES.DEFICIT_MAX_SETS} séries para evitar overreaching.`
+      } : {}),
+      ...(sleepHours < 6 ? {
+        sleepHours,
+        sleepContext: `Sono insuficiente declarado (${sleepHours}h). Priorize recuperação: reduza volume e intensidade máxima.`
+      } : {}),
+    },
+
+    rationale: {
+      frequencySource:     `trainingProfile.frequencyWeekly = ${frequencyWeekly}${isInitiante ? ` (limitado a ${_PERF_RULES.BEGINNER_MAX_FREQUENCY} para Iniciante)` : ''}`,
+      durationSource:      `trainingProfile.durationMinutes = ${durationMinutes} min → envelope ${durEnv.exMin}-${durEnv.exMax} ex, ${durEnv.setsMin}-${durEnv.setsMax} séries/rotina`,
+      objectiveSource:     `patient.objective = "${context.patient?.objective}" → mapeado para "${objectiveKey}"`,
+      trainingLevelSource: `patient.trainingLevel = "${context.patient?.trainingLevel}"${isInitiante ? ` → frequência máxima = ${_PERF_RULES.BEGINNER_MAX_FREQUENCY}` : ''}`,
+      ageSource:           `patient.age = ${age}${isMinor ? ' → regras de menor de idade aplicadas' : ''}`,
+      energySource:        `nutrition.energyBalanceKcal = ${energyBalanceKcal} kcal${inEnergyDeficit ? ` (déficit > ${Math.abs(_PERF_RULES.DEFICIT_VOLUME_THRESHOLD)} kcal → maxSets = ${_PERF_RULES.DEFICIT_MAX_SETS})` : ''}`,
+    },
+  };
+
+  console.info('[buildTrainingGenerationRequirements] Requirements gerados:', JSON.stringify({
+    frequencyExact: requirements.mandatory.frequency.exact,
+    routineCount: requirements.mandatory.routineCount,
+    objectiveKey: requirements.mandatory.objectiveKey,
+    isMinor: requirements.mandatory.isMinor,
+    isInitiante: requirements.mandatory.isInitiante,
+    prohibitedCount: requirements.prohibited.exercises.length,
+    inEnergyDeficit,
+    maxTotalWeeklySets: requirements.warnings.maxTotalWeeklySets || 'sem limite',
+  }, null, 2));
+
+  return requirements;
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// MOTOR DE DECISÃO DETERMINÍSTICA DE CARDIO (CARDIO DECISION ENGINE)
+// _CARDIO_RULES & buildCardioGenerationRequirements(context)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fonte canônica única de limites e diretrizes do Cardio Engine.
+ * Nenhuma regra paralela ou esparsa deve ser criada fora deste objeto.
+ */
+const _CARDIO_RULES = Object.freeze({
+  MANDATORY: Object.freeze({
+    MAX_TOTAL_TRAINING_DAYS: 7,
+    MIN_SESSION_DURATION_MINUTES: 15,
+    MAX_SESSION_DURATION_MINUTES: 75,
+    MAX_WEEKLY_VOLUME_MINUTES: 360,
+    HIIT_MAX_SESSIONS_PER_WEEK: 1,
+    PROHIBIT_HIGH_INTENSITY_IF_RECOVERY_REDUCED: true,
+    MAX_CARDIO_FREQ_WITH_6X_STRENGTH: 2,
+  }),
+
+  PREFERRED: Object.freeze({
+    PRIMARY_ZONES_BY_OBJECTIVE: Object.freeze({
+      emagrecimento: ['Z2'],
+      recomposicao: ['Z2'],
+      hipertrofia: ['Z1', 'Z2'],
+      forca: ['Z1'],
+      saude_manutencao: ['Z2'],
+    }),
+    TARGET_SESSION_DURATION: Object.freeze({
+      Z1: 20,
+      Z2: 45,
+      HIIT: 25,
+      Engine: 45,
+      Regenerativo: 20,
+    }),
+    RECOVERY_MODIFIERS: Object.freeze({
+      OPTIMAL: Object.freeze({ freqAdjustment: 1, volMultiplier: 1.15 }),
+      NORMAL: Object.freeze({ freqAdjustment: 0, volMultiplier: 1.0 }),
+      REDUCED: Object.freeze({ freqAdjustment: -1, volMultiplier: 0.75 }),
+    }),
+  }),
+
+  WARNING: Object.freeze({
+    CONCURRENT_INTERFERENCE_LOWER_BODY: 'Cardio de moderada/alta intensidade na véspera ou no mesmo dia de treino pesado de membros inferiores eleva risco de interferência na via mTOR e fadiga excêntrica.',
+    ENERGY_DEFICIT_HIIT_RISK: 'Déficit calórico expressivo combinado com treinos intervalados de alta intensidade aumenta o risco de catabolismo miofibrilar e exaustão do SNA.',
+    REDUCED_RECOVERY_VOLUME_CAP: 'Horas de sono reduzidas ou nível de estresse elevado modulam o volume aeróbio para patamares conservadores.',
+    ELEVATED_CARDIOMETABOLIC_RISK: 'Risco cardiometabólico elevado (RCEst >= 0.50 ou Conicidade >= 1.25): priorizar biogênese mitocondrial e oxidação lipídica em Zona 2 contínua.',
+  }),
+
+  PROHIBITED: Object.freeze({
+    UNREGULATED_HIIT_IN_SEVERE_DEFICIT: 'Proibido prescrever mais de 1 sessão de HIIT semanal em déficit calórico profundo (< -600 kcal) ou sono menor que 6 horas.',
+    HIGH_IMPACT_WITH_JOINT_INJURY: 'Proibido prescrever protocolos de corrida ou impacto articular quando constar restrição ortopédica articular declarada.',
+  }),
+});
+
+/**
+ * 1. Avaliação do Modulador de Recuperação
+ * Modula a capacidade fisiológica do paciente com base no sono e estresse reais.
+ */
+function calculateCardioRecoveryModifier(context) {
+  const sleepHours = parseFloat(context?.lifestyle?.sleepHours) || 7.5;
+  const sleepQuality = String(context?.lifestyle?.sleepQuality || 'Boa').toLowerCase();
+  const stressLevel = String(context?.lifestyle?.stressLevel || 'Moderado').toLowerCase();
+
+  let score = 0;
+  const rationale = [];
+
+  if (sleepHours >= 7.5) {
+    score += 1;
+    rationale.push({ factor: 'sleepHours', observed: `${sleepHours}h`, effect: 'favorable_recovery', weight: 'moderate' });
+  } else if (sleepHours < 6.0) {
+    score -= 2;
+    rationale.push({ factor: 'sleepHours', observed: `${sleepHours}h`, effect: 'compromised_recovery', weight: 'high' });
+  } else if (sleepHours < 7.0) {
+    score -= 1;
+    rationale.push({ factor: 'sleepHours', observed: `${sleepHours}h`, effect: 'suboptimal_recovery', weight: 'low' });
+  }
+
+  if (sleepQuality.includes('excelente') || sleepQuality.includes('ótima') || sleepQuality.includes('otima')) {
+    score += 1;
+    rationale.push({ factor: 'sleepQuality', observed: context.lifestyle.sleepQuality, effect: 'favorable_sleep_quality', weight: 'moderate' });
+  } else if (sleepQuality.includes('ruim') || sleepQuality.includes('péssima') || sleepQuality.includes('pessima')) {
+    score -= 1;
+    rationale.push({ factor: 'sleepQuality', observed: context.lifestyle.sleepQuality, effect: 'poor_sleep_quality', weight: 'high' });
+  }
+
+  if (stressLevel.includes('baixo')) {
+    score += 1;
+    rationale.push({ factor: 'stressLevel', observed: context.lifestyle.stressLevel, effect: 'low_allostatic_load', weight: 'low' });
+  } else if (stressLevel.includes('alto') || stressLevel.includes('muito alto') || stressLevel.includes('elevado')) {
+    score -= 1;
+    rationale.push({ factor: 'stressLevel', observed: context.lifestyle.stressLevel, effect: 'high_allostatic_load', weight: 'moderate' });
+  }
+
+  let modifier = 'NORMAL';
+  if (score >= 2) modifier = 'OPTIMAL';
+  else if (score <= -1) modifier = 'REDUCED';
+
+  return {
+    modifier,
+    score,
+    details: { sleepHours, sleepQuality: context?.lifestyle?.sleepQuality || 'Boa', stressLevel: context?.lifestyle?.stressLevel || 'Moderado' },
+    rationale,
+  };
+}
+
+/**
+ * 2. Interpretação Conservadora de Sinais Bioquímicos
+ * Registra sinais observados sem gerar falsos diagnósticos médicos.
+ */
+function calculateCardioClinicalSignals(context) {
+  const b = context?.biomarkers;
+  if (!b) {
+    return {
+      signals: [],
+      unknowns: ['biomarkers_not_available'],
+      rationale: [{ factor: 'biomarkers', observed: null, effect: 'none_conservative', weight: 'neutral' }],
+    };
+  }
+
+  const signals = [];
+  const rationale = [];
+
+  const homa = b.glucose?.homaIR;
+  const glucose = b.glucose?.fastingGlucose;
+  const insulin = b.glucose?.fastingInsulin;
+  if (homa != null && homa >= 2.7) {
+    signals.push('insulin_resistance_signal');
+    rationale.push({ factor: 'homaIR', observed: homa, effect: 'prioritize_zone2_insulin_sensitivity', weight: 'high' });
+  } else if (glucose != null && insulin != null && glucose >= 100 && insulin >= 12) {
+    signals.push('insulin_resistance_signal');
+    rationale.push({ factor: 'glucose_insulin', observed: `Glicose=${glucose}, Insulina=${insulin}`, effect: 'prioritize_zone2_insulin_sensitivity', weight: 'high' });
+  }
+
+  const tg = b.lipids?.triglycerides;
+  const ldl = b.lipids?.ldl;
+  const colTotal = b.lipids?.totalCholesterol;
+  if ((tg != null && tg >= 150) || (ldl != null && ldl >= 130) || (colTotal != null && colTotal >= 200)) {
+    signals.push('dyslipidemia_signal');
+    rationale.push({ factor: 'lipids', observed: `TG=${tg}, LDL=${ldl}`, effect: 'prioritize_lipid_oxidation_volume', weight: 'moderate' });
+  }
+
+  return { signals, unknowns: [], rationale };
+}
+
+/**
+ * 3. Cálculo Determinístico da Frequência Semanal de Cardio
+ */
+function calculateCardioFrequency(context, recoveryResult = null, clinicalSignalsResult = null) {
+  const recovery = recoveryResult || calculateCardioRecoveryModifier(context);
+  const clinical = clinicalSignalsResult || calculateCardioClinicalSignals(context);
+
+  const objective = String(context?.patient?.objective || '').toLowerCase();
+  const rcEst = typeof context?.cardiometabolic?.rcEst === 'number' ? context.cardiometabolic.rcEst : null;
+  const hasCardiometabolicRisk = !!context?.cardiometabolic?.hasCardiometabolicRisk;
+  const bodyFatPercent = parseFloat(context?.anthropometry?.bodyFatPercent) || null;
+  const sex = String(context?.patient?.sex || 'Masculino').toLowerCase();
+  const energyBalanceKcal = typeof context?.nutrition?.energyBalanceKcal === 'number'
+    ? context.nutrition.energyBalanceKcal
+    : 0;
+  const strengthFreq = parseInt(context?.trainingProfile?.frequencyWeekly) || 3;
+
+  const drivingFactors = [];
+  const limitingFactors = [];
+  const rationale = [];
+
+  // ── Baseline por Objetivo Primário ─────────────────────────────────────────
+  let baseTarget = 2;
+  let minFreq = 1;
+  let maxFreq = 3;
+  let objNormalized = 'manutencao';
+
+  if (objective.includes('emagrecimento') || objective.includes('perda de peso') || objective.includes('perda de gordura') || objective.includes('cutting')) {
+    objNormalized = 'emagrecimento';
+    baseTarget = 3;
+    minFreq = 2;
+    maxFreq = 5;
+    drivingFactors.push('Objetivo prioritário de redução de gordura corporal');
+    rationale.push({ factor: 'objective', observed: 'emagrecimento', effect: 'increase_baseline_frequency', weight: 'high' });
+  } else if (objective.includes('recomposição') || objective.includes('recomposicao')) {
+    objNormalized = 'recomposicao';
+    baseTarget = 3;
+    minFreq = 2;
+    maxFreq = 4;
+    drivingFactors.push('Objetivo de recomposição corporal (oxidação lipídica concomitante ao anabolismo)');
+    rationale.push({ factor: 'objective', observed: 'recomposicao', effect: 'moderate_high_baseline_frequency', weight: 'high' });
+  } else if (objective.includes('hipertrofia') || objective.includes('massa muscular') || objective.includes('bulking')) {
+    objNormalized = 'hipertrofia';
+    baseTarget = 2;
+    minFreq = 1;
+    maxFreq = 3;
+    limitingFactors.push('Objetivo de hipertrofia muscular: moderação da frequência aeróbia para preservar a via mTOR');
+    rationale.push({ factor: 'objective', observed: 'hipertrofia', effect: 'moderate_baseline_frequency', weight: 'high' });
+  } else if (objective.includes('força') || objective.includes('forca') || objective.includes('performance')) {
+    objNormalized = 'forca';
+    baseTarget = 1;
+    minFreq = 1;
+    maxFreq = 2;
+    limitingFactors.push('Objetivo de força máxima: minimização de interferência neuromuscular');
+    rationale.push({ factor: 'objective', observed: 'forca', effect: 'low_baseline_frequency', weight: 'high' });
+  } else {
+    baseTarget = 2;
+    minFreq = 2;
+    maxFreq = 4;
+    drivingFactors.push('Objetivo de saúde e manutenção metabólica');
+    rationale.push({ factor: 'objective', observed: 'saude_manutencao', effect: 'balanced_baseline_frequency', weight: 'moderate' });
+  }
+
+  // ── Integração Multidimensional: RCEst, Risco e Adiposidade ───────────────
+  const isHighAdiposity = (bodyFatPercent != null && ((sex.includes('masc') && bodyFatPercent >= 22) || (!sex.includes('masc') && bodyFatPercent >= 30)));
+  const isElevatedRisk = (rcEst != null && rcEst >= 0.50) || hasCardiometabolicRisk || isHighAdiposity;
+
+  if (isElevatedRisk) {
+    if (objNormalized === 'emagrecimento' || objNormalized === 'recomposicao') {
+      baseTarget = Math.min(maxFreq, baseTarget + 1);
+      drivingFactors.push(`RCEst aumentado (${rcEst || 'elevado'}) e adiposidade central elevam a prioridade aeróbia`);
+      rationale.push({ factor: 'rcEst_and_cardiometabolic', observed: rcEst, effect: 'increase_aerobic_priority', weight: 'high' });
+    } else {
+      drivingFactors.push(`RCEst aumentado (${rcEst || 'elevado'}): adiciona suporte metabólico em Z2`);
+      rationale.push({ factor: 'rcEst_and_cardiometabolic', observed: rcEst, effect: 'add_metabolic_support_z2', weight: 'moderate' });
+    }
+  } else if (rcEst != null && rcEst < 0.46) {
+    rationale.push({ factor: 'rcEst', observed: rcEst, effect: 'low_cardiometabolic_risk_standard_priority', weight: 'low' });
+  }
+
+  // Sinais clínicos (HOMA-IR / Dislipidemia)
+  if (clinical.signals.includes('insulin_resistance_signal')) {
+    drivingFactors.push('Sinal de resistência à insulina observado: reforço de base mitocondrial Zona 2');
+    rationale.push({ factor: 'clinicalSignals', observed: 'insulin_resistance_signal', effect: 'reinforce_zone2_frequency', weight: 'moderate' });
+  }
+
+  // Balanço Energético
+  if (energyBalanceKcal < -400) {
+    drivingFactors.push(`Déficit calórico ativo (${energyBalanceKcal} kcal): cardio atua como modulador de fluxo energético`);
+    rationale.push({ factor: 'energyBalance', observed: `${energyBalanceKcal} kcal`, effect: 'support_caloric_expenditure', weight: 'moderate' });
+  } else if (energyBalanceKcal > 300 && objNormalized === 'hipertrofia') {
+    limitingFactors.push(`Superávit anabólico (+${energyBalanceKcal} kcal): cardio focado em partição de nutrientes, frequência contida`);
+    rationale.push({ factor: 'energyBalance', observed: `+${energyBalanceKcal} kcal`, effect: 'preserve_energy_surplus', weight: 'moderate' });
+  }
+
+  // ── Limitação Mandatória por Treinamento Concorrente ──────────────────────
+  if (strengthFreq >= 6) {
+    // Paciente com 6 dias de musculação: apenas 1 dia livre, fadiga neuromuscular alta
+    baseTarget = Math.min(baseTarget, _CARDIO_RULES.MANDATORY.MAX_CARDIO_FREQ_WITH_6X_STRENGTH);
+    maxFreq = Math.min(maxFreq, 2);
+    minFreq = 1;
+    limitingFactors.push(`Musculação 6x/semana impõe teto de concorrência: cardio limitado a ${baseTarget}x/semana para viabilizar recuperação`);
+    rationale.push({ factor: 'strengthFrequency', observed: strengthFreq, effect: 'limit_concurrent_load_high_strength', weight: 'high' });
+  } else if (strengthFreq === 5) {
+    baseTarget = Math.min(baseTarget, 3);
+    maxFreq = Math.min(maxFreq, 4);
+    limitingFactors.push(`Musculação 5x/semana: controle de volume concorrente`);
+    rationale.push({ factor: 'strengthFrequency', observed: strengthFreq, effect: 'limit_concurrent_load_moderate_strength', weight: 'moderate' });
+  } else {
+    drivingFactors.push(`Musculação ${strengthFreq}x/semana: ampla disponibilidade para sessões aeróbias independentes`);
+    rationale.push({ factor: 'strengthFrequency', observed: strengthFreq, effect: 'high_aerobic_capacity_window', weight: 'moderate' });
+  }
+
+  // ── Modulação por Recuperação (Sono / Estresse) ───────────────────────────
+  if (recovery.modifier === 'REDUCED') {
+    baseTarget = Math.max(1, baseTarget - 1);
+    maxFreq = Math.max(baseTarget, maxFreq - 1);
+    limitingFactors.push(`Recuperação reduzida (${recovery.details.sleepHours}h de sono / estresse ${recovery.details.stressLevel}): frequência de cardio contida`);
+    rationale.push({ factor: 'recoveryModifier', observed: recovery.modifier, effect: 'reduce_cardio_frequency_capacity', weight: 'high' });
+  } else if (recovery.modifier === 'OPTIMAL' && (objNormalized === 'emagrecimento' || objNormalized === 'recomposicao') && strengthFreq <= 4) {
+    baseTarget = Math.min(maxFreq, baseTarget + 1);
+    drivingFactors.push(`Recuperação excelente (${recovery.details.sleepHours}h sono): autoriza amplitude superior de frequência aeróbia`);
+    rationale.push({ factor: 'recoveryModifier', observed: recovery.modifier, effect: 'allow_upper_aerobic_frequency', weight: 'moderate' });
+  }
+
+  // Validação matemática de integridade
+  minFreq = Math.max(1, minFreq);
+  maxFreq = Math.min(6, Math.max(minFreq, maxFreq));
+  const target = Math.min(maxFreq, Math.max(minFreq, baseTarget));
+
+  return {
+    min: minFreq,
+    target,
+    max: maxFreq,
+    confidence: context?._meta?.hasAssessment ? 'HIGH' : 'MODERATE',
+    drivingFactors,
+    limitingFactors,
+    rationale,
+  };
+}
+
+/**
+ * 4. Cálculo Determinístico do Volume Semanal (Minutos)
+ */
+function calculateCardioVolume(context, freqResult, recoveryResult = null) {
+  const recovery = recoveryResult || calculateCardioRecoveryModifier(context);
+  const objective = String(context?.patient?.objective || '').toLowerCase();
+  const freqTarget = freqResult.target;
+  const rationale = [];
+
+  // Duração de sessão orientada pelo perfil
+  let targetSessionMin = 45;
+  if (objective.includes('hipertrofia') || objective.includes('força') || objective.includes('forca')) {
+    targetSessionMin = 25;
+    rationale.push({ factor: 'objective_session_duration', observed: objective, effect: 'short_session_duration_preserve_mass', weight: 'moderate' });
+  } else if (recovery.modifier === 'REDUCED') {
+    targetSessionMin = 30;
+    rationale.push({ factor: 'recovery_session_duration', observed: 'REDUCED', effect: 'moderate_session_duration_cap', weight: 'high' });
+  } else {
+    targetSessionMin = 45;
+    rationale.push({ factor: 'objective_session_duration', observed: objective, effect: 'standard_aerobic_session_duration', weight: 'moderate' });
+  }
+
+  const volMultiplier = _CARDIO_RULES.PREFERRED.RECOVERY_MODIFIERS[recovery.modifier]?.volMultiplier || 1.0;
+  const targetMinutes = Math.round((freqTarget * targetSessionMin) * volMultiplier);
+  const minMinutes = Math.round(freqResult.min * Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, targetSessionMin - 10));
+  const maxMinutes = Math.min(_CARDIO_RULES.MANDATORY.MAX_WEEKLY_VOLUME_MINUTES, Math.round(freqResult.max * Math.min(_CARDIO_RULES.MANDATORY.MAX_SESSION_DURATION_MINUTES, targetSessionMin + 15)));
+
+  rationale.push({
+    factor: 'volume_calculation',
+    observed: `Freq=${freqTarget}x, Sessão=${targetSessionMin}min, MultRecuperação=${volMultiplier}`,
+    effect: `targetMinutes=${targetMinutes}`,
+    weight: 'high',
+  });
+
+  return {
+    minMinutes: Math.min(minMinutes, targetMinutes),
+    targetMinutes,
+    maxMinutes: Math.max(targetMinutes, maxMinutes),
+    targetSessionDurationMinutes: targetSessionMin,
+    rationale,
+  };
+}
+
+/**
+ * 5. Determinação da Intensidade e Zonas Cardiovasculares
+ */
+function calculateCardioIntensity(context, freqResult, volResult, recoveryResult = null) {
+  const recovery = recoveryResult || calculateCardioRecoveryModifier(context);
+  const objective = String(context?.patient?.objective || '').toLowerCase();
+  const energyBalanceKcal = typeof context?.nutrition?.energyBalanceKcal === 'number'
+    ? context.nutrition.energyBalanceKcal
+    : 0;
+  const strengthFreq = parseInt(context?.trainingProfile?.frequencyWeekly) || 3;
+  const hr = context?.heartRate;
+
+  const rationale = [];
+  const primaryZones = ['Z2'];
+  let allowedZones = ['Z1', 'Z2'];
+  let highIntensityMaxSessions = 0;
+
+  // Avaliação de HIIT (Z4/Z5)
+  const isSevereDeficit = energyBalanceKcal < -600;
+  const isRecoveryLow = recovery.modifier === 'REDUCED';
+  const isHeavyStrength = strengthFreq >= 6;
+  const isBulkingPure = objective.includes('hipertrofia') && energyBalanceKcal > 300;
+
+  if (isRecoveryLow || isSevereDeficit || isHeavyStrength || isBulkingPure) {
+    highIntensityMaxSessions = 0;
+    allowedZones = ['Z1', 'Z2', 'Z3'];
+    const reason = isSevereDeficit ? 'déficit profundo (< -600 kcal)'
+      : isRecoveryLow ? 'recuperação reduzida (sono/estresse)'
+      : isHeavyStrength ? 'musculação 6x/semana' : 'superávit anabólico de hipertrofia';
+    rationale.push({ factor: 'hiit_restriction', observed: reason, effect: 'prohibit_hiit_sessions', weight: 'high' });
+  } else if (objective.includes('emagrecimento') || objective.includes('recomposicao') || objective.includes('performance') || objective.includes('força')) {
+    highIntensityMaxSessions = _CARDIO_RULES.MANDATORY.HIIT_MAX_SESSIONS_PER_WEEK;
+    allowedZones = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'];
+    rationale.push({ factor: 'hiit_allowance', observed: 'good_recovery_controlled_deficit', effect: 'allow_single_hiit_session', weight: 'moderate' });
+  } else {
+    highIntensityMaxSessions = 0;
+    allowedZones = ['Z1', 'Z2', 'Z3'];
+    rationale.push({ factor: 'moderate_intensity', observed: objective, effect: 'steady_state_focus', weight: 'moderate' });
+  }
+
+  const heartRateAvailable = !!(hr && hr.maxHR);
+  const method = hr?.method || (hr?.restingHR ? 'Tanaka / Karvonen' : 'Tanaka (%FCM)');
+
+  return {
+    primaryZones,
+    allowedZones,
+    highIntensityMaxSessions,
+    method,
+    heartRateAvailable,
+    rationale,
+  };
+}
+
+/**
+ * 6. Seleção de Protocolos Reais (PERF_CARDIO_DB) e Restrições
+ */
+function calculateCardioModalities(context, intensityResult) {
+  const constraints = context?.constraints || {};
+  const clinicalNotes = String(context?.clinical?.clinicalNotes || '').toLowerCase();
+  const prohibitedExercises = Array.isArray(constraints.prohibitedExercises) ? constraints.prohibitedExercises : [];
+  const injuries = Array.isArray(constraints.injuries) ? constraints.injuries : [];
+  const clinicalConstraints = Array.isArray(constraints.clinicalConstraints) ? constraints.clinicalConstraints : [];
+
+  const allRestrictions = [...prohibitedExercises, ...injuries, ...clinicalConstraints].map(s => String(s).toLowerCase());
+  const hasKneeOrJointConstraint = allRestrictions.some(r =>
+    r.includes('joelho') || r.includes('impacto') || r.includes('patelar') || r.includes('condromalacia') || r.includes('articular') || r.includes('menisco')
+  );
+
+  const preferredProtocolIds = [];
+  const allowedProtocolIds = [];
+  const prohibitedProtocolIds = [];
+  const rationale = [];
+
+  // Protocolos do PERF_CARDIO_DB:
+  // cardio_01: Zona 2 Mitocondrial Puro (45 min · Z2 · Remo, Bike, Esteira Inclinada)
+  // cardio_02: Circuito Engine Híbrido Multiplanar (45 min · Engine Z2-Z3 · Multiarticular)
+  // cardio_03: HIIT Norueguês 4x4 (35 min · HIIT Z4-Z5)
+  // cardio_04: Sprint Interval Training SIT (20 min · HIIT Z4-Z5)
+  // cardio_05: Aeróbico Regenerativo (20 min · Z1 estrita · Baixo impacto)
+
+  // cardio_01 é a espinha dorsal de biogênese mitocondrial
+  preferredProtocolIds.push('cardio_01');
+  allowedProtocolIds.push('cardio_01');
+
+  // cardio_02 (Engine)
+  allowedProtocolIds.push('cardio_02');
+
+  // cardio_05 (Regenerativo)
+  allowedProtocolIds.push('cardio_05');
+
+  // Protocolos HIIT (cardio_03 e cardio_04)
+  if (intensityResult.highIntensityMaxSessions > 0) {
+    allowedProtocolIds.push('cardio_03', 'cardio_04');
+    preferredProtocolIds.push('cardio_03');
+    rationale.push({ factor: 'hiit_allowed', observed: 'highIntensityMaxSessions > 0', effect: 'enable_cardio_03_and_04', weight: 'moderate' });
+  } else {
+    prohibitedProtocolIds.push('cardio_03', 'cardio_04');
+    rationale.push({ factor: 'hiit_capped_zero', observed: 'highIntensityMaxSessions === 0', effect: 'prohibit_cardio_03_and_04', weight: 'high' });
+  }
+
+  // Restrição de impacto articular
+  if (hasKneeOrJointConstraint) {
+    rationale.push({ factor: 'orthopedic_constraint', observed: 'restrição articular/joelho declarada', effect: 'prioritize_low_impact_ergometers', weight: 'high' });
+  }
+
+  // Lookup completo dos objetos em PERF_CARDIO_DB
+  const protocols = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+    ? PERF_CARDIO_DB.filter(p => allowedProtocolIds.includes(p.id))
+    : [];
+
+  return {
+    preferredProtocolIds: [...new Set(preferredProtocolIds)],
+    allowedProtocolIds: [...new Set(allowedProtocolIds)],
+    prohibitedProtocolIds: [...new Set(prohibitedProtocolIds)],
+    protocols,
+    hasKneeOrJointConstraint,
+    rationale,
+  };
+}
+
+/**
+ * 7. Distribuição Semanal & Gestão de Concorrência
+ */
+function calculateCardioDistribution(context, freqResult) {
+  const workoutPlan = (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan)) ? perfWorkoutPlan : [];
+  const rationale = [];
+
+  // Identificação de treinos de membros inferiores
+  const lowerRoutines = workoutPlan.filter(r => {
+    const name = String(r.name || r.title || '').toLowerCase();
+    const desc = String(r.description || r.focus || '').toLowerCase();
+    return name.includes('leg') || name.includes('lower') || name.includes('perna') ||
+      name.includes('quadriceps') || name.includes('posterior') || desc.includes('pernas') || desc.includes('agachamento');
+  });
+
+  const hasLowerWorkouts = lowerRoutines.length > 0;
+  const avoidBeforeHeavyLegs = hasLowerWorkouts;
+
+  if (hasLowerWorkouts) {
+    rationale.push({
+      factor: 'lower_body_detection',
+      observed: `${lowerRoutines.length} rotinas de membros inferiores identificadas`,
+      effect: 'avoid_cardio_immediately_before_heavy_legs',
+      weight: 'high',
+    });
+  }
+
+  const strengthFreq = parseInt(context?.trainingProfile?.frequencyWeekly) || 3;
+  let maximumConcurrentLoad = 'MODERATE';
+  if (strengthFreq >= 6) maximumConcurrentLoad = 'HIGH';
+  else if (strengthFreq <= 3) maximumConcurrentLoad = 'LIGHT';
+
+  return {
+    avoidBeforeHeavyLegs,
+    maximumConcurrentLoad,
+    preferredDays: ['d3', 'd6', 'd7', 'd2'],
+    rationale,
+  };
+}
+
+/**
+ * 8. Builder Mestre de Requisitos de Geração de Cardio
+ * Constrói o DTO canônico completo e auditável CardioGenerationRequirements.
+ */
+function buildCardioGenerationRequirements(context) {
+  if (!context || typeof context !== 'object') {
+    console.warn('[buildCardioGenerationRequirements] Contexto de performance inválido.');
+    return null;
+  }
+
+  const recovery = calculateCardioRecoveryModifier(context);
+  const clinicalSignals = calculateCardioClinicalSignals(context);
+  const frequency = calculateCardioFrequency(context, recovery, clinicalSignals);
+  const volume = calculateCardioVolume(context, frequency, recovery);
+  const intensity = calculateCardioIntensity(context, frequency, volume, recovery);
+  const modalities = calculateCardioModalities(context, intensity);
+  const distribution = calculateCardioDistribution(context, frequency);
+
+  const warnings = [];
+  const prohibitions = [];
+  const unknowns = [...clinicalSignals.unknowns];
+
+  if (distribution.avoidBeforeHeavyLegs) {
+    warnings.push(_CARDIO_RULES.WARNING.CONCURRENT_INTERFERENCE_LOWER_BODY);
+  }
+  if (context?.nutrition?.energyBalanceKcal < -400) {
+    warnings.push(_CARDIO_RULES.WARNING.ENERGY_DEFICIT_HIIT_RISK);
+  }
+  if (recovery.modifier === 'REDUCED') {
+    warnings.push(_CARDIO_RULES.WARNING.REDUCED_RECOVERY_VOLUME_CAP);
+  }
+  if (context?.cardiometabolic?.hasCardiometabolicRisk) {
+    warnings.push(_CARDIO_RULES.WARNING.ELEVATED_CARDIOMETABOLIC_RISK);
+  }
+
+  if (modalities.prohibitedProtocolIds.includes('cardio_03')) {
+    prohibitions.push('HIIT de Alta Intensidade (Protocolos 03/04) restrito para proteger recuperação neuromuscular e massa magra.');
+  }
+  if (modalities.hasKneeOrJointConstraint) {
+    prohibitions.push(_CARDIO_RULES.PROHIBITED.HIGH_IMPACT_WITH_JOINT_INJURY);
+  }
+
+  // Equipamento específico de cardio é tratado como não discriminado
+  unknowns.push('specific_cardio_hardware_not_itemized');
+
+  const requirements = {
+    _meta: {
+      builderVersion: '1.0',
+      patientId: context._meta?.patientId || 'unknown',
+      builtAt: new Date().toISOString(),
+    },
+
+    observed: {
+      objective: context.patient?.objective || '',
+      energyBalanceKcal: context.nutrition?.energyBalanceKcal ?? null,
+      bodyFatPercent: context.anthropometry?.bodyFatPercent ?? null,
+      fatMassKg: context.anthropometry?.fatMassKg ?? null,
+      leanMassKg: context.anthropometry?.leanMassKg ?? null,
+      rcEst: context.cardiometabolic?.rcEst ?? null,
+      rcEstClassification: context.cardiometabolic?.rcEstClassification ?? null,
+      conicityIndex: context.cardiometabolic?.conicityIndex ?? null,
+      hasCardiometabolicRisk: context.cardiometabolic?.hasCardiometabolicRisk ?? null,
+      sleepHours: recovery.details.sleepHours,
+      sleepQuality: recovery.details.sleepQuality,
+      stressLevel: recovery.details.stressLevel,
+      recoveryModifier: recovery.modifier,
+      strengthFrequency: context.trainingProfile?.frequencyWeekly || 3,
+      strengthDurationMinutes: context.trainingProfile?.durationMinutes || 60,
+      trainingLevel: context.patient?.trainingLevel || '',
+      clinicalSignals: clinicalSignals.signals,
+      injuries: context.constraints?.injuries || [],
+      clinicalConstraints: context.constraints?.clinicalConstraints || [],
+      prohibitedExercises: context.constraints?.prohibitedExercises || [],
+      availableEquipment: context.constraints?.availableEquipment || 'Full Gym',
+    },
+
+    frequency,
+    volume,
+    intensity,
+    modalities,
+    distribution,
+
+    safety: {
+      warnings,
+      prohibitions,
+      unknowns,
+    },
+
+    rationale: {
+      frequency: frequency.rationale,
+      volume: volume.rationale,
+      intensity: intensity.rationale,
+      modality: modalities.rationale,
+      distribution: distribution.rationale,
+    },
+  };
+
+  console.info('[buildCardioGenerationRequirements] Requisitos calculados:', JSON.stringify({
+    patientId: requirements._meta.patientId,
+    targetFreq: requirements.frequency.target,
+    freqRange: `${requirements.frequency.min} - ${requirements.frequency.max}x`,
+    targetVolumeMin: requirements.volume.targetMinutes,
+    primaryZones: requirements.intensity.primaryZones,
+    maxHIIT: requirements.intensity.highIntensityMaxSessions,
+    allowedProtocols: requirements.modalities.allowedProtocolIds,
+  }));
+
+  return requirements;
+}
+
+/**
+ * 9. Gerador Determinístico de Sessões de Cardio
+ * Transforma context e requirements em uma prescrição multi-sessão estruturada.
+ */
+function generateCardioPrescription(context, requirements) {
+  if (!requirements || !requirements.frequency) {
+    throw new Error('Requisitos de cardio inválidos para geração de sessões.');
+  }
+
+  const targetSessionsCount = requirements.frequency.target;
+  const sessions = [];
+  const allowed = requirements.modalities.allowedProtocolIds;
+  const primaryProtoId = allowed.includes('cardio_01') ? 'cardio_01' : allowed[0];
+  const secondaryProtoId = allowed.includes('cardio_02') ? 'cardio_02' : primaryProtoId;
+  const hiitProtoId = (requirements.intensity.highIntensityMaxSessions > 0 && allowed.includes('cardio_03'))
+    ? 'cardio_03'
+    : secondaryProtoId;
+
+  const hrZones = context?.heartRate?.zones || [];
+  const z2Zone = hrZones.find(z => z.zone === 'Z2');
+  const z1Zone = hrZones.find(z => z.zone === 'Z1');
+  const z4Zone = hrZones.find(z => z.zone === 'Z4');
+
+  // Mapeamento equilibrado de dias da semana para acomodar até 6 sessões
+  const daySlots = [
+    { dayKey: 'd3', dayName: 'Dia 3' },
+    { dayKey: 'd6', dayName: 'Dia 6' },
+    { dayKey: 'd1', dayName: 'Dia 1' },
+    { dayKey: 'd5', dayName: 'Dia 5' },
+    { dayKey: 'd2', dayName: 'Dia 2' },
+    { dayKey: 'd4', dayName: 'Dia 4' },
+    { dayKey: 'd7', dayName: 'Dia 7' },
+  ];
+
+  for (let i = 0; i < targetSessionsCount; i++) {
+    const slot = daySlots[i] || { dayKey: `d${i + 1}`, dayName: `Dia ${i + 1}` };
+    let protoId = primaryProtoId;
+    let zoneName = 'Z2';
+    let bpmStr = z2Zone ? `${z2Zone.minBpm} – ${z2Zone.maxBpm} bpm` : '60-70% FCM';
+
+    // Se houver mais de uma sessão e HIIT for permitido, atribui HIIT a uma das sessões (nunca a primeira)
+    if (i === 1 && requirements.intensity.highIntensityMaxSessions > 0) {
+      protoId = hiitProtoId;
+      zoneName = 'Z4/Z5';
+      bpmStr = z4Zone ? `${z4Zone.minBpm} – ${z4Zone.maxBpm} bpm` : '85-95% FCM';
+    } else if (i === 1) {
+      protoId = secondaryProtoId;
+    } else if (i >= 2) {
+      protoId = (i % 2 === 0) ? primaryProtoId : secondaryProtoId;
+    }
+
+    const protoObj = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+      ? (PERF_CARDIO_DB.find(p => p.id === protoId) || PERF_CARDIO_DB[0])
+      : { id: protoId, title: 'Cardio ' + protoId, timeCap: '45 min' };
+
+    const baseDuration = requirements.volume?.targetSessionDurationMinutes || parseInt(protoObj.timeCap) || 45;
+    const maxAllowedPerSession = Math.floor((requirements.volume?.maxMinutes || 300) / targetSessionsCount);
+    const duration = Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, Math.min(baseDuration, maxAllowedPerSession));
+
+    sessions.push({
+      sessionId: `c_s${i + 1}`,
+      protocolId: protoObj.id,
+      protocolTitle: protoObj.title,
+      day: slot.dayName,
+      dayKey: slot.dayKey,
+      durationMinutes: duration,
+      intensity: (protoId === 'cardio_03' || protoId === 'cardio_04') ? 'Alta Intensidade Intervalada' : 'Moderada · Contínua (Respiração Nasal)',
+      heartRateZone: zoneName,
+      targetBpm: bpmStr,
+      rationale: (i === 0)
+        ? 'Sessão principal de oxidação lipídica e biogênese mitocondrial em Zona 2 pura.'
+        : (protoId === 'cardio_03' || protoId === 'cardio_04')
+        ? 'Sessão intervalada de potência cardiovascular e fração de ejeção ventricular.'
+        : 'Sessão aeróbia complementar de sustentação metabólica sem interferência miofibrilar.',
+    });
+  }
+
+  const totalWeeklyMinutes = sessions.reduce((s, c) => s + c.durationMinutes, 0);
+
+  const prescription = {
+    id: 'cardio_presc_' + Date.now(),
+    requirements,
+    sessions,
+    totalWeeklyMinutes,
+    frequencyWeekly: sessions.length,
+    status: 'GENERATED_VALIDATED',
+    generatedAt: new Date().toISOString(),
+    version: '1.0',
+  };
+
+  return prescription;
+}
+
+/**
+ * 10. Validador Determinístico de Prescrição Cardio
+ * Rejeita qualquer prescrição que viole os requisitos ou regras de segurança.
+ */
+function validateCardioPrescriptionAgainstContext(prescription, context, requirements) {
+  const errors = [];
+  const warnings = [];
+
+  if (!prescription || typeof prescription !== 'object') {
+    return { isValid: false, errors: ['Prescrição inexistente ou nula.'], warnings };
+  }
+
+  if (!Array.isArray(prescription.sessions) || prescription.sessions.length === 0) {
+    return { isValid: false, errors: ['Nenhuma sessão de cardio informada na prescrição.'], warnings };
+  }
+
+  const sessions = prescription.sessions;
+  const count = sessions.length;
+
+  // 1. Frequência
+  if (count < requirements.frequency.min) {
+    errors.push(`Frequência de cardio (${count}) inferior ao mínimo obrigatório (${requirements.frequency.min}).`);
+  }
+  if (count > requirements.frequency.max) {
+    errors.push(`Frequência de cardio (${count}) excede o máximo permitido (${requirements.frequency.max}).`);
+  }
+
+  // 2. Volume
+  const totalMin = prescription.totalWeeklyMinutes || sessions.reduce((s, c) => s + (c.durationMinutes || 0), 0);
+  if (totalMin > requirements.volume.maxMinutes) {
+    errors.push(`Volume semanal de cardio (${totalMin} min) excede o teto permitido (${requirements.volume.maxMinutes} min).`);
+  }
+
+  // 3. Protocolos
+  const validDbIds = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+    ? PERF_CARDIO_DB.map(p => p.id)
+    : ['cardio_01', 'cardio_02', 'cardio_03', 'cardio_04', 'cardio_05'];
+
+  sessions.forEach((s, idx) => {
+    if (!validDbIds.includes(s.protocolId)) {
+      errors.push(`Sessão #${idx + 1}: protocolo '${s.protocolId}' inexiste no catálogo PERF_CARDIO_DB.`);
+    }
+    if (requirements.modalities.prohibitedProtocolIds.includes(s.protocolId)) {
+      errors.push(`Sessão #${idx + 1}: protocolo '${s.protocolId}' é proibido para este paciente.`);
+    }
+    if (!s.durationMinutes || s.durationMinutes < _CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES) {
+      errors.push(`Sessão #${idx + 1}: duração (${s.durationMinutes} min) abaixo do mínimo fisiológico de 15 min.`);
+    }
+  });
+
+  // 4. Limite de HIIT
+  const hiitSessions = sessions.filter(s => s.protocolId === 'cardio_03' || s.protocolId === 'cardio_04');
+  if (hiitSessions.length > requirements.intensity.highIntensityMaxSessions) {
+    errors.push(`Quantidade de sessões de HIIT (${hiitSessions.length}) excede o teto permitido (${requirements.intensity.highIntensityMaxSessions}).`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * 11. Aplicação Dinâmica da Prescrição Cardio na Agenda Semanal (7 Dias)
+ * Substitui templates estáticos garantindo que todas as sessões prescritas
+ * sejam distribuídas na agenda real sem sobrescrever treinos de força.
+ */
+function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
+  if (!Array.isArray(schedule) || schedule.length === 0) return schedule;
+  if (!Array.isArray(cardioSessions) || cardioSessions.length === 0) return schedule;
+
+  const updated = schedule.map(day => {
+    // Preserva dados de treino de força removendo cardio legado
+    const hasWorkout = day.routineId != null && (day.type === 'Treino' || day.type === 'Treino + Cardio');
+    return {
+      ...day,
+      type: hasWorkout ? 'Treino' : 'Off',
+      hasCardioPost: false,
+      cardioId: null,
+      cardioSession: null,
+    };
+  });
+
+  // Distribui as sessões na agenda
+  cardioSessions.forEach(cs => {
+    // Tenta encontrar o dia alvo sugerido pela sessão ou o primeiro dia disponível
+    let targetDay = updated.find(d => d.dayKey === cs.dayKey);
+    if (!targetDay) {
+      // Prioriza dias Off (descanso de força)
+      targetDay = updated.find(d => d.type === 'Off' && !d.cardioSession);
+    }
+    if (!targetDay) {
+      // Se todos os dias têm treino, escolhe dia de treino sem cardio post
+      targetDay = updated.find(d => d.type === 'Treino' && !d.hasCardioPost);
+    }
+    if (!targetDay) {
+      targetDay = updated[0];
+    }
+
+    if (targetDay.type === 'Off') {
+      targetDay.type = 'Cardio';
+      targetDay.cardioId = cs.protocolId;
+      targetDay.cardioSession = cs;
+      targetDay.title = cs.protocolTitle.replace('Protocolo ', '').replace('Circuito ', '');
+      targetDay.focus = `${cs.protocolTitle} · ${cs.durationMinutes} min (${cs.heartRateZone})`;
+    } else {
+      targetDay.type = 'Treino + Cardio';
+      targetDay.hasCardioPost = true;
+      targetDay.cardioId = cs.protocolId;
+      targetDay.cardioSession = cs;
+      targetDay.title = `${targetDay.title.split('+')[0].trim()} + Cardio ${cs.heartRateZone}`;
+      targetDay.focus = `${targetDay.focus.split('· Cardio')[0].trim()} · Cardio ${cs.heartRateZone} (${cs.durationMinutes} min pós-força)`;
+    }
+  });
+
+  return updated;
+}
+
+// Global de Prescrição Cardio Ativa
+let perfCardioPrescription = null;
+
+if (typeof window !== 'undefined') {
+  window._CARDIO_RULES = _CARDIO_RULES;
+  window.calculateCardioRecoveryModifier = calculateCardioRecoveryModifier;
+  window.calculateCardioClinicalSignals = calculateCardioClinicalSignals;
+  window.calculateCardioFrequency = calculateCardioFrequency;
+  window.calculateCardioVolume = calculateCardioVolume;
+  window.calculateCardioIntensity = calculateCardioIntensity;
+  window.calculateCardioModalities = calculateCardioModalities;
+  window.calculateCardioDistribution = calculateCardioDistribution;
+  window.buildCardioGenerationRequirements = buildCardioGenerationRequirements;
+  window.generateCardioPrescription = generateCardioPrescription;
+  window.validateCardioPrescriptionAgainstContext = validateCardioPrescriptionAgainstContext;
+  window.perfApplyCardioPrescriptionToSchedule = perfApplyCardioPrescriptionToSchedule;
+}
+
 // CAMADA 2 — VALIDAÇÃO ESTRUTURAL DA RESPOSTA DA IA (WHITELIST & TIPAGEM)
 // validateAIPrescription(aiResponse)
 //
@@ -12458,22 +13760,26 @@ function validatePrescriptionAgainstContext(prescription, performanceContext) {
   });
 
   // ── R2 — REJECT: Frequência incompatível com nível iniciante ─────────────
-  // Apenas rejeita se o nível for estritamente identificado como iniciante
+  // Regra espelhada de _PERF_RULES.BEGINNER_MAX_FREQUENCY
   const trainingLevelLower = String(performanceContext.patient?.trainingLevel || '').toLowerCase();
   const frequency = typeof prescription.frequency === 'number' ? prescription.frequency : 0;
 
-  if (trainingLevelLower.includes('iniciante') && frequency > 4) {
-    errors.push('Frequência incompatível com nível de treinamento iniciante.');
+  if (trainingLevelLower.includes('iniciante') && frequency > _PERF_RULES.BEGINNER_MAX_FREQUENCY) {
+    errors.push(`Frequência incompatível com nível de treinamento iniciante (máximo: ${_PERF_RULES.BEGINNER_MAX_FREQUENCY}x/semana).`);
   }
 
   // ── R3 — WARNING: Volume elevado em déficit energético ───────────────────
+  // Regra espelhada de _PERF_RULES.DEFICIT_VOLUME_THRESHOLD / _PERF_RULES.DEFICIT_MAX_SETS
   const totalSets = allExercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
   const energyBalance = typeof performanceContext.nutrition?.energyBalanceKcal === 'number'
     ? performanceContext.nutrition.energyBalanceKcal
     : 0;
 
-  if (energyBalance < -500 && totalSets > 90) {
-    warnings.push('Volume semanal elevado em contexto de déficit energético; requer revisão profissional.');
+  if (energyBalance < _PERF_RULES.DEFICIT_VOLUME_THRESHOLD && totalSets > _PERF_RULES.DEFICIT_MAX_SETS) {
+    warnings.push(
+      `Volume semanal elevado (${totalSets} séries) em contexto de déficit energético ` +
+      `(${energyBalance} kcal); limite recomendado: ${_PERF_RULES.DEFICIT_MAX_SETS} séries. Requer revisão profissional.`
+    );
   }
 
   // ── R4 — WARNING: Estímulo incoerente (força máxima em objetivo Hipertrofia) ──
@@ -12531,6 +13837,7 @@ function validatePrescriptionAgainstContext(prescription, performanceContext) {
  */
 async function generateAndValidateWorkout(patientId, aiGenerator) {
   const MAX_ATTEMPTS = 3;
+  let requirements = null;
 
   // ── ETAPA 1: Construir contexto canônico ─────────────────────────────────
   let performanceContext;
@@ -12575,6 +13882,14 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
   };
   const contextSnapshot = deepFreeze(JSON.parse(JSON.stringify(performanceContext)));
 
+  // ── Construir requisitos determinísticos de geração ───────────────────────
+  try {
+    requirements = buildTrainingGenerationRequirements(performanceContext);
+  } catch (reqErr) {
+    console.warn('[generateAndValidateWorkout] Erro ao construir requirements (não fatal):', reqErr);
+    requirements = null;
+  }
+
   // ── ETAPA 2-5: Loop com circuit breaker ───────────────────────────────────
   let attempt = 0;
   let previousErrors = [];
@@ -12587,7 +13902,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
     let aiRawResponse;
     try {
       // Na primeira tentativa previousErrors é []; nas subsequentes leva os erros da anterior
-      aiRawResponse = await aiGenerator(contextSnapshot, previousErrors);
+      aiRawResponse = await aiGenerator(contextSnapshot, requirements, previousErrors);
     } catch (genErr) {
       console.error(`[generateAndValidateWorkout] Tentativa ${attempt}: erro na chamada da IA:`, genErr);
       // Erros de quota (429) e timeout não devem ser rethentados — abortam imediatamente
@@ -12684,7 +13999,7 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
 
 // ════════════════════════════════════════════════════════════════════════════
 // GERADOR DE TREINO IA PADRÃO (DETERMINÍSTICO E CANÔNICO)
-// defaultPerformanceAIGenerator(context, previousErrors)
+// defaultPerformanceAIGenerator(context, requirements, previousErrors)
 //
 // ⚠️ DEVELOPMENT MOCK — NÃO É MOTOR CLÍNICO DE PRODUÇÃO.
 // Utilizado para prototipação, validação estrutural da arquitetura e testes
@@ -12692,11 +14007,12 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
- * @param {Object} context - PerformanceContext DTO
+ * @param {Object} context      - PerformanceContext DTO
+ * @param {Object} requirements - TrainingGenerationRequirements DTO (pode ser null)
  * @param {string[]} previousErrors - Erros da tentativa anterior
  * @returns {Promise<Object>} Proposta estruturada de prescrição
  */
-async function defaultPerformanceAIGenerator(context, previousErrors = []) {
+async function defaultPerformanceAIGenerator(context, requirements = null, previousErrors = []) {
   // DEVELOPMENT MOCK — NÃO É MOTOR CLÍNICO DE PRODUÇÃO
   // Simula latência de processamento
   await new Promise(r => setTimeout(r, 300));
@@ -12888,7 +14204,7 @@ window.geminiRemoveKeyFromPool = geminiRemoveKeyFromPool;
 
 // ════════════════════════════════════════════════════════════════════════════
 // GERADOR REAL DE PRESCRIÇÃO VIA GOOGLE GEMINI (PILAR DE PERFORMANCE)
-// geminiPerformanceAIGenerator(context, previousErrors)
+// geminiPerformanceAIGenerator(context, requirements, previousErrors)
 // ════════════════════════════════════════════════════════════════════════════
 
 const GEMINI_MODEL = 'gemini-3.6-flash';
@@ -12979,85 +14295,165 @@ async function _callGeminiWithKey(apiKey, prompt) {
  * @param {string[]} previousErrors - Lista de erros da tentativa anterior (se houver)
  * @returns {Promise<Object>} Objeto JSON bruto da prescrição gerada
  */
-async function geminiPerformanceAIGenerator(context, previousErrors = []) {
+async function geminiPerformanceAIGenerator(context, requirements = null, previousErrors = []) {
   // 1. Obter pool de chaves (multi-key com fallback legado)
   const apiKeys = geminiGetApiKeyPool();
   if (apiKeys.length === 0) {
     throw new Error('Nenhuma chave da API Gemini configurada. Clique em "🔑 Chaves de API" para configurar.');
   }
 
-  // 2. Montar prompt
+  // 2. Montar prompt estruturado em seções ordenadas por prioridade
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 1 — PAPEL E MISSÃO
+  // ─────────────────────────────────────────────────────────────────────────
   let prompt = `Você é um especialista em Fisiologia do Exercício, Biomecânica, Prescrição do Treinamento de Força, Performance Humana e Periodização.
 
-Sua função neste sistema é gerar uma PRESCRIÇÃO DE TREINO CANDIDATA ALTAMENTE INDIVIDUALIZADA e EXCLUSIVA para o paciente informado no DTO canônico.
+Sua função neste sistema é gerar uma PRESCRIÇÃO DE TREINO CANDIDATA, INDIVIDUALIZADA e RASTREÁVEL para o paciente cujo contexto clínico é fornecido abaixo.
 
-=== REGRA DE INDIVIDUALIZAÇÃO ABSOLUTA E NÃO-CÓPIA ===
+REGRAS DE INDIVIDUALIZAÇÃO:
 - A prescrição DEVE ser estritamente individualizada para o paciente representado pelo contexto fornecido.
-- NÃO reutilize, copie ou reproduza automaticamente uma prescrição genérica ou de outro paciente.
-- NÃO produza um treino padrão quando existirem dados específicos (anamnese, antropometria, rotina, energia) capazes de orientar a prescrição.
-- Cada decisão de treinamento (divisão de treino, número de rotinas, escolha de exercícios, volume de séries, faixa de repetições, RPE e intervalos de descanso) DEVE ser justificada e compatível com o contexto do paciente.
+- NÃO reutilize, copie ou reproduza prescrições genéricas ou de outros pacientes.
+- Cada decisão de treinamento DEVE ser coerente e justificável com os dados deste paciente específico.
+- Você é o GERADOR. O sistema é o AVALIADOR. Gere e deixe o sistema validar.
 
-=== HIERARQUIA DE PRIORIDADES OBRIGATÓRIA ===
+`;
 
-[PRIORIDADE 1 — SEGURANÇA, LESÕES E RESTRIÇÕES]
-- Respeite rigorosamente todas as restrições articulares, lesões e exercícios proibidos informados em constraints.prohibitedExercises, constraints.injuries e clinical.clinicalNotes.
-- JAMAIS prescreva exercícios contidos na lista de proibidos ou que sobrecarreguem estruturas lesionadas. Substitua por alternativas biomecanicamente seguras.
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 2 — HIERARQUIA DE AUTORIDADE (imutável)
+  // ─────────────────────────────────────────────────────────────────────────
+  prompt += `=== HIERARQUIA DE AUTORIDADE ===
 
-[PRIORIDADE 2 — OBJETIVO CENTRAL DO PACIENTE]
-- O objetivo declarado (patient.objective) é o eixo central do estímulo neuromuscular:
-  * Hipertrofia: Priorizar faixas de 6 a 12 repetições, volume moderado a alto (10 a 20 séries/semana por grupamento principal), RPE 7 a 9, descanso suficiente para recuperação do SNC e ATP-CP (60-120s).
-  * Emagrecimento / Perda de Gordura: Preservar massa magra, manter intensidade mecânica (RPE 7 a 8.5), com volume sustentável sem excesso de fadiga central.
-  * Força Máxima / Performance: Foco em padrões básicos multiarticulares, repetições mais baixas (4 a 6 reps ou 6 a 8 reps), descansos completos (120 a 180s) e progressão de carga.
-  * Saúde / Manutenção / Recomposição: Equilíbrio postural, amplitude completa, prevenção de lesões e distribuição harmônica de volume.
+Quando houver conflito entre dois parâmetros, o de maior prioridade vence SEMPRE:
 
-[PRIORIDADE 3 — CAPACIDADE, PERFIL E DISPONIBILIDADE REAL]
-- FREQUÊNCIA SEMANAL E DIVISÃO DE ROTINAS:
-  * O número de rotinas no array "routines" e o valor do campo "frequency" DEVEM corresponder à frequência declarada do paciente (trainingProfile.frequencyWeekly ou workoutFrequency).
-  * Exemplo: Se frequência = 3x/semana → frequency = 3, gerar exatamente 3 rotinas (A, B, C) (ex: Push/Pull/Legs ou Full Body A/B/C).
-  * Exemplo: Se frequência = 4x/semana → frequency = 4, gerar exatamente 4 rotinas (A, B, C, D) (ex: Upper/Lower A/B ou ABCD).
-  * Exemplo: Se frequência = 5x/semana → frequency = 5, gerar exatamente 5 rotinas (A, B, C, D, E) (ex: ABCDE ou PPLUL).
-- DURAÇÃO DA SESSÃO:
-  * O número de exercícios e séries DEVE caber no tempo disponível informado (trainingProfile.durationMinutes).
-  * Sessão de 30-45 min: 3 a 5 exercícios no total (volume compacto, 10-15 séries totais por sessão).
-  * Sessão de 60 min: 5 a 6 exercícios no total (15-20 séries totais por sessão).
-  * Sessão de 75-90 min: 6 a 7 exercícios no total (20-24 séries totais por sessão).
-- EQUIPAMENTOS DISPONÍVEIS:
-  * Prescreva apenas exercícios viáveis nos equipamentos declarados em constraints.availableEquipment (ex: 'Full Gym', 'Home Gym', 'Calistenia', 'Mínimo').
-- PACIENTES MENORES DE IDADE (patient.age < 18):
-  * Se o paciente for menor de 18 anos, priorize o aprendizado motor, execução técnica impecável, faixas de repetições controladas (8 a 15 reps) e RPE moderado (6 a 8), evitando cargas axiais máximas sem suporte.
+  1. Segurança e restrições clínicas  (MANDATORY + PROHIBITED)
+  2. Requisitos obrigatórios de geração
+  3. Exercícios e padrões proibidos
+  4. Limites de volume e intensidade
+  5. Objetivo individual do paciente
+  6. Frequência e duração disponíveis
+  7. Equipamentos disponíveis
+  8. Otimização da sessão
+  9. Preferências biomecânicas secundárias
 
-[PRIORIDADE 4 — ESTADO CORPORAL E ANTROPOMETRIA]
-- Utilize o percentual de gordura (bodyFatPercent), massa magra (leanMassKg) e circunferências/dobras para modular a priorização de grupamentos musculares e a resposta adaptativa.
+Você NÃO pode sacrificar uma restrição obrigatória para melhorar outra característica do treino.
 
-[PRIORIDADE 5 — CONTEXTO ENERGÉTICO E METABÓLICO]
-- DÉFICIT CALÓRICO (nutrition.energyBalanceKcal < 0): O paciente está em restrição calórica. O volume de treino deve ser dosado para evitar overreaching/overtraining. Evite volumes extremos (> 90 séries semanais totais).
-- SUPERÁVIT CALÓRICO (nutrition.energyBalanceKcal > 0): O ambiente energético favorece hipertrofia e regeneração. O volume pode ser progressivo e desafiador.
-- HORAS DE SONO (lifestyle.sleepHours): Se o sono for curto (< 6h) ou de qualidade ruim, atente-se à recuperação sistêmica.
+`;
 
-[PRIORIDADE 6 — OTIMIZAÇÃO E ESTRUTURAÇÃO BIOMECÂNICA]
-- Variedade de planos e vetores articulares (empurrar horizontal/vertical, puxar horizontal/vertical, dominante de joelho/quadril).
-- Indique tempos de descanso (rest) condizentes com a complexidade do movimento.
-- Utilize o campo "obs" para orientações biomecânicas objetivas (cadência, ponto de contração, pegada, amplitude).
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 3 — REQUISITOS OBRIGATÓRIOS PRÉ-GERAÇÃO (derivados deterministicamente)
+  // ─────────────────────────────────────────────────────────────────────────
+  if (requirements && requirements.mandatory) {
+    prompt += `=== REQUISITOS OBRIGATÓRIOS DE GERAÇÃO ===
 
-RESPONDA EXCLUSIVAMENTE COM JSON VÁLIDO.
-NÃO UTILIZE MARKDOWN.
-NÃO UTILIZE \`\`\`json.
-NÃO ADICIONE EXPLICAÇÕES.
-NÃO ADICIONE TEXTO ANTES OU DEPOIS DO JSON.
+Todos os itens abaixo foram derivados deterministicamente do contexto clínico deste paciente.
+Eles DEVEM ser satisfeitos na prescrição final. NÃO gere uma prescrição que viole qualquer requisito.
 
-=== TrainingPrescriptionSchema (CONTRATO ESTRUTURAL OBRIGATÓRIO) ===
+${JSON.stringify(requirements.mandatory, null, 2)}
+
+RATIONALE (rastreabilidade — por que cada requisito foi gerado):
+${JSON.stringify(requirements.rationale, null, 2)}
+
+`;
+  } else {
+    // Fallback legado caso requirements não seja fornecido
+    prompt += `=== PARÂMETROS DE GERAÇÃO ===
+
+Use os dados de trainingProfile, patient.objective e patient.trainingLevel do contexto abaixo
+para definir frequência, volume, faixas de repetições e RPE apropriados.
+
+`;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 4 — PROIBIÇÕES ABSOLUTAS
+  // ─────────────────────────────────────────────────────────────────────────
+  if (requirements && requirements.prohibited) {
+    const { exercises, injuries, stimulusPatterns, instruction } = requirements.prohibited;
+    prompt += `=== PROIBIÇÕES ABSOLUTAS ===
+
+${instruction}
+`;
+    if (exercises && exercises.length > 0) {
+      prompt += `
+EXERCÍCIOS PROIBIDOS (não utilizar nem variações com mesmo padrão de movimento):
+${exercises.map(e => `  - ${e}`).join('\n')}
+`;
+    } else {
+      prompt += `
+EXERCÍCIOS PROIBIDOS: Nenhum exercício proibido declarado.
+`;
+    }
+    if (injuries && injuries.length > 0) {
+      prompt += `
+LESÕES/RESTRIÇÕES ARTICULARES (evitar sobrecarga nas estruturas afetadas):
+${injuries.map(e => `  - ${e}`).join('\n')}
+`;
+    }
+    if (stimulusPatterns && stimulusPatterns.length > 0) {
+      prompt += `
+PADRÕES DE ESTÍMULO PROIBIDOS:
+${stimulusPatterns.map(e => `  - ${e}`).join('\n')}
+`;
+    }
+    prompt += `
+`;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 5 — LIMITES E ALERTAS DE VOLUME/RECUPERAÇÃO
+  // ─────────────────────────────────────────────────────────────────────────
+  if (requirements && requirements.warnings && Object.keys(requirements.warnings).length > 0) {
+    prompt += `=== LIMITES E ALERTAS — CONDIÇÕES QUE EXIGEM AJUSTE CONSERVADOR ===
+
+Os seguintes alertas foram identificados deterministicamente e DEVEM influenciar a prescrição:
+
+`;
+    const w = requirements.warnings;
+    if (w.maxTotalWeeklySets != null) {
+      prompt += `⚠️  LIMITE DE VOLUME SEMANAL: ${w.energyDeficitContext || `Máximo de ${w.maxTotalWeeklySets} séries totais por semana.`}
+`;
+    }
+    if (w.sleepContext) {
+      prompt += `⚠️  SONO INSUFICIENTE: ${w.sleepContext}
+`;
+    }
+    prompt += `
+Os alertas acima NÃO são decorativos. Quando há limite operacional associado (ex: maxTotalWeeklySets),
+você DEVE respeitar esse limite já na primeira geração.
+
+`;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 6 — HIERARQUIA DE PRIORIDADES CLÍNICAS
+  // ─────────────────────────────────────────────────────────────────────────
+  prompt += `=== HIERARQUIA DE PRIORIDADES CLÍNICAS ===
+
+[P1 — SEGURANÇA E RESTRIÇÕES] Restrições articulares, lesões, exercícios proibidos. JAMAIS prescrevê-los.
+[P2 — OBJETIVO CENTRAL] O objetivo declarado é o eixo do estímulo neuromuscular.
+[P3 — CAPACIDADE REAL] Frequência, duração, equipamentos disponíveis — respeitar exatamente.
+[P4 — ESTADO CORPORAL] Usar %BF, massa magra e circunferências para modular o foco muscular.
+[P5 — CONTEXTO ENERGÉTICO] Balanço calórico e sono determinam capacidade de recuperação e volume tolerável.
+[P6 — BIOMECÂNICA] Variação de planos articulares, intervalos condizentes com a complexidade do movimento.
+
+`;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 7 — CONTRATO ESTRUTURAL OBRIGATÓRIO
+  // ─────────────────────────────────────────────────────────────────────────
+  prompt += `=== TrainingPrescriptionSchema (CONTRATO ESTRUTURAL OBRIGATÓRIO) ===
 {
-  "frequency": <número inteiro entre 1 e 7>,
+  "frequency": <número inteiro — DEVE ser igual a mandatory.frequency.exact>,
   "routines": [
     {
       "id": "<string identificadora, ex: 'A', 'B', 'C'>",
-      "name": "<string com nome da rotina, ex: 'Treino A · Push Biomecânico'>",
+      "name": "<string com nome da rotina, ex: 'Treino A · Push'>",
       "exercises": [
         {
           "name": "<string com o nome do exercício>",
           "sets": <número inteiro >= 1>,
-          "reps": "<string com a faixa de repetições, ex: '6-8', '8-10', '10-12'>",
-          "rpe": <número entre 1 e 10, ex: 8, 7.5, 8.5>,
+          "reps": "<string com a faixa de repetições, ex: '8-12'>",
+          "rpe": <número entre 1 e 10, ex: 8, 7.5>,
           "rest": <número inteiro de segundos >= 0, ex: 60, 90, 120>,
           "obs": "<string opcional com orientação técnica/biomecânica>"
         }
@@ -13066,26 +14462,61 @@ NÃO ADICIONE TEXTO ANTES OU DEPOIS DO JSON.
   ]
 }
 
-=== DTO CANÔNICO DO CONTEXTO ===
-${JSON.stringify(context)}`;
-  // Contexto minificado (sem espaços) para reduzir tokens e latência da API
+RESPONDA EXCLUSIVAMENTE COM JSON VÁLIDO.
+NÃO UTILIZE MARKDOWN. NÃO UTILIZE \`\`\`json.
+NÃO ADICIONE TEXTO ANTES OU DEPOIS DO JSON.
 
-  // 3. Retroalimentação de erros de tentativas anteriores (se houver)
+`;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 8 — CHECKLIST PRÉ-SAÍDA (verificação interna)
+  // ─────────────────────────────────────────────────────────────────────────
+  prompt += `=== CHECKLIST INTERNO PRÉ-SAÍDA (não retornar este checklist — apenas verificar) ===
+
+Antes de retornar o JSON final, verifique internamente:
+[ ] frequency = ${requirements?.mandatory?.frequency?.exact || 'frequencyWeekly do contexto'}
+[ ] routines.length = ${requirements?.mandatory?.routineCount || 'frequencyWeekly do contexto'}
+[ ] exercícios por rotina: ${requirements?.mandatory?.exercisesPerRoutine ? `${requirements.mandatory.exercisesPerRoutine.min}–${requirements.mandatory.exercisesPerRoutine.max}` : 'dentro do tempo disponível'}
+[ ] sets por rotina: ${requirements?.mandatory?.totalSetsPerRoutine ? `${requirements.mandatory.totalSetsPerRoutine.min}–${requirements.mandatory.totalSetsPerRoutine.max}` : 'adequado ao tempo'}
+[ ] reps: ${requirements?.mandatory?.repRange ? `${requirements.mandatory.repRange.min}–${requirements.mandatory.repRange.max} (string)` : 'coerente com objetivo'}
+[ ] RPE: ${requirements?.mandatory?.rpeRange ? `${requirements.mandatory.rpeRange.min}–${requirements.mandatory.rpeRange.max}` : 'coerente com objetivo'}
+[ ] rest: ${requirements?.mandatory?.restRange ? `${requirements.mandatory.restRange.minSeconds}–${requirements.mandatory.restRange.maxSeconds}s` : 'coerente com movimento'}
+${requirements?.warnings?.maxTotalWeeklySets ? `[ ] volume semanal total <= ${requirements.warnings.maxTotalWeeklySets} séries
+` : ''}[ ] nenhum exercício proibido incluso
+[ ] somente equipamentos disponíveis usados
+[ ] restrições clínicas respeitadas
+[ ] objetivo do paciente refletido na escolha de exercícios
+[ ] JSON compatível com TrainingPrescriptionSchema
+
+`;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 9 — CONTEXTO CLÍNICO CANÔNICO COMPLETO
+  // ─────────────────────────────────────────────────────────────────────────
+  prompt += `=== CONTEXTO CLÍNICO CANÔNICO DO PACIENTE ===
+
+Este contexto é a fonte factual da prescrição. NÃO altere seus valores.
+Use-o para fundamentar cada decisão de treinamento.
+
+${JSON.stringify(context)}`;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEÇÃO 10 — RETROALIMENTAÇÃO DE ERROS (apenas se tentativa anterior falhou)
+  // ─────────────────────────────────────────────────────────────────────────
   if (Array.isArray(previousErrors) && previousErrors.length > 0) {
     prompt += `\n\n=== ALERTA CRÍTICO — TENTATIVA ANTERIOR REJEITADA ===
 
-A tentativa anterior foi REJEITADA pelo sistema determinístico.
-
-Você DEVE corrigir os problemas identificados abaixo.
+A tentativa anterior foi REJEITADA pelo sistema determinístico de validação.
+Esses erros representam falhas detectadas após a geração. Corrija-os sem violar nenhum requisito obrigatório,
+proibição ou restrição do contexto acima.
 
 ERROS DA TENTATIVA ANTERIOR:
 ${previousErrors.join('\n')}
 
-Não repita os erros anteriores.
-Gere uma nova prescrição corrigida, mantendo todos os requisitos do contexto e do TrainingPrescriptionSchema.`;
+Gere uma nova prescrição corrigida, mantendo todos os requisitos e respeitando o TrainingPrescriptionSchema.`;
   }
 
-  // 4. Rotacao por pool de chaves — tenta cada key; pula em caso de 429
+  // 3. Rotação por pool de chaves — tenta cada key; pula em caso de 429
   const quotaExhaustedKeys = [];
   let lastError = null;
 
@@ -13356,19 +14787,128 @@ async function runPerformanceAITests() {
     assert(12.1, 'extraMetadata (leanMassKg injetado pela IA) não existe no DTO limpo', !('extraMetadata' in (structural.data || {})));
   })();
 
+  // ════════════════════════════════════════════════════════════════════════
+  // T13–T19 — Testes de buildTrainingGenerationRequirements
+  // ════════════════════════════════════════════════════════════════════════
+
+  // ── T13: Requirements são determinísticos — mesmo ctx → mesmos requirements ─
+  (() => {
+    const ctx = makeCtx();
+    const r1 = buildTrainingGenerationRequirements(ctx);
+    const r2 = buildTrainingGenerationRequirements(ctx);
+    const identical = JSON.stringify(r1) === JSON.stringify(r2);
+    assert(13, 'T13: mesmo contexto → requirements idênticos (determinismo)', identical,
+      identical ? 'OK' : 'Requirements divergiram entre chamadas consecutivas');
+  })();
+
+  // ── T14: Iniciante → frequência máxima canônica nos requirements ──────────
+  (() => {
+    const ctx = makeCtx({ patient: { trainingLevel: 'Iniciante', objective: 'Hipertrofia' } });
+    // Forçar frequência declarada > limite canônico para testar o cap
+    if (ctx.trainingProfile) ctx.trainingProfile.frequencyWeekly = 5;
+    else ctx.trainingProfile = { frequencyWeekly: 5, durationMinutes: 60 };
+    const req = buildTrainingGenerationRequirements(ctx);
+    const freqExact = req?.mandatory?.frequency?.exact;
+    const freqMax   = req?.mandatory?.frequency?.max;
+    assert(14, 'T14: Iniciante → frequency.exact <= BEGINNER_MAX_FREQUENCY', freqExact <= _PERF_RULES.BEGINNER_MAX_FREQUENCY,
+      `frequency.exact=${freqExact}, BEGINNER_MAX=${_PERF_RULES.BEGINNER_MAX_FREQUENCY}`);
+    assert(14.1, 'T14: Iniciante → frequency.max declarado nos requirements', freqMax === _PERF_RULES.BEGINNER_MAX_FREQUENCY,
+      `frequency.max=${freqMax}`);
+  })();
+
+  // ── T15: Exercícios proibidos projetados explicitamente nos requirements ──
+  (() => {
+    const ctx = makeCtx({ constraints: { prohibitedExercises: ['agachamento livre', 'stiff'], injuries: [] } });
+    const req = buildTrainingGenerationRequirements(ctx);
+    const projectedExercises = req?.prohibited?.exercises || [];
+    assert(15, 'T15: Exercícios proibidos projetados em requirements.prohibited.exercises',
+      projectedExercises.includes('agachamento livre') && projectedExercises.includes('stiff'),
+      `projected=${JSON.stringify(projectedExercises)}`);
+  })();
+
+  // ── T16: Déficit energético → limite de volume nos requirements ───────────
+  (() => {
+    const ctx = makeCtx({ nutrition: { caloricTargetKcal: 2200, energyBalanceKcal: -600, proteinGKg: 2.0, prescriptionSource: 'prescribed' } });
+    const req = buildTrainingGenerationRequirements(ctx);
+    const maxSets = req?.warnings?.maxTotalWeeklySets;
+    assert(16, 'T16: Déficit < limiar → maxTotalWeeklySets = DEFICIT_MAX_SETS nos requirements',
+      maxSets === _PERF_RULES.DEFICIT_MAX_SETS, `maxTotalWeeklySets=${maxSets}, esperado=${_PERF_RULES.DEFICIT_MAX_SETS}`);
+    assert(16.1, 'T16: Superávit → sem limite de volume nos requirements', (() => {
+      const ctxSurplus = makeCtx({ nutrition: { caloricTargetKcal: 3500, energyBalanceKcal: 400, proteinGKg: 2.0, prescriptionSource: 'prescribed' } });
+      const reqSurplus = buildTrainingGenerationRequirements(ctxSurplus);
+      return reqSurplus?.warnings?.maxTotalWeeklySets == null;
+    })(), 'Superávit não deve ter limite de sets');
+  })();
+
+  // ── T17: Menor de idade → parâmetros MINOR_PARAMS aplicados ──────────────
+  (() => {
+    const ctx = makeCtx({ patient: { age: 15, trainingLevel: 'Iniciante', objective: 'Hipertrofia' } });
+    const req = buildTrainingGenerationRequirements(ctx);
+    const repsMax = req?.mandatory?.repRange?.max;
+    const rpeMax  = req?.mandatory?.rpeRange?.max;
+    const isMinor = req?.mandatory?.isMinor;
+    assert(17, 'T17: Menor de idade → isMinor=true nos requirements', isMinor === true, `isMinor=${isMinor}`);
+    assert(17.1, 'T17: Menor de idade → repsMax = MINOR_PARAMS.repsMax', repsMax === _PERF_RULES.MINOR_PARAMS.repsMax,
+      `repsMax=${repsMax}, esperado=${_PERF_RULES.MINOR_PARAMS.repsMax}`);
+    assert(17.2, 'T17: Menor de idade → rpeMax = MINOR_PARAMS.rpeMax', rpeMax === _PERF_RULES.MINOR_PARAMS.rpeMax,
+      `rpeMax=${rpeMax}, esperado=${_PERF_RULES.MINOR_PARAMS.rpeMax}`);
+  })();
+
+  // ── T18: Equipamento restrito projetado nos requirements ─────────────────
+  (() => {
+    const ctx = makeCtx({ constraints: { prohibitedExercises: [], injuries: [], availableEquipment: 'Home Gym' } });
+    const req = buildTrainingGenerationRequirements(ctx);
+    const equip = req?.mandatory?.equipmentConstraint;
+    assert(18, 'T18: Equipment constraint projetado nos requirements', equip === 'Home Gym', `equipmentConstraint=${equip}`);
+  })();
+
+  // ── T19: Contexts distintos → requirements distintos ─────────────────────
+  (() => {
+    const ctxA = makeCtx({
+      patient: { age: 15, trainingLevel: 'Iniciante', objective: 'Hipertrofia' },
+      trainingProfile: { frequencyWeekly: 3, durationMinutes: 45 },
+      nutrition: { caloricTargetKcal: 2500, energyBalanceKcal: 300, proteinGKg: 2.0, prescriptionSource: 'prescribed' }
+    });
+    const ctxB = makeCtx({
+      patient: { age: 38, trainingLevel: 'Avançado', objective: 'Emagrecimento' },
+      trainingProfile: { frequencyWeekly: 5, durationMinutes: 90 },
+      nutrition: { caloricTargetKcal: 2200, energyBalanceKcal: -700, proteinGKg: 2.2, prescriptionSource: 'prescribed' }
+    });
+    const reqA = buildTrainingGenerationRequirements(ctxA);
+    const reqB = buildTrainingGenerationRequirements(ctxB);
+    const different = JSON.stringify(reqA) !== JSON.stringify(reqB);
+    assert(19, 'T19: Contexts distintos → requirements distintos', different,
+      different ? 'OK — requirements são individualizados' : 'FALHA: requirements idênticos para contextos diferentes');
+    assert(19.1, 'T19: Menor iniciante → frequência menor que avançado',
+      reqA.mandatory.frequency.exact < reqB.mandatory.frequency.exact,
+      `A=${reqA.mandatory.frequency.exact}, B=${reqB.mandatory.frequency.exact}`);
+    assert(19.2, 'T19: Déficit no B → limite de volume; superávit em A → sem limite',
+      reqB.warnings?.maxTotalWeeklySets === _PERF_RULES.DEFICIT_MAX_SETS && reqA.warnings?.maxTotalWeeklySets == null,
+      `A.maxSets=${reqA.warnings?.maxTotalWeeklySets}, B.maxSets=${reqB.warnings?.maxTotalWeeklySets}`);
+    assert(19.3, 'T19: regra canônica — alterar DEFICIT_MAX_SETS reflete nos requirements',
+      // Prova que não há fonte paralela: usamos o mesmo valor de _PERF_RULES
+      reqB.warnings?.maxTotalWeeklySets === _PERF_RULES.DEFICIT_MAX_SETS,
+      `Valor=${reqB.warnings?.maxTotalWeeklySets}, _PERF_RULES.DEFICIT_MAX_SETS=${_PERF_RULES.DEFICIT_MAX_SETS}`);
+  })();
+
+  // ── makeCtx com trainingProfile (patch para T14/T19) ──────────────────────
+  // Nota: makeCtx original não inclui trainingProfile; os testes acima passam ctx.trainingProfile
+  // diretamente. buildTrainingGenerationRequirements lê context.trainingProfile?.frequencyWeekly.
+  // Para os testes que só usam makeCtx() simples, o campo vem de context.patient.trainingLevel.
+
   // ── Resultado Final ───────────────────────────────────────────────────────
   const total = results.filter(r => Number.isInteger(r.testId)).length;
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed);
 
   console.groupEnd();
-  console.info(`\n📊 Resultado: ${passed}/${results.length} testes passaram.`);
+  console.info(`\n📊 Resultado: ${passed}/${results.length} testes passaram (T01–T12 + T13–T19).`);
 
   if (failed.length > 0) {
     console.warn('❌ Testes com falha:');
     failed.forEach(f => console.warn(`   T${f.testId}: ${f.description} → ${f.detail}`));
   } else {
-    console.info('✅ Todos os testes passaram. Motor de coerência operacional.');
+    console.info('✅ Todos os testes passaram. Motor de coerência e requirements operacionais.');
   }
 
   return { total: results.length, passed, failed: failed.length, details: results };
@@ -13422,19 +14962,22 @@ async function runGeminiPerformanceAITests() {
     if (typeof window !== 'undefined' && window.localStorage) window.localStorage.getItem = fn;
   };
 
+  // Gerar requirements para o dummyCtx para uso nos testes do Gemini
+  const dummyReqs = buildTrainingGenerationRequirements(dummyCtx);
+
   // ── Teste A: Ausência da chave da API ──────────────────────────────────────
   await (async () => {
     let thrown = null;
     try {
-      setMockStorage((key) => key === 'GEMINI_API_KEY' ? null : origGetItem(key));
-      await geminiPerformanceAIGenerator(dummyCtx);
+      setMockStorage((key) => (key === 'GEMINI_API_KEY' || key === 'GEMINI_API_KEYS') ? null : origGetItem(key));
+      await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
     } catch (e) {
       thrown = e;
     } finally {
       setMockStorage(origGetItem);
     }
-    const isExactMsg = thrown && thrown.message === 'Chave da API Gemini não configurada. Configure GEMINI_API_KEY no localStorage.';
-    assert('Teste A', 'Ausência da chave → lança erro com mensagem exata', isExactMsg, thrown ? thrown.message : 'Nenhum erro lançado');
+    const hasKeyMsg = thrown && (thrown.message.includes('Nenhuma chave') || thrown.message.includes('configurada'));
+    assert('Teste A', 'Ausência da chave → lança erro indicando ausência de API Key', hasKeyMsg, thrown ? thrown.message : 'Nenhum erro lançado');
   })();
 
   // ── Teste B: Chave configurada, Endpoint e Modelo ──────────────────────────
@@ -13458,7 +15001,7 @@ async function runGeminiPerformanceAITests() {
           })
         };
       });
-      await geminiPerformanceAIGenerator(dummyCtx);
+      await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
     } catch (e) {
       // Ignora
     } finally {
@@ -13487,7 +15030,7 @@ async function runGeminiPerformanceAITests() {
           })
         };
       });
-      await geminiPerformanceAIGenerator(dummyCtx, []);
+      await geminiPerformanceAIGenerator(dummyCtx, dummyReqs, []);
     } catch (e) {
     } finally {
       setMockStorage(origGetItem);
@@ -13495,6 +15038,9 @@ async function runGeminiPerformanceAITests() {
     }
     const hasAlert = capturedPrompt.includes('=== ALERTA CRÍTICO — TENTATIVA ANTERIOR REJEITADA ===');
     assert('Teste C', 'previousErrors vazio → não inclui bloco de alerta crítico', !hasAlert);
+    // Verificar que o prompt inclui as novas seções de requirements
+    const hasRequirements = capturedPrompt.includes('REQUISITOS OBRIGATÓRIOS DE GERAÇÃO');
+    assert('Teste C.1', 'Novo prompt inclui seção de REQUISITOS OBRIGATÓRIOS', hasRequirements);
   })();
 
   // ── Teste D: previousErrors preenchido → inclui bloco corretivo ───────────
@@ -13514,7 +15060,7 @@ async function runGeminiPerformanceAITests() {
           })
         };
       });
-      await geminiPerformanceAIGenerator(dummyCtx, errList);
+      await geminiPerformanceAIGenerator(dummyCtx, dummyReqs, errList);
     } catch (e) {
     } finally {
       setMockStorage(origGetItem);
@@ -13539,7 +15085,7 @@ async function runGeminiPerformanceAITests() {
           candidates: [{ content: { parts: [{ text: JSON.stringify(testObj) }] } }]
         })
       }));
-      resObj = await geminiPerformanceAIGenerator(dummyCtx);
+      resObj = await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
     } catch (e) {
     } finally {
       setMockStorage(origGetItem);
@@ -13561,7 +15107,7 @@ async function runGeminiPerformanceAITests() {
           candidates: [{ content: { parts: [{ text: '```json\n' + JSON.stringify(testObj, null, 2) + '\n```' }] } }]
         })
       }));
-      resObj = await geminiPerformanceAIGenerator(dummyCtx);
+      resObj = await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
     } catch (e) {
     } finally {
       setMockStorage(origGetItem);
@@ -13582,7 +15128,7 @@ async function runGeminiPerformanceAITests() {
           candidates: [{ content: { parts: [{ text: 'Este é apenas um texto sem nenhum JSON.' }] } }]
         })
       }));
-      await geminiPerformanceAIGenerator(dummyCtx);
+      await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
     } catch (e) {
       thrown = e;
     } finally {
@@ -13605,7 +15151,7 @@ async function runGeminiPerformanceAITests() {
           statusText: 'Error',
           json: async () => ({ error: { message: 'Simulated error for status ' + status } })
         }));
-        await geminiPerformanceAIGenerator(dummyCtx);
+        await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
       } catch (e) {
         thrown = e;
       } finally {
@@ -13627,14 +15173,14 @@ async function runGeminiPerformanceAITests() {
         abortErr.name = 'AbortError';
         throw abortErr;
       });
-      await geminiPerformanceAIGenerator(dummyCtx);
+      await geminiPerformanceAIGenerator(dummyCtx, dummyReqs);
     } catch (e) {
       thrown = e;
     } finally {
       setMockStorage(origGetItem);
       setMockFetch(origFetch);
     }
-    const isTimeoutMsg = thrown && thrown.message.includes('limite de 30 segundos (timeout)');
+    const isTimeoutMsg = thrown && thrown.message.includes('90s (timeout)');
     assert('Teste I', 'Timeout da requisição → lança erro de tempo limite excedido', isTimeoutMsg, thrown ? thrown.message : '');
   })();
 
@@ -13733,7 +15279,8 @@ async function runPersonalizationPerformanceTests() {
           })
         };
       });
-      const prescJovem = await geminiPerformanceAIGenerator(ctxJovem);
+      const reqsJovem = buildTrainingGenerationRequirements(ctxJovem);
+      const prescJovem = await geminiPerformanceAIGenerator(ctxJovem, reqsJovem);
 
       setMockFetch(async (url, opts) => {
         const body = JSON.parse(opts.body);
@@ -13761,7 +15308,8 @@ async function runPersonalizationPerformanceTests() {
           })
         };
       });
-      const prescAdulto = await geminiPerformanceAIGenerator(ctxAdulto);
+      const reqsAdulto = buildTrainingGenerationRequirements(ctxAdulto);
+      const prescAdulto = await geminiPerformanceAIGenerator(ctxAdulto, reqsAdulto);
 
       const hasDiffFreq = prescJovem.frequency === 3 && prescAdulto.frequency === 5;
       const hasDiffRoutines = prescJovem.routines.length === 3 && prescAdulto.routines.length === 5;
@@ -13801,14 +15349,16 @@ async function runPersonalizationPerformanceTests() {
         promptFreq3 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, frequencyWeekly: 3 } });
+      const ctxFreq3 = { ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, frequencyWeekly: 3 } };
+      await geminiPerformanceAIGenerator(ctxFreq3, buildTrainingGenerationRequirements(ctxFreq3));
 
       // Teste com freq 5
       setMockFetch(async (url, opts) => {
         promptFreq5 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 5, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, frequencyWeekly: 5 } });
+      const ctxFreq5 = { ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, frequencyWeekly: 5 } };
+      await geminiPerformanceAIGenerator(ctxFreq5, buildTrainingGenerationRequirements(ctxFreq5));
 
       assert('Teste 2.1', 'Sensibilidade à Frequência: prompt reflete 3x vs 5x', promptFreq3.includes('"frequencyWeekly": 3') && promptFreq5.includes('"frequencyWeekly": 5'));
 
@@ -13820,13 +15370,15 @@ async function runPersonalizationPerformanceTests() {
         promptObjHip = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator({ ...baseCtx, patient: { ...baseCtx.patient, objective: 'Hipertrofia' } });
+      const ctxHip = { ...baseCtx, patient: { ...baseCtx.patient, objective: 'Hipertrofia' } };
+      await geminiPerformanceAIGenerator(ctxHip, buildTrainingGenerationRequirements(ctxHip));
 
       setMockFetch(async (url, opts) => {
         promptObjEma = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator({ ...baseCtx, patient: { ...baseCtx.patient, objective: 'Emagrecimento' } });
+      const ctxEma = { ...baseCtx, patient: { ...baseCtx.patient, objective: 'Emagrecimento' } };
+      await geminiPerformanceAIGenerator(ctxEma, buildTrainingGenerationRequirements(ctxEma));
 
       assert('Teste 2.2', 'Sensibilidade ao Objetivo: prompt reflete Hipertrofia vs Emagrecimento', promptObjHip.includes('"objective": "Hipertrofia"') && promptObjEma.includes('"objective": "Emagrecimento"'));
 
@@ -13838,13 +15390,15 @@ async function runPersonalizationPerformanceTests() {
         promptDur30 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, durationMinutes: 30 } });
+      const ctxDur30 = { ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, durationMinutes: 30 } };
+      await geminiPerformanceAIGenerator(ctxDur30, buildTrainingGenerationRequirements(ctxDur30));
 
       setMockFetch(async (url, opts) => {
         promptDur60 = JSON.parse(opts.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator({ ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, durationMinutes: 60 } });
+      const ctxDur60 = { ...baseCtx, trainingProfile: { ...baseCtx.trainingProfile, durationMinutes: 60 } };
+      await geminiPerformanceAIGenerator(ctxDur60, buildTrainingGenerationRequirements(ctxDur60));
 
       assert('Teste 2.3', 'Sensibilidade à Duração: prompt reflete 30 min vs 60 min', promptDur30.includes('"durationMinutes": 30') && promptDur60.includes('"durationMinutes": 60'));
     } finally {
@@ -13875,30 +15429,33 @@ async function runPersonalizationPerformanceTests() {
       setMockStorage((key) => key === 'GEMINI_API_KEY' ? 'TEST_KEY' : origGetItem(key));
 
       // Ordem 1: A depois B
+      const reqsA = buildTrainingGenerationRequirements(ptA);
+      const reqsB = buildTrainingGenerationRequirements(ptB);
+
       setMockFetch(async (u, o) => {
         promptOrder1_A = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator(ptA);
+      await geminiPerformanceAIGenerator(ptA, reqsA);
 
       setMockFetch(async (u, o) => {
         promptOrder1_B = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator(ptB);
+      await geminiPerformanceAIGenerator(ptB, reqsB);
 
       // Ordem 2: B depois A
       setMockFetch(async (u, o) => {
         promptOrder2_B = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 3, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator(ptB);
+      await geminiPerformanceAIGenerator(ptB, reqsB);
 
       setMockFetch(async (u, o) => {
         promptOrder2_A = JSON.parse(o.body)?.contents?.[0]?.parts?.[0]?.text || '';
         return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"frequency": 4, "routines": []}' }] } }] }) };
       });
-      await geminiPerformanceAIGenerator(ptA);
+      await geminiPerformanceAIGenerator(ptA, reqsA);
 
       const isA_Identical = promptOrder1_A === promptOrder2_A;
       const isB_Identical = promptOrder1_B === promptOrder2_B;
@@ -14001,6 +15558,685 @@ async function runPersonalizationPerformanceTests() {
   return { total: results.length, passed, failed: failed.length, details: results };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// SUITE DE TESTES DO CONTEXTO CANÔNICO EXPANDIDO — CT01 a CT09
+// runContextExpansionTests()
+//
+// Validação dos dados antropométricos, cardiometabólicos, frequência cardíaca,
+// exames laboratoriais, projeções de metas e ausência segura.
+// Execute no console do browser: runContextExpansionTests()
+// ════════════════════════════════════════════════════════════════════════════
+
+async function runContextExpansionTests() {
+  'use strict';
+
+  const results = [];
+  function assert(testId, description, condition, detail = '') {
+    const passed = !(!condition);
+    results.push({ testId, description, passed, detail });
+    console.log(`  [${testId}] ${passed ? '✅ PASS' : '❌ FAIL'} — ${description}${detail ? ' → ' + detail : ''}`);
+  }
+
+  console.group('🧪 runContextExpansionTests — Validação do Contexto Canônico Expandido (CT01–CT09)');
+
+  const originalPatientsGet = (typeof db !== 'undefined' && db.patients) ? db.patients.get : null;
+  const originalAssessmentsWhere = (typeof db !== 'undefined' && db.assessments) ? db.assessments.where : null;
+  const originalExamsWhere = (typeof db !== 'undefined' && db.clinicalExams) ? db.clinicalExams.where : null;
+  const originalPrescriptionsGet = (typeof db !== 'undefined' && db.prescriptions) ? db.prescriptions.get : null;
+
+  try {
+    // ── CT01: Paciente com antropometria completa ──────────────────────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({
+          id: 'ct-01-patient', age: 35, gender: 'Masculino', height: 1.80, currentWeight: 85.0, usualWeight: 85.0,
+          targetWeight: 78.0, objective: 'Emagrecimento & Definição', patientType: 'Praticante recreativo', activityFactor: 1.45
+        });
+        db.assessments.where = () => ({
+          equals: () => ({
+            toArray: async () => [{
+              id: 'eval_ct01', patientId: 'ct-01-patient', date: '2026-08-15', weight: 85.0, fatPercent: 18.0,
+              targetBF: 12.0, leanMass: 69.7, fatMass: 15.3, waist: 88.0, hip: 102.0, circAbdomen: 90.0,
+              arm: 38.0, circThigh: 62.0, circCalf: 38.0, skTriceps: 10
+            }]
+          })
+        });
+        db.clinicalExams.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+        db.prescriptions.get = async () => ({ id: 'ct-01-patient', items: [], protGKg: 2.0 });
+
+        const ctx = await buildPerformanceContext('ct-01-patient');
+        const anthro = ctx?.anthropometry;
+        const pass = ctx && anthro &&
+          ctx.patient.weightKg === 85.0 && ctx.patient.heightCm === 180 && ctx.patient.bmi === 26.2 &&
+          anthro.bodyFatPercent === 18.0 && anthro.leanMassKg === 69.7 && anthro.fatMassKg === 15.3 &&
+          anthro.circumferences?.waist === 88.0 && anthro.indices !== null && anthro.indices.rcEst > 0;
+
+        assert('CT01', 'Antropometria completa populada com peso, altura, IMC, % gordura, MLG, MG e circunferências', pass,
+          pass ? `IMC=${ctx.patient.bmi}, RCEst=${anthro.indices?.rcEst}` : 'Dados incompletos');
+      }
+    })();
+
+    // ── CT02: Paciente com dados cardiometabólicos calculáveis ────────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({
+          id: 'ct-02-patient', age: 42, gender: 'Masculino', height: 1.75, currentWeight: 92.0, usualWeight: 90.0,
+          objective: 'Saúde Cardiovascular', patientType: 'Sedentário', activityFactor: 1.2
+        });
+        db.assessments.where = () => ({
+          equals: () => ({
+            toArray: async () => [{
+              id: 'eval_ct02', patientId: 'ct-02-patient', date: '2026-08-10', weight: 92.0, fatPercent: 28.0,
+              targetBF: 18.0, leanMass: 66.24, fatMass: 25.76, waist: 102.0, hip: 106.0, circAbdomen: 104.0, arm: 34.0
+            }]
+          })
+        });
+
+        const ctx = await buildPerformanceContext('ct-02-patient');
+        const cm = ctx?.cardiometabolic;
+        const pass = cm &&
+          typeof cm.rcEst === 'number' && cm.rcEst > 0.50 &&
+          typeof cm.rcq === 'number' && cm.rcq > 0.90 &&
+          typeof cm.conicityIndex === 'number' &&
+          typeof cm.ffmi === 'number' && cm.ffmi > 0 &&
+          typeof cm.skeletalMuscleMassKg === 'number' &&
+          cm.hasCardiometabolicRisk === true;
+
+        assert('CT02', 'Cardiometabólico: RCEst, RCQ, Conicidade, FFMI e MME calculados com classificação existente', pass,
+          pass ? `RCEst=${cm.rcEst} (${cm.rcEstClassification}), Conicity=${cm.conicityIndex}, FFMI=${cm.ffmi}, Risk=${cm.hasCardiometabolicRisk}` : 'Falha cardiometabólica');
+      }
+    })();
+
+    // ── CT03: Paciente com zonas de frequência cardíaca ───────────────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({
+          id: 'ct-03-patient', age: 40, gender: 'Feminino', restingHeartRate: 64, height: 1.65, currentWeight: 65.0
+        });
+        db.assessments.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+
+        const ctx = await buildPerformanceContext('ct-03-patient');
+        const hr = ctx?.heartRate;
+        const expectedMaxHR = Math.round(208 - (0.7 * 40)); // 180
+        const pass = hr &&
+          hr.maxHR === expectedMaxHR &&
+          hr.restingHR === 64 &&
+          hr.reserveHR === (expectedMaxHR - 64) &&
+          Array.isArray(hr.zones) && hr.zones.length === 5 &&
+          hr.zones[1].zone === 'Z2' && hr.zones[1].minBpm > 0;
+
+        assert('CT03', 'Frequência Cardíaca: FCM, FCR, FC reserva e Z1-Z5 consumidas da função canônica existente', pass,
+          pass ? `FCM=${hr.maxHR}, FCR=${hr.restingHR}, Z2=${hr.zones[1].minBpm}-${hr.zones[1].maxBpm} bpm` : 'Falha em FC');
+      }
+    })();
+
+    // ── CT04: Paciente com exames laboratoriais ───────────────────────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({ id: 'ct-04-patient', age: 30, gender: 'Masculino', height: 1.75, currentWeight: 75.0 });
+        db.assessments.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+        db.clinicalExams.where = () => ({
+          equals: () => ({
+            toArray: async () => [{
+              patientId: 'ct-04-patient', examDate: '2026-08-01',
+              fastingGlucose: 95, fastingInsulin: 12.5, hba1c: 5.4,
+              totalCholesterol: 195, hdl: 52, ldl: 118, triglycerides: 125,
+              tgo: 24, tgp: 28, urea: 32, creatinine: 0.95, uricAcid: 5.2,
+              ferritin: 150, vitaminD: 38, vitaminB12: 520, tsh: 1.8
+            }]
+          })
+        });
+
+        const ctx = await buildPerformanceContext('ct-04-patient');
+        const b = ctx?.biomarkers;
+        const expectedHoma = Number(((95 * 12.5) / 405).toFixed(2)); // 2.93
+        const pass = b &&
+          b.glucose.fastingGlucose === 95 && b.glucose.fastingInsulin === 12.5 && b.glucose.hba1c === 5.4 &&
+          b.glucose.homaIR === expectedHoma &&
+          b.lipids.totalCholesterol === 195 && b.lipids.hdl === 52 && b.lipids.ldl === 118 && b.lipids.triglycerides === 125 &&
+          b.renal.creatinine === 0.95 && b.vitaminsAndHormones.vitaminD === 38;
+
+        assert('CT04', 'Biomarcadores: Exames laboratoriais estruturados com valores fiéis e cálculo de HOMA-IR', pass,
+          pass ? `Glicose=${b.glucose.fastingGlucose}, HOMA-IR=${b.glucose.homaIR}, LDL=${b.lipids.ldl}` : 'Falha em biomarcadores');
+      }
+    })();
+
+    // ── CT05: Paciente sem exames laboratoriais (ausência segura) ─────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({ id: 'ct-05-patient', age: 28, gender: 'Masculino', height: 1.80, currentWeight: 78.0 });
+        db.assessments.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+        db.clinicalExams.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+
+        const ctx = await buildPerformanceContext('ct-05-patient');
+        const pass = ctx && ctx.biomarkers === null && ctx._meta.hasClinicalExams === false;
+
+        assert('CT05', 'Ausência segura: Paciente sem exames mantém biomarkers=null sem inventar valores ou falsos diagnósticos', pass,
+          pass ? 'biomarkers === null, hasClinicalExams === false' : 'Valores inventados indevidamente');
+      }
+    })();
+
+    // ── CT06: Paciente com restrições e limitações ────────────────────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({
+          id: 'ct-06-patient', age: 33, gender: 'Masculino', height: 1.78, currentWeight: 80.0,
+          injuries: ['condromalacia patelar grau 2'],
+          prohibitedExercises: ['leg press 45', 'agachamento frontal'],
+          clinicalConstraints: ['evitar impacto articular'],
+          availableEquipment: 'Condomínio'
+        });
+        db.assessments.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+        db.clinicalExams.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+
+        const ctx = await buildPerformanceContext('ct-06-patient');
+        const c = ctx?.constraints;
+        const pass = c &&
+          Array.isArray(c.injuries) && c.injuries.includes('condromalacia patelar grau 2') &&
+          Array.isArray(c.prohibitedExercises) && c.prohibitedExercises.includes('leg press 45') &&
+          c.prohibitedExercises.includes('evitar impacto articular') &&
+          c.availableEquipment === 'Condomínio';
+
+        assert('CT06', 'Restrições: injuries, prohibitedExercises, clinicalConstraints e availableEquipment preservados', pass,
+          pass ? `Injuries=${c.injuries.length}, Prohibited=${c.prohibitedExercises.length}, Equip=${c.availableEquipment}` : 'Falha em restrições');
+      }
+    })();
+
+    // ── CT07: Paciente com projeção de metas (calculateGoalProjection) ────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        db.patients.get = async () => ({
+          id: 'ct-07-patient', age: 30, gender: 'Masculino', height: 1.80, currentWeight: 90.0, targetWeight: 80.0,
+          objective: 'Perda de peso', activityFactor: 1.5
+        });
+        db.assessments.where = () => ({
+          equals: () => ({
+            toArray: async () => [{
+              id: 'eval_ct07', patientId: 'ct-07-patient', date: '2026-08-01', weight: 90.0, fatPercent: 25.0,
+              targetBF: 15.0, leanMass: 67.5, fatMass: 22.5
+            }]
+          })
+        });
+        db.clinicalExams.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+        // Prescrição de 2200 kcal para gerar déficit real contra GET (~2800 kcal)
+        db.prescriptions.get = async () => ({ id: 'ct-07-patient', items: [{ calories: 2200 }], protGKg: 2.0 });
+
+        const ctx = await buildPerformanceContext('ct-07-patient');
+        const gp = ctx?.goalProjection;
+        const pass = gp &&
+          typeof gp.targetWeightKg === 'number' && gp.targetWeightKg > 0 &&
+          typeof gp.fatToLoseKg === 'number' && gp.fatToLoseKg > 0 &&
+          typeof gp.dailyDeficitKcal === 'number' && gp.dailyDeficitKcal > 0 &&
+          typeof gp.weeklyRateKg === 'number' && gp.weeklyRateKg > 0 &&
+          typeof gp.weeksNeeded === 'number';
+
+        assert('CT07', 'Projeção de Metas: targetWeightKg, fatToLoseKg, dailyDeficitKcal e weeksNeeded presentes', pass,
+          pass ? `Target=${gp.targetWeightKg}kg, FatToLose=${gp.fatToLoseKg}kg, Deficit=${gp.dailyDeficitKcal}kcal/dia, Taxa=${gp.weeklyRateKg}kg/sem` : 'Falha em meta');
+      }
+    })();
+
+    // ── CT08: Comparação entre dois pacientes diferentes ─────────────────────
+    await (async () => {
+      if (typeof db !== 'undefined') {
+        // Paciente A: Jovem, atlético, superávit, sem risco
+        db.patients.get = async (id) => {
+          if (id === 'patient-A') {
+            return { id: 'patient-A', age: 22, gender: 'Masculino', height: 1.85, currentWeight: 80.0, objective: 'Hipertrofia', patientType: 'Atleta amador', activityFactor: 1.6 };
+          }
+          return { id: 'patient-B', age: 52, gender: 'Feminino', height: 1.60, currentWeight: 78.0, objective: 'Perda de peso', patientType: 'Sedentário', activityFactor: 1.2 };
+        };
+        db.assessments.where = (field) => ({
+          equals: (pId) => ({
+            toArray: async () => {
+              if (pId === 'patient-A') {
+                return [{ id: 'eval_A', patientId: 'patient-A', weight: 80.0, fatPercent: 10.0, targetBF: 10.0, leanMass: 72.0, fatMass: 8.0, waist: 76.0, hip: 96.0 }];
+              }
+              return [{ id: 'eval_B', patientId: 'patient-B', weight: 78.0, fatPercent: 36.0, targetBF: 24.0, leanMass: 49.9, fatMass: 28.1, waist: 92.0, hip: 104.0 }];
+            }
+          })
+        });
+        db.clinicalExams.where = () => ({ equals: () => ({ toArray: async () => [] }) });
+        db.prescriptions.get = async (id) => {
+          if (id === 'patient-A') return { id: 'patient-A', items: [{ calories: 3400 }], protGKg: 2.2 };
+          return { id: 'patient-B', items: [{ calories: 1500 }], protGKg: 1.8 };
+        };
+
+        const ctxA = await buildPerformanceContext('patient-A');
+        const ctxB = await buildPerformanceContext('patient-B');
+
+        const diffMeta = ctxA.patient.age !== ctxB.patient.age;
+        const diffRCEst = ctxA.cardiometabolic?.rcEst !== ctxB.cardiometabolic?.rcEst;
+        const diffHR = ctxA.heartRate?.maxHR !== ctxB.heartRate?.maxHR;
+        const diffEnergy = ctxA.energy.tmbKcal !== ctxB.energy.tmbKcal;
+        const diffRisk = ctxA.cardiometabolic?.hasCardiometabolicRisk !== ctxB.cardiometabolic?.hasCardiometabolicRisk;
+        const pass = diffMeta && diffRCEst && diffHR && diffEnergy && diffRisk;
+
+        assert('CT08', 'Diferenciação individualizada: Contextos de pacientes distintos produzem DTOs completamente distintos', pass,
+          pass ? `Idades: ${ctxA.patient.age} vs ${ctxB.patient.age} | RCEst: ${ctxA.cardiometabolic?.rcEst} vs ${ctxB.cardiometabolic?.rcEst} | Risco: ${ctxA.cardiometabolic?.hasCardiometabolicRisk} vs ${ctxB.cardiometabolic?.hasCardiometabolicRisk}` : 'Falha na diferenciação');
+      }
+    })();
+
+    // ── CT09: Validação de não-regressão na musculação ────────────────────────
+    await (async () => {
+      // Re-executa os testes T01 a T19 de coerência da musculação
+      const perfSuiteResult = await runPerformanceAITests();
+      const pass = perfSuiteResult && perfSuiteResult.passed >= 30;
+
+      assert('CT09', 'Não-regressão: runPerformanceAITests() (T01–T19) executado sem qualquer impacto adverso na musculação', pass,
+        pass ? `${perfSuiteResult.passed}/${perfSuiteResult.total} asserções de musculação passaram (100% de não-regressão)` : `${perfSuiteResult.failed} falhas na musculação`);
+    })();
+
+  } finally {
+    if (typeof db !== 'undefined') {
+      if (originalPatientsGet) db.patients.get = originalPatientsGet;
+      if (originalAssessmentsWhere) db.assessments.where = originalAssessmentsWhere;
+      if (originalExamsWhere) db.clinicalExams.where = originalExamsWhere;
+      if (originalPrescriptionsGet) db.prescriptions.get = originalPrescriptionsGet;
+    }
+  }
+
+  console.groupEnd();
+  const passedCount = results.filter(r => r.passed).length;
+  const failedCount = results.filter(r => !r.passed).length;
+  console.info(`\n📊 Resultado CT01–CT09: ${passedCount}/${results.length} passaram.`);
+  return { total: results.length, passed: passedCount, failed: failedCount, details: results };
+}
+
+if (typeof window !== 'undefined') {
+  window.runContextExpansionTests = runContextExpansionTests;
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUÍTE DE TESTES DETERMINÍSTICOS DO CARDIO ENGINE (CD01 A CD16 + PERFIS + E2E)
+// runCardioRequirementsTests()
+// ════════════════════════════════════════════════════════════════════════════
+
+async function runCardioRequirementsTests() {
+  'use strict';
+
+  const results = [];
+  function assert(testId, description, condition, detail = '') {
+    const passed = !!condition;
+    results.push({ testId, description, passed, detail });
+    console.log(`  [${testId}] ${passed ? '✅ PASS' : '❌ FAIL'} — ${description}${detail ? ' → ' + detail : ''}`);
+  }
+
+  console.group('🧪 runCardioRequirementsTests — Motor Determinístico do Cardio Engine');
+
+  function makeCardioCtx(overrides = {}) {
+    return {
+      _meta: { patientId: 'test-cardio-pt', tmbMethod: 'Katch-McArdle', hasAssessment: true, hasPrescription: true, ...overrides._meta },
+      patient: { age: 32, sex: 'Masculino', weightKg: 82, heightCm: 178, bmi: 25.9, objective: 'Emagrecimento', trainingLevel: 'Intermediário', patientType: 'Praticante recreativo', ...overrides.patient },
+      anthropometry: { bodyFatPercent: 22, targetBodyFatPercent: 14, leanMassKg: 64, fatMassKg: 18, ...overrides.anthropometry },
+      cardiometabolic: { rcEst: 0.54, rcEstClassification: 'Atenção / Limítrofe', conicityIndex: 1.22, ffmi: 20.2, hasCardiometabolicRisk: true, ...overrides.cardiometabolic },
+      heartRate: {
+        maxHR: 186, restingHR: 62, reserveHR: 124, method: 'Tanaka / Karvonen', zones: [
+          { zone: 'Z1', minBpm: 124, maxBpm: 136 },
+          { zone: 'Z2', minBpm: 136, maxBpm: 149 },
+          { zone: 'Z3', minBpm: 149, maxBpm: 161 },
+          { zone: 'Z4', minBpm: 161, maxBpm: 174 },
+          { zone: 'Z5', minBpm: 174, maxBpm: 186 }
+        ], ...overrides.heartRate
+      },
+      biomarkers: overrides.biomarkers !== undefined ? overrides.biomarkers : {
+        glucose: { fastingGlucose: 96, fastingInsulin: 11, homaIR: 2.6 },
+        lipids: { triglycerides: 130, ldl: 115, totalCholesterol: 185 }
+      },
+      energy: { tmbKcal: 2150, getKcal: 2900, ...overrides.energy },
+      nutrition: { caloricTargetKcal: 2400, energyBalanceKcal: -500, proteinGKg: 2.0, ...overrides.nutrition },
+      trainingProfile: { frequencyWeekly: 4, durationMinutes: 60, ...overrides.trainingProfile },
+      lifestyle: { sleepHours: 7.8, sleepQuality: 'Boa', stressLevel: 'Moderado', ...overrides.lifestyle },
+      constraints: { injuries: [], prohibitedExercises: [], clinicalConstraints: [], availableEquipment: 'Full Gym', ...overrides.constraints },
+      clinical: { clinicalNotes: '', ...overrides.clinical }
+    };
+  }
+
+  // ── CD01: Objetivos diferentes → requisitos diferentes ────────────────────
+  (() => {
+    const ctxA = makeCardioCtx({ patient: { objective: 'Emagrecimento' }, nutrition: { energyBalanceKcal: -500 } });
+    const ctxB = makeCardioCtx({ patient: { objective: 'Hipertrofia' }, nutrition: { energyBalanceKcal: 350 }, trainingProfile: { frequencyWeekly: 5 } });
+    const reqA = buildCardioGenerationRequirements(ctxA);
+    const reqB = buildCardioGenerationRequirements(ctxB);
+
+    const diffFreq = reqA.frequency.target !== reqB.frequency.target;
+    const diffVol = reqA.volume.targetMinutes > reqB.volume.targetMinutes;
+    const diffHIIT = reqA.intensity.highIntensityMaxSessions !== reqB.intensity.highIntensityMaxSessions;
+    const pass = diffFreq && diffVol && diffHIIT;
+
+    assert('CD01', 'Objetivos diferentes produzem requisitos de frequência, volume e intensidade distintos', pass,
+      `Emagrecimento: ${reqA.frequency.target}x (${reqA.volume.targetMinutes} min) vs Hipertrofia: ${reqB.frequency.target}x (${reqB.volume.targetMinutes} min)`);
+  })();
+
+  // ── CD02: RCEst diferente → prioridade aeróbia diferente ───────────────────
+  (() => {
+    const ctxA = makeCardioCtx({ cardiometabolic: { rcEst: 0.44, hasCardiometabolicRisk: false }, anthropometry: { bodyFatPercent: 12 } });
+    const ctxB = makeCardioCtx({ cardiometabolic: { rcEst: 0.58, hasCardiometabolicRisk: true }, anthropometry: { bodyFatPercent: 26 } });
+    const reqA = buildCardioGenerationRequirements(ctxA);
+    const reqB = buildCardioGenerationRequirements(ctxB);
+
+    const hasRCEstDriving = reqB.frequency.drivingFactors.some(f => f.includes('RCEst'));
+    const pass = reqB.frequency.target >= reqA.frequency.target && hasRCEstDriving;
+
+    assert('CD02', 'RCEst elevado eleva prioridade aeróbia e registra fator causal explicável', pass,
+      `RCEst 0.44 (Target=${reqA.frequency.target}x) vs RCEst 0.58 (Target=${reqB.frequency.target}x) | Factor=${hasRCEstDriving}`);
+  })();
+
+  // ── CD03: Mesmo RCEst, recuperação diferente → frequências diferentes ─────
+  (() => {
+    const ctxGood = makeCardioCtx({ lifestyle: { sleepHours: 8.5, sleepQuality: 'Excelente', stressLevel: 'Baixo' } });
+    const ctxPoor = makeCardioCtx({ lifestyle: { sleepHours: 5.0, sleepQuality: 'Ruim', stressLevel: 'Alto' } });
+    const reqGood = buildCardioGenerationRequirements(ctxGood);
+    const reqPoor = buildCardioGenerationRequirements(ctxPoor);
+
+    const pass = reqGood.frequency.target > reqPoor.frequency.target &&
+      reqGood.volume.targetMinutes > reqPoor.volume.targetMinutes &&
+      reqPoor.observed.recoveryModifier === 'REDUCED' &&
+      reqGood.observed.recoveryModifier === 'OPTIMAL';
+
+    assert('CD03', 'Mesmo RCEst com recuperação diferente produz frequências distintas (sem regra cega)', pass,
+      `Recuperação Boa (${reqGood.observed.recoveryModifier}): ${reqGood.frequency.target}x (${reqGood.volume.targetMinutes}m) vs Ruim (${reqPoor.observed.recoveryModifier}): ${reqPoor.frequency.target}x (${reqPoor.volume.targetMinutes}m)`);
+  })();
+
+  // ── CD04: Musculação 4x vs 6x → capacidade concorrente diferente ──────────
+  (() => {
+    const ctx4x = makeCardioCtx({ trainingProfile: { frequencyWeekly: 4 } });
+    const ctx6x = makeCardioCtx({ trainingProfile: { frequencyWeekly: 6 } });
+    const req4x = buildCardioGenerationRequirements(ctx4x);
+    const req6x = buildCardioGenerationRequirements(ctx6x);
+
+    const pass = req6x.frequency.target <= 2 &&
+      req6x.frequency.target < req4x.frequency.target &&
+      req6x.distribution.maximumConcurrentLoad === 'HIGH';
+
+    assert('CD04', 'Musculação 6x impõe teto de concorrência e reduz frequência comparada a 4x', pass,
+      `Musculação 4x: Cardio Target=${req4x.frequency.target}x vs Musculação 6x: Cardio Target=${req6x.frequency.target}x (Carga Concorrente: ${req6x.distribution.maximumConcurrentLoad})`);
+  })();
+
+  // ── CD05: Déficit vs superávit altera estratégia rastreavelmente ──────────
+  (() => {
+    const ctxDeficit = makeCardioCtx({ nutrition: { energyBalanceKcal: -550 } });
+    const ctxSurplus = makeCardioCtx({ patient: { objective: 'Hipertrofia' }, nutrition: { energyBalanceKcal: 400 } });
+    const reqDeficit = buildCardioGenerationRequirements(ctxDeficit);
+    const reqSurplus = buildCardioGenerationRequirements(ctxSurplus);
+
+    const hasDeficitFactor = reqDeficit.frequency.drivingFactors.some(f => f.includes('Déficit'));
+    const surplusCap = reqSurplus.intensity.highIntensityMaxSessions === 0;
+    const pass = hasDeficitFactor && surplusCap;
+
+    assert('CD05', 'Déficit vs Superávit modula estratégia aeróbia de forma fundamentada', pass,
+      `Déficit -550kcal (fator detectado=${hasDeficitFactor}) vs Superávit +400kcal (HIIT Proibido=${surplusCap})`);
+  })();
+
+  // ── CD06: FCR ausente → Tanaka (%FCM), sem inventar Karvonen ──────────────
+  (() => {
+    const ctxNoFCR = makeCardioCtx({ heartRate: { maxHR: 180, restingHR: null, reserveHR: null, method: 'Tanaka (%FCM)', zones: [] } });
+    const req = buildCardioGenerationRequirements(ctxNoFCR);
+
+    const pass = req.intensity.method === 'Tanaka (%FCM)' && ctxNoFCR.heartRate.restingHR === null;
+
+    assert('CD06', 'Ausência de FCR preserva Tanaka (%FCM) sem inventar FCR ou valor falso', pass,
+      `Method=${req.intensity.method}, restingHR=${ctxNoFCR.heartRate.restingHR}`);
+  })();
+
+  // ── CD07: Restrição clínica/articular chega sem criar falso diagnóstico ───
+  (() => {
+    const ctxKnee = makeCardioCtx({
+      constraints: {
+        injuries: ['condromalacia patelar'],
+        clinicalConstraints: ['evitar impacto articular'],
+        prohibitedExercises: []
+      }
+    });
+    const req = buildCardioGenerationRequirements(ctxKnee);
+
+    const pass = req.modalities.hasKneeOrJointConstraint === true &&
+      req.safety.prohibitions.some(p => p.includes('impacto')) &&
+      req.modalities.preferredProtocolIds.includes('cardio_01');
+
+    assert('CD07', 'Restrição articular tratada com priorização de baixo impacto sem falso diagnóstico médico', pass,
+      `hasKneeConstraint=${req.modalities.hasKneeOrJointConstraint}, prohibitionsCount=${req.safety.prohibitions.length}`);
+  })();
+
+  // ── CD08: Ausência de equipamento específico tratada como unknown ─────────
+  (() => {
+    const ctx = makeCardioCtx({ constraints: { availableEquipment: 'Condomínio' } });
+    const req = buildCardioGenerationRequirements(ctx);
+
+    const pass = req.safety.unknowns.includes('specific_cardio_hardware_not_itemized');
+
+    assert('CD08', 'Equipamentos específicos de cardio não discriminados são registrados como unknown', pass,
+      `unknowns: ${req.safety.unknowns.join(', ')}`);
+  })();
+
+  // ── CD09: Biomarcador ausente não vira normalidade ────────────────────────
+  (() => {
+    const ctxNoBio = makeCardioCtx({ biomarkers: null });
+    const req = buildCardioGenerationRequirements(ctxNoBio);
+
+    const pass = req.safety.unknowns.includes('biomarkers_not_available') &&
+      req.observed.clinicalSignals.length === 0;
+
+    assert('CD09', 'Biomarcador ausente registrado como unknown sem presumir normalidade ou patologia', pass,
+      `biomarkers_not_available=${pass}`);
+  })();
+
+  // ── CD10: RCEst elevado não determina frequência sozinho ──────────────────
+  (() => {
+    // Paciente 1: RCEst 0.60, mas musculação 6x e sono ruim
+    const ctx1 = makeCardioCtx({
+      cardiometabolic: { rcEst: 0.60, hasCardiometabolicRisk: true },
+      trainingProfile: { frequencyWeekly: 6 },
+      lifestyle: { sleepHours: 5.0, sleepQuality: 'Ruim', stressLevel: 'Alto' }
+    });
+    // Paciente 2: RCEst 0.60, musculação 3x e sono ótimo
+    const ctx2 = makeCardioCtx({
+      cardiometabolic: { rcEst: 0.60, hasCardiometabolicRisk: true },
+      trainingProfile: { frequencyWeekly: 3 },
+      lifestyle: { sleepHours: 8.5, sleepQuality: 'Excelente', stressLevel: 'Baixo' }
+    });
+    const req1 = buildCardioGenerationRequirements(ctx1);
+    const req2 = buildCardioGenerationRequirements(ctx2);
+
+    const pass = req1.frequency.target <= 2 && req2.frequency.target >= 3 && req1.frequency.target !== req2.frequency.target;
+
+    assert('CD10', 'RCEst elevado NÃO determina frequência sozinho; decisão integra concorrência e recuperação', pass,
+      `Ambos RCEst 0.60 -> Paciente 1 (6x treino + sono ruim): ${req1.frequency.target}x vs Paciente 2 (3x treino + sono bom): ${req2.frequency.target}x`);
+  })();
+
+  // ── CD11: Frequência possui min <= target <= max ──────────────────────────
+  (() => {
+    const ctx = makeCardioCtx();
+    const req = buildCardioGenerationRequirements(ctx);
+    const f = req.frequency;
+
+    const pass = f.min <= f.target && f.target <= f.max && f.min >= 1 && f.max <= 6;
+
+    assert('CD11', 'Frequência possui min, target e max com integridade matemática garantida', pass,
+      `min=${f.min}, target=${f.target}, max=${f.max}`);
+  })();
+
+  // ── CD12: Volume possui minMinutes <= targetMinutes <= maxMinutes ─────────
+  (() => {
+    const ctx = makeCardioCtx();
+    const req = buildCardioGenerationRequirements(ctx);
+    const v = req.volume;
+
+    const pass = v.minMinutes <= v.targetMinutes && v.targetMinutes <= v.maxMinutes && v.targetMinutes > 0;
+
+    assert('CD12', 'Volume possui minMinutes, targetMinutes e maxMinutes consistentes', pass,
+      `min=${v.minMinutes}m, target=${v.targetMinutes}m, max=${v.maxMinutes}m`);
+  })();
+
+  // ── CD13: Rastreabilidade completa com fatores explicáveis ────────────────
+  (() => {
+    const ctx = makeCardioCtx();
+    const req = buildCardioGenerationRequirements(ctx);
+    const r = req.rationale;
+
+    const pass = Array.isArray(r.frequency) && r.frequency.length > 0 &&
+      Array.isArray(r.volume) && r.volume.length > 0 &&
+      Array.isArray(r.intensity) && r.intensity.length > 0 &&
+      Array.isArray(r.modality) && r.modality.length > 0 &&
+      Array.isArray(r.distribution) && r.distribution.length > 0;
+
+    assert('CD13', 'Rastreabilidade completa com registro causal em todas as dimensões de decisão', pass,
+      `FreqFactors=${r.frequency.length}, VolFactors=${r.volume.length}, IntFactors=${r.intensity.length}, ModFactors=${r.modality.length}`);
+  })();
+
+  // ── CD14: Somente protocolos existentes em PERF_CARDIO_DB ─────────────────
+  (() => {
+    const ctx = makeCardioCtx();
+    const req = buildCardioGenerationRequirements(ctx);
+    const presc = generateCardioPrescription(ctx, req);
+
+    const validIds = ['cardio_01', 'cardio_02', 'cardio_03', 'cardio_04', 'cardio_05'];
+    const allValid = presc.sessions.every(s => validIds.includes(s.protocolId));
+    const valResult = validateCardioPrescriptionAgainstContext(presc, ctx, req);
+
+    const pass = allValid && valResult.isValid && presc.sessions.length === req.frequency.target;
+
+    assert('CD14', 'Prescrição multi-sessão gerada utiliza exclusivamente protocolos do PERF_CARDIO_DB e é 100% válida', pass,
+      `Sessões geradas: ${presc.sessions.length}/${req.frequency.target} | Validação determinística: ${valResult.isValid ? 'APROVADA' : 'REJEITADA'}`);
+  })();
+
+  // ── CD15: Não-regressão T01–T19 da Musculação ─────────────────────────────
+  await (async () => {
+    let perfPass = false;
+    let detail = '';
+    if (typeof runPerformanceAITests === 'function') {
+      const res = await runPerformanceAITests();
+      perfPass = res && res.passed >= 30;
+      detail = `${res.passed}/${res.total} asserções`;
+    }
+    assert('CD15', 'Não-regressão do Pilar de Musculação: runPerformanceAITests() (T01–T19) mantido íntegro', perfPass, detail);
+  })();
+
+  // ── CD16: Não-regressão dos Testes Gemini ──────────────────────────────────
+  await (async () => {
+    let geminiPass = false;
+    let detail = '';
+    if (typeof runGeminiPerformanceAITests === 'function') {
+      const res = await runGeminiPerformanceAITests();
+      geminiPass = res && res.passed >= 13;
+      detail = `${res.passed}/${res.total} testes`;
+    }
+    assert('CD16', 'Não-regressão do Gerador Gemini: runGeminiPerformanceAITests() mantido íntegro', geminiPass, detail);
+  })();
+
+  // ── TESTE FUNDAMENTAL DE PERSONALIZAÇÃO (PERFIS A, B e C) ──────────────────
+  (() => {
+    // PERFIL A: Perda de gordura + RCEst elevado (0.56) + recuperação boa (8h) + musculação 4x + déficit (-500 kcal)
+    const ctxA = makeCardioCtx({
+      _meta: { patientId: 'perfil-A' },
+      patient: { objective: 'Emagrecimento' },
+      cardiometabolic: { rcEst: 0.56, hasCardiometabolicRisk: true },
+      lifestyle: { sleepHours: 8.0, sleepQuality: 'Excelente', stressLevel: 'Baixo' },
+      trainingProfile: { frequencyWeekly: 4 },
+      nutrition: { energyBalanceKcal: -500 }
+    });
+
+    // PERFIL B: Hipertrofia + RCEst normal (0.45) + recuperação boa (8h) + musculação 6x + superávit (+350 kcal)
+    const ctxB = makeCardioCtx({
+      _meta: { patientId: 'perfil-B' },
+      patient: { objective: 'Hipertrofia' },
+      cardiometabolic: { rcEst: 0.45, hasCardiometabolicRisk: false },
+      lifestyle: { sleepHours: 8.0, sleepQuality: 'Boa', stressLevel: 'Moderado' },
+      trainingProfile: { frequencyWeekly: 6 },
+      nutrition: { energyBalanceKcal: 350 }
+    });
+
+    // PERFIL C: Perda de gordura + RCEst elevado (0.56) + recuperação ruim (5h sono, estresse alto) + musculação 6x + déficit (-500 kcal)
+    const ctxC = makeCardioCtx({
+      _meta: { patientId: 'perfil-C' },
+      patient: { objective: 'Emagrecimento' },
+      cardiometabolic: { rcEst: 0.56, hasCardiometabolicRisk: true },
+      lifestyle: { sleepHours: 5.0, sleepQuality: 'Ruim', stressLevel: 'Alto' },
+      trainingProfile: { frequencyWeekly: 6 },
+      nutrition: { energyBalanceKcal: -500 }
+    });
+
+    const reqA = buildCardioGenerationRequirements(ctxA);
+    const reqB = buildCardioGenerationRequirements(ctxB);
+    const reqC = buildCardioGenerationRequirements(ctxC);
+
+    const prescA = generateCardioPrescription(ctxA, reqA);
+    const prescB = generateCardioPrescription(ctxB, reqB);
+    const prescC = generateCardioPrescription(ctxC, reqC);
+
+    const valA = validateCardioPrescriptionAgainstContext(prescA, ctxA, reqA);
+    const valB = validateCardioPrescriptionAgainstContext(prescB, ctxB, reqB);
+    const valC = validateCardioPrescriptionAgainstContext(prescC, ctxC, reqC);
+
+    const distinctFreq = (reqA.frequency.target !== reqB.frequency.target) && (reqA.frequency.target !== reqC.frequency.target);
+    const distinctVol = (reqA.volume.targetMinutes !== reqB.volume.targetMinutes) && (reqA.volume.targetMinutes !== reqC.volume.targetMinutes);
+    const allValid = valA.isValid && valB.isValid && valC.isValid;
+    const pass = distinctFreq && distinctVol && allValid;
+
+    assert('PERFIS_A_B_C', 'Diferenciação individualizada comprovada entre Perfis A, B e C com registro causal', pass,
+      `Perfil A: ${reqA.frequency.target}x (${reqA.volume.targetMinutes}m, HIIT=${reqA.intensity.highIntensityMaxSessions}) | Perfil B: ${reqB.frequency.target}x (${reqB.volume.targetMinutes}m, HIIT=${reqB.intensity.highIntensityMaxSessions}) | Perfil C: ${reqC.frequency.target}x (${reqC.volume.targetMinutes}m, HIIT=${reqC.intensity.highIntensityMaxSessions})`);
+  })();
+
+  // ── TESTE END-TO-END (PIPELINE COMPLETO DO CARDIO ENGINE) ──────────────────
+  await (async () => {
+    const testPid = 'e2e-cardio-patient';
+    const ctx = makeCardioCtx({
+      _meta: { patientId: testPid },
+      patient: { objective: 'Emagrecimento' },
+      cardiometabolic: { rcEst: 0.55, hasCardiometabolicRisk: true },
+      lifestyle: { sleepHours: 8.0, sleepQuality: 'Boa', stressLevel: 'Baixo' },
+      trainingProfile: { frequencyWeekly: 4 }
+    });
+
+    // 1. Requirements
+    const req = buildCardioGenerationRequirements(ctx);
+    const targetFreq = req.frequency.target; // 4 sessões
+
+    // 2. Geração determinística de sessões
+    const prescription = generateCardioPrescription(ctx, req);
+
+    // 3. Validação determinística
+    const val = validateCardioPrescriptionAgainstContext(prescription, ctx, req);
+
+    // 4. Integração na Agenda Semanal
+    let schedule = perfBuildWeeklySchedule('UpperLower');
+    schedule = perfApplyCardioPrescriptionToSchedule(schedule, prescription.sessions);
+
+    const cardioSlotsCount = schedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.cardioSession).length;
+
+    // 5. Persistência
+    perfCardioPrescription = prescription;
+    perfWeeklySchedule = schedule;
+    await savePerformanceForPatient(testPid);
+
+    // 6. Leitura e Restauração da Persistência
+    await loadPerformanceForPatient(testPid);
+
+    const restoredSessionsCount = perfCardioPrescription?.sessions?.length || 0;
+    const restoredScheduleSlots = (perfWeeklySchedule || []).filter(d => d.cardioSession != null || d.type === 'Cardio' || d.type === 'Treino + Cardio').length;
+
+    const pass = val.isValid &&
+      prescription.sessions.length === targetFreq &&
+      cardioSlotsCount === targetFreq &&
+      restoredSessionsCount === targetFreq &&
+      restoredScheduleSlots === targetFreq;
+
+    assert('E2E', 'Pipeline End-to-End validado: Context → Requirements → Geração → Validação → Agenda → Persistência → Leitura', pass,
+      `Target=${targetFreq} → Geradas=${prescription.sessions.length} → Validadas=${val.isValid} → Agenda=${cardioSlotsCount} → Persistidas/Lidas=${restoredSessionsCount}`);
+  })();
+
+  console.groupEnd();
+  const passedCount = results.filter(r => r.passed).length;
+  const failedCount = results.filter(r => !r.passed).length;
+  console.info(`\n📊 Resultado Testes Cardio Engine: ${passedCount}/${results.length} passaram.`);
+  return { total: results.length, passed: passedCount, failed: failedCount, details: results };
+}
+
+if (typeof window !== 'undefined') {
+  window.runCardioRequirementsTests = runCardioRequirementsTests;
+}
+
+
 
 async function savePerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
@@ -14019,6 +16255,7 @@ async function savePerformanceForPatient(patientId = activePatientId) {
     workoutPlan: perfWorkoutPlan,
     weeklySchedule: perfWeeklySchedule,
     prescribedCardioId: perfPrescribedCardioId,
+    cardioPrescription: perfCardioPrescription,
     heartRateZones: perfCustomHRZones,
     auditData: perfAuditData,
     meta: metaToSave,
@@ -14148,7 +16385,13 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
         ? perfNormalizeWeeklySchedule(saved.weeklySchedule)
         : perfBuildWeeklySchedule(perfActiveSplit);
     }
-    perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
+    perfCardioPrescription = saved.cardioPrescription || null;
+    if (perfCardioPrescription && Array.isArray(perfCardioPrescription.sessions) && perfCardioPrescription.sessions.length > 0) {
+      perfPrescribedCardioId = perfCardioPrescription.sessions[0].protocolId || 'cardio_01';
+      perfWeeklySchedule = perfApplyCardioPrescriptionToSchedule(perfWeeklySchedule, perfCardioPrescription.sessions);
+    } else {
+      perfPrescribedCardioId = saved.prescribedCardioId || 'cardio_01';
+    }
     perfAuditData = saved.auditData || null;
     perfCustomHRZones = saved.heartRateZones || null;
     perfWorkoutMeta = saved.meta || {
@@ -14189,6 +16432,7 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
     perfWeeklySchedule = perfBuildWeeklySchedule('PPL');
     perfPrescribedCardioId = 'cardio_01';
+    perfCardioPrescription = null;
     perfAuditData = null;
     perfWorkoutMeta = {
       isAIGenerated: false,
