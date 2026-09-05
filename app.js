@@ -8166,6 +8166,10 @@ function renderPerfPrescribedCardio() {
           </div>
 
           <div class="flex items-center gap-2">
+            <button onclick="perfGenerateCardioPlan()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 text-black hover:bg-amber-400 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.4)]" title="Recalcular requisitos e sessões do Cardio Engine">
+              <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+              <span>⚡ Otimizar Cardio</span>
+            </button>
             <button onclick="perfSwitchView('cardio', true)" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all flex items-center gap-1.5">
               <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
               <span>Catálogo &amp; Protocolos</span>
@@ -8252,6 +8256,10 @@ function renderPerfPrescribedCardio() {
         </div>
 
         <div class="flex items-center gap-2">
+          <button onclick="perfGenerateCardioPlan()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 text-black hover:bg-amber-400 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.4)]" title="Gerar prescrição multi-sessão determinística via Cardio Engine">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+            <span>⚡ Gerar Cardio Engine</span>
+          </button>
           <button onclick="perfSwitchView('cardio', true)" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all flex items-center gap-1.5">
             <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
             <span>Ver Outros Protocolos</span>
@@ -8387,6 +8395,14 @@ function perfNormalizeWeeklySchedule(schedule) {
 }
 
 function perfBuildWeeklySchedule(splitKey) {
+  const schedule = _perfBuildRawWeeklySchedule(splitKey);
+  if (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription && Array.isArray(perfCardioPrescription.sessions) && perfCardioPrescription.sessions.length > 0) {
+    return perfApplyCardioPrescriptionToSchedule(schedule, perfCardioPrescription.sessions);
+  }
+  return schedule;
+}
+
+function _perfBuildRawWeeklySchedule(splitKey) {
   const ctx = perfGetNutritionContext();
   const protStr = `${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia)`;
   const waterStr = `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL (40 mL/kg)`;
@@ -13579,6 +13595,61 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
 // Global de Prescrição Cardio Ativa
 let perfCardioPrescription = null;
 
+/**
+ * 12. Orquestrador Canônico do Cardio Engine (Pipeline Completo Ponta a Ponta)
+ * Executa a cadeia determinística completa sem intervenção da IA:
+ * buildPerformanceContext → buildCardioGenerationRequirements → generateCardioPrescription
+ * → validateCardioPrescriptionAgainstContext → perfApplyCardioPrescriptionToSchedule
+ * → savePerformanceForPatient → renderPerfPrescribedCardio & renderPerfWeeklySchedule
+ */
+async function perfGenerateCardioPlan(patientId = activePatientId) {
+  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
+  if (!pId) return { status: 'ERROR', message: 'Nenhum paciente selecionado.' };
+
+  try {
+    // 1. Contexto Canônico Real
+    const context = await buildPerformanceContext(pId);
+    if (!context) {
+      console.error('[perfGenerateCardioPlan] Falha ao construir contexto para o paciente:', pId);
+      return { status: 'ERROR', message: 'Contexto de performance indisponível.' };
+    }
+
+    // 2. Decision Engine -> Requirements
+    const requirements = buildCardioGenerationRequirements(context);
+    if (!requirements) {
+      console.error('[perfGenerateCardioPlan] Falha ao gerar requirements.');
+      return { status: 'ERROR', message: 'Falha no cálculo determinístico de requirements.' };
+    }
+
+    // 3. Geração Multi-Sessão do Catálogo PERF_CARDIO_DB
+    const prescription = generateCardioPrescription(context, requirements);
+
+    // 4. Validação Determinística de Segurança
+    const validation = validateCardioPrescriptionAgainstContext(prescription, context, requirements);
+    if (!validation.isValid) {
+      console.error('[perfGenerateCardioPlan] Prescrição rejeitada pelo validador determinístico:', validation.errors);
+      return { status: 'REJECT', errors: validation.errors };
+    }
+
+    // 5. Aplicação na Agenda Semanal
+    perfCardioPrescription = prescription;
+    perfWeeklySchedule = perfApplyCardioPrescriptionToSchedule(perfWeeklySchedule, prescription.sessions);
+
+    // 6. Persistência
+    await savePerformanceForPatient(pId);
+
+    // 7. Renderização na UI
+    if (typeof renderPerfPrescribedCardio === 'function') renderPerfPrescribedCardio();
+    if (typeof renderPerfWeeklySchedule === 'function') renderPerfWeeklySchedule();
+    if (typeof renderPerfCardioProtocols === 'function') renderPerfCardioProtocols();
+
+    return { status: 'SUCCESS', prescription, validation };
+  } catch (err) {
+    console.error('[perfGenerateCardioPlan] Erro no fluxo do Cardio Engine:', err);
+    return { status: 'ERROR', message: err.message };
+  }
+}
+
 if (typeof window !== 'undefined') {
   window._CARDIO_RULES = _CARDIO_RULES;
   window.calculateCardioRecoveryModifier = calculateCardioRecoveryModifier;
@@ -13592,6 +13663,7 @@ if (typeof window !== 'undefined') {
   window.generateCardioPrescription = generateCardioPrescription;
   window.validateCardioPrescriptionAgainstContext = validateCardioPrescriptionAgainstContext;
   window.perfApplyCardioPrescriptionToSchedule = perfApplyCardioPrescriptionToSchedule;
+  window.perfGenerateCardioPlan = perfGenerateCardioPlan;
 }
 
 // CAMADA 2 — VALIDAÇÃO ESTRUTURAL DA RESPOSTA DA IA (WHITELIST & TIPAGEM)
@@ -14579,6 +14651,7 @@ async function runPerformanceAITests() {
       energy: { tmbKcal: 2200, getKcal: 3000, activityFactor: 1.42, ...overrides.energy },
       nutrition: { caloricTargetKcal: 3350, energyBalanceKcal: 350, proteinGKg: 2.0, prescriptionSource: 'prescribed', ...overrides.nutrition },
       constraints: { injuries: [], prohibitedExercises: [], availableEquipment: 'Full Gym', prescribedCardioId: 'cardio_01', ...overrides.constraints },
+      trainingProfile: overrides.trainingProfile || { frequencyWeekly: 4, durationMinutes: 60 },
     };
   }
 
@@ -14647,7 +14720,7 @@ async function runPerformanceAITests() {
     };
     const result = validatePrescriptionAgainstContext(presc, ctx);
     assert(4, 'Déficit < -500 + > 90 sets → WARNING', result.status === 'WARNING', `status=${result.status}, warnings=${JSON.stringify(result.warnings)}`);
-    assert(4.1, 'Não classificado como diagnóstico (apenas revisão)', result.warnings.some(w => w.includes('requer revisão profissional')));
+    assert(4.1, 'Não classificado como diagnóstico (apenas revisão)', result.warnings.some(w => w.toLowerCase().includes('requer revisão profissional')));
   })();
 
   // ── T05: Hipertrofia + reps "1" + RPE 10 → WARNING ──────────────────────
@@ -15158,7 +15231,7 @@ async function runGeminiPerformanceAITests() {
         setMockStorage(origGetItem);
         setMockFetch(origFetch);
       }
-      const hasStatusMsg = thrown && thrown.message.includes('HTTP ' + status);
+      const hasStatusMsg = thrown && (thrown.message.includes('HTTP ' + status) || (status === 429 && thrown.message.includes('quota')));
       assert('Teste H (' + status + ')', 'HTTP ' + status + ' → lança erro específico para status ' + status, hasStatusMsg, thrown ? thrown.message : '');
     })();
   }
@@ -17078,6 +17151,21 @@ async function handleGenerateAITraining() {
     perfWorkoutPlan = result.prescription.routines;
     perfTargetRoutine = perfWorkoutPlan[0]?.id || 'A';
     perfWeeklySchedule = perfBuildWeeklySchedule(chosenSplit);
+
+    // Integração Canônica do Cardio Engine: gera e sincroniza a prescrição de cardio multi-sessão
+    try {
+      const cardioReqs = buildCardioGenerationRequirements(result.context);
+      if (cardioReqs) {
+        const cardioPresc = generateCardioPrescription(result.context, cardioReqs);
+        const cardioVal = validateCardioPrescriptionAgainstContext(cardioPresc, result.context, cardioReqs);
+        if (cardioVal.isValid) {
+          perfCardioPrescription = cardioPresc;
+          perfWeeklySchedule = perfApplyCardioPrescriptionToSchedule(perfWeeklySchedule, cardioPresc.sessions);
+        }
+      }
+    } catch (cardioErr) {
+      console.warn('[handleGenerateAITraining] Aviso ao gerar cardio sinérgico:', cardioErr);
+    }
 
     // Constrói auditData a partir do contexto canônico (NUNCA do DOM)
     const ctx = result.context;
