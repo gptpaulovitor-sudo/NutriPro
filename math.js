@@ -143,6 +143,23 @@ function calculateBodyComposition(gender = "Masculino", age = 30, weightKg = 70,
 }
 
 /**
+ * Classificação Canônica da Relação Cintura-Estatura (RCEst) - Padrão NutriAx Pro
+ * RCEst = cintura (cm) / estatura (cm)
+ * - RCEst < 0.40  -> "Magreza extrema / Atenção"
+ * - 0.40 <= RCEst <= 0.50 -> "Ideal / Baixo risco cardiovascular"
+ * - 0.50 < RCEst <= 0.60  -> "Risco aumentado / Sobrepeso-Adiposidade central"
+ * - RCEst > 0.60  -> "Risco altamente elevado"
+ */
+function classifyRCEst(rcEst) {
+  const val = parseFloat(rcEst);
+  if (isNaN(val) || val <= 0) return "Não informado";
+  if (val < 0.40) return "Magreza extrema / Atenção";
+  if (val <= 0.50) return "Ideal / Baixo risco cardiovascular";
+  if (val <= 0.60) return "Risco aumentado / Sobrepeso-Adiposidade central";
+  return "Risco altamente elevado";
+}
+
+/**
  * 5. Calculate Anthropometric Ratios & Indices
  */
 function calculateAnthropometricIndices(
@@ -171,11 +188,9 @@ function calculateAnthropometricIndices(
   if (isMale && rcq >= 0.9) rcqClass = "Atenção / Risco aumentado";
   if (!isMale && rcq >= 0.85) rcqClass = "Atenção / Risco aumentado";
 
-  // Waist-to-Height Ratio (RCEst)
+  // Waist-to-Height Ratio (RCEst = cintura / estatura em cm)
   const rcEst = waist > 0 && heightCm > 0 ? waist / heightCm : 0;
-  let rcEstClass = "Adequado";
-  if (rcEst >= 0.5 && rcEst < 0.6) rcEstClass = "Atenção / Limítrofe";
-  if (rcEst >= 0.6) rcEstClass = "Alto Risco Cardiometabólico";
+  const rcEstClass = classifyRCEst(rcEst);
 
   // Skeletal Muscle Mass (MME - Lee et al.)
   const genderVal = isMale ? 1 : 0;
@@ -1560,8 +1575,15 @@ if (typeof module !== "undefined" && module.exports) {
     calculateBromatologicalPortion,
     auditDietBromatology,
     generateAutomatedPrescription,
-    CANONICAL_DIET_FOODS
+    CANONICAL_DIET_FOODS,
+    classifyRCEst,
+    calculateAnthropometricIndices
   };
+}
+
+if (typeof window !== "undefined") {
+  window.classifyRCEst = classifyRCEst;
+  window.calculateAnthropometricIndices = calculateAnthropometricIndices;
 }
 
 

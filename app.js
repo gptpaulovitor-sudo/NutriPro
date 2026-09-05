@@ -12309,37 +12309,45 @@ async function buildPerformanceContext(patientId = activePatientId) {
   } : null;
 
   // ── 6. ÍNDICES ANTROPOMÉTRICOS & CARDIOMETABÓLICOS (math.js) ─────────────
-  const anthroIndices = (typeof calculateAnthropometricIndices === 'function' && waistVal > 0 && heightCm > 0)
-    ? calculateAnthropometricIndices(
-        waistVal,
-        hipVal || 100,
-        heightCm / 100,
-        weightKg,
-        leanMassKg,
-        sex,
-        age,
-        latestEval ? (parseFloat(latestEval.arm) || 32) : 32,
-        latestEval ? (parseFloat(latestEval.skTriceps) || 8) : 8,
-        latestEval ? (parseFloat(latestEval.circCalf) || 36) : 36
-      )
-    : null;
+  // FONTE CANÔNICA: Consome os dados calculados e persistidos da Avaliação Antropométrica.
+  // Se ausentes no registro de avaliação, executa a função de math.js como fallback seguro.
+  const evalRcEst = latestEval?.rcEst ?? latestEval?.indices?.rcEst ?? null;
+  const evalRcEstClass = latestEval?.rcEstClassification ?? latestEval?.indices?.rcEstClassification ?? (evalRcEst != null && typeof classifyRCEst === 'function' ? classifyRCEst(evalRcEst) : null);
+
+  const anthroIndices = (evalRcEst != null && latestEval?.indices)
+    ? latestEval.indices
+    : (typeof calculateAnthropometricIndices === 'function' && waistVal > 0 && heightCm > 0)
+      ? calculateAnthropometricIndices(
+          waistVal,
+          hipVal || 100,
+          heightCm / 100,
+          weightKg,
+          leanMassKg,
+          sex,
+          age,
+          latestEval ? (parseFloat(latestEval.arm) || 32) : 32,
+          latestEval ? (parseFloat(latestEval.skTriceps) || 8) : 8,
+          latestEval ? (parseFloat(latestEval.circCalf) || 36) : 36
+        )
+      : null;
+
+  const resolvedRcEst = evalRcEst ?? (anthroIndices ? anthroIndices.rcEst : (waistVal > 0 && heightCm > 0 ? Number((waistVal / heightCm).toFixed(2)) : null));
+  const resolvedRcEstClass = evalRcEstClass ?? (anthroIndices ? anthroIndices.rcEstClassification : (resolvedRcEst != null && typeof classifyRCEst === 'function' ? classifyRCEst(resolvedRcEst) : null));
 
   const ffmi = (heightCm > 0 && leanMassKg > 0)
     ? Number((leanMassKg / Math.pow(heightCm / 100, 2)).toFixed(2))
     : null;
 
   const cardiometabolic = {
-    rcEst: anthroIndices ? anthroIndices.rcEst : null,
-    rcEstClassification: anthroIndices ? anthroIndices.rcEstClassification : null,
-    rcq: anthroIndices ? anthroIndices.rcq : waistToHipRatio,
-    rcqClassification: anthroIndices ? anthroIndices.rcqClassification : null,
-    conicityIndex: anthroIndices ? anthroIndices.conicityIndex : null,
-    conicityClassification: anthroIndices ? anthroIndices.conicityClassification : null,
+    rcEst: resolvedRcEst,
+    rcEstClassification: resolvedRcEstClass,
+    rcq: latestEval?.rcq ?? (anthroIndices ? anthroIndices.rcq : waistToHipRatio),
+    rcqClassification: latestEval?.rcqClassification ?? (anthroIndices ? anthroIndices.rcqClassification : null),
+    conicityIndex: latestEval?.conicityIndex ?? (anthroIndices ? anthroIndices.conicityIndex : null),
+    conicityClassification: latestEval?.conicityClassification ?? (anthroIndices ? anthroIndices.conicityClassification : null),
     ffmi,
     skeletalMuscleMassKg: anthroIndices ? anthroIndices.skeletalMuscleMassKg : null,
-    hasCardiometabolicRisk: anthroIndices
-      ? (anthroIndices.rcEst >= 0.50 || (anthroIndices.conicityIndex && anthroIndices.conicityIndex >= 1.25))
-      : null
+    hasCardiometabolicRisk: (resolvedRcEst != null && resolvedRcEst > 0.50) || (anthroIndices?.conicityIndex != null && anthroIndices.conicityIndex >= 1.25)
   };
 
   // ── 7. ZONAS DE FREQUÊNCIA CARDÍACA (app.js · Tanaka / Karvonen) ─────────
@@ -12833,6 +12841,22 @@ const _CARDIO_RULES = Object.freeze({
   PROHIBITED: Object.freeze({
     UNREGULATED_HIIT_IN_SEVERE_DEFICIT: 'Proibido prescrever mais de 1 sessão de HIIT semanal em déficit calórico profundo (< -600 kcal) ou sono menor que 6 horas.',
     HIGH_IMPACT_WITH_JOINT_INJURY: 'Proibido prescrever protocolos de corrida ou impacto articular quando constar restrição ortopédica articular declarada.',
+  }),
+
+  // Classificação Taxonômica Explícita das Regras (Auditoria Clínica NutriAx Pro)
+  RULE_CATEGORIES: Object.freeze({
+    SESSION_DURATION_BOUNDS: 'SAFETY',
+    WEEKLY_VOLUME_CEILING: 'SAFETY',
+    SEVERE_DEFICIT_HIIT_LIMIT: 'SAFETY',
+    JOINT_IMPACT_RESTRICTION: 'SAFETY',
+    MAX_DAYS_PER_WEEK: 'OPERATIONAL_LIMIT',
+    OBJECTIVE_BASELINE_FREQUENCY: 'HEURISTIC',
+    RCEST_ELEVATED_PRIORITY_SIGNAL: 'HEURISTIC',
+    CONCURRENT_6X_CARDIO_CAP: 'PREFERENCE',
+    ZONE_SELECTION_BY_OBJECTIVE: 'PREFERENCE',
+    REDUCED_RECOVERY_MODULATION: 'WARNING',
+    LOWER_BODY_INTERFERENCE: 'WARNING',
+    ELEVATED_CARDIOMETABOLIC_RISK: 'WARNING',
   }),
 });
 
