@@ -4868,8 +4868,11 @@ async function exportImpactReportPDF(patientId = activePatientId) {
   const rcEst = height > 0 ? Number((waist / (height * 100)).toFixed(2)) : 0.52;
 
   const cardioDays = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
-    ? perfWeeklySchedule.filter(d => d.type === 'Cardio').length
-    : 1;
+    ? perfWeeklySchedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.hasCardioPost || !!d.cardioSession).length
+    : 2;
+  const cardioDayNamesList = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
+    ? perfWeeklySchedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.hasCardioPost || !!d.cardioSession).map(d => d.dayName || d.dayKey).join(' e ')
+    : 'Dia 2 e Dia 5';
 
   const splitName = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit) ? perfActiveSplit : "PHAT (5 Dias · Hipertrofia/Força)";
 
@@ -5070,7 +5073,7 @@ async function exportImpactReportPDF(patientId = activePatientId) {
             <ul style="padding-left: 14px; color: #334155; line-height: 1.5;">
               <li>Divisão de Treino: <strong>${splitName}</strong></li>
               <li>Volume Muscular: <strong>33 Séries Semanais de Sobrecarga</strong></li>
-              <li>Cardio Prescrito: <strong>${cardioDays} Sessão Semanal (Dia 3 · Zona 2 Base Aeróbica, 45 min)</strong></li>
+              <li>Cardio Prescrito: <strong>${cardioDays} ${cardioDays > 1 ? 'Sessões Semanais' : 'Sessão Semanal'} (${cardioDayNamesList} · Zona 2 Base Aeróbica, 45 min)</strong></li>
             </ul>
           </div>
         </div>
@@ -7909,8 +7912,9 @@ let perfWeeklySchedule = [
     strategyTip: 'Superávit anabólico peri-treino para força máxima'
   },
   {
-    dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força)',
-    focus: 'Tração e Força Escapular (Terra, Barra Fixa, Remadas)', type: 'Treino',
+    dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força) + Cardio Z2',
+    focus: 'Tração e Força Escapular · Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
+    cardioId: 'cardio_01', hasCardioPost: true,
     carboTip: '80-100g carbo pré-treino + Creatina 5g',
     proteinTip: '2.0 g/kg (232g/dia)', waterTip: '5.232 mL',
     strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
@@ -8421,8 +8425,10 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         strategyTip: 'Superávit anabólico peri-treino para força máxima'
       },
       {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: r[1]?.id || 'B', title: r[1]?.name || 'Treino B · Pull A',
-        focus: r[1]?.description || 'Tração e Força Escapular', type: 'Treino',
+        dayKey: 'd2', dayName: 'Dia 2', routineId: r[1]?.id || 'B', title: `${r[1]?.name || 'Treino B · Pull A'} + Cardio Z2`,
+        focus: `${r[1]?.description || 'Tração e Força Escapular'} · Cardio Zona 2 (45 min pós-força)`, type: 'Treino + Cardio',
+        cardioId: 'cardio_01',
+        hasCardioPost: true,
         carboTip: `${preCarbG} carbo pré-treino + Creatina 5g`,
         proteinTip: protStr, waterTip: waterPlusStr,
         strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
@@ -8538,8 +8544,10 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         strategyTip: 'Superávit anabólico peri-treino para força máxima'
       },
       {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força)',
-        focus: 'Tração e Força Escapular (Terra, Barra Fixa, Remadas)', type: 'Treino',
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força) + Cardio Z2',
+        focus: 'Tração e Força Escapular · Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
+        cardioId: 'cardio_01',
+        hasCardioPost: true,
         carboTip: '80-100g carbo pré-treino + Creatina 5g',
         proteinTip: protStr, waterTip: waterPlusStr,
         strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
@@ -13427,15 +13435,15 @@ function generateCardioPrescription(context, requirements) {
   const z1Zone = hrZones.find(z => z.zone === 'Z1');
   const z4Zone = hrZones.find(z => z.zone === 'Z4');
 
-  // Mapeamento equilibrado de dias da semana para acomodar até 6 sessões
+  // Mapeamento equilibrado de dias da semana priorizando dias sem sobrecarga pesada de membros inferiores
   const daySlots = [
+    { dayKey: 'd2', dayName: 'Dia 2' },
+    { dayKey: 'd5', dayName: 'Dia 5' },
+    { dayKey: 'd7', dayName: 'Dia 7' },
+    { dayKey: 'd4', dayName: 'Dia 4' },
+    { dayKey: 'd1', dayName: 'Dia 1' },
     { dayKey: 'd3', dayName: 'Dia 3' },
     { dayKey: 'd6', dayName: 'Dia 6' },
-    { dayKey: 'd1', dayName: 'Dia 1' },
-    { dayKey: 'd5', dayName: 'Dia 5' },
-    { dayKey: 'd2', dayName: 'Dia 2' },
-    { dayKey: 'd4', dayName: 'Dia 4' },
-    { dayKey: 'd7', dayName: 'Dia 7' },
   ];
 
   for (let i = 0; i < targetSessionsCount; i++) {
@@ -13572,8 +13580,12 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
   const updated = schedule.map(day => {
     // Preserva dados de treino de força removendo cardio legado
     const hasWorkout = day.routineId != null && (day.type === 'Treino' || day.type === 'Treino + Cardio');
+    const cleanTitle = (day.title || '').replace(/\s*\+\s*Cardio.*$/i, '').trim();
+    const cleanFocus = (day.focus || '').replace(/\s*[·•]\s*Cardio.*$/i, '').trim();
     return {
       ...day,
+      title: cleanTitle,
+      focus: cleanFocus,
       type: hasWorkout ? 'Treino' : 'Off',
       hasCardioPost: false,
       cardioId: null,
@@ -13583,33 +13595,38 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
 
   // Distribui as sessões na agenda
   cardioSessions.forEach(cs => {
-    // Tenta encontrar o dia alvo sugerido pela sessão ou o primeiro dia disponível
-    let targetDay = updated.find(d => d.dayKey === cs.dayKey);
+    // Tenta encontrar o dia alvo sugerido pela sessão desde que ainda sem cardio
+    let targetDay = updated.find(d => d.dayKey === cs.dayKey && !d.cardioSession);
     if (!targetDay) {
-      // Prioriza dias Off (descanso de força)
+      // Prioriza dias Off (descanso de força) sem cardio
       targetDay = updated.find(d => d.type === 'Off' && !d.cardioSession);
     }
     if (!targetDay) {
-      // Se todos os dias têm treino, escolhe dia de treino sem cardio post
+      // Se todos os dias têm treino, escolhe dia de treino sem cardio post (priorizando dias que não sejam pernas)
+      targetDay = updated.find(d => d.type === 'Treino' && !d.hasCardioPost && !d.title.toLowerCase().includes('legs') && !d.title.toLowerCase().includes('perna'));
+    }
+    if (!targetDay) {
       targetDay = updated.find(d => d.type === 'Treino' && !d.hasCardioPost);
     }
     if (!targetDay) {
-      targetDay = updated[0];
+      targetDay = updated.find(d => !d.cardioSession) || updated[0];
     }
 
     if (targetDay.type === 'Off') {
       targetDay.type = 'Cardio';
       targetDay.cardioId = cs.protocolId;
       targetDay.cardioSession = cs;
-      targetDay.title = cs.protocolTitle.replace('Protocolo ', '').replace('Circuito ', '');
-      targetDay.focus = `${cs.protocolTitle} · ${cs.durationMinutes} min (${cs.heartRateZone})`;
+      targetDay.title = cs.protocolTitle ? cs.protocolTitle.replace('Protocolo ', '').replace('Circuito ', '').replace(/["']/g, '') : `Cardio ${cs.heartRateZone || 'Z2'}`;
+      targetDay.focus = `${cs.protocolTitle || 'Cardio'} · ${cs.durationMinutes || 45} min (${cs.heartRateZone || 'Z2'})`;
     } else {
       targetDay.type = 'Treino + Cardio';
       targetDay.hasCardioPost = true;
       targetDay.cardioId = cs.protocolId;
       targetDay.cardioSession = cs;
-      targetDay.title = `${targetDay.title.split('+')[0].trim()} + Cardio ${cs.heartRateZone}`;
-      targetDay.focus = `${targetDay.focus.split('· Cardio')[0].trim()} · Cardio ${cs.heartRateZone} (${cs.durationMinutes} min pós-força)`;
+      const baseTitle = targetDay.title.replace(/\s*\+\s*Cardio.*$/i, '').trim();
+      targetDay.title = `${baseTitle} + Cardio ${cs.heartRateZone || 'Z2'}`;
+      const baseFocus = targetDay.focus.replace(/\s*[·•]\s*Cardio.*$/i, '').trim();
+      targetDay.focus = `${baseFocus} · Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes || 45} min pós-força)`;
     }
   });
 
@@ -17428,8 +17445,8 @@ function perfGeneratePDF() {
     `;
   }).join('');
 
-  // Coleta todos os dias de Cardio prescritos na Agenda Semanal
-  const cardioDays = perfWeeklySchedule.filter(d => d.type === 'Cardio');
+  // Coleta todos os dias de Cardio prescritos na Agenda Semanal (puro ou integrado)
+  const cardioDays = perfWeeklySchedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.hasCardioPost || !!d.cardioSession);
 
   let cardioSectionsHtml = '';
   if (cardioDays.length > 0) {
