@@ -4416,6 +4416,15 @@ async function renderResultsDashboard(patientId = activePatientId) {
   const explEl = document.getElementById("results-iec-explanation");
   if (explEl) explEl.innerText = data.iecExplanation;
 
+  // 2.1 Card Independente de Jejum Intermitente e IDC (Pilar 5 · Seções 31-34)
+  if (typeof renderP5FastingCard === 'function') {
+    try {
+      await renderP5FastingCard(patientId, data);
+    } catch (fastingP5Err) {
+      console.warn('[P5] Erro não-bloqueante ao renderizar métricas de jejum:', fastingP5Err);
+    }
+  }
+
   // 3. Atualiza 4 Summary Stat Cards
   const wCh = document.getElementById("evoWeightChange");
   if (wCh) {
@@ -5828,6 +5837,652 @@ async function handleSaveAdherenceCheckIn(event) {
 
 
 // =========================================================================
+// MÓDULO DE JEJUM INTERMITENTE (PILAR 3 · NUTRIAX PRO CONTROLLER)
+// =========================================================================
+
+let currentFastingEligibilitySnapshot = null;
+let currentFastingActiveDays = [0, 1, 2, 3, 4, 5, 6];
+let currentFastingAuditTrail = [];
+let currentFastingProtocolVersion = 1;
+
+async function renderFastingNutritionistModule(patientId = activePatientId) {
+  const pId = patientId || activePatientId;
+  if (!pId) return;
+
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  if (!fastingMod) {
+    console.warn('[NutriAx Fasting] Módulo NutriAxFasting não carregado.');
+    return;
+  }
+
+  // 1. Busca dados do paciente e exames para avaliação de elegibilidade
+  const patient = (typeof db !== 'undefined' && db.patients) ? await db.patients.get(pId) : null;
+  const exams = (typeof db !== 'undefined' && db.clinicalExams)
+    ? await db.clinicalExams.where('patientId').equals(pId).toArray()
+    : [];
+
+  // 2. Avalia Firewall Clínico
+  const eligibility = fastingMod.evaluateFastingEligibility(patient || {}, exams);
+  currentFastingEligibilitySnapshot = eligibility;
+
+  // 3. Carrega protocolo salvo (se houver)
+  const protocol = await fastingMod.loadFastingProtocol(pId);
+  if (protocol) {
+    currentFastingProtocolVersion = protocol.protocolVersion || 1;
+    currentFastingActiveDays = Array.isArray(protocol.activeDays) ? [...protocol.activeDays] : [0, 1, 2, 3, 4, 5, 6];
+    currentFastingAuditTrail = Array.isArray(protocol.auditTrail) ? [...protocol.auditTrail] : [];
+  } else {
+    currentFastingProtocolVersion = 1;
+    currentFastingActiveDays = [0, 1, 2, 3, 4, 5, 6];
+    currentFastingAuditTrail = [];
+  }
+
+  // 4. Atualiza UI do Firewall
+  updateFastingFirewallUI(eligibility, protocol);
+
+  // 5. Preenche os campos do formulário
+  const enabledToggle = document.getElementById('fastingEnabledToggle');
+  if (enabledToggle) enabledToggle.checked = protocol ? !!protocol.enabled : false;
+
+  const typeSelect = document.getElementById('fastingTypeSelect');
+  if (typeSelect && protocol?.type) typeSelect.value = protocol.type;
+
+  const subtypeSelect = document.getElementById('fastingSubtypeSelect');
+  if (subtypeSelect && protocol?.subtype) subtypeSelect.value = protocol.subtype;
+
+  const windowStartInput = document.getElementById('fastingWindowStart');
+  if (windowStartInput) windowStartInput.value = protocol?.feedingWindows?.[0]?.start || '12:00';
+
+  const windowEndInput = document.getElementById('fastingWindowEnd');
+  if (windowEndInput) windowEndInput.value = protocol?.feedingWindows?.[0]?.end || '20:00';
+
+  const clinicalNotesInput = document.getElementById('fastingClinicalNotes');
+  if (clinicalNotesInput) clinicalNotesInput.value = protocol?.clinicalNotes || '';
+
+  const statusSelect = document.getElementById('fastingStatusSelect');
+  if (statusSelect && protocol?.status) statusSelect.value = protocol.status;
+
+  const versionBadge = document.getElementById('fastingVersionBadge');
+  if (versionBadge) versionBadge.textContent = `v${currentFastingProtocolVersion}`;
+
+  // Checkboxes de Objetivos
+  const objCheckboxes = document.querySelectorAll('input[name="fastingObj"]');
+  const activeObjs = protocol?.objectives || ['FAT_LOSS', 'INSULIN_SENSITIVITY'];
+  objCheckboxes.forEach(cb => {
+    cb.checked = activeObjs.includes(cb.value);
+  });
+
+  // Renderiza botões dos dias ativos
+  renderFastingDaysButtonsUI();
+  updateFastingDurationIndicatorUI();
+
+  // Renderiza Audit Trail
+  renderFastingAuditTrailUI();
+
+  // 6. Carrega e exibe histórico de logs recentes do paciente
+  await loadAndRenderFastingLogsUI(pId);
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function updateFastingFirewallUI(eligibility, protocol = null) {
+  const badge = document.getElementById('fastingSeverityBadge');
+  const alertBox = document.getElementById('fastingFirewallAlertBox');
+  const signalsGrid = document.getElementById('fastingSignalsGrid');
+  const approvalStatusText = document.getElementById('fastingApprovalStatusText');
+  const approveBtn = document.getElementById('btnApproveFastingProtocol');
+  const saveBtn = document.getElementById('btnSaveFastingProtocol');
+
+  if (!badge || !alertBox) return;
+
+  const severity = eligibility?.severity || 'REVIEW_REQUIRED';
+
+  if (severity === 'BLOCK') {
+    badge.className = 'px-3 py-1 rounded-full text-xs font-mono font-black uppercase tracking-wider bg-rose-950 text-rose-300 border border-rose-700 shadow-sm';
+    badge.textContent = '⛔ BLOCK (Contraindicação)';
+    alertBox.className = 'p-4 rounded-2xl border text-xs space-y-2 bg-rose-950/40 border-rose-800/80 text-rose-200';
+    alertBox.innerHTML = `
+      <div class="font-bold flex items-center gap-1.5 text-rose-300">
+        <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400"></i>
+        <span>Contraindicação Absoluta Identificada pelo Firewall:</span>
+      </div>
+      <ul class="list-disc pl-5 space-y-1">
+        ${eligibility.reasons.map(r => `<li>${r}</li>`).join('')}
+      </ul>
+      <p class="text-[11px] text-zinc-400 mt-2">
+        A prescrição de jejum está estritamente bloqueada na camada de domínio para este paciente.
+      </p>
+    `;
+    if (approveBtn) approveBtn.style.display = 'none';
+    if (approvalStatusText) approvalStatusText.innerHTML = '<span class="text-rose-400 font-bold">Bloqueado para aprovação devido a contraindicação absoluta.</span>';
+    if (saveBtn) {
+      saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      saveBtn.title = 'Protocolo bloqueado pelo Firewall Clínico.';
+    }
+  } else if (severity === 'REVIEW_REQUIRED') {
+    badge.className = 'px-3 py-1 rounded-full text-xs font-mono font-black uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-700 shadow-sm';
+    badge.textContent = '⚠️ REVIEW REQUIRED (Avaliação Exigida)';
+    alertBox.className = 'p-4 rounded-2xl border text-xs space-y-2 bg-amber-950/40 border-amber-800/80 text-amber-200';
+    alertBox.innerHTML = `
+      <div class="font-bold flex items-center gap-1.5 text-amber-300">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+        <span>Condições que exigem avaliação clínica profissional prévia:</span>
+      </div>
+      <ul class="list-disc pl-5 space-y-1">
+        ${eligibility.reasons.map(r => `<li>${r}</li>`).join('')}
+      </ul>
+      ${eligibility.warnings.length > 0 ? `
+        <div class="pt-1 text-zinc-300">
+          <strong>Avisos de monitoramento:</strong>
+          <ul class="list-disc pl-5 space-y-0.5 mt-1 text-[11px]">
+            ${eligibility.warnings.map(w => `<li>${w}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+    `;
+
+    const isApproved = !!(protocol?.approval?.approved);
+    if (isApproved) {
+      if (approvalStatusText) {
+        approvalStatusText.innerHTML = `
+          <span class="text-emerald-400 font-bold flex items-center gap-1">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            Aprovado por ${protocol.approval.approvedBy || 'Profissional'} em ${new Date(protocol.approval.approvedAt).toLocaleDateString('pt-BR')}
+          </span>
+        `;
+      }
+      if (approveBtn) approveBtn.style.display = 'none';
+    } else {
+      if (approvalStatusText) approvalStatusText.innerHTML = '<span class="text-amber-300 font-bold">Pendente de aprovação expressa do profissional. Protocolo inativo até a aprovação.</span>';
+      if (approveBtn) approveBtn.style.display = 'inline-flex';
+    }
+  } else if (severity === 'WARNING') {
+    badge.className = 'px-3 py-1 rounded-full text-xs font-mono font-black uppercase tracking-wider bg-yellow-950 text-yellow-300 border border-yellow-700 shadow-sm';
+    badge.textContent = '⚡ WARNING (Monitorar)';
+    alertBox.className = 'p-4 rounded-2xl border text-xs space-y-2 bg-yellow-950/30 border-yellow-800/60 text-yellow-200';
+    alertBox.innerHTML = `
+      <div class="font-bold flex items-center gap-1.5 text-yellow-300">
+        <i data-lucide="info" class="w-4 h-4 text-yellow-400"></i>
+        <span>Recomendações e Monitoramento Clínico:</span>
+      </div>
+      <ul class="list-disc pl-5 space-y-1">
+        ${eligibility.warnings.map(w => `<li>${w}</li>`).join('')}
+      </ul>
+    `;
+    if (approveBtn) approveBtn.style.display = 'none';
+    if (approvalStatusText) approvalStatusText.innerHTML = '<span class="text-emerald-400 font-bold">Protocolo elegível com monitoramento clínico.</span>';
+  } else {
+    // PASS
+    badge.className = 'px-3 py-1 rounded-full text-xs font-mono font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-sm';
+    badge.textContent = '✅ PASS (Elegível)';
+    alertBox.className = 'p-4 rounded-2xl border text-xs space-y-2 bg-emerald-950/30 border-emerald-800/60 text-emerald-200';
+    alertBox.innerHTML = `
+      <div class="font-bold flex items-center gap-1.5 text-emerald-300">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span>Paciente elegível para prescrição de Jejum Intermitente</span>
+      </div>
+      <p class="text-[11px] text-zinc-400">
+        Nenhuma contraindicação clínica absoluta ou relativa identificada nos dados antropométricos, anamnese e exames laboratoriais.
+      </p>
+    `;
+    if (approveBtn) approveBtn.style.display = 'none';
+    if (approvalStatusText) approvalStatusText.innerHTML = '<span class="text-emerald-400 font-bold">Elegibilidade plena verificada.</span>';
+  }
+
+  // Atualiza Grid de Sinais Clínicos
+  if (signalsGrid && eligibility.clinicalSignals) {
+    const s = eligibility.clinicalSignals;
+    const formatStatus = (st) => {
+      if (st === 'CONFIRMED') return '<span class="text-rose-400 font-bold">Confirmado</span>';
+      if (st === 'POSSIBLE') return '<span class="text-amber-400 font-bold">Possível/Ambíguo</span>';
+      if (st === 'NEGATED') return '<span class="text-emerald-400 font-bold">Negado</span>';
+      return '<span class="text-zinc-500 font-bold">Desconhecido</span>';
+    };
+
+    signalsGrid.innerHTML = `
+      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
+        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Gestação</span>
+        <div>${formatStatus(s.pregnancy?.status)}</div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
+        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Lactação</span>
+        <div>${formatStatus(s.lactation?.status)}</div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
+        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Transtorno Alim.</span>
+        <div>${formatStatus(s.eatingDisorder?.status)}</div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
+        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Diabetes</span>
+        <div>${formatStatus(s.diabetes?.status)}</div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
+        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Uso de Insulina</span>
+        <div>${formatStatus(s.insulinUse?.status)}</div>
+      </div>
+    `;
+  }
+}
+
+function renderFastingDaysButtonsUI() {
+  const container = document.getElementById('fastingDaysButtonsContainer');
+  if (!container) return;
+
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  container.innerHTML = dayNames.map((name, idx) => {
+    const isAct = currentFastingActiveDays.includes(idx);
+    const cls = isAct
+      ? 'bg-amber-500 text-black border-amber-400 font-bold shadow-sm'
+      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white';
+    return `
+      <button type="button" onclick="toggleFastingDayUI(${idx})"
+        class="px-3 py-1.5 rounded-xl border text-xs transition-all ${cls}">
+        ${name}
+      </button>
+    `;
+  }).join('');
+}
+
+function toggleFastingDayUI(dayIndex) {
+  if (currentFastingActiveDays.includes(dayIndex)) {
+    if (currentFastingActiveDays.length > 1) {
+      currentFastingActiveDays = currentFastingActiveDays.filter(d => d !== dayIndex);
+    }
+  } else {
+    currentFastingActiveDays.push(dayIndex);
+    currentFastingActiveDays.sort((a, b) => a - b);
+  }
+  renderFastingDaysButtonsUI();
+}
+
+function updateFastingDurationIndicatorUI() {
+  const startVal = document.getElementById('fastingWindowStart')?.value || '12:00';
+  const endVal = document.getElementById('fastingWindowEnd')?.value || '20:00';
+  const display = document.getElementById('fastingDurationText');
+  if (!display) return;
+
+  const [sh, sm] = startVal.split(':').map(Number);
+  const [eh, em] = endVal.split(':').map(Number);
+  const sMin = (sh || 0) * 60 + (sm || 0);
+  const eMin = (eh || 0) * 60 + (em || 0);
+
+  let feedMin = eMin >= sMin ? eMin - sMin : (1440 - sMin) + eMin;
+  if (feedMin === 0) feedMin = 60;
+  const fastMin = 1440 - feedMin;
+
+  const feedH = (feedMin / 60).toFixed(feedMin % 60 === 0 ? 0 : 1);
+  const fastH = (fastMin / 60).toFixed(fastMin % 60 === 0 ? 0 : 1);
+
+  display.textContent = `${fastH}h Jejum · ${feedH}h Janela Alimentar`;
+}
+
+function onFastingSubtypeChangeUI() {
+  const subtype = document.getElementById('fastingSubtypeSelect')?.value;
+  const startInp = document.getElementById('fastingWindowStart');
+  const endInp = document.getElementById('fastingWindowEnd');
+  if (!startInp || !endInp) return;
+
+  if (subtype === '14:10') { startInp.value = '10:00'; endInp.value = '20:00'; }
+  else if (subtype === '16:8') { startInp.value = '12:00'; endInp.value = '20:00'; }
+  else if (subtype === '18:6') { startInp.value = '12:00'; endInp.value = '18:00'; }
+  else if (subtype === '20:4') { startInp.value = '14:00'; endInp.value = '18:00'; }
+  else if (subtype === 'OMAD') { startInp.value = '18:00'; endInp.value = '19:00'; }
+
+  updateFastingDurationIndicatorUI();
+}
+
+function onFastingTypeChangeUI() {
+  const type = document.getElementById('fastingTypeSelect')?.value;
+  const subtypeSelect = document.getElementById('fastingSubtypeSelect');
+  if (type === 'OMAD' && subtypeSelect) {
+    subtypeSelect.value = 'OMAD';
+    onFastingSubtypeChangeUI();
+  }
+}
+
+function toggleFastingEnabledUI() {
+  const enabled = document.getElementById('fastingEnabledToggle')?.checked;
+  const statusSelect = document.getElementById('fastingStatusSelect');
+  if (statusSelect) {
+    statusSelect.value = enabled ? 'ACTIVE' : 'PAUSED';
+  }
+}
+
+async function approveFastingProtocolUI() {
+  if (!currentFastingEligibilitySnapshot) return;
+  if (currentFastingEligibilitySnapshot.severity === 'BLOCK') {
+    alert('Erro: Protocolos com gravidade BLOCK possuem contraindicação absoluta e não podem ser aprovados.');
+    return;
+  }
+
+  const approverName = 'Nutricionista Responsável';
+  const nowIso = new Date().toISOString();
+
+  // Snapshot de aprovação clínica estruturada
+  const approvalObj = {
+    approved: true,
+    approvedBy: approverName,
+    approvedAt: nowIso,
+    eligibilitySeverity: currentFastingEligibilitySnapshot.severity,
+    eligibilitySnapshot: {
+      reasons: currentFastingEligibilitySnapshot.reasons,
+      warnings: currentFastingEligibilitySnapshot.warnings,
+      signals: currentFastingEligibilitySnapshot.clinicalSignals
+    }
+  };
+
+  if (!currentFastingEligibilitySnapshot.approval) {
+    currentFastingEligibilitySnapshot.approval = approvalObj;
+  } else {
+    Object.assign(currentFastingEligibilitySnapshot.approval, approvalObj);
+  }
+
+  const approvalStatusText = document.getElementById('fastingApprovalStatusText');
+  const approveBtn = document.getElementById('btnApproveFastingProtocol');
+  if (approvalStatusText) {
+    approvalStatusText.innerHTML = `
+      <span class="text-emerald-400 font-bold flex items-center gap-1">
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+        Aprovado expressamente por ${approverName} em ${new Date(nowIso).toLocaleDateString('pt-BR')} às ${new Date(nowIso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+      </span>
+    `;
+  }
+  if (approveBtn) approveBtn.style.display = 'none';
+
+  if (window.lucide) window.lucide.createIcons();
+  alert('Protocolo de Jejum Intermitente aprovado clinicamente com sucesso.');
+}
+
+async function recalculateFastingFirewallUI() {
+  await renderFastingNutritionistModule(activePatientId);
+  alert('Firewall clínico recalculado com sucesso contra anamnese e exames atuais.');
+}
+
+function renderFastingAuditTrailUI() {
+  const container = document.getElementById('fastingAuditTrailContainer');
+  if (!container) return;
+
+  if (!currentFastingAuditTrail || currentFastingAuditTrail.length === 0) {
+    container.innerHTML = '<span class="text-zinc-500 italic block p-2">Nenhuma versão anterior arquivada (Versão 1 em elaboração).</span>';
+    return;
+  }
+
+  container.innerHTML = currentFastingAuditTrail.map(item => `
+    <div class="p-2.5 rounded-xl bg-black/60 border border-zinc-800/80 space-y-1">
+      <div class="flex justify-between items-center text-zinc-300 font-bold">
+        <span>Versão ${item.version}</span>
+        <span class="text-[10px] font-mono text-zinc-500">${new Date(item.changedAt).toLocaleDateString('pt-BR')}</span>
+      </div>
+      <div class="text-[11px] text-zinc-400">
+        Alterado por: <strong class="text-zinc-300">${item.changedBy || 'Profissional'}</strong>
+        · Protocolo: ${item.previousProtocol?.subtype || '16:8'} (${item.previousProtocol?.status || 'ACTIVE'})
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveFastingProtocolFromUI() {
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  if (!fastingMod) {
+    alert('Erro: Módulo de Jejum Intermitente não carregado.');
+    return;
+  }
+
+  const pId = activePatientId;
+  if (!pId) {
+    alert('Nenhum paciente ativo selecionado.');
+    return;
+  }
+
+  const enabled = document.getElementById('fastingEnabledToggle')?.checked || false;
+  const type = document.getElementById('fastingTypeSelect')?.value || 'TRE';
+  const subtype = document.getElementById('fastingSubtypeSelect')?.value || '16:8';
+  const start = document.getElementById('fastingWindowStart')?.value || '12:00';
+  const end = document.getElementById('fastingWindowEnd')?.value || '20:00';
+  const notes = document.getElementById('fastingClinicalNotes')?.value || '';
+  const status = document.getElementById('fastingStatusSelect')?.value || 'ACTIVE';
+
+  // Coleta objetivos selecionados
+  const selectedObjs = [];
+  document.querySelectorAll('input[name="fastingObj"]:checked').forEach(cb => {
+    selectedObjs.push(cb.value);
+  });
+
+  // Validação do Firewall na UI
+  const severity = currentFastingEligibilitySnapshot?.severity || 'REVIEW_REQUIRED';
+  const isApproved = !!(currentFastingEligibilitySnapshot?.approval?.approved);
+
+  if (enabled) {
+    if (severity === 'BLOCK') {
+      alert('Ação bloqueada: O paciente possui contraindicação absoluta (BLOCK) identificada pelo Firewall Clínico.');
+      return;
+    }
+    if (severity === 'REVIEW_REQUIRED' && !isApproved) {
+      alert('Ação bloqueada: Este protocolo exige avaliação e aprovação clínica profissional expressa antes da ativação. Clique em "Aprovar Protocolo Clinicamente".');
+      return;
+    }
+  }
+
+  const protocolPayload = {
+    patientId: pId,
+    enabled: enabled,
+    type: type,
+    subtype: subtype,
+    objectives: selectedObjs,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo',
+    feedingWindows: [{ start: start, end: end }],
+    activeDays: currentFastingActiveDays,
+    status: status,
+    approval: {
+      approved: isApproved,
+      approvedBy: currentFastingEligibilitySnapshot?.approval?.approvedBy || null,
+      approvedAt: currentFastingEligibilitySnapshot?.approval?.approvedAt || null,
+      eligibilitySeverity: severity,
+      eligibilitySnapshot: currentFastingEligibilitySnapshot || {}
+    },
+    clinicalNotes: notes
+  };
+
+  try {
+    const saved = await fastingMod.saveFastingProtocol(pId, protocolPayload, 'Nutricionista Responsável');
+    alert(`Protocolo de Jejum Intermitente (v${saved.protocolVersion}) salvo e sincronizado com sucesso!`);
+    await renderFastingNutritionistModule(pId);
+  } catch (err) {
+    console.error('[NutriAx Fasting] Erro ao salvar protocolo:', err);
+    alert(`Erro ao salvar protocolo: ${err.message}`);
+  }
+}
+
+async function loadAndRenderFastingLogsUI(patientId) {
+  const tableContainer = document.getElementById('fastingLogsTableContainer');
+  const rateTag = document.getElementById('fastingAdherenceRateTag');
+  if (!tableContainer) return;
+
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  if (!fastingMod) return;
+
+  const logs = await fastingMod.loadFastingLogs(patientId);
+
+  if (!logs || logs.length === 0) {
+    tableContainer.innerHTML = `
+      <div class="p-6 text-center text-zinc-500 font-medium italic">
+        Nenhum registro de cumprimento ou quebra submetido pelo paciente até o momento.
+      </div>
+    `;
+    if (rateTag) rateTag.textContent = 'Adesão: Sem dados';
+    return;
+  }
+
+  // Calcula adesão dos últimos 14 dias
+  const completed = logs.filter(l => l.adherenceStatus === 'COMPLETED').length;
+  const rate = Math.round((completed / logs.length) * 100);
+  if (rateTag) rateTag.textContent = `Adesão: ${rate}% (${completed} de ${logs.length} dias)`;
+
+  tableContainer.innerHTML = `
+    <table class="w-full text-left">
+      <thead>
+        <tr class="border-b border-zinc-800 text-zinc-400 text-[10px] font-mono uppercase">
+          <th class="p-2.5">Data</th>
+          <th class="p-2.5">Versão</th>
+          <th class="p-2.5">Status de Adesão</th>
+          <th class="p-2.5">Quebra Antecipada</th>
+          <th class="p-2.5">Métricas Subjetivas</th>
+          <th class="p-2.5">Observações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-zinc-800/60">
+        ${logs.slice(0, 14).map(log => {
+          const isComp = log.adherenceStatus === 'COMPLETED';
+          const badgeCls = isComp
+            ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+            : 'bg-rose-950 text-rose-400 border-rose-800';
+          const statusText = isComp ? 'Cumprido ✅' : 'Quebra Relatada ⚠️';
+
+          const metrics = log.subjectiveMetrics || {};
+          const subjStr = [
+            metrics.hunger !== null ? `Fome: ${metrics.hunger}/5` : null,
+            metrics.energy !== null ? `Energia: ${metrics.energy}/5` : null,
+            metrics.mentalFocus !== null ? `Foco: ${metrics.mentalFocus}/5` : null,
+            metrics.wellbeing !== null ? `Bem-estar: ${metrics.wellbeing}/5` : null
+          ].filter(Boolean).join(' · ') || '—';
+
+          return `
+            <tr class="hover:bg-zinc-800/40">
+              <td class="p-2.5 font-mono font-bold text-white">${log.date}</td>
+              <td class="p-2.5 font-mono text-zinc-400">v${log.protocolVersion}</td>
+              <td class="p-2.5">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${badgeCls}">
+                  ${statusText}
+                </span>
+              </td>
+              <td class="p-2.5 text-zinc-400 font-mono text-[11px]">
+                ${log.brokenAt ? new Date(log.brokenAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
+              </td>
+              <td class="p-2.5 text-zinc-300 text-[11px]">${subjStr}</td>
+              <td class="p-2.5 text-zinc-400 italic text-[11px]">${log.notes || '—'}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PILAR 5: CARD INDEPENDENTE DE JEJUM & COMPOSIÇÃO CORPORAL (SEÇÃO 32 & 34)
+// ─────────────────────────────────────────────────────────────────────────
+async function renderP5FastingCard(patientId, resultsData) {
+  const container = document.getElementById('p5FastingAdherenceCardContainer');
+  if (!container) return;
+
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  if (!fastingMod) {
+    container.style.display = 'none';
+    return;
+  }
+
+  const protocol = await fastingMod.loadFastingProtocol(patientId);
+  if (!protocol || !protocol.enabled) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+
+  // Carrega últimos 7 dias de logs
+  const logs = await fastingMod.loadFastingLogs(patientId);
+  const now = new Date();
+  const last7Days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getTime() - i * 86400000);
+    last7Days.push(d.toISOString().split('T')[0]);
+  }
+
+  const logs7d = logs.filter(l => last7Days.includes(l.date));
+  const completedCount = logs7d.filter(l => l.adherenceStatus === 'COMPLETED').length;
+  const adherencePercent = logs7d.length > 0 ? Math.round((completedCount / logs7d.length) * 100) : 0;
+
+  // Busca IDC atual registrado no paciente
+  const idcVal = (typeof patientState !== 'undefined' && patientState.scoreIDC !== undefined)
+    ? patientState.scoreIDC
+    : (resultsData?.iecScore || 87);
+
+  // Calcula foco mental percebido (se houver logs com subjectiveMetrics.mentalFocus)
+  const focusRatings = logs7d
+    .map(l => l.subjectiveMetrics?.mentalFocus)
+    .filter(v => typeof v === 'number' && !isNaN(v));
+  const avgFocus = focusRatings.length > 0
+    ? (focusRatings.reduce((a, b) => a + b, 0) / focusRatings.length).toFixed(1)
+    : null;
+
+  container.innerHTML = `
+    <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-2 rounded-xl bg-amber-950/80 border border-amber-600/60 text-amber-400">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+        </span>
+        <div>
+          <span class="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider block">
+            Pilar 5 · Métricas Independentes de Jejum Intermitente
+          </span>
+          <h3 class="text-sm font-black text-white">
+            Score IDC &amp; Adesão ao Protocolo (${protocol.subtype || '16:8'})
+          </h3>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-mono font-bold text-zinc-300">
+          IDC: <strong class="text-orange-400">${idcVal}%</strong>
+        </span>
+        <span class="px-2.5 py-1 rounded-xl bg-amber-950/80 border border-amber-800 text-xs font-mono font-black text-amber-300">
+          Adesão ao Jejum (7d): <strong class="text-amber-400">${adherencePercent}%</strong>
+        </span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+      <div class="p-3 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+        <span class="text-[10px] font-mono text-zinc-400 uppercase font-bold block">Consistência de Adesão</span>
+        <strong class="text-sm text-white font-mono block">${completedCount} de ${logs7d.length} dias registrados</strong>
+        <p class="text-[11px] text-zinc-400">Janela alimentar ${protocol.feedingWindows?.[0]?.start || '12:00'} - ${protocol.feedingWindows?.[0]?.end || '20:00'}.</p>
+      </div>
+
+      <div class="p-3 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+        <span class="text-[10px] font-mono text-zinc-400 uppercase font-bold block">Foco Percebido (Subjetivo)</span>
+        <strong class="text-sm text-purple-400 font-mono block">${avgFocus ? `${avgFocus} / 5,0` : 'Sem registros subjetivos'}</strong>
+        <p class="text-[11px] text-zinc-400">Autoavaliação perceptiva de clareza mental e concentração.</p>
+      </div>
+
+      <div class="p-3 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
+        <span class="text-[10px] font-mono text-zinc-400 uppercase font-bold block">Independência do IDC</span>
+        <strong class="text-sm text-emerald-400 font-mono block">Zero contaminação de Score</strong>
+        <p class="text-[11px] text-zinc-400">O jejum não altera os 100 pontos da fórmula canônica do IDC.</p>
+      </div>
+    </div>
+
+    <!-- Regra de Causalidade: Estritamente Descritiva (Seção 34 do Prompt Master) -->
+    <div class="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-[11px] text-zinc-400 leading-relaxed">
+      <strong class="text-zinc-300 block mb-0.5">Nota Metodológica &amp; Causalidade:</strong>
+      Durante o período de acompanhamento, observou-se associação temporal entre a rotina prescrita e as respostas corporais. Os dados apresentados são estritamente descritivos e não estabelecem relação de causalidade direta ou exclusiva entre o protocolo de jejum e os resultados obtidos.
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// =========================================================================
 // NAVEGAÇÃO DE ABAS — switchTab()
 // =========================================================================
 // NAVEGAÇÃO DE ABAS & PILARES DINÂMICOS
@@ -5836,7 +6491,7 @@ let currentActivePilar = 3; // 1: Mentalidade, 2: Disciplina, 3: Nutrição, 4: 
 
 const ALL_TAB_IDS = [
   'dashboard', 'anamnese', 'exams', 'recall', 'evaluation',
-  'prescription', 'evolution', 'adherence', 'discipline', 'foods', 'patientApp', 'backup', 'performance'
+  'prescription', 'fasting', 'evolution', 'adherence', 'discipline', 'foods', 'patientApp', 'backup', 'performance'
 ];
 
 const PILAR_NAMES = {
@@ -6171,6 +6826,8 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
       if (typeof renderPatientAppView === 'function') renderPatientAppView(activePatientId);
     } else if (tabName === 'foods') {
       if (typeof loadFoods === 'function') await loadFoods();
+    } else if (tabName === 'fasting') {
+      if (typeof renderFastingNutritionistModule === 'function') await renderFastingNutritionistModule(activePatientId);
     }
   } catch (err) {
     console.error("Erro ao carregar dados do módulo " + tabName, err);
@@ -12630,6 +13287,36 @@ async function buildPerformanceContext(patientId = activePatientId) {
 
     constraints
   };
+
+  // ── 12. EXTENSÃO DETERMINÍSTICA: JEJUM INTERMITENTE (Pilar 3 / PerformanceContext) ──
+  // Regra: Quando não houver protocolo ativo ou em caso de erro, context.fasting === null
+  context.fasting = null;
+  try {
+    const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+      ? window.NutriAxFasting
+      : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+    if (fastingMod && typeof fastingMod.loadFastingProtocol === 'function') {
+      const fastingProto = await fastingMod.loadFastingProtocol(pId);
+      if (fastingProto && fastingProto.enabled && fastingProto.status === 'ACTIVE') {
+        const timerState = fastingMod.computeFastingState ? fastingMod.computeFastingState(fastingProto) : null;
+        context.fasting = {
+          active: true,
+          protocolType: fastingProto.type || 'TRE',
+          protocolSubtype: fastingProto.subtype || '16:8',
+          protocolVersion: fastingProto.protocolVersion || 1,
+          currentState: timerState ? timerState.currentState : 'INACTIVE',
+          feedingWindowStart: (fastingProto.feedingWindows && fastingProto.feedingWindows[0]?.start) || null,
+          feedingWindowEnd: (fastingProto.feedingWindows && fastingProto.feedingWindows[0]?.end) || null,
+          objectives: Array.isArray(fastingProto.objectives) ? [...fastingProto.objectives] : [],
+          trainingRelationship: null
+        };
+      }
+    }
+  } catch (fastingErr) {
+    console.warn('[buildPerformanceContext] Falha não-bloqueante ao carregar contexto de jejum:', fastingErr);
+    context.fasting = null;
+  }
 
   console.info('[buildPerformanceContext] DTO construído:', JSON.stringify({
     patientId: context._meta.patientId,

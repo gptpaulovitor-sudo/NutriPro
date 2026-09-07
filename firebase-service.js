@@ -511,7 +511,150 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 5. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
+  // 5. SINCRONIZAÇÃO DE JEJUM INTERMITENTE (Pilar 3 · NutriAx Fasting)
+  // Coleções: patient_fasting & patient_fasting_logs
+  // ─────────────────────────────────────────────────────────────────────────
+  async function syncFastingProtocolToCloud(patientId, protocolPayload) {
+    if (!patientId || !protocolPayload) return false;
+    const ready = await ensureReady();
+    if (!ready) return false;
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      const docRef = firestore.collection('patient_fasting').doc(sanitizedId);
+
+      // Regra T28: Protocolo antigo recebido não sobrescreve versão superior
+      const existing = await docRef.get();
+      if (existing.exists) {
+        const remote = existing.data();
+        const remoteVersion = Number(remote?.protocol?.protocolVersion) || 0;
+        const incomingVersion = Number(protocolPayload?.protocolVersion) || 0;
+        if (incomingVersion > 0 && remoteVersion > incomingVersion) {
+          console.warn(`[NutriPro Firebase] Protocolo em nuvem v${remoteVersion} é mais recente que o enviado v${incomingVersion}. Ignorando sobrescrita.`);
+          return false;
+        }
+      }
+
+      await docRef.set({
+        patientId: sanitizedId,
+        protocol: protocolPayload,
+        protocolVersion: protocolPayload.protocolVersion || 1,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      console.info(`[NutriPro Firebase] Protocolo de jejum do paciente "${sanitizedId}" sincronizado.`);
+      return true;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao sincronizar protocolo de jejum com Firestore:', error);
+      return false;
+    }
+  }
+
+  async function loadFastingProtocolFromCloud(patientId) {
+    if (!patientId) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      const docRef = await firestore.collection('patient_fasting').doc(sanitizedId).get();
+      if (docRef.exists) {
+        const data = docRef.data();
+        return data.protocol || null;
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar protocolo de jejum do Firestore:', error);
+      return null;
+    }
+  }
+
+  async function syncFastingLogToCloud(patientId, logEntry) {
+    if (!patientId || !logEntry || !logEntry.date) return false;
+    const ready = await ensureReady();
+    if (!ready) return false;
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      const logId = logEntry.id || `${sanitizedId}_${logEntry.date}`;
+      // Regra T27: Idempotência — Mesmo log enviado duas vezes não duplica (doc ID determinístico)
+      await firestore.collection('patient_fasting_logs').doc(logId).set({
+        ...logEntry,
+        id: logId,
+        patientId: sanitizedId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      return true;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao sincronizar log de jejum:', error);
+      return false;
+    }
+  }
+
+  async function loadFastingLogsFromCloud(patientId, dateFrom = null, dateTo = null) {
+    if (!patientId) return [];
+    const ready = await ensureReady();
+    if (!ready) return [];
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      let query = firestore.collection('patient_fasting_logs').where('patientId', '==', sanitizedId);
+      if (dateFrom) query = query.where('date', '>=', dateFrom);
+      if (dateTo) query = query.where('date', '<=', dateTo);
+
+      const snapshot = await query.get();
+      const logs = [];
+      snapshot.forEach(doc => {
+        logs.push(doc.data());
+      });
+      logs.sort((a, b) => (b.date > a.date ? 1 : -1));
+      return logs;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao carregar logs de jejum:', error);
+      return [];
+    }
+  }
+
+  function listenToPatientFasting(patientId, onUpdateCallback) {
+    if (!patientId) return () => {};
+    let unsubscribe = null;
+    let cancelled = false;
+
+    function connect() {
+      if (cancelled) return;
+      if (!init()) {
+        setTimeout(connect, 300);
+        return;
+      }
+      try {
+        const sanitizedId = String(patientId).trim();
+        unsubscribe = firestore.collection('patient_fasting').doc(sanitizedId)
+          .onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (typeof onUpdateCallback === 'function') {
+                onUpdateCallback(data.protocol);
+              }
+            }
+          }, (error) => {
+            console.warn('[NutriPro Firebase] Erro no listener de jejum:', error);
+          });
+      } catch (error) {
+        console.warn('[NutriPro Firebase] Falha ao registrar listener de jejum:', error);
+      }
+    }
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 6. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
   // ─────────────────────────────────────────────────────────────────────────
   window.NutriProFirebase = {
     config: firebaseConfig,
@@ -539,6 +682,13 @@
       syncToCloud: syncPrescriptionToCloud,
       loadFromCloud: loadPrescriptionFromCloud,
       subscribe: listenToPatientPrescription
+    },
+    fasting: {
+      syncProtocolToCloud: syncFastingProtocolToCloud,
+      loadProtocolFromCloud: loadFastingProtocolFromCloud,
+      syncLogToCloud: syncFastingLogToCloud,
+      loadLogsFromCloud: loadFastingLogsFromCloud,
+      subscribe: listenToPatientFasting
     }
   };
 

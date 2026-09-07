@@ -172,9 +172,11 @@
             </button>
             <button id="nav-evaluation" onclick="switchTab('evaluation')" class="hud-tab-btn">
               <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500"></i> Avaliação &amp; Corpo
-            </button>
             <button id="nav-prescription" onclick="switchTab('prescription')" class="hud-tab-btn">
               <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500"></i> Prescrição &amp; Macros
+            </button>
+            <button id="nav-fasting" onclick="switchTab('fasting')" class="hud-tab-btn">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500"></i> Jejum Intermitente
             </button>
           </div>
 
@@ -724,6 +726,11 @@
                 class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
                 <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-500 shrink-0"></i>
                 <span class="font-bold text-[11px] truncate">Dieta &amp; Macros</span>
+              </button>
+              <button id="card-subnav-btn-3-fasting" onclick="selectMobilePilarTool(3, 'fasting')"
+                class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                <span class="font-bold text-[11px] truncate">Jejum Intermitente</span>
               </button>
               <button id="card-subnav-btn-3-evaluation" onclick="selectMobilePilarTool(3, 'evaluation')"
                 class="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-200 transition-all">
@@ -3002,6 +3009,259 @@
         <div id="prescriptionMealContainer"></div>
       </section>
 
+      <!-- 3.1 JEJUM INTERMITENTE TAB (PILAR 3 · NUTRIAX PRO) -->
+      <section id="tab-fasting" class="max-w-7xl mx-auto space-y-6 w-full hidden">
+        <!-- Top Header Card -->
+        <div class="bg-zinc-900/90 text-white p-6 rounded-3xl border border-zinc-800 shadow-card-dark flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <span class="bg-amber-500/20 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 w-fit">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Pilar 3 · Nutrição: Prescrição de Jejum Intermitente
+            </span>
+            <h1 class="text-2xl font-black text-white mt-1 flex items-center gap-2">
+              <span>Jejum Intermitente &amp; Janela de Alimentação</span>
+              <span id="fastingVersionBadge" class="text-xs font-mono bg-zinc-800 text-zinc-300 border border-zinc-700 px-2 py-0.5 rounded-full font-bold">v1</span>
+            </h1>
+            <p class="text-xs text-zinc-400">Prescrição profissional determinística, firewall de segurança clínica e sincronização em tempo real com o app do paciente.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button onclick="recalculateFastingFirewallUI()" title="Reavaliar elegibilidade contra anamnese e exames"
+              class="bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold px-4 py-3 rounded-2xl text-xs border border-zinc-700 shadow-sm flex items-center gap-2 transition-all cursor-pointer">
+              <i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i>
+              <span>Reavaliar Firewall</span>
+            </button>
+            <button id="btnSaveFastingProtocol" onclick="saveFastingProtocolFromUI()" title="Salvar e Sincronizar Protocolo"
+              class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-black font-black px-5 py-3 rounded-2xl text-xs shadow-lg shadow-amber-950/50 flex items-center gap-2 transition-all cursor-pointer">
+              <i data-lucide="save" class="w-4 h-4 text-black"></i>
+              <span>Salvar Protocolo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Firewall Clínico Determinístico Card -->
+        <div class="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400"></i>
+              <h2 class="text-sm font-black text-white">Firewall Clínico Determinístico</h2>
+            </div>
+            <div id="fastingSeverityBadge" class="px-3 py-1 rounded-full text-xs font-mono font-black uppercase tracking-wider bg-zinc-800 text-zinc-300 border border-zinc-700">
+              Verificando...
+            </div>
+          </div>
+
+          <!-- Alerta / Diagnóstico do Firewall -->
+          <div id="fastingFirewallAlertBox" class="p-4 rounded-2xl border text-xs space-y-2">
+            <!-- Injetado dinamicamente -->
+          </div>
+
+          <!-- Sinais Extraídos -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2" id="fastingSignalsGrid">
+            <!-- Badges de Sinais (Gestação, Lactação, TCA, DM, Insulina) -->
+          </div>
+
+          <!-- Área de Aprovação Profissional -->
+          <div id="fastingApprovalContainer" class="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase block">Aprovação Profissional:</span>
+              <span id="fastingApprovalStatusText" class="text-xs font-bold text-zinc-300">Pendente de avaliação</span>
+            </div>
+            <button id="btnApproveFastingProtocol" onclick="approveFastingProtocolUI()"
+              class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center gap-1.5 transition-all">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span>Aprovar Protocolo Clinicamente</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Formulário de Configuração do Protocolo -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Coluna 1 e 2: Parâmetros do Protocolo -->
+          <div class="lg:col-span-2 space-y-6">
+            <div class="p-6 rounded-3xl bg-zinc-900/90 border border-zinc-800 space-y-5">
+              <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <h3 class="text-sm font-black text-white flex items-center gap-2">
+                  <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+                  <span>Parâmetros da Janela &amp; Frequência</span>
+                </h3>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="fastingEnabledToggle" onchange="toggleFastingEnabledUI()" class="sr-only peer">
+                  <span class="text-xs font-bold text-zinc-400 peer-checked:text-amber-400">Habilitado</span>
+                  <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Tipo -->
+                <div>
+                  <label class="text-[10px] font-mono font-bold text-zinc-400 uppercase block mb-1">Tipo de Jejum</label>
+                  <select id="fastingTypeSelect" onchange="onFastingTypeChangeUI()" class="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:border-amber-500">
+                    <option value="TRE">TRE (Alimentação com Restrição de Tempo)</option>
+                    <option value="OMAD">OMAD (Uma Refeição por Dia)</option>
+                    <option value="EXTENDED">Jejum Prolongado (Extended)</option>
+                    <option value="CUSTOM">Customizado</option>
+                  </select>
+                </div>
+
+                <!-- Subtipo -->
+                <div>
+                  <label class="text-[10px] font-mono font-bold text-zinc-400 uppercase block mb-1">Subtipo / Proporção</label>
+                  <select id="fastingSubtypeSelect" onchange="onFastingSubtypeChangeUI()" class="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:border-amber-500">
+                    <option value="16:8">16:8 (16h Jejum / 8h Alimentação)</option>
+                    <option value="14:10">14:10 (14h Jejum / 10h Alimentação)</option>
+                    <option value="18:6">18:6 (18h Jejum / 6h Alimentação)</option>
+                    <option value="20:4">20:4 (20h Jejum / 4h Alimentação)</option>
+                    <option value="OMAD">OMAD (23h Jejum / 1h Alimentação)</option>
+                    <option value="CUSTOM">Customizado</option>
+                  </select>
+                </div>
+
+                <!-- Janela: Início -->
+                <div>
+                  <label class="text-[10px] font-mono font-bold text-zinc-400 uppercase block mb-1">Início da Janela Alimentar</label>
+                  <input type="time" id="fastingWindowStart" value="12:00" onchange="updateFastingDurationIndicatorUI()" class="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:border-amber-500">
+                </div>
+
+                <!-- Janela: Fim -->
+                <div>
+                  <label class="text-[10px] font-mono font-bold text-zinc-400 uppercase block mb-1">Fim da Janela Alimentar</label>
+                  <input type="time" id="fastingWindowEnd" value="20:00" onchange="updateFastingDurationIndicatorUI()" class="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:border-amber-500">
+                </div>
+              </div>
+
+              <!-- Indicador Visual da Janela -->
+              <div id="fastingDurationSummary" class="p-3 rounded-2xl bg-black/60 border border-zinc-800 flex items-center justify-between text-xs">
+                <span class="text-zinc-400">Duração calculada:</span>
+                <span class="font-mono font-bold text-amber-400" id="fastingDurationText">16h Jejum · 8h Janela Alimentar</span>
+              </div>
+
+              <!-- Dias Ativos -->
+              <div class="space-y-2">
+                <label class="text-[10px] font-mono font-bold text-zinc-400 uppercase block">Dias Ativos na Semana</label>
+                <div class="flex flex-wrap gap-2" id="fastingDaysButtonsContainer">
+                  <!-- Botões de dias da semana (Dom a Sáb) -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Objetivos do Protocolo -->
+            <div class="p-6 rounded-3xl bg-zinc-900/90 border border-zinc-800 space-y-4">
+              <h3 class="text-sm font-black text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                <i data-lucide="target" class="w-4 h-4 text-amber-400"></i>
+                <span>Objetivos Clínicos Estruturados</span>
+              </h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <!-- Composição Corporal -->
+                <div class="space-y-2 p-3 rounded-2xl bg-black/40 border border-zinc-800/80">
+                  <span class="text-[10px] font-mono font-bold text-amber-400 uppercase block">Composição Corporal</span>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="FAT_LOSS" class="rounded border-zinc-700 text-amber-500">
+                    <span>Queima de Gordura</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="BODY_COMPOSITION" class="rounded border-zinc-700 text-amber-500">
+                    <span>Recomposição Corporal</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="CALORIC_CONTROL" class="rounded border-zinc-700 text-amber-500">
+                    <span>Controle da Ingestão</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="LEAN_MASS_PRESERVATION" class="rounded border-zinc-700 text-amber-500">
+                    <span>Preservação de MM</span>
+                  </label>
+                </div>
+
+                <!-- Metabólicos -->
+                <div class="space-y-2 p-3 rounded-2xl bg-black/40 border border-zinc-800/80">
+                  <span class="text-[10px] font-mono font-bold text-emerald-400 uppercase block">Metabólicos / Cardiovasc.</span>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="GLUCOSE_CONTROL" class="rounded border-zinc-700 text-amber-500">
+                    <span>Controle Glicêmico</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="INSULIN_SENSITIVITY" class="rounded border-zinc-700 text-amber-500">
+                    <span>Sensibilidade à Insulina</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="CARDIOVASCULAR_HEALTH" class="rounded border-zinc-700 text-amber-500">
+                    <span>Saúde Cardiovascular</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="LIPID_PROFILE" class="rounded border-zinc-700 text-amber-500">
+                    <span>Perfil Lipídico</span>
+                  </label>
+                </div>
+
+                <!-- Educacionais / Foco -->
+                <div class="space-y-2 p-3 rounded-2xl bg-black/40 border border-zinc-800/80">
+                  <span class="text-[10px] font-mono font-bold text-purple-400 uppercase block">Educacionais / Foco</span>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="AUTOPHAGY" class="rounded border-zinc-700 text-amber-500">
+                    <span>Estímulo Autofágico</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer text-zinc-300">
+                    <input type="checkbox" name="fastingObj" value="MENTAL_FOCUS" class="rounded border-zinc-700 text-amber-500">
+                    <span>Foco &amp; Clareza Mental</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coluna 3: Orientações Clínicas, Status & Versionamento -->
+          <div class="space-y-6">
+            <!-- Orientações Clínicas -->
+            <div class="p-6 rounded-3xl bg-zinc-900/90 border border-zinc-800 space-y-4">
+              <h3 class="text-sm font-black text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i>
+                <span>Orientações para o Paciente</span>
+              </h3>
+              <textarea id="fastingClinicalNotes" rows="4" placeholder="Recomendações de hidratação com água, café/chá sem açúcar, timing de eletrólitos e conduta caso sinta tontura..."
+                class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-xs text-white focus:border-amber-500 leading-relaxed"></textarea>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-mono font-bold text-zinc-400 uppercase block">Status do Protocolo</label>
+                <select id="fastingStatusSelect" class="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:border-amber-500">
+                  <option value="ACTIVE">ATIVO (Em vigor)</option>
+                  <option value="PAUSED">PAUSADO (Temporário)</option>
+                  <option value="SUSPENDED">SUSPENSO (Clínico)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Auditoria & Histórico de Versões -->
+            <div class="p-6 rounded-3xl bg-zinc-900/90 border border-zinc-800 space-y-3">
+              <h3 class="text-sm font-black text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
+                <span>Audit Trail &amp; Versões Anteriores</span>
+              </h3>
+              <div id="fastingAuditTrailContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs">
+                <!-- Lista de versões anteriores -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Logs de Cumprimento Recente pelo Paciente -->
+        <div class="p-6 rounded-3xl bg-zinc-900/90 border border-zinc-800 space-y-4">
+          <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+              <i data-lucide="calendar-check" class="w-4 h-4 text-amber-400"></i>
+              <span>Histórico de Cumprimento &amp; Adesão do Paciente (Últimos 14 dias)</span>
+            </h3>
+            <span id="fastingAdherenceRateTag" class="text-xs font-mono font-bold text-amber-400 bg-amber-950/80 border border-amber-800 px-2.5 py-0.5 rounded-full">
+              Adesão: —
+            </span>
+          </div>
+
+          <div id="fastingLogsTableContainer" class="overflow-x-auto text-xs">
+            <!-- Tabela de logs -->
+          </div>
+        </div>
+      </section>
+
       <!-- 4. PILAR 5: RESULTADO & IMPACTO (HUD & SUB-VIEWS) -->
       <section id="tab-evolution" class="max-w-7xl mx-auto space-y-6 w-full hidden">
 
@@ -3175,6 +3435,9 @@
               perfeitamente com o volume de treinamento prescrito.
             </p>
           </div>
+
+          <!-- Card Independente: Score IDC & Adesão ao Jejum Intermitente (Pilar 5 · Seções 31-34) -->
+          <div id="p5FastingAdherenceCardContainer"></div>
 
           <!-- 4 Summary Stat Cards -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -5884,10 +6147,10 @@
         </div>
       </div>
 
-      <!-- Custom Scripts -->
       <script src="foodsData.js?v=20260831_pilar2_v2"></script>
       <script src="db.js?v=20260831_pilar2_v2"></script>
       <script src="math.js?v=20260831_pilar2_v2"></script>
+      <script src="fasting-module.js"></script>
       <script src="app.js?v=20260831_pilar2_v2"></script>
 </body>
 
