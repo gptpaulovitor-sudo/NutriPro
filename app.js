@@ -6504,6 +6504,18 @@ async function saveFastingProtocolFromUI() {
 
   try {
     const saved = await fastingMod.saveFastingProtocol(pId, protocolPayload, 'Nutricionista Responsável');
+    if (typeof syncActivePatientToPatientApp === 'function') {
+      try { syncActivePatientToPatientApp(pId); } catch (_) {}
+    }
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('nutriax_bidirectional_sync');
+        channel.postMessage({ type: 'FASTING_PROTOCOL_UPDATED', patientId: pId, protocol: saved });
+      }
+    } catch (_) {}
+    if (typeof renderDisciplineDashboard === 'function') {
+      try { renderDisciplineDashboard(); } catch (_) {}
+    }
     alert(`Protocolo de Jejum Intermitente (v${saved.protocolVersion}) salvo e sincronizado com sucesso!`);
     await renderFastingNutritionistModule(pId);
   } catch (err) {
@@ -7892,6 +7904,9 @@ async function renderDisciplineDashboard() {
     }
   }
 
+  // Renderiza o Card de Protocolo de Jejum Ativo no Pilar 2 (se prescrito e ativo)
+  renderDisciplineFastingCard(pId, pState);
+
   // Renderiza a Matriz de Hábitos com dados reais
   renderDisciplineHabitsList(pState, {
     waterVolume,
@@ -8106,6 +8121,78 @@ function renderDisciplineHabitsList(pState, m) {
     ? `${m.checkedItemsCount} de ${m.totalItemsCount} alimentos consumidos (${m.consumedKcal.toLocaleString('pt-BR')} kcal) • ${m.doneMeals} refeições 100%`
     : `${m.doneMeals} de ${m.totalMeals} refeições prescritas consumidas no plano`;
 
+  // Checa se há protocolo de jejum intermitente ativo para o paciente
+  const pId = activePatientId || "paulo-vitor";
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  let activeFastingProto = null;
+  if (fastingMod && typeof fastingMod.getActiveProtocol === 'function') {
+    activeFastingProto = fastingMod.getActiveProtocol(pId);
+  }
+  if (!activeFastingProto) {
+    try {
+      const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${pId}`) ||
+                    localStorage.getItem(`nutriax_fasting_protocol_${String(pId).toLowerCase().replace(/\s+/g, '-')}`) ||
+                    localStorage.getItem('nutriax_fasting_protocol_default');
+      if (rawFp) activeFastingProto = JSON.parse(rawFp);
+    } catch (_) {}
+  }
+
+  const hasActiveFasting = activeFastingProto && activeFastingProto.enabled === true && activeFastingProto.status === 'ACTIVE';
+  const habitsCountBadge = document.getElementById('disciplineHabitsCountBadge');
+  if (habitsCountBadge) {
+    habitsCountBadge.textContent = hasActiveFasting ? '6 Hábitos Ativos (Jejum Incluso)' : '5 Hábitos Ativos';
+  }
+
+  let fastingHabitHtml = '';
+  if (hasActiveFasting) {
+    const todayIso = getLocalDateIso();
+    const storageKey = `nutriax_fasting_logs_${pId}`;
+    let logs = [];
+    try { logs = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (_) {}
+    const todayLog = logs.find(l => l.date === todayIso);
+    const feedStart = activeFastingProto.feedingWindows?.[0]?.start || '12:00';
+    const feedEnd = activeFastingProto.feedingWindows?.[0]?.end || '20:00';
+
+    let fastingBadgeClass = 'bg-zinc-900 text-zinc-500 border-zinc-800';
+    let fastingBadgeText = 'Aguardando';
+    let fastingDetailText = `Janela alimentar: ${feedStart} às ${feedEnd} · Aguardando disparo de execução`;
+
+    if (todayLog?.adherenceStatus === 'IN_PROGRESS') {
+      fastingBadgeClass = 'bg-amber-950/60 text-amber-400 border-amber-800';
+      fastingBadgeText = '⚡ Em Andamento';
+      const startedTime = todayLog.startedAt ? new Date(todayLog.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+      fastingDetailText = `Execução disparada pelo paciente às ${startedTime}`;
+    } else if (todayLog?.adherenceStatus === 'COMPLETED') {
+      fastingBadgeClass = 'bg-emerald-950/60 text-emerald-400 border-emerald-800';
+      fastingBadgeText = '100% Cumprido';
+      fastingDetailText = `Jejum de hoje cumprido com sucesso pelo paciente`;
+    } else if (todayLog?.adherenceStatus === 'BROKEN') {
+      fastingBadgeClass = 'bg-rose-950/60 text-rose-400 border-rose-800';
+      fastingBadgeText = 'Quebra';
+      fastingDetailText = `Quebra antecipada reportada pelo paciente`;
+    }
+
+    fastingHabitHtml = `
+      <!-- Hábito 6: Jejum Intermitente -->
+      <div class="p-3 rounded-xl bg-black/50 border border-orange-900/50 hover:border-orange-500/50 transition-all flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-base">⏳</span>
+          <div>
+            <strong class="text-white block flex items-center gap-1.5">
+              Jejum Intermitente (${activeFastingProto.subtype || '16:8'})
+              <span class="text-[9px] font-mono text-orange-400 bg-orange-950 px-1.5 py-0.5 rounded border border-orange-800">Pilar 2</span>
+            </strong>
+            <span class="text-[10px] text-zinc-400">${fastingDetailText}</span>
+          </div>
+        </div>
+        <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${fastingBadgeClass}">${fastingBadgeText}</span>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <!-- Hábito 1: Água -->
     <div class="p-3 rounded-xl bg-black/50 border border-zinc-800/80 flex items-center justify-between">
@@ -8166,7 +8253,188 @@ function renderDisciplineHabitsList(pState, m) {
       </div>
       <span class="font-mono font-bold px-2 py-0.5 rounded border text-[10px] ${sleepBadgeClass}">${m.sleepLogged ? `${m.sleepPct}% Cumprido` : 'Pendente'}</span>
     </div>
+
+    ${fastingHabitHtml}
   `;
+}
+
+function renderDisciplineFastingCard(pId, pState) {
+  const container = document.getElementById('disciplineFastingCardContainer');
+  if (!container) return;
+
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  let proto = null;
+  if (fastingMod && typeof fastingMod.getActiveProtocol === 'function') {
+    proto = fastingMod.getActiveProtocol(pId);
+  }
+  if (!proto) {
+    try {
+      const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${pId}`) ||
+                    localStorage.getItem(`nutriax_fasting_protocol_${String(pId).toLowerCase().replace(/\s+/g, '-')}`) ||
+                    localStorage.getItem('nutriax_fasting_protocol_default');
+      if (rawFp) proto = JSON.parse(rawFp);
+    } catch (_) {}
+  }
+
+  if (!proto || proto.enabled !== true || proto.status !== 'ACTIVE') {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+
+  const now = new Date();
+  const timerState = fastingMod ? fastingMod.computeFastingState(proto, now) : {
+    currentState: 'FASTING',
+    remainingMinutes: 240,
+    elapsedMinutes: 720,
+    progressPercent: 75,
+    feedingWindowStart: proto.feedingWindows?.[0]?.start || '12:00',
+    feedingWindowEnd: proto.feedingWindows?.[0]?.end || '20:00',
+    feedingDurationHours: 8
+  };
+
+  const todayIso = getLocalDateIso();
+  const storageKey = `nutriax_fasting_logs_${pId}`;
+  let logs = [];
+  try {
+    logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  } catch (_) {}
+
+  const todayLog = logs.find(l => l.date === todayIso);
+  const statusToday = todayLog?.adherenceStatus || null;
+
+  let executionStatusBadge = '';
+  let executionDetail = '';
+
+  if (statusToday === 'IN_PROGRESS') {
+    const startedTime = todayLog.startedAt ? new Date(todayLog.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    executionStatusBadge = `
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-600/70 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span>⚡ EXECUÇÃO DISPARADA · EM ANDAMENTO</span>
+      </span>
+    `;
+    executionDetail = `Paciente disparou a execução do jejum hoje às <strong class="text-amber-300">${startedTime}</strong>. Acompanhamento ao vivo ativo.`;
+  } else if (statusToday === 'COMPLETED') {
+    const completedTime = todayLog.completedAt ? new Date(todayLog.completedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    executionStatusBadge = `
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-600/70 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>✓ JEJUM CUMPRIDO HOJE</span>
+      </span>
+    `;
+    executionDetail = `Meta de jejum cumprida com sucesso pelo paciente hoje${completedTime ? ` (registrado às ${completedTime})` : ''}.`;
+  } else if (statusToday === 'BROKEN') {
+    const brokenTime = todayLog.brokenAt ? new Date(todayLog.brokenAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    executionStatusBadge = `
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-600/70 shadow-[0_0_12px_rgba(244,63,94,0.25)]">
+        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+        <span>⚠️ QUEBRA ANTECIPADA</span>
+      </span>
+    `;
+    executionDetail = `Paciente reportou quebra antes da janela (${brokenTime}). Avaliar percepções metabólicas reportadas.`;
+  } else {
+    executionStatusBadge = `
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-zinc-900 text-zinc-400 border border-zinc-700">
+        <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
+        <span>AGUARDANDO DISPARO PELO PACIENTE</span>
+      </span>
+    `;
+    executionDetail = `O protocolo está ativo no app do paciente aguardando disparo de execução da janela pelo paciente.`;
+  }
+
+  const feedStart = proto.feedingWindows?.[0]?.start || '12:00';
+  const feedEnd = proto.feedingWindows?.[0]?.end || '20:00';
+  const feedDuration = timerState.feedingDurationHours || 8;
+  const fastTargetHours = 24 - feedDuration;
+
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000);
+    last7.push(d.toISOString().split('T')[0]);
+  }
+  const completedCount7 = logs.filter(l => last7.includes(l.date) && l.adherenceStatus === 'COMPLETED').length;
+  const adherenceRate7 = Math.round((completedCount7 / 7) * 100);
+
+  const subj = todayLog?.subjectiveMetrics || {};
+  const hungerStr = subj.hunger ? `${subj.hunger}/5` : '—';
+  const energyStr = subj.energy ? `${subj.energy}/5` : '—';
+  const focusStr = subj.mentalFocus ? `${subj.mentalFocus}/5` : '—';
+
+  container.innerHTML = `
+    <div class="hud-card p-5 border border-orange-900/60 bg-gradient-to-r from-orange-950/20 via-zinc-950/90 to-zinc-950 rounded-2xl space-y-4 shadow-xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-zinc-800/80 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-md">
+            <i data-lucide="clock" class="w-5 h-5 text-orange-400"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-mono font-bold tracking-widest text-orange-400 uppercase">Pilar 2 · Disciplina &amp; Hábitos</span>
+              <span class="text-zinc-600">•</span>
+              <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                Protocolo Ativo v${proto.protocolVersion || 1}
+              </span>
+            </div>
+            <h2 class="text-base font-black text-white flex items-center gap-2 mt-0.5">
+              Protocolo de Jejum Intermitente · ${proto.subtype || '16:8'}
+            </h2>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          ${executionStatusBadge}
+          <button onclick="document.querySelector('[data-tab=evaluation]')?.click(); setTimeout(() => document.getElementById('fastingModuleContainer')?.scrollIntoView({ behavior: 'smooth' }), 300);"
+            class="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>Ver Prescrição</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800/80 space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase block">Janela de Alimentação</span>
+          <div class="text-sm font-black text-emerald-400 font-mono">${feedStart} às ${feedEnd}</div>
+          <span class="text-[10px] text-zinc-500 block">${feedDuration}h permitidas p/ refeições</span>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800/80 space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase block">Meta de Jejum Contínuo</span>
+          <div class="text-sm font-black text-amber-400 font-mono">${fastTargetHours}h / dia</div>
+          <span class="text-[10px] text-zinc-500 block">Descanso metabólico programado</span>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800/80 space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase block">Adesão (Últimos 7 Dias)</span>
+          <div class="text-sm font-black text-white font-mono">${adherenceRate7}% (${completedCount7}/7 dias)</div>
+          <span class="text-[10px] text-zinc-500 block">Registros enviados pelo paciente</span>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800/80 space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase block">Percepções Subjetivas</span>
+          <div class="text-xs font-mono font-bold text-zinc-300">
+            Fome: <strong class="text-orange-300">${hungerStr}</strong> · Energia: <strong class="text-emerald-300">${energyStr}</strong>
+          </div>
+          <span class="text-[10px] text-zinc-500 block">Foco mental: <strong class="text-cyan-300">${focusStr}</strong></span>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 text-xs flex items-center justify-between">
+        <span class="text-zinc-300 flex items-center gap-2">
+          <i data-lucide="activity" class="w-4 h-4 text-orange-400"></i>
+          <span>${executionDetail}</span>
+        </span>
+        <span class="text-[10px] font-mono text-zinc-500">Sincronização Bidirecional Ativa</span>
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function renderDisciplineHeatmap(pState, realScoreIDC) {
@@ -8344,7 +8612,12 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
     if (typeof BroadcastChannel !== 'undefined') {
       const discChannel = new BroadcastChannel('nutriax_bidirectional_sync');
       discChannel.onmessage = (event) => {
-        if (event.data && (event.data.type === 'PATIENT_DISCIPLINE_UPDATED' || event.data.type === 'SYNC_UPDATED')) {
+        if (event.data && (
+          event.data.type === 'PATIENT_DISCIPLINE_UPDATED' ||
+          event.data.type === 'SYNC_UPDATED' ||
+          event.data.type === 'FASTING_PROTOCOL_UPDATED' ||
+          event.data.type === 'FASTING_LOG_UPDATED'
+        )) {
           const discSec = document.getElementById('tab-discipline');
           if (discSec && !discSec.classList.contains('hidden')) {
             renderDisciplineDashboard();
@@ -8355,7 +8628,7 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
   } catch (_) { }
 
   window.addEventListener('storage', (e) => {
-    if (e.key && e.key.includes('nutriax_patient_discipline')) {
+    if (e.key && (e.key.includes('nutriax_patient_discipline') || e.key.includes('nutriax_fasting'))) {
       const discSec = document.getElementById('tab-discipline');
       if (discSec && !discSec.classList.contains('hidden')) {
         renderDisciplineDashboard();
@@ -8511,6 +8784,23 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     ? (PERF_CARDIO_DB.find(c => c.id === (typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01')) || PERF_CARDIO_DB[0])
     : null;
 
+  // 3.1 Protocolo Clínico de Jejum Intermitente (se ativo e habilitado)
+  let activeFastingProto = null;
+  try {
+    const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+      ? window.NutriAxFasting
+      : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+    if (fastingMod && typeof fastingMod.getActiveProtocol === 'function') {
+      activeFastingProto = fastingMod.getActiveProtocol(pId);
+    }
+    if (!activeFastingProto) {
+      const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${pId}`) ||
+                    localStorage.getItem(`nutriax_fasting_protocol_${String(pId).toLowerCase().replace(/\s+/g, '-')}`) ||
+                    localStorage.getItem('nutriax_fasting_protocol_default');
+      if (rawFp) activeFastingProto = JSON.parse(rawFp);
+    }
+  } catch (_) {}
+
   const syncPayload = {
     version: 4,
     patientId: pId,
@@ -8527,6 +8817,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     weeklySchedule: normalizedSchedule,
     prescribedCardio: cardioProto,
     activeSplit: perfActiveSplit,
+    fastingProtocol: (activeFastingProto && activeFastingProto.enabled === true && activeFastingProto.status === 'ACTIVE') ? activeFastingProto : null,
     updatedAt: new Date().toISOString()
   };
 

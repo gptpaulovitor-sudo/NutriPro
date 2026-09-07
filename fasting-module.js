@@ -69,7 +69,8 @@
     COMPLETED: 'COMPLETED',
     BROKEN: 'BROKEN',
     PARTIAL: 'PARTIAL',
-    PENDING: 'PENDING'
+    PENDING: 'PENDING',
+    IN_PROGRESS: 'IN_PROGRESS'
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -915,6 +916,7 @@
       windowStart: logEntry.windowStart || '12:00',
       windowEnd: logEntry.windowEnd || '20:00',
       adherenceStatus: logEntry.adherenceStatus || ADHERENCE_STATUS.COMPLETED,
+      startedAt: logEntry.startedAt || (logEntry.adherenceStatus === ADHERENCE_STATUS.IN_PROGRESS ? nowIso : null),
       brokenAt: logEntry.adherenceStatus === ADHERENCE_STATUS.BROKEN ? (logEntry.brokenAt || nowIso) : null,
       source: 'PATIENT_SELF_REPORT',
       notes: logEntry.notes || null,

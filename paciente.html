@@ -667,7 +667,7 @@
       </div>
     </section>
 
-    <!-- ═══ 5.1 JEJUM INTERMITENTE & JANELA ALIMENTAR (PILAR 3 · NUTRIAX PRO) ═══ -->
+    <!-- ═══ 5.1 JEJUM INTERMITENTE & JANELA ALIMENTAR (PILAR 2 · DISCIPLINA & EXECUÇÃO) ═══ -->
     <section id="patientFastingCardContainer" class="hidden"></section>
 
     <!-- ═══ 6. CHECKLIST DE REFEIÇÕES DO PLANO ALIMENTAR ═══ -->
@@ -2375,7 +2375,7 @@
       if (window.lucide) window.lucide.createIcons();
     }
 
-    // 6.1 MÓDULO DE JEJUM INTERMITENTE (PACIENTE · SOMENTE VISUALIZAÇÃO E REGISTRO)
+    // 6.1 MÓDULO DE JEJUM INTERMITENTE (PILAR 2 · PACIENTE · DISPARO DE EXECUÇÃO & REGISTRO)
     function renderPatientFastingCard() {
       const container = document.getElementById('patientFastingCardContainer');
       if (!container) return;
@@ -2404,24 +2404,179 @@
       const isFeeding = timerState.currentState === 'FEEDING';
       const isInactive = timerState.currentState === 'INACTIVE';
 
-      // Status Badge
+      // Janela e Meta em Horas
+      const feedDurationHours = timerState.feedingDurationHours || 8;
+      const fastTargetHours = 24 - feedDurationHours;
+
+      // Verifica status de registro de hoje
+      const todayIso = getLocalDateIso();
+      const pId = _urlPatientId || 'default';
+      const storageKey = `nutriax_fasting_logs_${pId}`;
+      let logs = [];
+      try {
+        logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      } catch (_) {}
+
+      const todayLog = logs.find(l => l.date === todayIso);
+      const currentStatus = todayLog?.adherenceStatus || null;
+
+      // Status Badge e Cálculo Dinâmico de Timer
       let badgeHtml = '';
-      if (isFasting) {
-        badgeHtml = '<span class="text-[10px] font-mono font-black text-amber-400 bg-amber-950/90 border border-amber-800 px-2.5 py-0.5 rounded-full shadow-sm">⏳ JEJUM ATIVO</span>';
-      } else if (isFeeding) {
-        badgeHtml = '<span class="text-[10px] font-mono font-black text-emerald-400 bg-emerald-950/90 border border-emerald-800 px-2.5 py-0.5 rounded-full shadow-sm">🥗 JANELA ALIMENTAR</span>';
+      let timeRemainingStr = '';
+      let timeElapsedStr = '';
+      let progressPercent = timerState.progressPercent || 0;
+      let timerLabel = '';
+
+      if (currentStatus === 'IN_PROGRESS') {
+        badgeHtml = `
+          <span class="text-[10px] font-mono font-black text-amber-300 bg-amber-950/90 border border-amber-500/70 px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>⚡ EM ANDAMENTO</span>
+          </span>
+        `;
+        const startedMs = todayLog.startedAt ? new Date(todayLog.startedAt).getTime() : now.getTime();
+        const elapsedMins = Math.max(0, Math.floor((now.getTime() - startedMs) / 60000));
+        const elH = Math.floor(elapsedMins / 60);
+        const elM = elapsedMins % 60;
+        timeElapsedStr = `${elH}h ${String(elM).padStart(2, '0')}m`;
+
+        const targetMins = fastTargetHours * 60;
+        const remMins = Math.max(0, targetMins - elapsedMins);
+        const rH = Math.floor(remMins / 60);
+        const rM = remMins % 60;
+        timeRemainingStr = `${rH}h ${String(rM).padStart(2, '0')}m`;
+        progressPercent = Math.min(100, Math.round((elapsedMins / targetMins) * 100));
+        timerLabel = 'Tempo restante para meta:';
+      } else if (currentStatus === 'COMPLETED') {
+        badgeHtml = `
+          <span class="text-[10px] font-mono font-black text-emerald-300 bg-emerald-950/90 border border-emerald-600 px-2.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.25)] flex items-center gap-1">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+            <span>✓ CUMPRIDO</span>
+          </span>
+        `;
+        timeElapsedStr = `${fastTargetHours}h 00m`;
+        timeRemainingStr = 'Meta Concluída';
+        progressPercent = 100;
+        timerLabel = 'Status da Execução:';
+      } else if (currentStatus === 'BROKEN') {
+        badgeHtml = `
+          <span class="text-[10px] font-mono font-black text-rose-300 bg-rose-950/90 border border-rose-600 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>⚠️ QUEBRA</span>
+          </span>
+        `;
+        timeElapsedStr = todayLog.brokenAt ? new Date(todayLog.brokenAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Encerrado';
+        timeRemainingStr = 'Quebra Reportada';
+        timerLabel = 'Status da Execução:';
       } else {
-        badgeHtml = '<span class="text-[10px] font-mono font-black text-zinc-400 bg-zinc-900 border border-zinc-700 px-2.5 py-0.5 rounded-full shadow-sm">⏸️ DIA LIVRE</span>';
+        // Aguardando disparo de execução
+        badgeHtml = `
+          <span class="text-[10px] font-mono font-black text-orange-300 bg-orange-950/80 border border-orange-700/80 px-2.5 py-0.5 rounded-full shadow-sm">
+            AGUARDANDO DISPARO
+          </span>
+        `;
+        const remH = Math.floor(timerState.remainingMinutes / 60);
+        const remM = timerState.remainingMinutes % 60;
+        timeRemainingStr = `${remH}h ${String(remM).padStart(2, '0')}m`;
+
+        const elH = Math.floor(timerState.elapsedMinutes / 60);
+        const elM = timerState.elapsedMinutes % 60;
+        timeElapsedStr = `${elH}h ${String(elM).padStart(2, '0')}m`;
+        timerLabel = isFasting ? 'Tempo restante em jejum:' : (isFeeding ? 'Tempo restante na janela:' : 'Status:');
       }
 
-      // Horas e Minutos Restantes
-      const remH = Math.floor(timerState.remainingMinutes / 60);
-      const remM = timerState.remainingMinutes % 60;
-      const timeRemainingStr = `${remH}h ${String(remM).padStart(2, '0')}m`;
+      // Painel Interativo de Ação de Hoje (Disparo / Conclusão / Quebra)
+      let todayActionHtml = '';
 
-      const elapsedH = Math.floor(timerState.elapsedMinutes / 60);
-      const elapsedM = timerState.elapsedMinutes % 60;
-      const timeElapsedStr = `${elapsedH}h ${String(elapsedM).padStart(2, '0')}m`;
+      if (currentStatus === 'IN_PROGRESS') {
+        const startedTimeStr = todayLog.startedAt
+          ? new Date(todayLog.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          : '';
+        todayActionHtml = `
+          <div class="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/80 via-orange-950/60 to-zinc-950 border border-amber-600/60 space-y-2.5 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+            <div class="flex items-center justify-between">
+              <span class="text-amber-300 font-black text-xs flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                <span>Execução Disparada · Em Andamento</span>
+              </span>
+              <span class="text-[10px] font-mono text-amber-300 bg-amber-950 px-2 py-0.5 rounded border border-amber-700">
+                Início: ${startedTimeStr}
+              </span>
+            </div>
+            <div class="flex justify-between text-xs text-zinc-300 font-mono">
+              <span>Decorrido: <strong class="text-white">${timeElapsedStr}</strong></span>
+              <span>Meta: <strong class="text-amber-400">${fastTargetHours}h</strong></span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="registerFastingAdherenceToday('COMPLETED')"
+                class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span>✓ Concluir / Cumprido</span>
+              </button>
+              <button onclick="registerFastingAdherenceToday('BROKEN')"
+                class="py-2.5 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+                <span>Registrar Quebra</span>
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (currentStatus === 'COMPLETED') {
+        const completedTimeStr = todayLog.completedAt
+          ? new Date(todayLog.completedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          : '';
+        todayActionHtml = `
+          <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 text-emerald-300 font-bold">
+              <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+              <div>
+                <span>Jejum cumprido com sucesso hoje!</span>
+                <span class="text-[10px] text-emerald-400/80 block font-mono font-normal">
+                  ${completedTimeStr ? `Concluído às ${completedTimeStr}` : 'Meta diária sincronizada com o nutricionista'}
+                </span>
+              </div>
+            </div>
+            <button onclick="registerFastingAdherenceToday('BROKEN')" class="text-[10px] text-zinc-400 hover:text-rose-300 underline">Alterar p/ quebra</button>
+          </div>
+        `;
+      } else if (currentStatus === 'BROKEN') {
+        const brokenTimeStr = todayLog.brokenAt
+          ? new Date(todayLog.brokenAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          : '';
+        todayActionHtml = `
+          <div class="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 text-rose-300 font-bold">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400"></i>
+              <div>
+                <span>Quebra antecipada registrada hoje</span>
+                <span class="text-[10px] text-rose-400/80 block font-mono font-normal">
+                  ${brokenTimeStr ? `Encerrado às ${brokenTimeStr}` : 'Registro salvo'}
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="startFastingExecutionToday()" class="text-[10px] text-amber-400 hover:underline">Reiniciar</button>
+              <span class="text-zinc-600">|</span>
+              <button onclick="registerFastingAdherenceToday('COMPLETED')" class="text-[10px] text-zinc-400 hover:text-emerald-300 underline">Cumprido</button>
+            </div>
+          </div>
+        `;
+      } else {
+        // Estado Padrão: Botão de Disparo Imediato
+        todayActionHtml = `
+          <div class="space-y-2">
+            <button onclick="startFastingExecutionToday()"
+              class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-[0_0_20px_rgba(249,115,22,0.35)] active:scale-95 transition-all">
+              <i data-lucide="play" class="w-5 h-5 fill-white"></i>
+              <span>▶️ Disparar Execução do Jejum Agora</span>
+            </button>
+            <div class="flex items-center justify-between px-1 text-[10px] text-zinc-400 font-mono">
+              <span>Janela: <strong class="text-zinc-200">${timerState.feedingWindowStart} às ${timerState.feedingWindowEnd}</strong></span>
+              <button onclick="registerFastingAdherenceToday('COMPLETED')" class="text-zinc-500 hover:text-zinc-300 underline font-sans">Marcar como já cumprido</button>
+            </div>
+          </div>
+        `;
+      }
 
       // Objetivos formatados
       const objMap = {
@@ -2439,57 +2594,6 @@
       const objectivesList = Array.isArray(proto.objectives)
         ? proto.objectives.map(o => `<span class="text-[9px] font-mono font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 px-2 py-0.5 rounded-md">${objMap[o] || o}</span>`).join(' ')
         : '';
-
-      // Verifica status de registro de hoje
-      const todayIso = getLocalDateIso();
-      const pId = _urlPatientId || 'default';
-      const storageKey = `nutriax_fasting_logs_${pId}`;
-      let logs = [];
-      try {
-        logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      } catch (_) {}
-
-      const todayLog = logs.find(l => l.date === todayIso);
-      let todayActionHtml = '';
-
-      if (todayLog) {
-        if (todayLog.adherenceStatus === 'COMPLETED') {
-          todayActionHtml = `
-            <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between text-xs">
-              <span class="text-emerald-300 font-bold flex items-center gap-1.5">
-                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
-                Cumprimento registrado com sucesso hoje!
-              </span>
-              <button onclick="registerFastingAdherenceToday('BROKEN')" class="text-[10px] text-zinc-500 hover:text-rose-300 underline">Alterar p/ quebra</button>
-            </div>
-          `;
-        } else if (todayLog.adherenceStatus === 'BROKEN') {
-          todayActionHtml = `
-            <div class="p-3 rounded-xl bg-rose-950/40 border border-rose-800/60 flex items-center justify-between text-xs">
-              <span class="text-rose-300 font-bold flex items-center gap-1.5">
-                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
-                Quebra antecipada registrada hoje (${todayLog.brokenAt ? new Date(todayLog.brokenAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''})
-              </span>
-              <button onclick="registerFastingAdherenceToday('COMPLETED')" class="text-[10px] text-zinc-500 hover:text-emerald-300 underline">Alterar p/ cumprido</button>
-            </div>
-          `;
-        }
-      } else {
-        todayActionHtml = `
-          <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="registerFastingAdherenceToday('COMPLETED')"
-              class="py-2.5 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-200 font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm">
-              <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
-              <span>Cumprir Jejum Hoje</span>
-            </button>
-            <button onclick="registerFastingAdherenceToday('BROKEN')"
-              class="py-2.5 px-3 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-200 font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm">
-              <i data-lucide="x" class="w-4 h-4 text-rose-400"></i>
-              <span>Quebrei Antes da Hora</span>
-            </button>
-          </div>
-        `;
-      }
 
       // Histórico dos últimos 7 dias
       const last7Days = [];
@@ -2510,6 +2614,9 @@
           } else if (log.adherenceStatus === 'BROKEN') {
             dotCls = 'bg-rose-950 text-rose-400 border-rose-600 font-bold shadow-sm';
             symbol = '✕';
+          } else if (log.adherenceStatus === 'IN_PROGRESS') {
+            dotCls = 'bg-amber-950 text-amber-400 border-amber-600 font-bold shadow-sm animate-pulse';
+            symbol = '⚡';
           }
         }
         return `
@@ -2526,16 +2633,16 @@
       const curMetrics = todayLog?.subjectiveMetrics || {};
 
       container.innerHTML = `
-        <div class="hud-glass-card p-4 sm:p-5 space-y-4 border border-amber-900/40">
+        <div class="hud-glass-card p-4 sm:p-5 space-y-4 border border-orange-900/40">
           <!-- Header do Card -->
           <div class="flex justify-between items-start border-b border-zinc-800/80 pb-3">
             <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-sm">
-                <i data-lucide="clock" class="w-5 h-5 text-amber-400"></i>
+              <div class="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center shadow-sm">
+                <i data-lucide="clock" class="w-5 h-5 text-orange-400"></i>
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-400">Pilar 3 · Nutrição</span>
+                  <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-orange-400">Pilar 2 · Disciplina &amp; Hábitos</span>
                   <span class="text-zinc-600">•</span>
                   <span class="text-[9px] font-mono text-zinc-400">v${proto.protocolVersion || 1}</span>
                 </div>
@@ -2550,23 +2657,21 @@
           <!-- Timer Dinâmico & Contagem Regressiva -->
           <div class="p-3.5 rounded-2xl bg-black/60 border border-zinc-800/80 space-y-2.5">
             <div class="flex justify-between items-center text-xs">
-              <span class="text-zinc-400 font-medium">
-                ${isFasting ? 'Tempo restante em jejum:' : (isFeeding ? 'Tempo restante na janela:' : 'Status:')}
-              </span>
-              <span class="font-mono font-black text-sm ${isFasting ? 'text-amber-400' : (isFeeding ? 'text-emerald-400' : 'text-zinc-400')}">
+              <span class="text-zinc-400 font-medium">${timerLabel}</span>
+              <span class="font-mono font-black text-sm ${currentStatus === 'IN_PROGRESS' ? 'text-amber-400' : (isFeeding ? 'text-emerald-400' : 'text-orange-400')}">
                 ${isInactive ? 'Dia de descanso' : timeRemainingStr}
               </span>
             </div>
 
             <!-- Barra de Progresso Dinâmica -->
             <div class="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden p-0.5 border border-zinc-800">
-              <div class="h-full rounded-full transition-all duration-500 ${isFasting ? 'bg-gradient-to-r from-amber-600 to-amber-400' : 'bg-gradient-to-r from-emerald-600 to-teal-400'}"
-                style="width: ${timerState.progressPercent}%;"></div>
+              <div class="h-full rounded-full transition-all duration-500 ${currentStatus === 'IN_PROGRESS' ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-amber-400' : (isFasting ? 'bg-gradient-to-r from-amber-600 to-amber-400' : 'bg-gradient-to-r from-emerald-600 to-teal-400')}"
+                style="width: ${progressPercent}%;"></div>
             </div>
 
             <div class="flex justify-between items-center text-[10px] font-mono text-zinc-400 pt-0.5">
               <span>Decorrido: <strong class="text-zinc-200">${timeElapsedStr}</strong></span>
-              <span>Janela: <strong class="text-amber-300">${timerState.feedingWindowStart} às ${timerState.feedingWindowEnd}</strong> (${timerState.feedingDurationHours}h)</span>
+              <span>Janela: <strong class="text-amber-300">${timerState.feedingWindowStart} às ${timerState.feedingWindowEnd}</strong> (${feedDurationHours}h)</span>
             </div>
           </div>
 
@@ -2580,9 +2685,9 @@
             </div>
           ` : ''}
 
-          <!-- Registro Diário de Cumprimento -->
+          <!-- Ação / Disparo de Execução de Hoje -->
           <div class="space-y-2">
-            <span class="text-[9px] font-mono font-bold text-zinc-400 uppercase block">Registro de Hoje:</span>
+            <span class="text-[9px] font-mono font-bold text-zinc-400 uppercase block">Execução &amp; Registro de Hoje:</span>
             ${todayActionHtml}
           </div>
 
@@ -2655,6 +2760,70 @@
       if (window.lucide) window.lucide.createIcons();
     }
 
+    async function startFastingExecutionToday() {
+      const proto = patientState.fastingProtocol;
+      if (!proto) return;
+
+      const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+        ? window.NutriAxFasting
+        : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+      if (!fastingMod) return;
+
+      const pId = _urlPatientId || 'default';
+      const todayIso = getLocalDateIso();
+      const storageKey = `nutriax_fasting_logs_${pId}`;
+      let logs = [];
+      try {
+        logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      } catch (_) {}
+
+      const existingLog = logs.find(l => l.date === todayIso);
+      const nowIso = new Date().toISOString();
+
+      const logPayload = {
+        id: `${pId}_${todayIso}`,
+        patientId: pId,
+        date: todayIso,
+        protocolVersion: proto.protocolVersion || 1,
+        protocolType: proto.type || 'TRE',
+        windowStart: proto.feedingWindows?.[0]?.start || '12:00',
+        windowEnd: proto.feedingWindows?.[0]?.end || '20:00',
+        adherenceStatus: 'IN_PROGRESS',
+        startedAt: existingLog?.startedAt || nowIso,
+        source: 'PATIENT_SELF_REPORT',
+        notes: existingLog?.notes || 'Execução de jejum disparada pelo paciente.',
+        subjectiveMetrics: existingLog?.subjectiveMetrics || {
+          hunger: null,
+          energy: null,
+          mentalFocus: null,
+          wellbeing: null
+        }
+      };
+
+      try {
+        await fastingMod.saveFastingLog(pId, logPayload);
+        renderPatientFastingCard();
+
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('nutriax_bidirectional_sync');
+            bc.postMessage({
+              type: 'FASTING_LOG_UPDATED',
+              patientId: pId,
+              log: logPayload
+            });
+          }
+        } catch (_) {}
+
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 } });
+        }
+      } catch (err) {
+        console.warn('[NutriAx Fasting] Erro ao disparar execução do jejum:', err);
+      }
+    }
+
     async function registerFastingAdherenceToday(status) {
       const proto = patientState.fastingProtocol;
       if (!proto) return;
@@ -2685,6 +2854,8 @@
         windowStart: proto.feedingWindows?.[0]?.start || '12:00',
         windowEnd: proto.feedingWindows?.[0]?.end || '20:00',
         adherenceStatus: status,
+        startedAt: existingLog?.startedAt || null,
+        completedAt: status === 'COMPLETED' ? nowIso : (existingLog?.completedAt || null),
         brokenAt: status === 'BROKEN' ? nowIso : null,
         source: 'PATIENT_SELF_REPORT',
         notes: existingLog?.notes || null,
@@ -2699,6 +2870,18 @@
       try {
         await fastingMod.saveFastingLog(pId, logPayload);
         renderPatientFastingCard();
+
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('nutriax_bidirectional_sync');
+            bc.postMessage({
+              type: 'FASTING_LOG_UPDATED',
+              patientId: pId,
+              log: logPayload
+            });
+          }
+        } catch (_) {}
+
         if (status === 'COMPLETED' && typeof confetti === 'function') {
           confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
         }
@@ -4349,6 +4532,49 @@
         renderPatientFastingCard();
       }
     }, 30000);
+
+    // Sincronização Bidirecional em Tempo Real com o Nutricionista (Pilar 2)
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const patientSyncChannel = new BroadcastChannel('nutriax_bidirectional_sync');
+        patientSyncChannel.onmessage = (event) => {
+          if (!event.data) return;
+          if (event.data.type === 'SYNC_UPDATED' || event.data.type === 'FASTING_PROTOCOL_UPDATED') {
+            if (event.data.payload && event.data.payload.fastingProtocol) {
+              patientState.fastingProtocol = event.data.payload.fastingProtocol;
+            } else if (event.data.protocol) {
+              patientState.fastingProtocol = event.data.protocol;
+            } else {
+              const pId = _urlPatientId || 'default';
+              const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${pId}`) ||
+                            localStorage.getItem(`nutriax_fasting_protocol_${String(pId).toLowerCase().replace(/\s+/g, '-')}`) ||
+                            localStorage.getItem('nutriax_fasting_protocol_default');
+              if (rawFp) {
+                try { patientState.fastingProtocol = JSON.parse(rawFp); } catch (_) {}
+              }
+            }
+            if (typeof renderPatientFastingCard === 'function') {
+              renderPatientFastingCard();
+            }
+          }
+        };
+      } catch (_) {}
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key && (e.key.includes('nutriax_fasting_protocol') || e.key.includes('nutriax_sync_active_patient'))) {
+        const pId = _urlPatientId || 'default';
+        const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${pId}`) ||
+                      localStorage.getItem(`nutriax_fasting_protocol_${String(pId).toLowerCase().replace(/\s+/g, '-')}`) ||
+                      localStorage.getItem('nutriax_fasting_protocol_default');
+        if (rawFp) {
+          try { patientState.fastingProtocol = JSON.parse(rawFp); } catch (_) {}
+        }
+        if (typeof renderPatientFastingCard === 'function') {
+          renderPatientFastingCard();
+        }
+      }
+    });
   </script>
 </body>
 

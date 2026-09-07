@@ -731,6 +731,22 @@ async function runAllTests() {
     assert.deepStrictEqual(val2.sanitizedProtocol.objectives, ['FAT_LOSS', 'MENTAL_FOCUS', 'GLUCOSE_CONTROL']);
   });
 
+  // T35: Disparo de Execução pelo Paciente (IN_PROGRESS e startedAt)
+  await runTest('T35', 'Execução do Paciente: Registro com status IN_PROGRESS salva startedAt para timer em tempo real', async () => {
+    const logEntry = {
+      date: '2026-09-07',
+      protocolVersion: 1,
+      protocolType: 'TRE',
+      windowStart: '12:00',
+      windowEnd: '20:00',
+      adherenceStatus: fastingMod.ADHERENCE_STATUS.IN_PROGRESS
+    };
+    const saved = await fastingMod.saveFastingLog('patient-trigger-test', logEntry);
+    assert.strictEqual(saved.adherenceStatus, 'IN_PROGRESS');
+    assert(typeof saved.startedAt === 'string');
+    assert(saved.startedAt.length > 10);
+  });
+
   console.log('\n======================================================');
   console.log('Resumo da Execução de Testes:');
   const allPassed = Object.values(testResults).every(r => r.status === 'PASS');
