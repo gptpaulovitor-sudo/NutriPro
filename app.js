@@ -6428,6 +6428,237 @@ async function loadAndRenderFastingLogsUI(patientId) {
   `;
 }
 
+/**
+ * Prescreve Protocolo de Jejum Intermitente com Inteligência Artificial (NutriAx Pro AI)
+ * sob SUBORDINAÇÃO TOTAL ao Circuit-Breaker determinístico.
+ */
+async function generateFastingPrescriptionWithAI(patientId = activePatientId) {
+  const pId = patientId || activePatientId;
+  if (!pId) {
+    alert('Nenhum paciente ativo selecionado.');
+    return;
+  }
+
+  const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+    ? window.NutriAxFasting
+    : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+
+  if (!fastingMod || typeof fastingMod.validateAIFastingPrescription !== 'function') {
+    alert('Erro: Módulo de Jejum ou Validador de IA não carregado.');
+    return;
+  }
+
+  // 1. Verificação Pre-Flight do Firewall Clínico
+  // Regra Mestre: Pacientes com BLOCK NÃO podem receber prescrição de jejum pela IA.
+  if (currentFastingEligibilitySnapshot?.severity === 'BLOCK') {
+    alert('Ação bloqueada: O paciente possui contraindicação clínica absoluta (BLOCK) identificada pelo Firewall Clínico. A IA está impedida de prescrever jejum para este perfil.');
+    return;
+  }
+
+  const btnAI = document.getElementById('btnGenerateFastingAI');
+  const originalBtnHtml = btnAI ? btnAI.innerHTML : '';
+  if (btnAI) {
+    btnAI.disabled = true;
+    btnAI.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-amber-300"></i><span>Analisando com IA...</span>`;
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  try {
+    // 2. Coleta de Contexto Clínico Canônico do Paciente
+    let context = null;
+    try {
+      context = await buildPerformanceContext(pId);
+    } catch (e) {
+      console.warn('[NutriAx AI Fasting] Falha ao construir PerformanceContext:', e);
+    }
+
+    if (!context) {
+      alert('Não foi possível reunir dados suficientes do paciente para a prescrição com IA.');
+      return;
+    }
+
+    if (!context.workoutSchedule && typeof perfWeeklySchedule !== 'undefined') {
+      context.workoutSchedule = perfWeeklySchedule;
+    }
+
+    // 3. Montagem do Prompt Especialista Subordinado
+    const prompt = `Você é o NutriAx Pro AI, o motor especialista em prescrição metabólica e esportiva. 
+Sua tarefa é analisar o \`Contexto do Paciente\` e prescrever um Protocolo de Jejum Intermitente estritamente alinhado aos objetivos clínicos, volume calórico, RCEst e agenda de treinamento (Microciclo).
+
+Você atua sob SUBORDINAÇÃO TOTAL às seguintes regras determinísticas. Qualquer violação resultará na rejeição da sua prescrição pelo validador do sistema (Circuit-Breaker).
+
+### 1. REGRAS DE SEGURANÇA (SAFETY - PRIORIDADE MÁXIMA)
+- BLOQUEIO CALÓRICO: Se a TMB/Gasto Total prescrito ultrapassar 3.000 kcal/dia E o objetivo incluir "Preservação de MM" ou "Recomposição Corporal", é ESTRITAMENTE PROIBIDO prescrever jejuns superiores a 12 horas. Prescreva apenas "12/12 (Descanso Noturno)".
+- PROTEÇÃO NEUROMUSCULAR: NUNCA aloque janelas de jejum em dias de treinamento de força pesada focados em Membros Inferiores (Legs), Agachamentos ou Levantamento Terra pesado.
+
+### 2. REGRAS METABÓLICAS (HEURISTIC)
+- QUEIMA DE GORDURA & INSULINA: Se os objetivos marcarem "Queima de Gordura" e "Sensibilidade à Insulina", e o RCEst for >= 0,50, prescreva obrigatoriamente o protocolo "16/8". Frequência exigida: 5 a 7 dias por semana.
+- LONGEVIDADE: Se o objetivo for "Estímulo Autofágico", prescreva protocolos longos ("Eat-Stop-Eat 24h" ou "OMAD 23:1"). Frequência exigida: Máximo de 1 a 2 vezes no mês.
+- COGNIÇÃO: Se o objetivo for "Controle da Ingestão" ou "Foco Mental", prescreva "14/10" ou "16/8" focado em suprimir a primeira refeição do dia.
+
+### 3. REGRAS DE ALOCAÇÃO (OPERATIONAL)
+Ao distribuir os dias de jejum na matriz semanal, siga EXATAMENTE esta ordem de prioridade de alocação:
+1º - Dias 'Off' (Descanso Total).
+2º - Dias exclusivos de 'Cardio Zona 2'.
+3º - Dias de treinos resistidos de agrupamentos menores ou isoladores (ex: Push II ou braços).
+4º - PROIBIDO: Dias de Legs I/II ou Pull I pesado.
+
+### 4. SAÍDA EXIGIDA
+Retorne EXCLUSIVAMENTE um objeto JSON válido, sem formatação markdown ou textos adicionais, seguindo rigorosamente a estrutura abaixo:
+
+{
+  "fastingProtocol": {
+    "type": "16/8",
+    "frequencyPerWeek": 5,
+    "allocatedDays": ["DIA 7 (Off)", "DIA 3 (Cardio Z2)"],
+    "clinicalJustification": "String direta e técnica (máx. 2 frases) justificando a escolha baseada nos objetivos e RCEst.",
+    "warningSafety": "String indicando qual regra de segurança foi ativada (se houver), ou null."
+  }
+}
+
+=== CONTEXTO DO PACIENTE ===
+${JSON.stringify({
+  patient: context.patient,
+  energy: context.energy,
+  nutrition: context.nutrition,
+  cardiometabolic: context.cardiometabolic,
+  trainingProfile: context.trainingProfile,
+  workoutSchedule: context.workoutSchedule || []
+}, null, 2)}`;
+
+    // 4. Executa Chamada da IA com Rotação de Chaves
+    let rawAIResponse = null;
+    const apiKeys = (typeof geminiGetApiKeyPool === 'function') ? geminiGetApiKeyPool() : [];
+
+    if (apiKeys.length > 0 && typeof _callGeminiWithKey === 'function') {
+      let lastErr = null;
+      for (let ki = 0; ki < apiKeys.length; ki++) {
+        try {
+          rawAIResponse = await _callGeminiWithKey(apiKeys[ki], prompt);
+          if (rawAIResponse) break;
+        } catch (callErr) {
+          lastErr = callErr;
+          if (callErr.isQuotaError) continue;
+          break;
+        }
+      }
+      if (!rawAIResponse && lastErr) {
+        console.warn('[NutriAx AI Fasting] Chamada Gemini falhou, ativando síntese determinística direta:', lastErr.message);
+      }
+    }
+
+    // 5. Fallback Heurístico Local caso IA esteja offline ou sem chave
+    if (!rawAIResponse) {
+      const getKcal = parseFloat(context.energy?.getKcal) || 2000;
+      const rcEst = parseFloat(context.cardiometabolic?.rcEst) || 0.45;
+      const isMM = /(?:preservacao de mm|recomposicao|hipertrofia)/i.test(context.patient?.objective || '');
+
+      if (getKcal > 3000 && isMM) {
+        rawAIResponse = {
+          fastingProtocol: {
+            type: "12/12",
+            frequencyPerWeek: 7,
+            allocatedDays: ["DIA 7 (Off)", "DIA 1", "DIA 2", "DIA 3", "DIA 4", "DIA 5", "DIA 6"],
+            clinicalJustification: "Prescrição adaptada a 12/12 para assegurar ingestão energética suficiente (>3000 kcal) e proteger a massa muscular.",
+            warningSafety: "Bloqueio Calórico Ativado: Limitação de 12 horas aplicada para garantir aporte calórico."
+          }
+        };
+      } else if (rcEst >= 0.50) {
+        rawAIResponse = {
+          fastingProtocol: {
+            type: "16/8",
+            frequencyPerWeek: 5,
+            allocatedDays: ["DIA 7 (Off)", "DIA 3 (Cardio Z2)", "DIA 2", "DIA 4", "DIA 6"],
+            clinicalJustification: `Protocolo 16/8 indicado para otimização da sensibilidade à insulina e perfil lipídico em paciente com RCEst de ${rcEst.toFixed(2)}.`,
+            warningSafety: null
+          }
+        };
+      } else {
+        rawAIResponse = {
+          fastingProtocol: {
+            type: "16/8",
+            frequencyPerWeek: 4,
+            allocatedDays: ["DIA 7 (Off)", "DIA 3 (Cardio Z2)", "DIA 2", "DIA 4"],
+            clinicalJustification: "Protocolo 16/8 alinhado à rotina semanal priorizando dias de descanso e menor demanda neuromuscular.",
+            warningSafety: null
+          }
+        };
+      }
+    }
+
+    // 6. Submissão ao Validador Determinístico (Circuit-Breaker)
+    const validationResult = fastingMod.validateAIFastingPrescription(rawAIResponse, context);
+    const sanitized = validationResult.sanitizedProtocol;
+
+    // 7. Popula a Interface do Nutricionista
+    const typeSelect = document.getElementById('fastingTypeSelect');
+    if (typeSelect) typeSelect.value = sanitized.type;
+
+    const subtypeSelect = document.getElementById('fastingSubtypeSelect');
+    if (subtypeSelect) subtypeSelect.value = sanitized.subtype;
+
+    const windowStart = document.getElementById('fastingWindowStart');
+    if (windowStart) windowStart.value = sanitized.feedingWindows?.[0]?.start || '12:00';
+
+    const windowEnd = document.getElementById('fastingWindowEnd');
+    if (windowEnd) windowEnd.value = sanitized.feedingWindows?.[0]?.end || '20:00';
+
+    const notesInput = document.getElementById('fastingClinicalNotes');
+    if (notesInput) notesInput.value = sanitized.clinicalJustification;
+
+    // Atualiza dias ativos
+    currentFastingActiveDays = Array.isArray(sanitized.activeDays) ? [...sanitized.activeDays] : [0, 1, 2, 3, 4, 5, 6];
+    renderFastingDaysButtonsUI();
+    updateFastingDurationIndicatorUI();
+
+    // 8. Exibe Card de Recomendação com Justificativa e Alertas de Segurança
+    const recCard = document.getElementById('fastingAIRecommendationCard');
+    const justText = document.getElementById('fastingAIJustificationText');
+    const warnBox = document.getElementById('fastingAISafetyWarningBox');
+    const warnText = document.getElementById('fastingAISafetyWarningText');
+    const circuitBadge = document.getElementById('fastingAICircuitBadge');
+
+    if (recCard && justText) {
+      recCard.classList.remove('hidden');
+      justText.innerHTML = `<strong>Justificativa Clínica:</strong> ${sanitized.clinicalJustification}`;
+
+      if (circuitBadge) {
+        if (validationResult.status === 'CORRECTED') {
+          circuitBadge.className = 'text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700 font-bold';
+          circuitBadge.textContent = 'Circuit-Breaker: Ajustado por Segurança';
+        } else {
+          circuitBadge.className = 'text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-purple-900/60 text-purple-200 border border-purple-700 font-bold';
+          circuitBadge.textContent = 'Circuit-Breaker Aprovado';
+        }
+      }
+
+      if (warnBox && warnText) {
+        if (sanitized.warningSafety) {
+          warnBox.classList.remove('hidden');
+          warnText.textContent = sanitized.warningSafety;
+        } else {
+          warnBox.classList.add('hidden');
+        }
+      }
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+
+    alert(`⚡ Prescrição com NutriAx AI concluída!\n\nProtocolo sugerido: ${sanitized.subtype} (${sanitized.frequencyPerWeek}x/semana)\nStatus: ${validationResult.status === 'CORRECTED' ? 'Ajustado pelo Circuit-Breaker por segurança' : 'Aprovado pelas regras determinísticas'}.\n\nRevise os parâmetros e clique em "Salvar Protocolo".`);
+  } catch (err) {
+    console.error('[NutriAx AI Fasting] Erro na prescrição com IA:', err);
+    alert('Erro ao gerar prescrição com IA: ' + err.message);
+  } finally {
+    if (btnAI) {
+      btnAI.disabled = false;
+      btnAI.innerHTML = originalBtnHtml;
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+}
+
+window.generateFastingPrescriptionWithAI = generateFastingPrescriptionWithAI;
+
 // ─────────────────────────────────────────────────────────────────────────
 // PILAR 5: CARD INDEPENDENTE DE JEJUM & COMPOSIÇÃO CORPORAL (SEÇÃO 32 & 34)
 // ─────────────────────────────────────────────────────────────────────────

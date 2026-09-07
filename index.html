@@ -3025,6 +3025,11 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button id="btnGenerateFastingAI" onclick="generateFastingPrescriptionWithAI()" title="Prescrição inteligente subordinada ao Circuit-Breaker"
+              class="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black px-4 py-3 rounded-2xl text-xs shadow-lg shadow-purple-950/60 flex items-center gap-2 transition-all cursor-pointer">
+              <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+              <span>⚡ Prescrever com NutriAx AI</span>
+            </button>
             <button onclick="recalculateFastingFirewallUI()" title="Reavaliar elegibilidade contra anamnese e exames"
               class="bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold px-4 py-3 rounded-2xl text-xs border border-zinc-700 shadow-sm flex items-center gap-2 transition-all cursor-pointer">
               <i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i>
@@ -3071,6 +3076,26 @@
               <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
               <span>Aprovar Protocolo Clinicamente</span>
             </button>
+          </div>
+        </div>
+
+        <!-- 1.1 Card de Recomendação NutriAx AI (Validado por Circuit-Breaker) -->
+        <div id="fastingAIRecommendationCard" class="hidden p-5 rounded-3xl bg-gradient-to-br from-purple-950/40 via-zinc-900/90 to-zinc-950 border border-purple-800/60 space-y-3 shadow-lg">
+          <div class="flex items-center justify-between border-b border-purple-800/40 pb-2.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+              <h3 class="text-xs font-black uppercase tracking-wider text-purple-300">Prescrição NutriAx AI (Validada pelo Circuit-Breaker)</h3>
+            </div>
+            <span id="fastingAICircuitBadge" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-purple-900/60 text-purple-200 border border-purple-700 font-bold">
+              Circuit-Breaker Aprovado
+            </span>
+          </div>
+          <div class="space-y-2 text-xs">
+            <p id="fastingAIJustificationText" class="text-zinc-200 font-medium leading-relaxed"></p>
+            <div id="fastingAISafetyWarningBox" class="hidden p-3 rounded-2xl bg-amber-950/50 border border-amber-800/70 text-amber-200 text-xs flex items-start gap-2.5">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i>
+              <span id="fastingAISafetyWarningText" class="font-medium"></span>
+            </div>
           </div>
         </div>
 

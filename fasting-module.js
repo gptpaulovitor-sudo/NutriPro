@@ -1038,7 +1038,244 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 7. EXPOSIÇÃO GLOBAL DO MÓDULO (BROWSER & NODE.JS / COMMONJS)
+  // 7. VALIDADOR DETERMINÍSTICO (CIRCUIT-BREAKER) PARA PRESCRIÇÃO POR IA
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Validador Determinístico (Circuit-Breaker) para Prescrição de Jejum Intermitente por IA.
+   * Atua sob SUBORDINAÇÃO TOTAL às regras de segurança, metabólicas e operacionais.
+   *
+   * @param {Object} aiOutput - Objeto retornado pela IA ({ fastingProtocol: { type, frequencyPerWeek, allocatedDays, clinicalJustification, warningSafety } })
+   * @param {Object} context - PerformanceContext canônico do paciente
+   * @returns {Object} { isValid, status, errors, warnings, circuitBreakersTriggered, sanitizedProtocol }
+   */
+  function validateAIFastingPrescription(aiOutput, context = {}) {
+    const errors = [];
+    const warnings = [];
+    const circuitBreakers = [];
+
+    // Extrai payload raiz ou aninhado
+    const rawProto = aiOutput?.fastingProtocol || aiOutput || {};
+
+    let typeStr = String(rawProto.type || '16/8').trim();
+    let frequencyPerWeek = parseInt(rawProto.frequencyPerWeek, 10) || 5;
+    let allocatedDays = Array.isArray(rawProto.allocatedDays) ? [...rawProto.allocatedDays] : [];
+    let clinicalJustification = String(rawProto.clinicalJustification || '').trim();
+    let warningSafety = rawProto.warningSafety ? String(rawProto.warningSafety).trim() : null;
+
+    const patientObj = context.patient || {};
+    const energyObj = context.energy || {};
+    const nutritionObj = context.nutrition || {};
+    const cardiometabolicObj = context.cardiometabolic || {};
+    const workoutSchedule = context.workoutSchedule || context.microcycle || [];
+
+    const getKcal = parseFloat(energyObj.getKcal) || 0;
+    const caloricTargetKcal = parseFloat(nutritionObj.caloricTargetKcal) || getKcal;
+    const totalEnergy = Math.max(getKcal, caloricTargetKcal);
+    const patientGoal = String(patientObj.objective || '').toLowerCase();
+    const isLeanMassPreservation = /(?:preservacao de mm|preservar massa|massa magra|recomposicao corporal|recomposicao|hipertrofia|ganho de massa)/i.test(patientGoal);
+    const rcEst = parseFloat(cardiometabolicObj.rcEst) || 0;
+
+    // Helper para detectar horas de jejum a partir do tipo
+    const parseFastingHours = (tStr) => {
+      if (/12[:/]12/i.test(tStr)) return 12;
+      if (/14[:/]10/i.test(tStr)) return 14;
+      if (/16[:/]8/i.test(tStr)) return 16;
+      if (/18[:/]6/i.test(tStr)) return 18;
+      if (/20[:/]4/i.test(tStr)) return 20;
+      if (/omad|23[:/]1/i.test(tStr)) return 23;
+      if (/24h|eat-stop-eat/i.test(tStr)) return 24;
+      return 16;
+    };
+
+    let fastingHours = parseFastingHours(typeStr);
+
+    // ── 1. REGRAS DE SEGURANÇA (SAFETY - PRIORIDADE MÁXIMA) ──
+
+    // BLOQUEIO CALÓRICO:
+    // Se TMB/Gasto Total > 3.000 kcal/dia E objetivo incluir "Preservação de MM" ou "Recomposição Corporal":
+    // Proibido jejuns superiores a 12 horas.
+    if (totalEnergy > 3000 && isLeanMassPreservation) {
+      if (fastingHours > 12) {
+        circuitBreakers.push('BLOQUEIO_CALORICO_SEGURANCA');
+        warnings.push('BLOQUEIO CALÓRICO ATIVADO: Gasto total/prescrito > 3.000 kcal com objetivo de preservação/recomposição. Jejum limitado determinísticamente a 12/12 (Descanso Noturno).');
+        warningSafety = warningSafety || 'Bloqueio Calórico Ativado: Limitação de 12 horas para garantir aporte calórico e evitar catabolismo muscular.';
+        typeStr = '12/12';
+        fastingHours = 12;
+      }
+    }
+
+    // PROTEÇÃO NEUROMUSCULAR:
+    // Proibido alocar janelas de jejum em dias de treinamento de força pesada focados em
+    // Membros Inferiores (Legs), Agachamentos, Levantamento Terra pesado ou Pull I pesado.
+    const forbiddenPatterns = /(?:legs|perna|membros inferiores|inferiores|agachamento|squat|levantamento terra|deadlift|pull i\b|pull 1\b)/i;
+
+    const safeAllocatedDays = [];
+    const removedForbiddenDays = [];
+
+    allocatedDays.forEach(dayStr => {
+      const dStr = String(dayStr);
+      if (forbiddenPatterns.test(dStr)) {
+        removedForbiddenDays.push(dStr);
+        return;
+      }
+
+      if (Array.isArray(workoutSchedule) && workoutSchedule.length > 0) {
+        const matchNum = dStr.match(/dia\s*(\d+)/i);
+        const dayIdx = matchNum ? parseInt(matchNum[1], 10) - 1 : null;
+        if (dayIdx !== null && workoutSchedule[dayIdx]) {
+          const schedItem = workoutSchedule[dayIdx];
+          const schedText = `${schedItem.workoutName || ''} ${schedItem.type || ''} ${schedItem.details || ''}`;
+          if (forbiddenPatterns.test(schedText)) {
+            removedForbiddenDays.push(`${dStr} (${schedItem.workoutName || 'Treino Pesado'})`);
+            return;
+          }
+        }
+      }
+
+      safeAllocatedDays.push(dStr);
+    });
+
+    if (removedForbiddenDays.length > 0) {
+      circuitBreakers.push('PROTECAO_NEUROMUSCULAR');
+      warnings.push(`PROTEÇÃO NEUROMUSCULAR ATIVADA: Janela de jejum vetada e removida dos dias de treino pesado: ${removedForbiddenDays.join(', ')}.`);
+      warningSafety = warningSafety || 'Proteção Neuromuscular: Dias com treinos pesados de pernas/agachamento/terra preservados fora do jejum.';
+      allocatedDays = safeAllocatedDays;
+    }
+
+    // ── 2. REGRAS METABÓLICAS (HEURISTIC) ──
+
+    // QUEIMA DE GORDURA & INSULINA:
+    // Objetivos "Queima de Gordura" + "Sensibilidade à Insulina" + RCEst >= 0,50 -> 16/8 de 5 a 7 dias
+    const isFatLoss = /(?:queima de gordura|emagrecimento|perda de peso|definicao)/i.test(patientGoal);
+    const isInsulinSensitivity = /(?:sensibilidade a insulina|resistencia insulinica|insulina|glicemia)/i.test(patientGoal) || (context.fasting && context.fasting.objectives?.includes('INSULIN_SENSITIVITY'));
+
+    if (isFatLoss && isInsulinSensitivity && rcEst >= 0.50) {
+      if (!/16/i.test(typeStr)) {
+        circuitBreakers.push('METABOLICO_RCEST_16_8');
+        warnings.push('REGRA METABÓLICA: RCEst >= 0,50 associado a Queima de Gordura e Sensibilidade à Insulina exige protocolo 16/8.');
+        typeStr = '16/8';
+        fastingHours = 16;
+      }
+      if (frequencyPerWeek < 5) {
+        frequencyPerWeek = 5;
+        warnings.push('FREQUÊNCIA AJUSTADA: Frequência elevada para o mínimo de 5 dias/semana devido à indicação metabólica (RCEst >= 0,50).');
+      }
+    }
+
+    // LONGEVIDADE:
+    // Objetivo "Estímulo Autofágico" -> OMAD 23:1 ou Eat-Stop-Eat 24h, max 1-2x/mês
+    const isAutophagy = /(?:autofag|longevidade|estimulo autofagico)/i.test(patientGoal);
+    if (isAutophagy) {
+      if (!/omad|24h|eat-stop-eat|23[:/]1/i.test(typeStr)) {
+        typeStr = 'OMAD 23:1';
+        fastingHours = 23;
+        warnings.push('PROTOCOLO DE LONGEVIDADE: Ajustado para OMAD 23:1 / estímulo autofágico.');
+      }
+      if (frequencyPerWeek > 2) {
+        frequencyPerWeek = 1;
+        warnings.push('FREQUÊNCIA DE SEGURANÇA: Protocolos de jejum longo/autofagia limitados a 1-2 vezes ao mês.');
+      }
+    }
+
+    // COGNIÇÃO:
+    // Objetivo "Controle da Ingestão" ou "Foco Mental" -> 14/10 ou 16/8
+    const isCognition = /(?:foco mental|cognicao|controle da ingestao|clareza mental)/i.test(patientGoal);
+    if (isCognition && !isAutophagy && !(totalEnergy > 3000 && isLeanMassPreservation)) {
+      if (!/14[:/]10|16[:/]8/i.test(typeStr)) {
+        typeStr = '16/8';
+        fastingHours = 16;
+      }
+    }
+
+    // ── 3. REGRAS DE ALOCAÇÃO OPERACIONAL E MAPEAMENTO PARA ÍNDICES (0 a 6) ──
+    const dayMap = {
+      'domingo': 0, 'dom': 0, 'dia 7': 0,
+      'segunda': 1, 'seg': 1, 'dia 1': 1,
+      'terca': 2, 'terça': 2, 'ter': 2, 'dia 2': 2,
+      'quarta': 3, 'qua': 3, 'dia 3': 3,
+      'quinta': 4, 'qui': 4, 'dia 4': 4,
+      'sexta': 5, 'sex': 5, 'dia 5': 5,
+      'sabado': 6, 'sábado': 6, 'sab': 6, 'dia 6': 6
+    };
+
+    let activeDays = [];
+    allocatedDays.forEach(d => {
+      const lower = normalizeText(String(d));
+      for (const key of Object.keys(dayMap)) {
+        if (lower.includes(key)) {
+          activeDays.push(dayMap[key]);
+          break;
+        }
+      }
+    });
+    activeDays = [...new Set(activeDays)].sort((a, b) => a - b);
+
+    if (activeDays.length === 0) {
+      if (frequencyPerWeek >= 7) activeDays = [0, 1, 2, 3, 4, 5, 6];
+      else if (frequencyPerWeek === 6) activeDays = [1, 2, 3, 4, 5, 6];
+      else if (frequencyPerWeek === 5) activeDays = [1, 2, 3, 4, 5];
+      else if (frequencyPerWeek === 4) activeDays = [1, 2, 4, 5];
+      else if (frequencyPerWeek === 3) activeDays = [1, 3, 5];
+      else if (frequencyPerWeek === 2) activeDays = [2, 4];
+      else activeDays = [0];
+    }
+
+    let canonicalType = 'TRE';
+    let canonicalSubtype = '16:8';
+    let defaultWindow = [{ start: '12:00', end: '20:00' }];
+
+    if (/12[:/]12/i.test(typeStr)) {
+      canonicalType = 'TRE';
+      canonicalSubtype = '12:12';
+      defaultWindow = [{ start: '08:00', end: '20:00' }];
+    } else if (/14[:/]10/i.test(typeStr)) {
+      canonicalType = 'TRE';
+      canonicalSubtype = '14:10';
+      defaultWindow = [{ start: '10:00', end: '20:00' }];
+    } else if (/18[:/]6/i.test(typeStr)) {
+      canonicalType = 'TRE';
+      canonicalSubtype = '18:6';
+      defaultWindow = [{ start: '12:00', end: '18:00' }];
+    } else if (/20[:/]4/i.test(typeStr)) {
+      canonicalType = 'TRE';
+      canonicalSubtype = '20:4';
+      defaultWindow = [{ start: '14:00', end: '18:00' }];
+    } else if (/omad|23[:/]1/i.test(typeStr)) {
+      canonicalType = 'OMAD';
+      canonicalSubtype = 'OMAD';
+      defaultWindow = [{ start: '18:00', end: '19:00' }];
+    } else if (/24h|eat-stop-eat/i.test(typeStr)) {
+      canonicalType = 'EXTENDED';
+      canonicalSubtype = 'CUSTOM';
+      defaultWindow = [{ start: '20:00', end: '20:00' }];
+    }
+
+    if (!clinicalJustification) {
+      clinicalJustification = `Protocolo ${canonicalSubtype} alinhado aos objetivos metabólicos e rotina de treinos.`;
+    }
+
+    return {
+      isValid: errors.length === 0,
+      status: circuitBreakers.length > 0 ? 'CORRECTED' : 'APPROVED',
+      circuitBreakersTriggered: circuitBreakers,
+      errors,
+      warnings,
+      sanitizedProtocol: {
+        type: canonicalType,
+        subtype: canonicalSubtype,
+        frequencyPerWeek,
+        allocatedDays,
+        activeDays,
+        feedingWindows: defaultWindow,
+        clinicalJustification,
+        warningSafety: warningSafety || null
+      }
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 8. EXPOSIÇÃO GLOBAL DO MÓDULO (BROWSER & NODE.JS / COMMONJS)
   // ─────────────────────────────────────────────────────────────────────────
 
   const NutriAxFasting = {
@@ -1057,7 +1294,8 @@
     loadFastingProtocol,
     saveFastingLog,
     loadFastingLogs,
-    syncPendingFastingLogs
+    syncPendingFastingLogs,
+    validateAIFastingPrescription
   };
 
   // Exposição universal

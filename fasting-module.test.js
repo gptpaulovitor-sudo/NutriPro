@@ -604,10 +604,118 @@ async function runAllTests() {
     assert.strictEqual(current.subtype, '20:4');
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // TESTES DO CIRCUIT-BREAKER DETERMINÍSTICO PARA PRESCRIÇÃO POR IA (T29 A T33)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // T29: Bloqueio Calórico (> 3000 kcal + Preservação de MM / Recomposição -> máx 12/12)
+  await runTest('T29', 'Circuit-Breaker: Bloqueio Calórico limita jejum a 12/12 para > 3000 kcal com preservação de MM', async () => {
+    const aiProposal = {
+      fastingProtocol: {
+        type: '16/8',
+        frequencyPerWeek: 5,
+        allocatedDays: ['DIA 1', 'DIA 2', 'DIA 3', 'DIA 4', 'DIA 5'],
+        clinicalJustification: 'Prescrição sugerida pela IA.'
+      }
+    };
+    const contextHeavy = {
+      patient: { objective: 'Hipertrofia e Preservação de MM' },
+      energy: { getKcal: 3200 },
+      nutrition: { caloricTargetKcal: 3200 },
+      cardiometabolic: { rcEst: 0.45 }
+    };
+    const validated = fastingMod.validateAIFastingPrescription(aiProposal, contextHeavy);
+    assert.strictEqual(validated.status, 'CORRECTED');
+    assert(validated.circuitBreakersTriggered.includes('BLOQUEIO_CALORICO_SEGURANCA'));
+    assert.strictEqual(validated.sanitizedProtocol.subtype, '12:12');
+    assert(validated.sanitizedProtocol.warningSafety.includes('Bloqueio Calórico'));
+  });
+
+  // T30: Proteção Neuromuscular (remove jejum em dias de Legs/Agachamento/Terra pesado)
+  await runTest('T30', 'Circuit-Breaker: Proteção Neuromuscular remove alocação em dias de Legs/Agachamento/Terra', async () => {
+    const aiProposal = {
+      fastingProtocol: {
+        type: '16/8',
+        frequencyPerWeek: 4,
+        allocatedDays: ['DIA 1 (Legs Pesado)', 'DIA 3 (Cardio Z2)', 'DIA 5 (Levantamento Terra)', 'DIA 7 (Off)'],
+        clinicalJustification: 'Otimização com treinos.'
+      }
+    };
+    const context = {
+      patient: { objective: 'Emagrecimento' },
+      energy: { getKcal: 2400 },
+      cardiometabolic: { rcEst: 0.48 }
+    };
+    const validated = fastingMod.validateAIFastingPrescription(aiProposal, context);
+    assert(validated.circuitBreakersTriggered.includes('PROTECAO_NEUROMUSCULAR'));
+    assert.strictEqual(validated.sanitizedProtocol.allocatedDays.length, 2);
+    assert.strictEqual(validated.sanitizedProtocol.allocatedDays.includes('DIA 3 (Cardio Z2)'), true);
+    assert.strictEqual(validated.sanitizedProtocol.allocatedDays.includes('DIA 7 (Off)'), true);
+  });
+
+  // T31: Regra Metabólica (RCEst >= 0.50 + Queima de Gordura + Insulina -> obriga 16/8 com freq >= 5)
+  await runTest('T31', 'Circuit-Breaker: Regra Metabólica força 16/8 e frequência >= 5 para RCEst >= 0.50', async () => {
+    const aiProposal = {
+      fastingProtocol: {
+        type: '14/10',
+        frequencyPerWeek: 3,
+        allocatedDays: ['DIA 1', 'DIA 3', 'DIA 5'],
+        clinicalJustification: 'Início moderado.'
+      }
+    };
+    const contextMetabolic = {
+      patient: { objective: 'Queima de Gordura e Sensibilidade à Insulina' },
+      energy: { getKcal: 2200 },
+      cardiometabolic: { rcEst: 0.54 }
+    };
+    const validated = fastingMod.validateAIFastingPrescription(aiProposal, contextMetabolic);
+    assert(validated.circuitBreakersTriggered.includes('METABOLICO_RCEST_16_8'));
+    assert.strictEqual(validated.sanitizedProtocol.subtype, '16:8');
+    assert.strictEqual(validated.sanitizedProtocol.frequencyPerWeek, 5);
+  });
+
+  // T32: Longevidade / Estímulo Autofágico (OMAD 23:1 ou 24h com frequência limitada)
+  await runTest('T32', 'Circuit-Breaker: Longevidade/Autofagia prescreve protocolo longo com frequência restrita', async () => {
+    const aiProposal = {
+      fastingProtocol: {
+        type: '16/8',
+        frequencyPerWeek: 5,
+        allocatedDays: ['DIA 1', 'DIA 2', 'DIA 3', 'DIA 4', 'DIA 5'],
+        clinicalJustification: 'Autofagia geral.'
+      }
+    };
+    const contextAutophagy = {
+      patient: { objective: 'Estímulo Autofágico e Longevidade' },
+      energy: { getKcal: 2100 },
+      cardiometabolic: { rcEst: 0.44 }
+    };
+    const validated = fastingMod.validateAIFastingPrescription(aiProposal, contextAutophagy);
+    assert.strictEqual(validated.sanitizedProtocol.type, 'OMAD');
+    assert.strictEqual(validated.sanitizedProtocol.subtype, 'OMAD');
+    assert.strictEqual(validated.sanitizedProtocol.frequencyPerWeek <= 2, true);
+  });
+
+  // T33: Mapeamento de dias alocados para activeDays [0..6] (Domingo a Sábado)
+  await runTest('T33', 'Circuit-Breaker: Converte allocatedDays da IA em índices semanais activeDays [0..6]', async () => {
+    const aiProposal = {
+      fastingProtocol: {
+        type: '16/8',
+        frequencyPerWeek: 3,
+        allocatedDays: ['DIA 7 (Off)', 'DIA 3 (Quarta)', 'Sexta-feira'],
+        clinicalJustification: 'Alocação semanal.'
+      }
+    };
+    const validated = fastingMod.validateAIFastingPrescription(aiProposal, {});
+    // DIA 7 / Off = 0 (Domingo), Quarta = 3, Sexta = 5
+    assert.strictEqual(validated.sanitizedProtocol.activeDays.includes(0), true);
+    assert.strictEqual(validated.sanitizedProtocol.activeDays.includes(3), true);
+    assert.strictEqual(validated.sanitizedProtocol.activeDays.includes(5), true);
+  });
+
   console.log('\n======================================================');
   console.log('Resumo da Execução de Testes:');
   const allPassed = Object.values(testResults).every(r => r.status === 'PASS');
-  console.log(`Total de testes: 28`);
+  console.log(`Total de testes: ${Object.keys(testResults).length}`);
   console.log(`Aprovados: ${Object.values(testResults).filter(r => r.status === 'PASS').length}`);
   console.log(`Falhas: ${Object.values(testResults).filter(r => r.status === 'FAIL').length}`);
   console.log(`Status Global: ${allPassed ? 'TODOS OS TESTES APROVADOS (PASS)' : 'FALHA ENCONTRADA'}`);
