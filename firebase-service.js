@@ -222,9 +222,19 @@
     }
   }
 
+  async function ensureReady(maxRetries = 15, delayMs = 150) {
+    let retries = 0;
+    while (!init() && retries < maxRetries) {
+      await new Promise(r => setTimeout(r, delayMs));
+      retries++;
+    }
+    return isInitialized && !!firestore;
+  }
+
   async function loadDisciplineFromCloud(patientId) {
-    if (!init()) return null;
     if (!patientId) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
 
     try {
       const sanitizedId = String(patientId).trim();
@@ -239,9 +249,8 @@
     }
   }
 
-  // Ouvinte em tempo real para o painel do nutricionista (onSnapshot)
+  // Ouvinte em tempo real para o painel do nutricionista (onSnapshot com retry)
   function listenToPatientDiscipline(patientId, onUpdateCallback) {
-    if (!init()) return () => {};
     if (!patientId) return () => {};
 
     // Cancela ouvinte anterior se houver
@@ -250,34 +259,144 @@
       activeDisciplineUnsubscribe = null;
     }
 
-    try {
-      const sanitizedId = String(patientId).trim();
-      const unsubscribe = firestore.collection('patient_discipline').doc(sanitizedId)
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            if (typeof onUpdateCallback === 'function') {
-              onUpdateCallback(data);
-            }
-          }
-        }, (error) => {
-          console.warn('[NutriPro Firebase] Erro no listener onSnapshot:', error);
-        });
+    let unsubscribe = null;
+    let cancelled = false;
 
-      activeDisciplineUnsubscribe = unsubscribe;
-      return unsubscribe;
-    } catch (error) {
-      console.warn('[NutriPro Firebase] Falha ao registrar onSnapshot:', error);
-      return () => {};
+    function connect() {
+      if (cancelled) return;
+      if (!init()) {
+        setTimeout(connect, 300);
+        return;
+      }
+      try {
+        const sanitizedId = String(patientId).trim();
+        unsubscribe = firestore.collection('patient_discipline').doc(sanitizedId)
+          .onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (typeof onUpdateCallback === 'function') {
+                onUpdateCallback(data);
+              }
+            }
+          }, (error) => {
+            console.warn('[NutriPro Firebase] Erro no listener onSnapshot de disciplina:', error);
+          });
+        activeDisciplineUnsubscribe = unsubscribe;
+      } catch (error) {
+        console.warn('[NutriPro Firebase] Falha ao registrar onSnapshot de disciplina:', error);
+      }
     }
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+      if (activeDisciplineUnsubscribe === unsubscribe) {
+        activeDisciplineUnsubscribe = null;
+      }
+    };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 3. SINCRONIZAÇÃO DE PRESCRIÇÃO E DIETA (Nutricionista ➔ Nuvem ➔ Paciente)
+  // 3. SINCRONIZAÇÃO DO PILAR 4: PERFORMANCE (Nutricionista ➔ Nuvem ➔ Outro PC)
+  // ─────────────────────────────────────────────────────────────────────────
+  async function syncPerformanceToCloud(patientId, performanceRecord) {
+    if (!patientId || !performanceRecord) return false;
+    const ready = await ensureReady();
+    if (!ready) return false;
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      const payload = {
+        id: sanitizedId,
+        patientId: sanitizedId,
+        activeSplit: performanceRecord.activeSplit || 'PHAT',
+        workoutPlan: Array.isArray(performanceRecord.workoutPlan) ? performanceRecord.workoutPlan : [],
+        weeklySchedule: Array.isArray(performanceRecord.weeklySchedule) ? performanceRecord.weeklySchedule : [],
+        prescribedCardioId: performanceRecord.prescribedCardioId || 'cardio_01',
+        cardioPrescription: performanceRecord.cardioPrescription || null,
+        heartRateZones: performanceRecord.heartRateZones || null,
+        auditData: performanceRecord.auditData || null,
+        meta: performanceRecord.meta || null,
+        pendingAIValidation: performanceRecord.pendingAIValidation || null,
+        lastUpdated: performanceRecord.lastUpdated || new Date().toISOString(),
+        serverTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      await firestore.collection('patient_performance').doc(sanitizedId).set(payload, { merge: true });
+      console.info(`[NutriPro Firebase] Performance do paciente "${sanitizedId}" sincronizada na nuvem com sucesso!`);
+      return true;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao sincronizar performance com Firestore:', error);
+      return false;
+    }
+  }
+
+  async function loadPerformanceFromCloud(patientId) {
+    if (!patientId) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const sanitizedId = String(patientId).trim();
+      const docRef = await firestore.collection('patient_performance').doc(sanitizedId).get();
+      if (docRef.exists) {
+        return docRef.data();
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar performance do Firestore:', error);
+      return null;
+    }
+  }
+
+  function listenToPatientPerformance(patientId, onUpdateCallback) {
+    if (!patientId) return () => {};
+    let unsubscribe = null;
+    let cancelled = false;
+
+    function connect() {
+      if (cancelled) return;
+      if (!init()) {
+        setTimeout(connect, 300);
+        return;
+      }
+      try {
+        const sanitizedId = String(patientId).trim();
+        unsubscribe = firestore.collection('patient_performance').doc(sanitizedId)
+          .onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (typeof onUpdateCallback === 'function') {
+                onUpdateCallback(data);
+              }
+            }
+          }, (error) => {
+            console.warn('[NutriPro Firebase] Erro no listener de performance:', error);
+          });
+      } catch (error) {
+        console.warn('[NutriPro Firebase] Falha ao registrar onSnapshot de performance:', error);
+      }
+    }
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 4. SINCRONIZAÇÃO DE PRESCRIÇÃO E DIETA (Nutricionista ➔ Nuvem ➔ Paciente)
   // ─────────────────────────────────────────────────────────────────────────
   async function syncPrescriptionToCloud(patientId, prescriptionPayload) {
-    if (!init()) return false;
     if (!patientId || !prescriptionPayload) return false;
+    const ready = await ensureReady();
+    if (!ready) return false;
 
     try {
       const sanitizedId = String(patientId).trim();
@@ -296,31 +415,46 @@
   }
 
   function listenToPatientPrescription(patientId, onUpdateCallback) {
-    if (!init()) return () => {};
     if (!patientId) return () => {};
+    let unsubscribe = null;
+    let cancelled = false;
 
-    try {
-      const sanitizedId = String(patientId).trim();
-      return firestore.collection('patient_prescriptions').doc(sanitizedId)
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            if (typeof onUpdateCallback === 'function') {
-              onUpdateCallback(data.prescription);
+    function connect() {
+      if (cancelled) return;
+      if (!init()) {
+        setTimeout(connect, 300);
+        return;
+      }
+      try {
+        const sanitizedId = String(patientId).trim();
+        unsubscribe = firestore.collection('patient_prescriptions').doc(sanitizedId)
+          .onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (typeof onUpdateCallback === 'function') {
+                onUpdateCallback(data.prescription);
+              }
             }
-          }
-        }, (error) => {
-          console.warn('[NutriPro Firebase] Erro no listener de prescrição:', error);
-        });
-    } catch (error) {
-      console.warn('[NutriPro Firebase] Falha ao registrar listener de prescrição:', error);
-      return () => {};
+          }, (error) => {
+            console.warn('[NutriPro Firebase] Erro no listener de prescrição:', error);
+          });
+      } catch (error) {
+        console.warn('[NutriPro Firebase] Falha ao registrar listener de prescrição:', error);
+      }
     }
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }
 
   async function loadPrescriptionFromCloud(patientId) {
-    if (!init()) return null;
     if (!patientId) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
 
     try {
       const sanitizedId = String(patientId).trim();
@@ -337,8 +471,9 @@
   }
 
   async function findPatientIdByEmail(email) {
-    if (!init()) return null;
     if (!email) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
 
     try {
       const emailKey = String(email).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -355,8 +490,9 @@
   }
 
   async function linkEmailToPatient(email, patientId, userProfile = null) {
-    if (!init()) return false;
     if (!email || !patientId) return false;
+    const ready = await ensureReady();
+    if (!ready) return false;
 
     try {
       const emailKey = String(email).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -375,7 +511,7 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 4. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
+  // 5. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
   // ─────────────────────────────────────────────────────────────────────────
   window.NutriProFirebase = {
     config: firebaseConfig,
@@ -393,6 +529,11 @@
       syncToCloud: syncDisciplineToCloud,
       loadFromCloud: loadDisciplineFromCloud,
       subscribe: listenToPatientDiscipline
+    },
+    performance: {
+      syncToCloud: syncPerformanceToCloud,
+      loadFromCloud: loadPerformanceFromCloud,
+      subscribe: listenToPatientPerformance
     },
     prescription: {
       syncToCloud: syncPrescriptionToCloud,

@@ -1658,12 +1658,14 @@
       console.warn('Erro ao decodificar #data da URL', _e);
     }
 
-    // Determina o ID do paciente: prioridade => payload > ?id= da URL > 'default'
-    const _urlPatientId = (
+    // Determina o ID do paciente: prioridade => payload > ?id= da URL > activePatientId do LocalStorage > 'paulo-vitor'
+    const _rawCandidateId = (
       (_syncPayload && _syncPayload.patientId) ||
       new URLSearchParams(window.location.search).get('id') ||
-      'default'
-    ).replace(/[^a-zA-Z0-9_-]/g, '');
+      localStorage.getItem('NUTRIAX_ACTIVE_PATIENT_ID') ||
+      'paulo-vitor'
+    );
+    const _urlPatientId = (_rawCandidateId && _rawCandidateId !== 'default' ? _rawCandidateId : 'paulo-vitor').replace(/[^a-zA-Z0-9_-]/g, '');
 
     // Chave de estado (checkboxes, água, sono) — ISOLADA por paciente
     const STORAGE_KEY = `nutriax_patient_discipline_v3_${_urlPatientId}`;
@@ -2246,9 +2248,7 @@
         const stateJson = JSON.stringify(patientState);
         localStorage.setItem(STORAGE_KEY, stateJson);
         localStorage.setItem('nutriax_patient_discipline_v3', stateJson);
-        if (_urlPatientId && _urlPatientId !== 'default') {
-          localStorage.setItem(`nutriax_patient_discipline_v3_${_urlPatientId}`, stateJson);
-        }
+        localStorage.setItem(`nutriax_patient_discipline_v3_${_urlPatientId}`, stateJson);
 
         window.dispatchEvent(new Event('nutriax_data_updated'));
         try {
@@ -2265,7 +2265,7 @@
         // Sincronização em nuvem via Firebase Firestore
         try {
           if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.syncToCloud === 'function') {
-            window.NutriProFirebase.discipline.syncToCloud(_urlPatientId || 'paulo-vitor', patientState);
+            window.NutriProFirebase.discipline.syncToCloud(_urlPatientId, patientState);
           }
         } catch (_) {}
       } catch (e) {
@@ -3862,14 +3862,24 @@
     window.addEventListener('load', () => {
       setTimeout(async () => {
         // Se a página foi aberta com ?id= (ex: pelo QR Code) e ainda não possui dados locais salvos, busca da nuvem
-        if (_urlPatientId && _urlPatientId !== 'default' && window.NutriProFirebase?.prescription?.loadFromCloud) {
+        if (_urlPatientId && _urlPatientId !== 'default') {
           try {
             const hasLocalData = localStorage.getItem(`nutriax_patient_payload_${_urlPatientId}`);
-            if (!hasLocalData) {
+            if (!hasLocalData && window.NutriProFirebase?.prescription?.loadFromCloud) {
               const cloudP = await window.NutriProFirebase.prescription.loadFromCloud(_urlPatientId);
               if (cloudP) {
                 console.info('[NutriPro Nuvem] Prescrição carregada via QR Code (?id):', _urlPatientId);
                 applyPrescriptionPayload(cloudP);
+                renderAll();
+              }
+            }
+            // Sincroniza disciplina da nuvem se não houver no cache local
+            const hasLocalDisc = localStorage.getItem(STORAGE_KEY);
+            if (!hasLocalDisc && window.NutriProFirebase?.discipline?.loadFromCloud) {
+              const cloudDisc = await window.NutriProFirebase.discipline.loadFromCloud(_urlPatientId);
+              if (cloudDisc) {
+                console.info('[NutriPro Nuvem] Disciplina carregada via Nuvem:', _urlPatientId);
+                applyCloudDiscipline(cloudDisc);
                 renderAll();
               }
             }

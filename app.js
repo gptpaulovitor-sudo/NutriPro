@@ -6267,7 +6267,7 @@ async function renderDisciplineDashboard() {
   const nameEl = document.getElementById('disciplinePatientTag');
   if (nameEl) nameEl.textContent = patientName;
 
-  // Busca estado real do paciente nas chaves do localStorage
+  // Busca estado real do paciente nas chaves do localStorage (offline-first imediato)
   let pState = null;
   const candidateKeys = [
     `nutriax_patient_discipline_v3_${pId}`,
@@ -6288,6 +6288,26 @@ async function renderDisciplineDashboard() {
         }
       }
     } catch (_) { }
+  }
+
+  // Sincroniza da nuvem (Firebase Firestore) para garantir dados em tempo real em qualquer computador
+  if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.loadFromCloud === 'function') {
+    try {
+      const cloudDisc = await window.NutriProFirebase.discipline.loadFromCloud(pId);
+      if (cloudDisc && (cloudDisc.scoreIDC !== undefined || cloudDisc.meals || cloudDisc.history)) {
+        const cloudTime = cloudDisc.updatedAtClient ? new Date(cloudDisc.updatedAtClient).getTime() : 0;
+        const localTime = pState && pState.updatedAtClient ? new Date(pState.updatedAtClient).getTime() : 0;
+        if (!pState || cloudTime >= localTime || !pState.history || Object.keys(pState.history).length === 0) {
+          pState = cloudDisc;
+          try {
+            localStorage.setItem(`nutriax_patient_discipline_v3_${pId}`, JSON.stringify(cloudDisc));
+            localStorage.setItem('nutriax_patient_discipline_v3', JSON.stringify(cloudDisc));
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      console.warn("Aviso ao carregar disciplina da nuvem:", e);
+    }
   }
 
   if (!pState) {
@@ -6311,7 +6331,7 @@ async function renderDisciplineDashboard() {
 
   const todayIso = getLocalDateIso();
 
-  // Se o estado do paciente pertencer a um dia anterior, reseta as tarefas diárias
+  // Se o estado do paciente pertencer a um dia anterior, reseta as tarefas diárias preservando histórico
   const isPreviousDay = pState.lastActiveDate
     ? pState.lastActiveDate !== todayIso
     : (pState.updatedAtClient ? getLocalDateIso(new Date(pState.updatedAtClient)) !== todayIso : false);
@@ -6517,176 +6537,231 @@ async function renderDisciplineDashboard() {
   else if (realScoreIDC > 0) tier = 'Em Progresso 🏃';
   else tier = pState.tier || 'Focado 🌱';
 
-  // Sincroniza hoje no histórico local
+  // Sincroniza hoje no histórico local se houver atividade
   pState.lastActiveDate = todayIso;
   if (!pState.history) pState.history = {};
-  pState.history[todayIso] = {
-    date: todayIso,
-    scoreIDC: realScoreIDC,
-    mealsDone: doneMeals,
-    mealsTotal: totalMeals,
-    itemsChecked: checkedItemsCount,
-    itemsTotal: totalItemsCount,
-    consumedKcal,
-    consumedProt,
-    consumedCarb,
-    consumedFat,
-    waterCurrent: waterVolume,
-    waterTarget,
-    workoutDone,
-    cardioDone,
-    sleepHours,
-    sleepQuality,
-    updatedAt: new Date().toISOString()
-  };
+  if (realScoreIDC > 0 || waterVolume > 0 || workoutDone || checkedItemsCount > 0) {
+    pState.history[todayIso] = {
+      date: todayIso,
+      scoreIDC: realScoreIDC,
+      mealsDone: doneMeals,
+      mealsTotal: totalMeals,
+      itemsChecked: checkedItemsCount,
+      itemsTotal: totalItemsCount,
+      consumedKcal,
+      consumedProt,
+      consumedCarb,
+      consumedFat,
+      waterCurrent: waterVolume,
+      waterTarget,
+      workoutDone,
+      cardioDone,
+      sleepHours,
+      sleepQuality,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // ─── CÁLCULO DE CONSOLIDAÇÃO HISTÓRICA (MÉDIAS DOS ÚLTIMOS 30 DIAS) ───
+  const hist = pState.history || {};
+  let histDaysCount = 0;
+  let histScoreSum = 0;
+  let histWaterSum = 0;
+  let histDietSum = 0;
+  let histWorkoutCount = 0;
+
+  Object.values(hist).forEach(h => {
+    if (h && typeof h === 'object') {
+      const s = Number(h.scoreIDC) || 0;
+      if (s > 0 || (h.waterCurrent && h.waterCurrent > 0) || h.workoutDone || (h.mealsDone && h.mealsDone > 0)) {
+        histDaysCount++;
+        histScoreSum += s;
+        if (h.waterCurrent) histWaterSum += Number(h.waterCurrent) || 0;
+        if (h.mealsTotal > 0) histDietSum += ((h.mealsDone || 0) / h.mealsTotal) * 100;
+        else if (h.itemsTotal > 0) histDietSum += ((h.itemsChecked || 0) / h.itemsTotal) * 100;
+        if (h.workoutDone) histWorkoutCount++;
+      }
+    }
+  });
+
+  const avg30Score = histDaysCount > 0 ? (histScoreSum / histDaysCount) : 0;
+  const avg30Water = histDaysCount > 0 ? Math.round(histWaterSum / histDaysCount) : 0;
+  const avg30Diet = histDaysCount > 0 ? Math.round(histDietSum / histDaysCount) : 0;
+  const avg30Workout = histDaysCount > 0 ? Math.round((histWorkoutCount / histDaysCount) * 100) : 0;
 
   // ─── ATUALIZAÇÃO DOS 4 TOP KPI CARDS ───
-  // Card 1: Score IDC Geral
+  // Card 1: Score IDC Geral & Em Andamento
   const kpiScore = document.getElementById('kpiIdcScore');
-  if (kpiScore) kpiScore.textContent = `${realScoreIDC.toFixed(1)}%`;
-
   const kpiProg = document.getElementById('kpiIdcProgress');
-  if (kpiProg) kpiProg.style.width = `${realScoreIDC}%`;
-
   const kpiTier = document.getElementById('kpiIdcTierBadge');
-  if (kpiTier) kpiTier.textContent = tier;
+  const kpiStreakFb = document.getElementById('kpiIdcStreakFeedback');
 
   const headerStreak = document.getElementById('disciplineHeaderStreak');
   const streakDaysCount = pState.streakDays || 1;
   if (headerStreak) headerStreak.textContent = `${streakDaysCount} ${streakDaysCount === 1 ? 'Dia Ativo' : 'Dias Invictos'}`;
 
-  const kpiStreakFb = document.getElementById('kpiIdcStreakFeedback');
-  if (kpiStreakFb) {
-    if (realScoreIDC >= 80) {
-      kpiStreakFb.innerHTML = `🔥 <strong>Alta consistência:</strong> ${streakDaysCount} ${streakDaysCount === 1 ? 'dia ativo' : 'dias ativos'} acima da média`;
-    } else if (realScoreIDC >= 50) {
-      kpiStreakFb.innerHTML = `⚡ <strong>Em progresso:</strong> Hábitos sendo executados ao longo do dia`;
-    } else if (realScoreIDC > 0) {
-      kpiStreakFb.innerHTML = `🌱 <strong>Início do dia:</strong> Primeiros check-ins registrados (${checkedItemsCount} alimentos • ${waterVolume.toLocaleString('pt-BR')}ml água)`;
-    } else {
+  if (realScoreIDC > 0) {
+    if (kpiScore) kpiScore.textContent = `${realScoreIDC.toFixed(1)}%`;
+    if (kpiProg) kpiProg.style.width = `${realScoreIDC}%`;
+    if (kpiTier) kpiTier.textContent = tier;
+    if (kpiStreakFb) {
+      kpiStreakFb.innerHTML = `🔥 <strong>Hoje:</strong> ${realScoreIDC.toFixed(1)}% em andamento • <strong>Média 30d:</strong> ${avg30Score > 0 ? avg30Score.toFixed(1) + '%' : 'Calculando...'}`;
+    }
+  } else if (avg30Score > 0) {
+    if (kpiScore) kpiScore.textContent = `${avg30Score.toFixed(1)}%`;
+    if (kpiProg) kpiProg.style.width = `${avg30Score}%`;
+    let histTier = 'Consistente ⚡';
+    if (avg30Score >= 95) histTier = 'Lendário 🔥';
+    else if (avg30Score >= 80) histTier = 'Blindado 🛡️';
+    else if (avg30Score < 60) histTier = 'Focado 🌱';
+    if (kpiTier) kpiTier.textContent = histTier;
+    if (kpiStreakFb) {
+      kpiStreakFb.innerHTML = `⏳ <strong>Hoje:</strong> Aguardando check-in • <strong>Média 30 Dias:</strong> ${avg30Score.toFixed(1)}% consistência`;
+    }
+  } else {
+    if (kpiScore) kpiScore.textContent = `0.0%`;
+    if (kpiProg) kpiProg.style.width = `0%`;
+    if (kpiTier) kpiTier.textContent = tier;
+    if (kpiStreakFb) {
       kpiStreakFb.innerHTML = `⏳ <strong>Aguardando check-in:</strong> Paciente ainda não marcou hábitos hoje`;
     }
   }
 
   // Card 2: Taxa de Adesão Alimentar
   const kpiDiet = document.getElementById('kpiDietPercent');
-  if (kpiDiet) kpiDiet.textContent = `${dietPct}%`;
-
   const kpiDietDet = document.getElementById('kpiDietDetail');
-  if (kpiDietDet) {
-    if (totalItemsCount > 0) {
-      if (doneMeals === totalMeals && totalMeals > 0) {
-        kpiDietDet.textContent = `${totalMeals} de ${totalMeals} refeições concluídas (${checkedItemsCount} alimentos)`;
-      } else if (partialMeals > 0 || checkedItemsCount > 0) {
-        kpiDietDet.textContent = `${checkedItemsCount} de ${totalItemsCount} alimentos (${doneMeals} de ${totalMeals} refeições 100%)`;
-      } else {
-        kpiDietDet.textContent = `0 de ${totalItemsCount} alimentos (${totalMeals} refeições no plano)`;
-      }
-    } else {
-      kpiDietDet.textContent = `${doneMeals} de ${totalMeals} refeições no plano`;
-    }
-  }
-
   const kpiDietBadge = document.getElementById('kpiDietBadge');
-  if (kpiDietBadge) {
-    if (dietPct >= 80) {
-      kpiDietBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiDietBadge.textContent = "Excelente";
-    } else if (dietPct >= 50) {
+  const kpiDietFb = document.getElementById('kpiDietFeedback');
+
+  if (checkedItemsCount > 0 || doneMeals > 0) {
+    if (kpiDiet) kpiDiet.textContent = `${dietPct}%`;
+    if (kpiDietDet) {
+      kpiDietDet.textContent = `${checkedItemsCount} de ${totalItemsCount} alimentos consumidos hoje (${doneMeals} de ${totalMeals} refeições 100%)`;
+    }
+    if (kpiDietBadge) {
+      kpiDietBadge.className = dietPct >= 80
+        ? "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full"
+        : "bg-orange-950 text-orange-300 border border-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiDietBadge.textContent = dietPct >= 80 ? "Excelente" : "Em Curso";
+    }
+    if (kpiDietFb) {
+      kpiDietFb.innerHTML = `🔥 <strong>${consumedKcal.toLocaleString('pt-BR')} kcal consumidas hoje</strong> (${consumedProt}g P • ${consumedCarb}g C • ${consumedFat}g G)`;
+    }
+  } else if (avg30Diet > 0) {
+    if (kpiDiet) kpiDiet.textContent = `${avg30Diet}%`;
+    if (kpiDietDet) {
+      kpiDietDet.textContent = `0 de ${totalItemsCount} alimentos hoje (${totalMeals} refeições no plano)`;
+    }
+    if (kpiDietBadge) {
       kpiDietBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiDietBadge.textContent = "Bom";
-    } else if (dietPct > 0 || checkedItemsCount > 0) {
-      kpiDietBadge.className = "bg-orange-950 text-orange-300 border border-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiDietBadge.textContent = "Em Curso";
-    } else {
+      kpiDietBadge.textContent = "Média 30d";
+    }
+    if (kpiDietFb) {
+      kpiDietFb.innerHTML = `⏳ <strong>Hoje: 0 refeições</strong> • Média Histórica: ${avg30Diet}% de adesão`;
+    }
+  } else {
+    if (kpiDiet) kpiDiet.textContent = `0%`;
+    if (kpiDietDet) {
+      kpiDietDet.textContent = totalItemsCount > 0 ? `0 de ${totalItemsCount} alimentos (${totalMeals} refeições no plano)` : `0 de ${totalMeals} refeições no plano`;
+    }
+    if (kpiDietBadge) {
       kpiDietBadge.className = "bg-zinc-900 text-zinc-400 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
       kpiDietBadge.textContent = "Aguardando";
     }
-  }
-
-  const kpiDietFb = document.getElementById('kpiDietFeedback');
-  if (kpiDietFb) {
-    if (doneMeals === totalMeals && totalMeals > 0) {
-      kpiDietFb.textContent = `✓ 100% da dieta cumprida! (${consumedKcal} kcal • ${consumedProt}g P • ${consumedCarb}g C • ${consumedFat}g G)`;
-    } else if (checkedItemsCount > 0) {
-      kpiDietFb.innerHTML = `🔥 <strong>${consumedKcal.toLocaleString('pt-BR')} kcal consumidas</strong> (${consumedProt}g P • ${consumedCarb}g C • ${consumedFat}g G)`;
-    } else if (totalMeals > 0) {
-      kpiDietFb.textContent = `0 de ${totalMeals} refeições consumidas até o momento`;
-    } else {
-      kpiDietFb.textContent = "Aguardando prescrição ou check-in";
+    if (kpiDietFb) {
+      kpiDietFb.textContent = totalMeals > 0 ? `0 de ${totalMeals} refeições consumidas até o momento` : "Aguardando prescrição ou check-in";
     }
   }
 
   // Card 3: Hidratação
   const kpiWater = document.getElementById('kpiWaterVolume');
-  if (kpiWater) kpiWater.textContent = waterVolume.toLocaleString('pt-BR');
-
   const kpiWaterDet = document.getElementById('kpiWaterDetail');
-  if (kpiWaterDet) kpiWaterDet.textContent = `Meta Prescrita: ${waterTarget.toLocaleString('pt-BR')} ml (${waterPct}%)`;
-
   const kpiWaterBadge = document.getElementById('kpiWaterBadge');
-  if (kpiWaterBadge) {
-    if (waterPct >= 100) {
-      kpiWaterBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiWaterBadge.textContent = "Meta Batida";
-    } else if (waterPct >= 60) {
+  const kpiWaterFb = document.getElementById('kpiWaterFeedback');
+
+  if (waterVolume > 0) {
+    if (kpiWater) kpiWater.textContent = waterVolume.toLocaleString('pt-BR');
+    if (kpiWaterDet) kpiWaterDet.textContent = `Meta Prescrita: ${waterTarget.toLocaleString('pt-BR')} ml (${waterPct}%)`;
+    if (kpiWaterBadge) {
+      if (waterPct >= 100) {
+        kpiWaterBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+        kpiWaterBadge.textContent = "Meta Batida";
+      } else {
+        kpiWaterBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+        kpiWaterBadge.textContent = "Em Andamento";
+      }
+    }
+    if (kpiWaterFb) {
+      kpiWaterFb.innerHTML = waterPct >= 100
+        ? `✓ Meta diária de hidratação cumprida com sucesso!`
+        : `💧 Faltam ${(Math.max(0, waterTarget - waterVolume)).toLocaleString('pt-BR')} ml para a meta hoje • Média 30d: ${avg30Water > 0 ? avg30Water.toLocaleString('pt-BR') + ' ml' : '-'}`;
+    }
+  } else if (avg30Water > 0) {
+    if (kpiWater) kpiWater.textContent = avg30Water.toLocaleString('pt-BR');
+    if (kpiWaterDet) kpiWaterDet.textContent = `Média Histórica: ${avg30Water.toLocaleString('pt-BR')} ml/dia • Meta: ${waterTarget.toLocaleString('pt-BR')} ml`;
+    if (kpiWaterBadge) {
       kpiWaterBadge.className = "bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiWaterBadge.textContent = "Consumo Regular";
-    } else if (waterPct > 0) {
-      kpiWaterBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiWaterBadge.textContent = "Em Andamento";
-    } else {
+      kpiWaterBadge.textContent = "Média 30d";
+    }
+    if (kpiWaterFb) {
+      kpiWaterFb.innerHTML = `⏳ <strong>Hoje: 0 ml</strong> • Paciente ainda não registrou água hoje`;
+    }
+  } else {
+    if (kpiWater) kpiWater.textContent = "0";
+    if (kpiWaterDet) kpiWaterDet.textContent = `Meta Prescrita: ${waterTarget.toLocaleString('pt-BR')} ml (0%)`;
+    if (kpiWaterBadge) {
       kpiWaterBadge.className = "bg-zinc-900 text-zinc-400 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
       kpiWaterBadge.textContent = "Sem Registro";
     }
-  }
-
-  const kpiWaterFb = document.getElementById('kpiWaterFeedback');
-  if (kpiWaterFb) {
-    if (waterPct >= 100) {
-      kpiWaterFb.textContent = `✓ Meta diária de hidratação cumprida com sucesso!`;
-    } else if (waterVolume > 0) {
-      kpiWaterFb.textContent = `Faltam ${(Math.max(0, waterTarget - waterVolume)).toLocaleString('pt-BR')} ml para bater a meta`;
-    } else {
+    if (kpiWaterFb) {
       kpiWaterFb.textContent = "Nenhum consumo de água registrado hoje";
     }
   }
 
   // Card 4: Estímulo Físico (Treino & Cardio)
   const kpiWorkout = document.getElementById('kpiWorkoutPercent');
-  if (kpiWorkout) kpiWorkout.textContent = `${workoutPct}%`;
-
   const kpiWorkoutDet = document.getElementById('kpiWorkoutDetail');
-  if (kpiWorkoutDet) {
-    kpiWorkoutDet.textContent = `${workoutDone ? '✓ Treino Realizado' : '○ Treino Pendente'} • ${cardioDone ? '✓ Cardio Realizado' : '○ Cardio Pendente'}`;
-  }
-
   const kpiWorkoutBadge = document.getElementById('kpiWorkoutBadge');
-  if (kpiWorkoutBadge) {
-    if (workoutDone && cardioDone) {
-      kpiWorkoutBadge.className = "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiWorkoutBadge.textContent = "100% Cumprido";
-    } else if (workoutDone) {
-      kpiWorkoutBadge.className = "bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiWorkoutBadge.textContent = "Treino Concluído";
-    } else if (cardioDone) {
-      kpiWorkoutBadge.className = "bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-      kpiWorkoutBadge.textContent = "Cardio Realizado";
-    } else {
+  const kpiWorkoutFb = document.getElementById('kpiWorkoutFeedback');
+
+  if (workoutDone || cardioDone) {
+    if (kpiWorkout) kpiWorkout.textContent = `${workoutPct}%`;
+    if (kpiWorkoutDet) {
+      kpiWorkoutDet.textContent = `${workoutDone ? '✓ Treino Realizado' : '○ Treino Pendente'} • ${cardioDone ? '✓ Cardio Realizado' : '○ Cardio Pendente'}`;
+    }
+    if (kpiWorkoutBadge) {
+      kpiWorkoutBadge.className = (workoutDone && cardioDone)
+        ? "bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full"
+        : "bg-blue-950 text-blue-300 border border-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWorkoutBadge.textContent = (workoutDone && cardioDone) ? "100% Cumprido" : "Realizado";
+    }
+    if (kpiWorkoutFb) {
+      kpiWorkoutFb.textContent = (workoutDone && cardioDone)
+        ? "✓ Musculação e cardio zona 2 concluídos hoje"
+        : (workoutDone ? "Musculação concluída hoje. Cardio ainda pendente." : "Cardio concluído hoje. Musculação ainda pendente.");
+    }
+  } else if (avg30Workout > 0) {
+    if (kpiWorkout) kpiWorkout.textContent = `${avg30Workout}%`;
+    if (kpiWorkoutDet) {
+      kpiWorkoutDet.textContent = `○ Treino Pendente • ○ Cardio Pendente (Hoje)`;
+    }
+    if (kpiWorkoutBadge) {
+      kpiWorkoutBadge.className = "bg-purple-950 text-purple-300 border border-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+      kpiWorkoutBadge.textContent = "Média 30d";
+    }
+    if (kpiWorkoutFb) {
+      kpiWorkoutFb.innerHTML = `⏳ <strong>Aguardando treino de hoje</strong> • Consistência 30d: ${avg30Workout}%`;
+    }
+  } else {
+    if (kpiWorkout) kpiWorkout.textContent = `0%`;
+    if (kpiWorkoutDet) {
+      kpiWorkoutDet.textContent = `○ Treino Pendente • ○ Cardio Pendente`;
+    }
+    if (kpiWorkoutBadge) {
       kpiWorkoutBadge.className = "bg-zinc-900 text-zinc-400 border border-zinc-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
       kpiWorkoutBadge.textContent = "Aguardando";
     }
-  }
-
-  const kpiWorkoutFb = document.getElementById('kpiWorkoutFeedback');
-  if (kpiWorkoutFb) {
-    if (workoutDone && cardioDone) {
-      kpiWorkoutFb.textContent = "✓ Musculação e cardio zona 2 concluídos hoje";
-    } else if (workoutDone) {
-      kpiWorkoutFb.textContent = "Musculação concluída. Cardio ainda pendente.";
-    } else if (cardioDone) {
-      kpiWorkoutFb.textContent = "Cardio concluído. Musculação ainda pendente.";
-    } else {
+    if (kpiWorkoutFb) {
       kpiWorkoutFb.textContent = "Nenhum estímulo físico registrado hoje";
     }
   }
@@ -16403,6 +16478,15 @@ async function savePerformanceForPatient(patientId = activePatientId) {
   } catch (syncErr) {
     console.warn("Erro ao sincronizar com app do paciente:", syncErr);
   }
+
+  // 4. Sincroniza na Nuvem (Firebase Firestore) para acesso em múltiplos computadores
+  try {
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.performance?.syncToCloud === 'function') {
+      window.NutriProFirebase.performance.syncToCloud(pId, record);
+    }
+  } catch (fbErr) {
+    console.warn("Aviso ao salvar performance no Firebase:", fbErr);
+  }
 }
 
 async function loadPerformanceForPatient(patientId = activePatientId) {
@@ -16458,6 +16542,55 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
   } else {
     saved = dexieSaved || lsSaved;
   }
+
+  // 5. Consulta a Nuvem Firebase (permite acessar o treino salvo de qualquer outro computador)
+  try {
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.performance?.loadFromCloud === 'function') {
+      const cloudPerf = await window.NutriProFirebase.performance.loadFromCloud(pId);
+      if (cloudPerf && Array.isArray(cloudPerf.workoutPlan) && cloudPerf.workoutPlan.length > 0) {
+        const cloudTime = cloudPerf.lastUpdated ? new Date(cloudPerf.lastUpdated).getTime() : 0;
+        const localTime = saved && saved.lastUpdated ? new Date(saved.lastUpdated).getTime() : 0;
+        if (!saved || cloudTime >= localTime || !Array.isArray(saved.workoutPlan) || saved.workoutPlan.length === 0) {
+          saved = cloudPerf;
+          try {
+            localStorage.setItem("NUTRIAX_PERFORMANCE_" + pId, JSON.stringify(saved));
+            if (typeof db !== "undefined" && db.performanceMetabolica) {
+              db.performanceMetabolica.put(saved).catch(() => {});
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (cloudErr) {
+    console.warn("Aviso ao buscar performance na nuvem:", cloudErr);
+  }
+
+  // Conecta ouvinte em tempo real para sincronização entre múltiplos computadores abertos
+  try {
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.performance?.subscribe === 'function') {
+      if (window._perfCloudUnsubscribe && typeof window._perfCloudUnsubscribe === 'function') {
+        window._perfCloudUnsubscribe();
+      }
+      window._perfCloudUnsubscribe = window.NutriProFirebase.performance.subscribe(pId, (cloudRecord) => {
+        if (cloudRecord && Array.isArray(cloudRecord.workoutPlan) && cloudRecord.workoutPlan.length > 0) {
+          const currentLocal = localStorage.getItem("NUTRIAX_PERFORMANCE_" + pId);
+          const newJson = JSON.stringify(cloudRecord);
+          if (currentLocal !== newJson) {
+            localStorage.setItem("NUTRIAX_PERFORMANCE_" + pId, newJson);
+            if (typeof db !== "undefined" && db.performanceMetabolica) {
+              db.performanceMetabolica.put(cloudRecord).catch(() => {});
+            }
+            const perfSec = document.getElementById('tab-performance');
+            if (perfSec && !perfSec.classList.contains('hidden') && perfSec.style.display !== 'none') {
+              loadPerformanceForPatient(pId).then(() => {
+                if (typeof perfRender === 'function') perfRender();
+              });
+            }
+          }
+        }
+      });
+    }
+  } catch (_) {}
 
   if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
     perfActiveSplit = saved.activeSplit || 'PHAT';
