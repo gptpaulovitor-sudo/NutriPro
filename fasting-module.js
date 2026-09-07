@@ -1255,6 +1255,46 @@
       clinicalJustification = `Protocolo ${canonicalSubtype} alinhado aos objetivos metabólicos e rotina de treinos.`;
     }
 
+    const normalizeObjectiveCode = (code) => {
+      if (!code || typeof code !== 'string') return null;
+      const c = code.trim().toUpperCase();
+      if (c === 'FAT_LOSS' || c.includes('GORDURA')) return 'FAT_LOSS';
+      if (c === 'BODY_COMPOSITION' || c.includes('RECOMPOSICAO') || c.includes('RECOMPOSIÇÃO')) return 'BODY_COMPOSITION';
+      if (c === 'CALORIC_CONTROL' || c.includes('INGESTAO') || c.includes('INGESTÃO')) return 'CALORIC_CONTROL';
+      if (c === 'LEAN_MASS_PRESERVATION' || c.includes('MASSA MAGRA') || c.includes('PRESERVACAO') || c.includes('PRESERVAÇÃO') || c.includes('MM')) return 'LEAN_MASS_PRESERVATION';
+      if (c === 'GLUCOSE_CONTROL' || c.includes('GLICEMICO') || c.includes('GLICÊMICO') || c.includes('GLICOSE')) return 'GLUCOSE_CONTROL';
+      if (c === 'INSULIN_SENSITIVITY' || c.includes('INSULINA')) return 'INSULIN_SENSITIVITY';
+      if (c === 'CARDIOVASCULAR_HEALTH' || c.includes('CARDIOVASCULAR') || c.includes('CORACAO') || c.includes('CORAÇÃO')) return 'CARDIOVASCULAR_HEALTH';
+      if (c === 'LIPID_PROFILE' || c.includes('LIPIDICO') || c.includes('LIPÍDICO') || c.includes('COLESTEROL')) return 'LIPID_PROFILE';
+      if (c === 'AUTOPHAGY' || c.includes('AUTOFAGICO') || c.includes('AUTOFÁGICO') || c.includes('AUTOFAGIA')) return 'AUTOPHAGY';
+      if (c === 'MENTAL_FOCUS' || c.includes('FOCO') || c.includes('CLAREZA') || c.includes('COGNITIVO')) return 'MENTAL_FOCUS';
+      return null;
+    };
+
+    // Objetivos Clínicos Estruturados derivados da prescrição e do contexto do paciente
+    let rawObjs = Array.isArray(rawProto.objectives) ? rawProto.objectives.map(normalizeObjectiveCode).filter(Boolean) : [];
+    let objectives = [...rawObjs];
+    if (objectives.length === 0) {
+      if (isFatLoss || rcEst >= 0.50 || /16[:/]8/i.test(canonicalSubtype)) {
+        objectives.push('FAT_LOSS');
+        objectives.push('INSULIN_SENSITIVITY');
+        objectives.push('GLUCOSE_CONTROL');
+        if (rcEst >= 0.50) objectives.push('CARDIOVASCULAR_HEALTH');
+      }
+      if (isLeanMassPreservation || totalEnergy > 3000) {
+        objectives.push('LEAN_MASS_PRESERVATION');
+        objectives.push('BODY_COMPOSITION');
+      }
+      if (isAutophagy || /omad|24h/i.test(canonicalSubtype)) {
+        objectives.push('AUTOPHAGY');
+      }
+      if (isCognition) {
+        objectives.push('MENTAL_FOCUS');
+        objectives.push('CALORIC_CONTROL');
+      }
+    }
+    objectives = [...new Set(objectives)];
+
     return {
       isValid: errors.length === 0,
       status: circuitBreakers.length > 0 ? 'CORRECTED' : 'APPROVED',
@@ -1269,7 +1309,8 @@
         activeDays,
         feedingWindows: defaultWindow,
         clinicalJustification,
-        warningSafety: warningSafety || null
+        warningSafety: warningSafety || null,
+        objectives: objectives.length > 0 ? objectives : ['FAT_LOSS', 'INSULIN_SENSITIVITY']
       }
     };
   }

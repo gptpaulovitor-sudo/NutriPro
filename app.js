@@ -5931,8 +5931,16 @@ async function renderFastingNutritionistModule(patientId = activePatientId) {
     currentFastingAuditTrail = [];
   }
 
-  // 4. Atualiza UI do Firewall
-  updateFastingFirewallUI(eligibility, protocol);
+  // 3.1 Carrega PerformanceContext para cálculo dos parâmetros operados do painel
+  let perfContext = null;
+  try {
+    perfContext = await buildPerformanceContext(pId);
+  } catch (e) {
+    console.warn('[NutriAx Fasting] Falha não-bloqueante ao carregar context para o painel:', e);
+  }
+
+  // 4. Atualiza UI do Firewall com parâmetros operados
+  updateFastingFirewallUI(eligibility, protocol, consolidatedPatient, perfContext);
 
   // 5. Preenche os campos do formulário
   const enabledToggle = document.getElementById('fastingEnabledToggle');
@@ -5979,7 +5987,7 @@ async function renderFastingNutritionistModule(patientId = activePatientId) {
   if (window.lucide) window.lucide.createIcons();
 }
 
-function updateFastingFirewallUI(eligibility, protocol = null) {
+function updateFastingFirewallUI(eligibility, protocol = null, patientData = null, perfContext = null) {
   const badge = document.getElementById('fastingSeverityBadge');
   const alertBox = document.getElementById('fastingFirewallAlertBox');
   const signalsGrid = document.getElementById('fastingSignalsGrid');
@@ -6083,37 +6091,191 @@ function updateFastingFirewallUI(eligibility, protocol = null) {
     if (approvalStatusText) approvalStatusText.innerHTML = '<span class="text-emerald-400 font-bold">Elegibilidade plena verificada.</span>';
   }
 
-  // Atualiza Grid de Sinais Clínicos
-  if (signalsGrid && eligibility.clinicalSignals) {
-    const s = eligibility.clinicalSignals;
-    const formatStatus = (st) => {
-      if (st === 'CONFIRMED') return '<span class="text-rose-400 font-bold">Confirmado</span>';
-      if (st === 'POSSIBLE') return '<span class="text-amber-400 font-bold">Possível/Ambíguo</span>';
-      if (st === 'NEGATED') return '<span class="text-emerald-400 font-bold">Negado</span>';
-      return '<span class="text-zinc-500 font-bold">Desconhecido</span>';
-    };
+  // ── ATUALIZAÇÃO DO PAINEL CLÍNICO DETERMINÍSTICO (APENAS O QUE É OPERADO) ──
+  if (signalsGrid) {
+    // 1. Extração dos parâmetros operados pelo motor clínico determinístico
+    const p = perfContext?.patient || patientData || {};
+    const e = perfContext?.energy || {};
+    const cm = perfContext?.cardiometabolic || {};
+    const s = eligibility?.clinicalSignals || {};
+
+    const age = p.age ?? null;
+    const weightKg = p.weightKg ?? p.weight ?? p.currentWeight ?? null;
+    const heightCm = p.heightCm ?? (p.height ? (p.height < 3 ? p.height * 100 : p.height) : null);
+    const bmi = p.bmi ?? (weightKg && heightCm ? Math.round((weightKg / Math.pow(heightCm / 100, 2)) * 10) / 10 : null);
+    const rcEst = cm.rcEst ?? null;
+    const getKcal = e.getKcal ?? null;
+    const objective = p.objective || '';
+    const isMM = /(?:preservacao de mm|recomposicao|hipertrofia)/i.test(objective);
+
+    // Card 1: IDADE & MATURIDADE
+    let ageCard = '';
+    if (age !== null && age > 0) {
+      let ageBadge = '<span class="text-emerald-400 font-bold">Adulto (≥ 18) • Aprovado</span>';
+      if (age < 14) ageBadge = '<span class="text-rose-400 font-bold">Pediátrico (&lt; 14) • Bloqueio</span>';
+      else if (age < 18) ageBadge = '<span class="text-amber-400 font-bold">Adolescente (14-17) • Revisão</span>';
+
+      ageCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">Idade &amp; Maturidade</span>
+          <div class="text-sm font-mono font-black text-white">${age} anos</div>
+          <div class="text-[10px]">${ageBadge}</div>
+        </div>
+      `;
+    }
+
+    // Card 2: IMC & BIOMETRIA
+    let bmiCard = '';
+    if (bmi !== null && bmi > 0) {
+      let bmiBadge = `<span class="text-emerald-400 font-bold">Seguro (≥ 20.0)${weightKg ? ' • ' + weightKg + ' kg' : ''}</span>`;
+      if (bmi < 18.5) bmiBadge = '<span class="text-rose-400 font-bold">Baixo Peso (&lt; 18.5) • Bloqueio</span>';
+      else if (bmi < 20.0) bmiBadge = '<span class="text-amber-400 font-bold">Limítrofe (18.5-20) • Atenção</span>';
+
+      bmiCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">IMC &amp; Biometria</span>
+          <div class="text-sm font-mono font-black text-white">${bmi.toFixed(1)} kg/m²</div>
+          <div class="text-[10px]">${bmiBadge}</div>
+        </div>
+      `;
+    }
+
+    // Card 3: RCEst CARDIOMETABÓLICO
+    let rcEstCard = '';
+    if (rcEst !== null && rcEst > 0) {
+      const rcBadge = rcEst >= 0.50
+        ? '<span class="text-amber-400 font-bold">Elevado (≥ 0.50) • Alvo 16/8</span>'
+        : '<span class="text-emerald-400 font-bold">Normal (&lt; 0.50) • Padrão</span>';
+
+      rcEstCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">RCEst (Cintura/Est.)</span>
+          <div class="text-sm font-mono font-black text-white">${rcEst.toFixed(2)}</div>
+          <div class="text-[10px]">${rcBadge}</div>
+        </div>
+      `;
+    } else {
+      rcEstCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">RCEst (Cintura/Est.)</span>
+          <div class="text-sm font-mono font-black text-zinc-500">—</div>
+          <div class="text-[10px] text-zinc-500 font-bold">Cintura não aferida</div>
+        </div>
+      `;
+    }
+
+    // Card 4: DEMANDA GET / ENERGIA
+    let getCard = '';
+    if (getKcal !== null && getKcal > 0) {
+      let getBadge = '<span class="text-emerald-400 font-bold">Demanda Compatível</span>';
+      if (getKcal > 3000 && isMM) {
+        getBadge = '<span class="text-amber-400 font-bold">Bloqueio Ativo (≤ 12h)</span>';
+      } else if (getKcal > 3000) {
+        getBadge = '<span class="text-yellow-400 font-bold">Alta Demanda (&gt; 3.000)</span>';
+      }
+
+      getCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">Demanda GET / Calorias</span>
+          <div class="text-sm font-mono font-black text-white">${getKcal.toLocaleString('pt-BR')} kcal</div>
+          <div class="text-[10px]">${getBadge}</div>
+        </div>
+      `;
+    } else {
+      getCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">Demanda GET / Calorias</span>
+          <div class="text-sm font-mono font-black text-zinc-500">—</div>
+          <div class="text-[10px] text-zinc-500 font-bold">GET não calculado</div>
+        </div>
+      `;
+    }
+
+    // Card 5 (ou Cards de Sinais Relevantes): Sinais Patológicos Relevantes / Anamnese
+    // INSERE APENAS O QUE É OPERADO: se não houver condição clínica ativa ou suspeita, exibe Anamnese Segura.
+    // NUNCA exibe "Desconhecido" para condições irrelevantes/inexistentes.
+    const activeRiskCards = [];
+
+    if (s.diabetes?.status === 'CONFIRMED') {
+      const isDm1 = s.diabetes.type === 'TYPE_1';
+      activeRiskCards.push(`
+        <div class="p-3 rounded-2xl bg-rose-950/40 border border-rose-800/80 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-rose-400 font-bold uppercase tracking-wider block">Diabetes Mellitus</span>
+          <div class="text-sm font-mono font-black text-rose-200">${isDm1 ? 'DM Tipo 1' : 'DM Tipo 2'}</div>
+          <div class="text-[10px] text-rose-400 font-bold">${isDm1 ? 'Contraindicação Absoluta' : 'Revisão Medicamentosa'}</div>
+        </div>
+      `);
+    } else if (s.diabetes?.status === 'POSSIBLE') {
+      activeRiskCards.push(`
+        <div class="p-3 rounded-2xl bg-amber-950/40 border border-amber-800/80 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-amber-400 font-bold uppercase tracking-wider block">Diabetes / Glicose</span>
+          <div class="text-sm font-mono font-black text-amber-200">Glicemia/HbA1c Alterada</div>
+          <div class="text-[10px] text-amber-400 font-bold">Atenção Clínica Necessária</div>
+        </div>
+      `);
+    }
+
+    if (s.insulinUse?.status === 'CONFIRMED') {
+      activeRiskCards.push(`
+        <div class="p-3 rounded-2xl bg-rose-950/40 border border-rose-800/80 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-rose-400 font-bold uppercase tracking-wider block">Uso de Insulina</span>
+          <div class="text-sm font-mono font-black text-rose-200">Confirmado</div>
+          <div class="text-[10px] text-rose-400 font-bold">Bloqueio Absoluto</div>
+        </div>
+      `);
+    }
+
+    if (s.eatingDisorder?.status === 'CONFIRMED' || s.eatingDisorder?.status === 'POSSIBLE') {
+      const isConf = s.eatingDisorder?.status === 'CONFIRMED';
+      activeRiskCards.push(`
+        <div class="p-3 rounded-2xl ${isConf ? 'bg-rose-950/40 border-rose-800/80' : 'bg-amber-950/40 border-amber-800/80'} border flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono ${isConf ? 'text-rose-400' : 'text-amber-400'} font-bold uppercase tracking-wider block">Transtorno Alim.</span>
+          <div class="text-sm font-mono font-black ${isConf ? 'text-rose-200' : 'text-amber-200'}">${isConf ? 'Ativo' : 'Histórico/Suspeita'}</div>
+          <div class="text-[10px] ${isConf ? 'text-rose-400' : 'text-amber-400'} font-bold">${isConf ? 'Bloqueio Absoluto' : 'Revisão Especializada'}</div>
+        </div>
+      `);
+    }
+
+    if (s.pregnancy?.status === 'CONFIRMED' || s.pregnancy?.status === 'POSSIBLE') {
+      const isConf = s.pregnancy?.status === 'CONFIRMED';
+      activeRiskCards.push(`
+        <div class="p-3 rounded-2xl ${isConf ? 'bg-rose-950/40 border-rose-800/80' : 'bg-amber-950/40 border-amber-800/80'} border flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono ${isConf ? 'text-rose-400' : 'text-amber-400'} font-bold uppercase tracking-wider block">Gestação</span>
+          <div class="text-sm font-mono font-black ${isConf ? 'text-rose-200' : 'text-amber-200'}">${isConf ? 'Confirmada' : 'Suspeita'}</div>
+          <div class="text-[10px] ${isConf ? 'text-rose-400' : 'text-amber-400'} font-bold">${isConf ? 'Bloqueio Absoluto' : 'Exige Confirmação'}</div>
+        </div>
+      `);
+    }
+
+    if (s.lactation?.status === 'CONFIRMED') {
+      activeRiskCards.push(`
+        <div class="p-3 rounded-2xl bg-rose-950/40 border border-rose-800/80 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-rose-400 font-bold uppercase tracking-wider block">Lactação</span>
+          <div class="text-sm font-mono font-black text-rose-200">Confirmada</div>
+          <div class="text-[10px] text-rose-400 font-bold">Bloqueio Absoluto</div>
+        </div>
+      `);
+    }
+
+    let clinicalRiskCard = '';
+    if (activeRiskCards.length > 0) {
+      clinicalRiskCard = activeRiskCards.join('');
+    } else {
+      clinicalRiskCard = `
+        <div class="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between space-y-1.5 shadow-sm">
+          <span class="text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider block">Histórico Clínico</span>
+          <div class="text-sm font-mono font-black text-white">Livre de Riscos</div>
+          <div class="text-[10px] text-emerald-400 font-bold">Anamnese Segura • Elegível</div>
+        </div>
+      `;
+    }
 
     signalsGrid.innerHTML = `
-      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
-        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Gestação</span>
-        <div>${formatStatus(s.pregnancy?.status)}</div>
-      </div>
-      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
-        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Lactação</span>
-        <div>${formatStatus(s.lactation?.status)}</div>
-      </div>
-      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
-        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Transtorno Alim.</span>
-        <div>${formatStatus(s.eatingDisorder?.status)}</div>
-      </div>
-      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
-        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Diabetes</span>
-        <div>${formatStatus(s.diabetes?.status)}</div>
-      </div>
-      <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] space-y-1">
-        <span class="text-[9px] font-mono text-zinc-500 uppercase block">Uso de Insulina</span>
-        <div>${formatStatus(s.insulinUse?.status)}</div>
-      </div>
+      ${ageCard}
+      ${bmiCard}
+      ${rcEstCard}
+      ${getCard}
+      ${clinicalRiskCard}
     `;
   }
 }
@@ -6511,6 +6673,7 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido, sem formatação markdown ou text
     "type": "16/8",
     "frequencyPerWeek": 5,
     "allocatedDays": ["DIA 7 (Off)", "DIA 3 (Cardio Z2)"],
+    "objectives": ["FAT_LOSS", "INSULIN_SENSITIVITY", "GLUCOSE_CONTROL"],
     "clinicalJustification": "String direta e técnica (máx. 2 frases) justificando a escolha baseada nos objetivos e RCEst.",
     "warningSafety": "String indicando qual regra de segurança foi ativada (se houver), ou null."
   }
@@ -6559,6 +6722,7 @@ ${JSON.stringify({
             type: "12/12",
             frequencyPerWeek: 7,
             allocatedDays: ["DIA 7 (Off)", "DIA 1", "DIA 2", "DIA 3", "DIA 4", "DIA 5", "DIA 6"],
+            objectives: ["LEAN_MASS_PRESERVATION", "BODY_COMPOSITION", "CALORIC_CONTROL"],
             clinicalJustification: "Prescrição adaptada a 12/12 para assegurar ingestão energética suficiente (>3000 kcal) e proteger a massa muscular.",
             warningSafety: "Bloqueio Calórico Ativado: Limitação de 12 horas aplicada para garantir aporte calórico."
           }
@@ -6569,6 +6733,7 @@ ${JSON.stringify({
             type: "16/8",
             frequencyPerWeek: 5,
             allocatedDays: ["DIA 7 (Off)", "DIA 3 (Cardio Z2)", "DIA 2", "DIA 4", "DIA 6"],
+            objectives: ["FAT_LOSS", "INSULIN_SENSITIVITY", "GLUCOSE_CONTROL", "CARDIOVASCULAR_HEALTH"],
             clinicalJustification: `Protocolo 16/8 indicado para otimização da sensibilidade à insulina e perfil lipídico em paciente com RCEst de ${rcEst.toFixed(2)}.`,
             warningSafety: null
           }
@@ -6579,6 +6744,7 @@ ${JSON.stringify({
             type: "16/8",
             frequencyPerWeek: 4,
             allocatedDays: ["DIA 7 (Off)", "DIA 3 (Cardio Z2)", "DIA 2", "DIA 4"],
+            objectives: ["FAT_LOSS", "INSULIN_SENSITIVITY"],
             clinicalJustification: "Protocolo 16/8 alinhado à rotina semanal priorizando dias de descanso e menor demanda neuromuscular.",
             warningSafety: null
           }
@@ -6590,7 +6756,18 @@ ${JSON.stringify({
     const validationResult = fastingMod.validateAIFastingPrescription(rawAIResponse, context);
     const sanitized = validationResult.sanitizedProtocol;
 
-    // 7. Popula a Interface do Nutricionista
+    // 7. Popula a Interface do Nutricionista e Aplica os Seletores
+    // Ativa seletor de habilitação e status
+    const enabledToggle = document.getElementById('fastingEnabledToggle');
+    if (enabledToggle) {
+      enabledToggle.checked = true;
+      toggleFastingEnabledUI();
+    }
+    const statusSelect = document.getElementById('fastingStatusSelect');
+    if (statusSelect) {
+      statusSelect.value = 'ACTIVE';
+    }
+
     const typeSelect = document.getElementById('fastingTypeSelect');
     if (typeSelect) typeSelect.value = sanitized.type;
 
@@ -6606,10 +6783,20 @@ ${JSON.stringify({
     const notesInput = document.getElementById('fastingClinicalNotes');
     if (notesInput) notesInput.value = sanitized.clinicalJustification;
 
+    // Aplica os seletores de Objetivos Clínicos Estruturados
+    const activeObjs = sanitized.objectives || ['FAT_LOSS', 'INSULIN_SENSITIVITY'];
+    const objCheckboxes = document.querySelectorAll('input[name="fastingObj"]');
+    objCheckboxes.forEach(cb => {
+      cb.checked = activeObjs.includes(cb.value);
+    });
+
     // Atualiza dias ativos
     currentFastingActiveDays = Array.isArray(sanitized.activeDays) ? [...sanitized.activeDays] : [0, 1, 2, 3, 4, 5, 6];
     renderFastingDaysButtonsUI();
     updateFastingDurationIndicatorUI();
+
+    // Sincroniza o painel clínico determinístico com os parâmetros do contexto
+    updateFastingFirewallUI(currentFastingEligibilitySnapshot, null, null, context);
 
     // 8. Exibe Card de Recomendação com Justificativa e Alertas de Segurança
     const recCard = document.getElementById('fastingAIRecommendationCard');

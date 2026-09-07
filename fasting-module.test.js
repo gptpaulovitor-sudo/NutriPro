@@ -712,6 +712,25 @@ async function runAllTests() {
     assert.strictEqual(validated.sanitizedProtocol.activeDays.includes(5), true);
   });
 
+  // T34: Objetivos Clínicos Estruturados (Normalização e Derivação Automática)
+  await runTest('T34', 'Circuit-Breaker: Deriva e normaliza objetivos estruturados a partir da prescrição e perfil metabólico', async () => {
+    // Caso 1: Derivação automática para RCEst >= 0.50
+    const val1 = fastingMod.validateAIFastingPrescription(
+      { fastingProtocol: { type: '16/8', frequencyPerWeek: 5, allocatedDays: ['DIA 7 (Off)'] } },
+      { patient: { objective: 'Queima de Gordura' }, cardiometabolic: { rcEst: 0.54 } }
+    );
+    assert(val1.sanitizedProtocol.objectives.includes('FAT_LOSS'));
+    assert(val1.sanitizedProtocol.objectives.includes('INSULIN_SENSITIVITY'));
+    assert(val1.sanitizedProtocol.objectives.includes('CARDIOVASCULAR_HEALTH'));
+
+    // Caso 2: Normalização de termos em português
+    const val2 = fastingMod.validateAIFastingPrescription(
+      { fastingProtocol: { type: '14/10', frequencyPerWeek: 4, objectives: ['Queima de Gordura', 'Foco e Clareza Mental', 'Controle Glicêmico'] } },
+      {}
+    );
+    assert.deepStrictEqual(val2.sanitizedProtocol.objectives, ['FAT_LOSS', 'MENTAL_FOCUS', 'GLUCOSE_CONTROL']);
+  });
+
   console.log('\n======================================================');
   console.log('Resumo da Execução de Testes:');
   const allPassed = Object.values(testResults).every(r => r.status === 'PASS');
