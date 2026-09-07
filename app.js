@@ -5858,14 +5858,65 @@ async function renderFastingNutritionistModule(patientId = activePatientId) {
     return;
   }
 
-  // 1. Busca dados do paciente e exames para avaliação de elegibilidade
+  // 1. Busca dados do paciente, avaliações antropométricas (Aba Avaliação & Corpo) e exames
   const patient = (typeof db !== 'undefined' && db.patients) ? await db.patients.get(pId) : null;
+
+  let latestAssessment = null;
+  if (typeof db !== 'undefined' && db.assessments) {
+    try {
+      const evals = await db.assessments.where('patientId').equals(pId).toArray();
+      evals.sort((a, b) => new Date(b.date) - new Date(a.date));
+      latestAssessment = evals[0] || null;
+    } catch (_) {}
+  }
+
   const exams = (typeof db !== 'undefined' && db.clinicalExams)
     ? await db.clinicalExams.where('patientId').equals(pId).toArray()
     : [];
 
+  // Helper para ler campos da UI (Avaliação & Corpo / Anamnese) como fallback ou dados em edição
+  const getUiVal = (id) => {
+    const el = document.getElementById(id);
+    if (!el || el.value === undefined || el.value === null || el.value === '') return null;
+    return el.value;
+  };
+
+  const parseBR = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = parseFloat(String(v).replace(',', '.'));
+    return isNaN(n) ? null : n;
+  };
+
+  const resolvedAge = parseBR(patient?.age) ?? parseBR(getUiVal('evalAge')) ?? parseBR(latestAssessment?.age);
+  const resolvedHeight = parseBR(patient?.height) ?? parseBR(getUiVal('evalHeight')) ?? parseBR(latestAssessment?.height);
+  const resolvedWeight = parseBR(patient?.currentWeight) ?? parseBR(patient?.usualWeight) ?? parseBR(patient?.weight) ?? parseBR(getUiVal('evalWeight')) ?? parseBR(latestAssessment?.weight);
+  const resolvedGender = patient?.gender || getUiVal('evalGender') || latestAssessment?.gender || 'Masculino';
+
+  const clinicalNotesText = patient?.clinicalNotes || getUiVal('anamneseClinicalNotes') || getUiVal('fastingClinicalNotes') || '';
+  const dietaryRestrictionsText = patient?.dietaryRestrictions || getUiVal('anamneseDietaryRestrictions') || '';
+  const routineNotesText = patient?.routineNotes || '';
+  const objectiveText = patient?.objective || getUiVal('anamneseObjective') || '';
+
+  const consolidatedPatient = {
+    ...(patient || {}),
+    age: resolvedAge,
+    height: resolvedHeight,
+    heightCm: (resolvedHeight && resolvedHeight < 3) ? resolvedHeight * 100 : resolvedHeight,
+    weight: resolvedWeight,
+    weightKg: resolvedWeight,
+    currentWeight: resolvedWeight,
+    usualWeight: resolvedWeight,
+    gender: resolvedGender,
+    clinicalNotes: clinicalNotesText,
+    dietaryRestrictions: dietaryRestrictionsText,
+    routineNotes: routineNotesText,
+    objective: objectiveText,
+    clinicalConstraints: patient?.clinicalConstraints || [],
+    hasAnamnesis: !!(clinicalNotesText || dietaryRestrictionsText || routineNotesText || objectiveText || (exams && exams.length > 0))
+  };
+
   // 2. Avalia Firewall Clínico
-  const eligibility = fastingMod.evaluateFastingEligibility(patient || {}, exams);
+  const eligibility = fastingMod.evaluateFastingEligibility(consolidatedPatient, exams);
   currentFastingEligibilitySnapshot = eligibility;
 
   // 3. Carrega protocolo salvo (se houver)

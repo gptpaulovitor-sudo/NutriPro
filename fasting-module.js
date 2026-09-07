@@ -102,6 +102,8 @@
       patientData.anamnesis || '',
       Array.isArray(patientData.clinicalConstraints) ? patientData.clinicalConstraints.join('; ') : (patientData.clinicalConstraints || ''),
       patientData.dietaryRestrictions || '',
+      patientData.routineNotes || '',
+      patientData.objective || '',
       patientData.lifestyleObservations || '',
       patientData.medicalHistory || ''
     ].join('\n');
@@ -336,19 +338,45 @@
       }
     };
 
+    // Helper de parsing numérico com suporte a locale brasileiro (vírgula decimal)
+    const parseNum = (val) => {
+      if (val === undefined || val === null || val === '') return null;
+      if (typeof val === 'number') return isNaN(val) ? null : val;
+      const clean = String(val).trim().replace(',', '.');
+      const parsed = parseFloat(clean);
+      return isNaN(parsed) ? null : parsed;
+    };
+
     // ── REGRA 1: DADOS SUFICIENTES OBRIGATÓRIOS ──
-    const hasAge = patientData.age !== undefined && patientData.age !== null && !isNaN(Number(patientData.age));
-    const rawWeight = parseFloat(patientData.weight || patientData.weightKg);
-    const rawHeight = parseFloat(patientData.height || patientData.heightCm);
-    const hasWeight = !isNaN(rawWeight) && rawWeight > 0;
-    const hasHeight = !isNaN(rawHeight) && rawHeight > 0;
+    const ageVal = parseNum(patientData.age);
+    const hasAge = ageVal !== null && ageVal > 0;
+
+    // Suporte flexível para nomenclaturas do sistema NutriAx Pro (weight, currentWeight, usualWeight, weightKg)
+    const rawWeight = parseNum(
+      patientData.weight ??
+      patientData.currentWeight ??
+      patientData.usualWeight ??
+      patientData.weightKg
+    );
+
+    // Suporte flexível para altura (height em m ou cm, heightCm, heightM)
+    const rawHeight = parseNum(
+      patientData.height ??
+      patientData.heightCm ??
+      patientData.heightM
+    );
+
+    const hasWeight = rawWeight !== null && rawWeight > 0;
+    const hasHeight = rawHeight !== null && rawHeight > 0;
 
     let bmi = null;
-    if (patientData.bmi && !isNaN(parseFloat(patientData.bmi))) {
-      bmi = parseFloat(patientData.bmi);
+    if (patientData.bmi && parseNum(patientData.bmi) !== null) {
+      bmi = parseNum(patientData.bmi);
     } else if (hasWeight && hasHeight) {
       const heightM = rawHeight > 3 ? rawHeight / 100 : rawHeight;
-      bmi = rawWeight / (heightM * heightM);
+      if (heightM > 0) {
+        bmi = rawWeight / (heightM * heightM);
+      }
     }
 
     // Se dados vitais ou antropometria faltarem completamente
@@ -361,10 +389,15 @@
 
     // Se a anamnese geral for completamente ausente ou vazia
     const hasAnyAnamnesis = !!(
-      (patientData.clinicalNotes && patientData.clinicalNotes.trim().length >= 3) ||
-      (patientData.anamnesis && patientData.anamnesis.trim().length >= 3) ||
+      (patientData.clinicalNotes && String(patientData.clinicalNotes).trim().length >= 3) ||
+      (patientData.anamnesis && String(patientData.anamnesis).trim().length >= 3) ||
+      (patientData.routineNotes && String(patientData.routineNotes).trim().length >= 3) ||
+      (patientData.dietaryRestrictions && String(patientData.dietaryRestrictions).trim().length >= 3) ||
+      (patientData.objective && String(patientData.objective).trim().length >= 3) ||
+      (patientData.patientType && String(patientData.patientType).trim().length >= 3) ||
       (Array.isArray(patientData.clinicalConstraints) && patientData.clinicalConstraints.length > 0) ||
-      (Array.isArray(clinicalExams) && clinicalExams.length > 0)
+      (Array.isArray(clinicalExams) && clinicalExams.length > 0) ||
+      patientData.hasAnamnesis === true
     );
 
     if (!hasAnyAnamnesis) {
@@ -376,7 +409,7 @@
 
     // ── REGRA 2: IDADE ──
     if (hasAge) {
-      const age = Number(patientData.age);
+      const age = Number(ageVal);
       if (age < 14) {
         escalate(
           SEVERITY_LEVELS.BLOCK,
