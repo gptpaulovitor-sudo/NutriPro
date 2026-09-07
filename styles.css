@@ -1,435 +1,341 @@
-/* ═══════════════════════════════════════════════════════════
-   NutriAx Pro — Sci-Fi HUD High-Contrast Design System
-═══════════════════════════════════════════════════════════ */
+﻿/* ═══════════════════════════════════════════════════════════
+   NutriAx Pro — Clinical Performance Design System
+   Nutricao · Performance · Resultados
+   v2.0 — Professional Premium Edition
+   ═══════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-*, *::before, *::after {
-  box-sizing: border-box;
+:root {
+  --bg-primary:     #08090A;
+  --bg-secondary:   #0D1013;
+  --card:           #121518;
+  --card-elevated:  #171B1F;
+  --border:         #272C31;
+  --border-subtle:  #1E2227;
+  --text-primary:   #F2F3F5;
+  --text-secondary: #B7BCC2;
+  --text-muted:     #737A82;
+  --red-nax:        #E50914;
+  --red-secondary:  #B80710;
+  --red-highlight:  #FF3038;
+  --green-ok:       #00C896;
+  --yellow-warn:    #F2B84B;
+  --transition-fast: 150ms ease;
+  --transition-std:  200ms ease;
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
 }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body {
   min-height: 100vh;
-  background-color: #000000 !important;
-  color: #e5e7eb !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #09090b;
-}
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #dc2626;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3A4048; }
 
-/* Standard HUD Card */
+/* Cards */
 .hud-card {
-  background: linear-gradient(135deg, #18181b 0%, #09090b 100%) !important;
-  border: 1px solid rgba(63, 63, 70, 0.7) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.45) !important;
   position: relative;
+  transition: border-color var(--transition-std) !important;
 }
-
 .hud-card:hover {
-  border-color: rgba(239, 68, 68, 0.4) !important;
+  border-color: #363C43 !important;
 }
 
-/* Giant Neon Score */
+/* Score KPI — sem neon, profissional */
 .score-giant-neon {
-  font-size: 5rem !important;
-  font-weight: 900 !important;
+  font-size: 4.5rem !important;
+  font-weight: 800 !important;
   line-height: 1 !important;
-  color: #ef4444 !important;
-  text-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.3) !important;
+  color: var(--red-nax) !important;
+  letter-spacing: -0.02em !important;
 }
-
 @media (min-width: 768px) {
-  .score-giant-neon {
-    font-size: 6rem !important;
-  }
+  .score-giant-neon { font-size: 5.5rem !important; }
 }
 
-/* Top Header Navigation Tabs */
+/* Header Nav Tabs — CRITICO: .hud-tab-btn e .active preservadas */
 .hud-tab-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem; /* 13px */
-  font-weight: 600;
-  color: #d1d5db;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(18, 18, 22, 0.6);
-  transition: all 0.2s ease;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all var(--transition-std);
   white-space: nowrap;
+  cursor: pointer;
 }
-
 .hud-tab-btn:hover {
-  color: #ffffff;
-  background: rgba(127, 29, 29, 0.4);
-  border-color: rgba(239, 68, 68, 0.45);
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border);
 }
-
 .hud-tab-btn.active {
   color: #ffffff !important;
-  background: rgba(185, 28, 28, 0.45) !important;
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 100, 100, 0.3) !important;
+  background: rgba(229,9,20,0.12) !important;
+  border-color: rgba(229,9,20,0.45) !important;
+  font-weight: 600 !important;
 }
 
-/* Primary Neon Button */
+/* Botao primario */
 .btn-nax-primary {
-  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%) !important;
+  background: var(--red-nax) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 0 14px rgba(220, 38, 38, 0.45) !important;
-  transition: all 0.2s ease !important;
+  font-weight: 600 !important;
+  transition: all var(--transition-std) !important;
 }
-
 .btn-nax-primary:hover {
-  box-shadow: 0 0 22px rgba(239, 68, 68, 0.7) !important;
+  background: var(--red-highlight) !important;
   transform: translateY(-1px);
 }
 
-/* Inputs & Selects */
+/* Inputs */
 input, select, textarea {
-  background-color: rgba(9, 9, 11, 0.9) !important;
-  border: 1px solid rgba(63, 63, 70, 0.8) !important;
-  color: #f3f4f6 !important;
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
   font-size: 0.875rem !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
 }
-
 input:focus, select:focus, textarea:focus {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(229,9,20,0.5) !important;
+  box-shadow: 0 0 0 2px rgba(229,9,20,0.1) !important;
   outline: none !important;
 }
-
 option {
-  background-color: #09090b !important;
-  color: #ffffff !important;
+  background-color: var(--card) !important;
+  color: var(--text-primary) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PALETAS E TEMAS DOS 5 PILARES NUTRIAX
-   Pilar 1: Mentalidade (Roxo)
-   Pilar 2: Disciplina (Laranja)
-   Pilar 3: Nutrição (Vermelho)
-   Pilar 4: Performance (Azul)
-   Pilar 5: Resultado (Dourado)
-═══════════════════════════════════════════════════════════ */
-
-/* Pilar 1 & Treino Alternado (Roxo / Violeta Elétrico) */
+/* Pilar 1 - Roxo profissional */
 .hud-card-purple {
-  background: linear-gradient(135deg, #1e0b2b 0%, #0d0414 100%) !important;
-  border: 1px solid rgba(168, 85, 247, 0.4) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(168, 85, 247, 0.08) !important;
+  background: #0E0B14 !important;
+  border: 1px solid rgba(139,92,246,0.2) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
 }
-
-.hud-card-purple:hover {
-  border-color: rgba(192, 132, 252, 0.6) !important;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.18) !important;
-}
-
+.hud-card-purple:hover { border-color: rgba(139,92,246,0.35) !important; }
 .btn-nax-purple {
-  background: linear-gradient(135deg, #6b21a8 0%, #7e22ce 50%, #9333ea 100%) !important;
+  background: #5B21B6 !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 0 14px rgba(147, 51, 234, 0.45) !important;
-  transition: all 0.2s ease !important;
+  font-weight: 600 !important;
+  transition: all var(--transition-std) !important;
 }
-
-.btn-nax-purple:hover {
-  box-shadow: 0 0 22px rgba(168, 85, 247, 0.75) !important;
-  transform: translateY(-1px);
-}
-
+.btn-nax-purple:hover { background: #6D28D9 !important; transform: translateY(-1px); }
 .hud-tab-btn-purple.active {
   color: #ffffff !important;
-  background: rgba(88, 28, 135, 0.6) !important;
-  border-color: #a855f7 !important;
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(216, 180, 254, 0.3) !important;
+  background: rgba(91,33,182,0.3) !important;
+  border-color: rgba(139,92,246,0.5) !important;
 }
 
-/* Pilar 2: Disciplina & Hábitos (Laranja Solar / Lava Neon) */
+/* Pilar 2 - Laranja disciplina */
 .hud-card-orange {
-  background: linear-gradient(135deg, #1c0e04 0%, #0d0602 50%, #080301 100%) !important;
-  border: 1px solid rgba(249, 115, 22, 0.4) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(249, 115, 22, 0.08) !important;
+  background: #0E0A06 !important;
+  border: 1px solid rgba(234,88,12,0.2) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
 }
-
-.hud-card-orange:hover {
-  border-color: rgba(251, 146, 60, 0.6) !important;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(249, 115, 22, 0.18) !important;
-}
-
+.hud-card-orange:hover { border-color: rgba(234,88,12,0.35) !important; }
 .btn-nax-orange {
-  background: linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #f97316 100%) !important;
+  background: #C2410C !important;
   color: #ffffff !important;
-  font-weight: 800 !important;
-  box-shadow: 0 0 14px rgba(234, 88, 12, 0.45) !important;
-  transition: all 0.2s ease !important;
+  font-weight: 600 !important;
+  transition: all var(--transition-std) !important;
 }
+.btn-nax-orange:hover { background: #EA580C !important; transform: translateY(-1px); }
 
-.btn-nax-orange:hover {
-  box-shadow: 0 0 22px rgba(249, 115, 22, 0.8) !important;
-  transform: translateY(-1px);
-}
-
+/* CRITICO: .hud-tab-btn-orange — JS seta className completo */
 .hud-tab-btn-orange {
-  border: 1px solid rgba(249, 115, 22, 0.2);
-  background: rgba(249, 115, 22, 0.05);
-  color: #fed7aa;
-  transition: all 0.2s ease;
+  border: 1px solid rgba(234,88,12,0.2);
+  background: rgba(234,88,12,0.04);
+  color: #FED7AA;
+  transition: all var(--transition-std);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
 }
-
 .hud-tab-btn-orange:hover {
-  background: rgba(249, 115, 22, 0.15);
-  border-color: rgba(249, 115, 22, 0.5);
-  color: #ffffff;
+  background: rgba(234,88,12,0.1);
+  border-color: rgba(234,88,12,0.4);
+  color: var(--text-primary);
 }
-
 .hud-tab-btn-orange.active {
   color: #ffffff !important;
-  background: rgba(194, 65, 12, 0.6) !important;
-  border-color: #f97316 !important;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.4), inset 0 1px 0 rgba(254, 215, 170, 0.3) !important;
+  background: rgba(194,65,12,0.25) !important;
+  border-color: rgba(234,88,12,0.6) !important;
+  font-weight: 600 !important;
 }
 
-/* Heatmap de Hábitos & Consistência (Estilo GitHub / Laranja) */
+/* Pilar 4 - Azul performance */
+.hud-card-blue {
+  background: #070C14 !important;
+  border: 1px solid rgba(59,130,246,0.2) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
+}
+.hud-card-blue:hover { border-color: rgba(59,130,246,0.35) !important; }
+.btn-nax-blue {
+  background: #1D4ED8 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  transition: all var(--transition-std) !important;
+}
+.btn-nax-blue:hover { background: #2563EB !important; transform: translateY(-1px); }
+.hud-tab-btn-blue.active {
+  color: #ffffff !important;
+  background: rgba(29,78,216,0.3) !important;
+  border-color: rgba(59,130,246,0.5) !important;
+}
+
+/* Pilar 5 - Ambar resultado */
+.hud-card-amber {
+  background: #0B0904 !important;
+  border: 1px solid rgba(245,158,11,0.2) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
+}
+.hud-card-amber:hover { border-color: rgba(245,158,11,0.35) !important; }
+.btn-nax-amber {
+  background: #B45309 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  transition: all var(--transition-std) !important;
+}
+.btn-nax-amber:hover { background: #D97706 !important; transform: translateY(-1px); }
+
+.score-giant-gold {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #F59E0B;
+  letter-spacing: -0.02em;
+}
+
+/* CRITICO: .hud-tab-btn-amber — JS seta className completo (linhas 4240, 4242) */
+.hud-tab-btn-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #FDE68A;
+  border: 1px solid rgba(245,158,11,0.2);
+  background: rgba(245,158,11,0.04);
+  transition: all var(--transition-std);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.hud-tab-btn-amber:hover {
+  background: rgba(245,158,11,0.1);
+  border-color: rgba(245,158,11,0.4);
+  color: var(--text-primary);
+}
+.hud-tab-btn-amber.active {
+  color: #ffffff !important;
+  background: rgba(180,83,9,0.25) !important;
+  border-color: rgba(245,158,11,0.5) !important;
+  font-weight: 600 !important;
+}
+
+/* Heatmap Habitos */
 .heatmap-cell {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  transition: all 0.15s ease;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
   cursor: pointer;
 }
+.heatmap-cell:hover { transform: scale(1.25); z-index: 10; }
+.heatmap-cell-0 { background-color: rgba(39,39,42,0.5); border: 1px solid rgba(63,63,70,0.4); }
+.heatmap-cell-1 { background-color: #7C2D12; border: 1px solid #9A3412; }
+.heatmap-cell-2 { background-color: #C2410C; border: 1px solid #EA580C; }
+.heatmap-cell-3 { background-color: #EA580C; border: 1px solid #FB923C; }
+.heatmap-cell-4 { background-color: #F59E0B; border: 1px solid #FCD34D; }
 
-.heatmap-cell:hover {
-  transform: scale(1.3);
-  z-index: 10;
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.8);
+@keyframes streakPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
 }
+.streak-fire-pulse { animation: streakPulse 2.5s infinite ease-in-out; }
 
-.heatmap-cell-0 { background-color: rgba(39, 39, 42, 0.5); border: 1px solid rgba(63, 63, 70, 0.4); }
-.heatmap-cell-1 { background-color: #7c2d12; border: 1px solid #9a3412; }
-.heatmap-cell-2 { background-color: #c2410c; border: 1px solid #ea580c; }
-.heatmap-cell-3 { background-color: #f97316; border: 1px solid #fb923c; box-shadow: 0 0 4px rgba(249, 115, 22, 0.4); }
-.heatmap-cell-4 { background-color: #fbbf24; border: 1px solid #fef08a; box-shadow: 0 0 8px rgba(251, 191, 36, 0.8); }
-
-@keyframes streakGlow {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6)); }
-  50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(251, 146, 60, 0.9)); }
-}
-
-.streak-fire-pulse {
-  animation: streakGlow 2.5s infinite ease-in-out;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   CLASSES DE ALTERNÂNCIA DE TREINO (AZUL VS ROXO)
-═══════════════════════════════════════════════════════════ */
-
-/* Tema 1: Azul Cobalto (Treinos Ímpares: A, C, E...) */
+/* Workout Themes */
 .workout-theme-blue-badge {
-  background: rgba(30, 58, 138, 0.85) !important;
-  border: 1px solid rgba(59, 130, 246, 0.7) !important;
-  color: #93c5fd !important;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+  background: rgba(30,58,138,0.7) !important;
+  border: 1px solid rgba(59,130,246,0.45) !important;
+  color: #93C5FD !important;
 }
-
 .workout-theme-blue-btn {
-  background: rgba(30, 58, 138, 0.7) !important;
-  border: 1px solid rgba(59, 130, 246, 0.8) !important;
-  color: #bfdbfe !important;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+  background: rgba(30,58,138,0.5) !important;
+  border: 1px solid rgba(59,130,246,0.5) !important;
+  color: #BFDBFE !important;
 }
-
-.workout-theme-blue-btn:hover {
-  background: rgba(37, 99, 235, 0.9) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
-}
-
+.workout-theme-blue-btn:hover { background: rgba(37,99,235,0.7) !important; color: #ffffff !important; }
 .workout-theme-blue-active-card {
-  border: 1px solid rgba(59, 130, 246, 0.85) !important;
-  box-shadow: 0 0 25px rgba(59, 130, 246, 0.25) !important;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, rgba(9, 9, 11, 0.95) 100%) !important;
+  border: 1px solid rgba(59,130,246,0.5) !important;
+  background: linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(9,9,11,0.95) 100%) !important;
 }
+.workout-theme-blue-header { background: rgba(15,23,42,0.5) !important; }
 
-.workout-theme-blue-header {
-  background: rgba(15, 23, 42, 0.6) !important;
-}
-
-/* Tema 2: Roxo Elétrico (Treinos Pares: B, D, F...) */
 .workout-theme-purple-badge {
-  background: rgba(88, 28, 135, 0.85) !important;
-  border: 1px solid rgba(168, 85, 247, 0.7) !important;
-  color: #e9d5ff !important;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3) !important;
+  background: rgba(88,28,135,0.7) !important;
+  border: 1px solid rgba(139,92,246,0.45) !important;
+  color: #DDD6FE !important;
 }
-
 .workout-theme-purple-btn {
-  background: rgba(88, 28, 135, 0.7) !important;
-  border: 1px solid rgba(168, 85, 247, 0.8) !important;
-  color: #f3e8ff !important;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3) !important;
+  background: rgba(88,28,135,0.5) !important;
+  border: 1px solid rgba(139,92,246,0.5) !important;
+  color: #EDE9FE !important;
 }
-
-.workout-theme-purple-btn:hover {
-  background: rgba(147, 51, 234, 0.9) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.6) !important;
-}
-
+.workout-theme-purple-btn:hover { background: rgba(109,40,217,0.7) !important; color: #ffffff !important; }
 .workout-theme-purple-active-card {
-  border: 1px solid rgba(168, 85, 247, 0.85) !important;
-  box-shadow: 0 0 25px rgba(168, 85, 247, 0.25) !important;
-  background: linear-gradient(180deg, rgba(30, 11, 43, 0.6) 0%, rgba(9, 9, 11, 0.95) 100%) !important;
+  border: 1px solid rgba(139,92,246,0.5) !important;
+  background: linear-gradient(180deg, rgba(30,11,43,0.5) 0%, rgba(9,9,11,0.95) 100%) !important;
 }
+.workout-theme-purple-header { background: rgba(30,11,43,0.5) !important; }
 
-.workout-theme-purple-header {
-  background: rgba(30, 11, 43, 0.6) !important;
-}
+/* Badges IEC */
+.badge-iec-recomp { background: rgba(6,78,59,0.6); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.4); }
+.badge-iec-bulk   { background: rgba(30,58,138,0.6); color: #93C5FD; border: 1px solid rgba(59,130,246,0.4); }
+.badge-iec-cut    { background: rgba(120,53,15,0.6); color: #FDE68A; border: 1px solid rgba(245,158,11,0.4); }
+.badge-iec-warn   { background: rgba(127,29,29,0.6); color: #FCA5A5; border: 1px solid rgba(229,9,20,0.4); }
 
-/* Pilar 4: Performance (Azul Cobalto / Cyan) */
-.hud-card-blue {
-  background: linear-gradient(135deg, #091326 0%, #060b14 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.4) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(59, 130, 246, 0.08) !important;
-}
-
-.hud-card-blue:hover {
-  border-color: rgba(96, 165, 250, 0.6) !important;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.18) !important;
-}
-
-.btn-nax-blue {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%) !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 0 14px rgba(37, 99, 235, 0.45) !important;
-  transition: all 0.2s ease !important;
-}
-
-.btn-nax-blue:hover {
-  box-shadow: 0 0 22px rgba(59, 130, 246, 0.75) !important;
-  transform: translateY(-1px);
-}
-
-.hud-tab-btn-blue.active {
-  color: #ffffff !important;
-  background: rgba(30, 58, 138, 0.6) !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(147, 197, 253, 0.3) !important;
-}
-
-/* Pilar 5: Resultado & Impacto (Ouro / Âmbar / Emerald) */
-.hud-card-amber {
-  background: linear-gradient(135deg, #1c1305 0%, #0c0903 50%, #060502 100%) !important;
-  border: 1px solid rgba(245, 158, 11, 0.4) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(245, 158, 11, 0.08) !important;
-}
-
-.hud-card-amber:hover {
-  border-color: rgba(251, 191, 36, 0.6) !important;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.18) !important;
-}
-
-.btn-nax-amber {
-  background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%) !important;
-  color: #000000 !important;
-  font-weight: 800 !important;
-  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4) !important;
-  transition: all 0.2s ease !important;
-}
-
-.btn-nax-amber:hover {
-  box-shadow: 0 0 22px rgba(251, 191, 36, 0.75) !important;
-  transform: translateY(-1px);
-}
-
-.score-giant-gold {
-  font-size: 3.5rem;
-  font-weight: 900;
-  line-height: 1;
-  background: linear-gradient(180deg, #fef08a 0%, #f59e0b 60%, #b45309 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.5));
-}
-
-.hud-tab-btn-amber.active {
-  color: #ffffff !important;
-  background: rgba(120, 53, 15, 0.6) !important;
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(253, 230, 138, 0.3) !important;
-}
-
-/* Badges de Eficiência Composta (IEC) */
-.badge-iec-recomp {
-  background: rgba(6, 78, 59, 0.8);
-  color: #6ee7b7;
-  border: 1px solid #10b981;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-}
-
-.badge-iec-bulk {
-  background: rgba(30, 58, 138, 0.8);
-  color: #93c5fd;
-  border: 1px solid #3b82f6;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-}
-
-.badge-iec-cut {
-  background: rgba(120, 53, 15, 0.8);
-  color: #fde68a;
-  border: 1px solid #f59e0b;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
-}
-
-.badge-iec-warn {
-  background: rgba(127, 29, 29, 0.8);
-  color: #fca5a5;
-  border: 1px solid #ef4444;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
-}
-
-/* Shimmer animation para botão de IA */
+/* Shimmer IA */
 @keyframes shimmerSweep {
   0%   { transform: translateX(-100%); }
   60%  { transform: translateX(100%); }
   100% { transform: translateX(100%); }
 }
+.animate-shimmer { animation: shimmerSweep 2.5s infinite; }
 
-.animate-shimmer {
-  animation: shimmerSweep 2.5s infinite;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   PWA & MOBILE APP FIRST STYLES
-   Suporte a iOS Notch, Safe Area e Barra Inferior
-═══════════════════════════════════════════════════════════ */
-
-/* Suporte a Safe Area (iPhone X em diante & Android Gestures) */
+/* PWA Safe Area */
 body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -439,34 +345,27 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-
 input, textarea, [contenteditable="true"] {
   -webkit-user-select: text;
   user-select: text;
 }
 
-/* Espaçamento inferior extra em telas móveis para não sobrepor a Bottom Nav */
 @media (max-width: 1023px) {
-  main {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
-  }
+  main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important; }
 }
 
-/* Mobile Bottom Navigation Bar */
+/* Bottom Nav Mobile — CRITICO: .mobile-nav-btn.active usado pelo JS */
 .mobile-bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   z-index: 60;
-  background: rgba(10, 10, 14, 0.95);
+  background: rgba(13,16,19,0.97);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(220, 38, 38, 0.35);
-  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.9), 0 -1px 0 rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 16px rgba(0,0,0,0.7);
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
-
 .mobile-nav-btn {
   display: flex;
   flex-direction: column;
@@ -474,115 +373,51 @@ input, textarea, [contenteditable="true"] {
   justify-content: center;
   gap: 0.25rem;
   padding: 0.5rem 0.25rem;
-  color: #9ca3af;
-  font-size: 0.6875rem; /* 11px */
-  font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  transition: all var(--transition-std);
   position: relative;
   touch-action: manipulation;
 }
-
-.mobile-nav-btn:active {
-  transform: scale(0.92);
-}
-
-.mobile-nav-btn.active {
-  color: #ffffff !important;
-}
-
+.mobile-nav-btn:active { transform: scale(0.92); }
+.mobile-nav-btn.active { color: var(--text-primary) !important; }
 .mobile-nav-btn.active .mobile-nav-icon {
-  color: #ef4444;
-  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
+  color: var(--red-nax);
   transform: translateY(-2px);
 }
-
 .mobile-nav-btn.active::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 25%;
-  right: 25%;
+  top: 0; left: 25%; right: 25%;
   height: 2px;
-  background: #ef4444;
+  background: var(--red-nax);
   border-radius: 9999px;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
 }
+.mobile-nav-btn-highlight.active .mobile-nav-icon { color: #3B82F6 !important; }
+.mobile-nav-btn-highlight.active::after { background: #3B82F6 !important; }
 
-/* Botão especial de destaque na Bottom Nav (Treino/Performance) */
-.mobile-nav-btn-highlight {
-  position: relative;
-}
-
-.mobile-nav-btn-highlight.active .mobile-nav-icon {
-  color: #3b82f6 !important;
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)) !important;
-}
-
-.mobile-nav-btn-highlight.active::after {
-  background: #3b82f6 !important;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.9) !important;
-}
-
-/* Modal Animations */
+/* Modal Animation */
 @keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+.modal-slide-up { animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-.modal-slide-up {
-  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+/* Install badge */
+.install-glow-badge { position: relative; }
 
-/* Glowing Pulsing Badge for Install Button */
-.install-glow-badge {
-  position: relative;
-}
-
-.install-glow-badge::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(90deg, #ff1a1a, #dc2626, #ef4444);
-  border-radius: inherit;
-  z-index: -1;
-  opacity: 0.75;
-  filter: blur(6px);
-  animation: pulseGlow 2s infinite alternate;
-}
-
-@keyframes pulseGlow {
-  0%   { opacity: 0.4; filter: blur(4px); }
-  100% { opacity: 0.9; filter: blur(8px); }
-}
-
-/* Transições fluidas ao alternar abas no mobile */
+/* Tab Fade */
 @keyframes tabScreenFade {
-  from {
-    opacity: 0.85;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0.9; transform: translateY(4px); }
+  to   { opacity: 1;   transform: translateY(0); }
 }
-
 section[id^="tab-"]:not(.hidden) {
-  animation: tabScreenFade 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: tabScreenFade 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @media (max-width: 767px) {
-  body {
-    background-color: #000000;
-  }
-  
-  /* Ajuste de padding de containers no celular para aproveitar a tela cheia e dar espaço para a bottom bar */
+  body { background-color: var(--bg-primary); }
   main {
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
@@ -591,38 +426,12 @@ section[id^="tab-"]:not(.hidden) {
     max-width: 100vw !important;
     overflow-x: hidden !important;
   }
-
-  /* Responsividade Avançada para Pilar 4 (Performance & Biomecânica) no Mobile */
-  #tab-performance {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-  }
-  
+  #tab-performance { max-width: 100% !important; overflow-x: hidden !important; }
   #tab-performance .hud-card-blue,
-  #tab-performance .hud-card {
-    padding: 0.875rem !important;
-    border-radius: 1rem !important;
-  }
-
-  #perf-routines-container input {
-    font-size: 0.75rem !important;
-    padding: 0.25rem !important;
-  }
-  
-  #tab-performance select,
-  #tab-performance button {
-    max-width: 100% !important;
-  }
-
-  /* Responsividade Avançada para Pilar 5 (Resultado & Impacto) no Mobile */
-  #tab-evolution {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-  }
-  
+  #tab-performance .hud-card { padding: 0.875rem !important; border-radius: 1rem !important; }
+  #perf-routines-container input { font-size: 0.75rem !important; padding: 0.25rem !important; }
+  #tab-performance select, #tab-performance button { max-width: 100% !important; }
+  #tab-evolution { max-width: 100% !important; overflow-x: hidden !important; }
   #tab-evolution .hud-card-amber,
-  #tab-evolution .hud-card {
-    padding: 0.875rem !important;
-    border-radius: 1rem !important;
-  }
+  #tab-evolution .hud-card { padding: 0.875rem !important; border-radius: 1rem !important; }
 }
