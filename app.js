@@ -97,13 +97,14 @@ function renderNutriAxSpiderRadar(scores) {
         {
           label: "Score NutriAx",
           data: scores,
-          backgroundColor: "rgba(239, 68, 68, 0.4)",
-          borderColor: "#dc2626",
-          borderWidth: 2,
-          pointBackgroundColor: "#ef4444",
+          backgroundColor: "rgba(229, 9, 20, 0.22)",
+          borderColor: "#E50914",
+          borderWidth: 1.5,
+          pointBackgroundColor: "#E50914",
           pointBorderColor: "#ffffff",
-          pointBorderWidth: 1,
+          pointBorderWidth: 1.5,
           pointRadius: 4,
+          pointHoverRadius: 6,
         },
       ],
     },
@@ -112,10 +113,10 @@ function renderNutriAxSpiderRadar(scores) {
       maintainAspectRatio: false,
       layout: {
         padding: {
-          top: 15,
-          bottom: 15,
-          left: 35,
-          right: 35,
+          top: 10,
+          bottom: 10,
+          left: 20,
+          right: 20,
         },
       },
       scales: {
@@ -127,19 +128,19 @@ function renderNutriAxSpiderRadar(scores) {
             stepSize: 20,
           },
           grid: {
-            color: "rgba(239, 68, 68, 0.25)",
+            color: "rgba(39, 44, 49, 0.9)",
             lineWidth: 1,
           },
           angleLines: {
-            color: "rgba(239, 68, 68, 0.28)",
+            color: "rgba(39, 44, 49, 0.9)",
             lineWidth: 1,
           },
           pointLabels: {
-            color: "#e5e7eb",
+            color: "#B7BCC2",
             padding: 8,
             font: {
-              size: 11,
-              weight: "bold",
+              size: 10,
+              weight: "500",
               family: "Inter",
             },
           },
@@ -150,14 +151,17 @@ function renderNutriAxSpiderRadar(scores) {
           display: false,
         },
         tooltip: {
-          backgroundColor: "rgba(9, 9, 11, 0.95)",
-          borderColor: "rgba(239, 68, 68, 0.6)",
+          backgroundColor: "#121518",
+          borderColor: "#272C31",
           borderWidth: 1,
-          titleColor: "#ffffff",
-          bodyColor: "#f87171",
+          titleColor: "#F2F3F5",
+          bodyColor: "#E50914",
           bodyFont: {
-            weight: "bold",
+            weight: "600",
+            family: "Inter",
           },
+          padding: 8,
+          cornerRadius: 6,
         },
       },
     },
@@ -489,6 +493,167 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
       adesaoObsEl.innerText = `⚠️ Adesão baixa ao plano nutricional. Investigar barreiras práticas (tempo, custo, palatabilidade) e reavaliar a rigidez do protocolo. Dieta flexível com janelas de variabilidade controlada tende a aumentar compliance a longo prazo.`;
     }
   }
+
+  // ─── COMPOSIÇÃO CORPORAL & EVOLUÇÃO (REFERÊNCIA 2) ─────────────────────────
+  const fatPctEl = document.getElementById("dashFatPercentVal");
+  if (fatPctEl) fatPctEl.innerText = `${fatPercent.toFixed(2).replace('.', ',')}%`;
+
+  const leanMassPct = weight > 0 ? ((leanMass / weight) * 100).toFixed(2).replace('.', ',') : "83,66";
+  const leanEl = document.getElementById("dashLeanMassVal");
+  if (leanEl) leanEl.innerText = `${leanMassPct}%`;
+
+  const fatMassPct = weight > 0 ? ((fatMass / weight) * 100).toFixed(2).replace('.', ',') : "16,34";
+  const fatEl = document.getElementById("dashFatMassVal");
+  if (fatEl) fatEl.innerText = `${fatMassPct}%`;
+
+  const weightEl = document.getElementById("dashWeightVal");
+  if (weightEl) weightEl.innerText = `${weight.toFixed(1).replace('.', ',')} kg`;
+
+  const fatCircle = document.getElementById("dashBodyFatCircle");
+  if (fatCircle) {
+    const clampedFat = Math.min(100, Math.max(0, fatPercent));
+    fatCircle.setAttribute("stroke-dasharray", `${clampedFat.toFixed(1)}, 100`);
+    fatCircle.setAttribute("class", clampedFat <= 18 ? "text-[#00C896]" : clampedFat <= 25 ? "text-[#F2B84B]" : "text-[#E50914]");
+  }
+
+  // Renderiza Gráfico de Linha de Tendência do Dashboard
+  renderDashEvolutionChart(patientId);
+
+  if (window.lucide) {
+    try { window.lucide.createIcons(); } catch (e) { }
+  }
+}
+
+let dashEvolutionChartInstance = null;
+let currentDashEvolutionMetric = 'weight';
+
+function dashSetEvolutionMetric(metric) {
+  currentDashEvolutionMetric = metric;
+  ['weight', 'fat', 'lean', 'tmb'].forEach(m => {
+    const btn = document.getElementById(`dash-btn-evo-${m}`);
+    if (btn) {
+      if (m === metric) {
+        btn.className = "px-2.5 py-1 text-[11px] font-bold rounded-lg bg-[#E50914] text-white transition-all";
+      } else {
+        btn.className = "px-2.5 py-1 text-[11px] font-bold rounded-lg text-[#737A82] hover:text-[#F2F3F5] transition-all";
+      }
+    }
+  });
+  renderDashEvolutionChart(activePatientId);
+}
+
+async function renderDashEvolutionChart(patientId = activePatientId) {
+  const canvas = document.getElementById("dashEvolutionCanvas");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  let labels = ["01/07", "08/07", "15/07", "22/07", "29/07", "05/08", "12/08", "19/08", "25/08"];
+  let dataPoints = [128.5, 126.0, 124.2, 122.0, 120.1, 118.8, 117.5, 116.8, 116.1];
+  let metricLabel = "Peso Corporal (kg)";
+
+  if (typeof db !== "undefined" && db.assessments) {
+    const evals = await db.assessments.where("patientId").equals(patientId).toArray();
+    if (evals && evals.length > 1) {
+      evals.sort((a, b) => new Date(a.date) - new Date(b.date));
+      labels = evals.map(e => {
+        const p = e.date.split("-");
+        return `${p[2] || p[0]}/${p[1] || ''}`;
+      });
+      if (currentDashEvolutionMetric === 'fat') {
+        dataPoints = evals.map(e => parseFloat(e.fatPercent) || 0);
+        metricLabel = "% Gordura Corporal";
+      } else if (currentDashEvolutionMetric === 'lean') {
+        dataPoints = evals.map(e => parseFloat(e.leanMass) || 0);
+        metricLabel = "Massa Magra (kg)";
+      } else if (currentDashEvolutionMetric === 'tmb') {
+        dataPoints = evals.map(e => Math.round(370 + 21.6 * (parseFloat(e.leanMass) || 0)));
+        metricLabel = "TMB (kcal)";
+      } else {
+        dataPoints = evals.map(e => parseFloat(e.weight) || 0);
+        metricLabel = "Peso Corporal (kg)";
+      }
+    } else {
+      if (currentDashEvolutionMetric === 'fat') {
+        dataPoints = [22.4, 21.8, 20.9, 19.8, 18.9, 18.0, 17.4, 16.8, 16.34];
+        metricLabel = "% Gordura Corporal";
+      } else if (currentDashEvolutionMetric === 'lean') {
+        dataPoints = [96.0, 96.2, 96.5, 96.9, 97.2, 97.5, 97.7, 97.9, 98.0];
+        metricLabel = "Massa Magra (kg)";
+      } else if (currentDashEvolutionMetric === 'tmb') {
+        dataPoints = [2443, 2447, 2454, 2463, 2469, 2476, 2480, 2484, 2487];
+        metricLabel = "TMB (kcal)";
+      }
+    }
+  }
+
+  if (dashEvolutionChartInstance) {
+    dashEvolutionChartInstance.destroy();
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 220);
+  gradient.addColorStop(0, "rgba(229, 9, 20, 0.22)");
+  gradient.addColorStop(1, "rgba(229, 9, 20, 0.0)");
+
+  dashEvolutionChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: metricLabel,
+          data: dataPoints,
+          borderColor: "#E50914",
+          backgroundColor: gradient,
+          borderWidth: 2.2,
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: "#E50914",
+          pointBorderColor: "#F2F3F5",
+          pointBorderWidth: 1.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: "#FF3038",
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#171B1F",
+          titleColor: "#F2F3F5",
+          bodyColor: "#B7BCC2",
+          borderColor: "#272C31",
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 8,
+          callbacks: {
+            label: (context) => ` ${context.parsed.y} ${currentDashEvolutionMetric === 'fat' ? '%' : currentDashEvolutionMetric === 'tmb' ? 'kcal' : 'kg'}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: "#737A82",
+            font: { family: "'Inter', sans-serif", size: 10 }
+          }
+        },
+        y: {
+          grid: { color: "#1E2227", drawBorder: false },
+          ticks: {
+            color: "#737A82",
+            font: { family: "'Inter', sans-serif", size: 10 }
+          }
+        }
+      }
+    }
+  });
 }
 
 // 1. Populate Nutritionist Patient Selector (Desktop & Mobile)
@@ -7123,11 +7288,7 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
   const cardBadge = document.getElementById("cardActivePilarBadge");
   if (cardBadge && PILAR_NAMES[pilarId]) {
     cardBadge.textContent = `Pilar ${pilarId} · ${PILAR_NAMES[pilarId]}`;
-    if (pilarId === 1) cardBadge.className = "text-[10px] font-mono font-bold text-purple-400";
-    else if (pilarId === 2) cardBadge.className = "text-[10px] font-mono font-bold text-orange-400";
-    else if (pilarId === 3) cardBadge.className = "text-[10px] font-mono font-bold text-red-400";
-    else if (pilarId === 4) cardBadge.className = "text-[10px] font-mono font-bold text-blue-400";
-    else if (pilarId === 5) cardBadge.className = "text-[10px] font-mono font-bold text-amber-400";
+    cardBadge.className = "text-[10px] font-semibold text-[#E50914]";
   }
 
   // 4. Alterna os menus no menu lateral Mobile (se existir)
@@ -7182,33 +7343,23 @@ function updateSidebarPilarVisuals(activePilarId) {
   for (let i = 1; i <= 5; i++) {
     const btn = document.getElementById(`pilar-${i}`);
     if (btn) {
-      btn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-800 text-gray-300 flex items-center justify-between transition-all";
+      btn.className = "w-full text-left px-3 py-2 rounded-xl bg-transparent border border-transparent text-[#B7BCC2] hover:text-[#F2F3F5] hover:bg-white/[0.03] flex items-center justify-between transition-all";
     }
     const cardPilarBtn = document.getElementById(`card-pilar-${i}`);
     if (cardPilarBtn) {
-      cardPilarBtn.className = "p-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-300 flex flex-col items-center justify-center gap-1 hover:bg-zinc-800 transition-all";
+      cardPilarBtn.className = "p-1.5 rounded-xl bg-[#121518] border border-[#272C31] text-[#B7BCC2] hover:text-white flex flex-col items-center justify-center gap-1 transition-all";
     }
   }
 
-  // Aplica tema ativo específico do pilar selecionado
+  // Aplica tema ativo unificado NutriAx Red ao pilar selecionado
   const activeBtn = document.getElementById(`pilar-${activePilarId}`);
   const activeCardPilar = document.getElementById(`card-pilar-${activePilarId}`);
 
-  if (activePilarId === 1) {
-    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-purple-950/70 border border-purple-800 text-white font-bold flex items-center justify-between shadow-sm shadow-purple-950 transition-all";
-    if (activeCardPilar) activeCardPilar.className = "p-1.5 rounded-xl bg-purple-950 border border-purple-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-sm shadow-purple-950 transition-all";
-  } else if (activePilarId === 2) {
-    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-orange-950/70 border border-orange-800 text-white font-bold flex items-center justify-between shadow-sm shadow-orange-950 transition-all";
-    if (activeCardPilar) activeCardPilar.className = "p-1.5 rounded-xl bg-orange-950 border border-orange-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-sm shadow-orange-950 transition-all";
-  } else if (activePilarId === 3) {
-    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-red-950/70 border border-red-800 text-white font-bold flex items-center justify-between shadow-sm shadow-red-950 transition-all";
-    if (activeCardPilar) activeCardPilar.className = "p-1.5 rounded-xl bg-red-950 border border-red-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-sm shadow-red-950 transition-all";
-  } else if (activePilarId === 4) {
-    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-blue-950/70 border border-blue-800 text-white font-bold flex items-center justify-between shadow-sm shadow-blue-950 transition-all";
-    if (activeCardPilar) activeCardPilar.className = "p-1.5 rounded-xl bg-blue-950 border border-blue-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-sm shadow-blue-950 transition-all";
-  } else if (activePilarId === 5) {
-    if (activeBtn) activeBtn.className = "w-full text-left px-3 py-1.5 rounded-lg bg-amber-950/70 border border-amber-800 text-white font-bold flex items-center justify-between shadow-sm shadow-amber-950 transition-all";
-    if (activeCardPilar) activeCardPilar.className = "p-1.5 rounded-xl bg-amber-950 border border-amber-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-sm shadow-amber-950 transition-all";
+  if (activeBtn) {
+    activeBtn.className = "w-full text-left px-3 py-2 rounded-xl bg-[#E50914] text-white font-semibold flex items-center justify-between shadow-sm transition-all";
+  }
+  if (activeCardPilar) {
+    activeCardPilar.className = "p-1.5 rounded-xl bg-[#E50914] text-white font-semibold flex flex-col items-center justify-center gap-1 transition-all";
   }
 }
 
@@ -7242,6 +7393,7 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
     const el = document.getElementById('tab-' + id);
     if (el) {
       el.classList.add('hidden');
+      el.setAttribute('hidden', '');
       el.style.display = 'none';
     }
   });
@@ -7250,6 +7402,7 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
   const target = document.getElementById('tab-' + tabName);
   if (target) {
     target.classList.remove('hidden');
+    target.removeAttribute('hidden');
     target.style.display = 'block';
   }
 
@@ -7260,6 +7413,39 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
   });
   const activeBtn = document.getElementById('nav-' + tabName);
   if (activeBtn) activeBtn.classList.add('active');
+
+  // Atualiza breadcrumbs dinâmicos da interface (Referência 2)
+  const breadcrumbModuleMap = {
+    dashboard: 'Dashboard & Radar',
+    prescription: 'Prescrição & Macros',
+    fasting: 'Jejum Intermitente',
+    foods: 'Base de Alimentos',
+    evaluation: 'Avaliação Corporal',
+    evolution: 'Evolução Temporal',
+    anamnese: 'Anamnese & Perfil',
+    exams: 'Exames Clínicos',
+    recall: 'Recordatório 24h',
+    adherence: 'Controle de Adesão',
+    patientApp: 'App do Paciente',
+    backup: 'Drive Backup',
+    performance: 'Prescrição de Treino',
+    discipline: 'Dashboard & IDC'
+  };
+  const breadcrumbPilarMap = {
+    1: 'Mentalidade',
+    2: 'Disciplina',
+    3: 'Nutrição',
+    4: 'Performance',
+    5: 'Resultado'
+  };
+  const pilarBreadEl = document.getElementById('headerPilarBreadcrumb');
+  const modBreadEl = document.getElementById('headerModuleBreadcrumb');
+  if (pilarBreadEl && typeof currentActivePilar !== 'undefined') {
+    pilarBreadEl.innerText = breadcrumbPilarMap[currentActivePilar] || 'Nutrição';
+  }
+  if (modBreadEl) {
+    modBreadEl.innerText = breadcrumbModuleMap[tabName] || tabName;
+  }
 
   // 6. Atualiza estado ativo na Bottom Navigation Bar Mobile
   const mobNavIds = ['dashboard', 'prescription', 'performance', 'evaluation', 'backup', 'patientApp'];
@@ -7319,16 +7505,7 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
 
   // 10. Scroll para o topo apenas se explicitamente solicitado
   if (autoScroll) {
-    const isMobile = window.innerWidth < 1024;
-    if (isMobile) {
-      const cardEl = document.getElementById("mobile-pilares-acessos-card");
-      if (cardEl) {
-        const offsetTop = cardEl.offsetTop + cardEl.offsetHeight - 20;
-        window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
-      }
-    } else {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 }
 
@@ -9151,7 +9328,7 @@ document.addEventListener('DOMContentLoaded', () => {
       switchPilar(3, requestedTab);
     }
   } else {
-    switchPilar(3, 'dashboard');
+    switchPilar(3, 'dashboard', false);
   }
 
   // Inicializa o Motor PWA Mobile

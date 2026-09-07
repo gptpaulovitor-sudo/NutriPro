@@ -1,34 +1,45 @@
-﻿/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    NutriAx Pro — Clinical Performance Design System
-   Nutricao · Performance · Resultados
-   v2.0 — Professional Premium Edition
+   Nutrição · Performance · Resultados
+   v3.0 — Professional Clinical & Athletic Performance Edition
    ═══════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
+  /* Cores Base */
   --bg-primary:     #08090A;
   --bg-secondary:   #0D1013;
   --card:           #121518;
   --card-elevated:  #171B1F;
   --border:         #272C31;
   --border-subtle:  #1E2227;
+
+  /* Tipografia */
   --text-primary:   #F2F3F5;
   --text-secondary: #B7BCC2;
   --text-muted:     #737A82;
+
+  /* Identidade NutriAx */
   --red-nax:        #E50914;
   --red-secondary:  #B80710;
   --red-highlight:  #FF3038;
+
+  /* Feedback Clínico */
   --green-ok:       #00C896;
   --yellow-warn:    #F2B84B;
+
+  /* Transições & Raios */
   --transition-fast: 150ms ease;
   --transition-std:  200ms ease;
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
+  --radius-sm:       6px;
+  --radius-md:       10px;
+  --radius-lg:       14px;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
 html, body {
   min-height: 100vh;
@@ -37,44 +48,88 @@ html, body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* Scrollbar Minimalista & Profissional */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #3A4048; }
 
-/* Cards */
-.hud-card {
+/* ═══ ESTRUTURA GLOBAL E RESET DE ESPAÇAMENTO ═══ */
+main {
+  margin-top: 0 !important;
+  padding-top: 1.25rem !important;
+}
+
+section[id^="tab-"] {
+  margin-top: 0 !important;
+}
+
+section[id^="tab-"].hidden,
+section[id^="tab-"][hidden],
+[hidden] {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ═══ CARDS — SISTEMA CLÍNICO UNIFICADO ═══ */
+.hud-card,
+.hud-card-purple,
+.hud-card-orange,
+.hud-card-blue,
+.hud-card-amber {
   background: var(--card) !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.45) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
   position: relative;
-  transition: border-color var(--transition-std) !important;
+  transition: border-color var(--transition-std), background-color var(--transition-std) !important;
 }
-.hud-card:hover {
+
+.hud-card:hover,
+.hud-card-purple:hover,
+.hud-card-orange:hover,
+.hud-card-blue:hover,
+.hud-card-amber:hover {
   border-color: #363C43 !important;
 }
 
-/* Score KPI — sem neon, profissional */
-.score-giant-neon {
-  font-size: 4.5rem !important;
+/* Card com Acento NutriAx Red Lateral */
+.card-accent-red {
+  border-left: 3px solid var(--red-nax) !important;
+}
+
+/* ═══ SCORE KPI — ANALÍTICO E DIRETO ═══ */
+.score-giant-neon,
+.score-giant-gold {
+  font-size: 3.5rem !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   color: var(--red-nax) !important;
-  letter-spacing: -0.02em !important;
+  letter-spacing: -0.03em !important;
+  text-shadow: none !important;
 }
 @media (min-width: 768px) {
-  .score-giant-neon { font-size: 5.5rem !important; }
+  .score-giant-neon,
+  .score-giant-gold { font-size: 4.25rem !important; }
 }
 
-/* Header Nav Tabs — CRITICO: .hud-tab-btn e .active preservadas */
-.hud-tab-btn {
+/* ═══ HEADER NAV TABS — PILAR E MÓDULOS ═══ */
+.hud-tab-btn,
+.hud-tab-btn-orange,
+.hud-tab-btn-blue,
+.hud-tab-btn-amber,
+.hud-tab-btn-purple {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.3rem 0.7rem;
+  padding: 0.35rem 0.75rem;
   border-radius: var(--radius-sm);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -84,188 +139,164 @@ html, body {
   transition: all var(--transition-std);
   white-space: nowrap;
   cursor: pointer;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
-.hud-tab-btn:hover {
+
+.hud-tab-btn:hover,
+.hud-tab-btn-orange:hover,
+.hud-tab-btn-blue:hover,
+.hud-tab-btn-amber:hover,
+.hud-tab-btn-purple:hover {
   color: var(--text-primary);
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   border-color: var(--border);
 }
-.hud-tab-btn.active {
+
+/* Estado Ativo Unificado — Vermelho NutriAx Discreto ou Pill Preenchida */
+.hud-tab-btn.active,
+.hud-tab-btn-orange.active,
+.hud-tab-btn-blue.active,
+.hud-tab-btn-amber.active,
+.hud-tab-btn-purple.active {
   color: #ffffff !important;
-  background: rgba(229,9,20,0.12) !important;
-  border-color: rgba(229,9,20,0.45) !important;
+  background: var(--red-nax) !important;
+  border-color: var(--red-nax) !important;
   font-weight: 600 !important;
 }
 
-/* Botao primario */
-.btn-nax-primary {
+/* Variante Pill Ativa Suave (para abas secundárias) */
+.hud-tab-btn-subtle.active {
+  color: #ffffff !important;
+  background: rgba(229, 9, 20, 0.12) !important;
+  border-color: rgba(229, 9, 20, 0.45) !important;
+  font-weight: 600 !important;
+}
+
+/* ═══ BOTÕES — 3 NÍVEIS ═══ */
+/* 1. Primary */
+.btn-nax-primary,
+.btn-nax-orange,
+.btn-nax-blue,
+.btn-nax-purple,
+.btn-nax-amber {
   background: var(--red-nax) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  transition: all var(--transition-std) !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: background-color var(--transition-std), transform var(--transition-fast) !important;
 }
-.btn-nax-primary:hover {
+.btn-nax-primary:hover,
+.btn-nax-orange:hover,
+.btn-nax-blue:hover,
+.btn-nax-purple:hover,
+.btn-nax-amber:hover {
   background: var(--red-highlight) !important;
-  transform: translateY(-1px);
 }
 
-/* Inputs */
+/* 2. Secondary */
+.btn-nax-secondary {
+  background: var(--card-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+  border-radius: var(--radius-sm) !important;
+  transition: all var(--transition-std) !important;
+}
+.btn-nax-secondary:hover {
+  background: #20252A !important;
+  border-color: #363C43 !important;
+}
+
+/* 3. Ghost */
+.btn-nax-ghost {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+  border-radius: var(--radius-sm) !important;
+  transition: all var(--transition-std) !important;
+}
+.btn-nax-ghost:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+/* ═══ FORMULÁRIOS & INPUTS ═══ */
 input, select, textarea {
   background-color: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
   color: var(--text-primary) !important;
   font-size: 0.875rem !important;
   font-weight: 400 !important;
+  transition: border-color var(--transition-std), box-shadow var(--transition-std) !important;
 }
 input:focus, select:focus, textarea:focus {
-  border-color: rgba(229,9,20,0.5) !important;
-  box-shadow: 0 0 0 2px rgba(229,9,20,0.1) !important;
+  border-color: rgba(229, 9, 20, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.12) !important;
   outline: none !important;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted) !important;
 }
 option {
   background-color: var(--card) !important;
   color: var(--text-primary) !important;
 }
 
-/* Pilar 1 - Roxo profissional */
-.hud-card-purple {
-  background: #0E0B14 !important;
-  border: 1px solid rgba(139,92,246,0.2) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
-}
-.hud-card-purple:hover { border-color: rgba(139,92,246,0.35) !important; }
-.btn-nax-purple {
-  background: #5B21B6 !important;
-  color: #ffffff !important;
+/* ═══ BADGES CLÍNICOS ═══ */
+.badge-clinical-green {
+  background: rgba(0, 200, 150, 0.1) !important;
+  color: var(--green-ok) !important;
+  border: 1px solid rgba(0, 200, 150, 0.25) !important;
   font-weight: 600 !important;
-  transition: all var(--transition-std) !important;
-}
-.btn-nax-purple:hover { background: #6D28D9 !important; transform: translateY(-1px); }
-.hud-tab-btn-purple.active {
-  color: #ffffff !important;
-  background: rgba(91,33,182,0.3) !important;
-  border-color: rgba(139,92,246,0.5) !important;
+  border-radius: 9999px !important;
+  padding: 0.125rem 0.5rem !important;
+  font-size: 0.6875rem !important;
 }
 
-/* Pilar 2 - Laranja disciplina */
-.hud-card-orange {
-  background: #0E0A06 !important;
-  border: 1px solid rgba(234,88,12,0.2) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
-}
-.hud-card-orange:hover { border-color: rgba(234,88,12,0.35) !important; }
-.btn-nax-orange {
-  background: #C2410C !important;
-  color: #ffffff !important;
+.badge-clinical-red {
+  background: rgba(229, 9, 20, 0.1) !important;
+  color: #FF5A60 !important;
+  border: 1px solid rgba(229, 9, 20, 0.25) !important;
   font-weight: 600 !important;
-  transition: all var(--transition-std) !important;
+  border-radius: 9999px !important;
+  padding: 0.125rem 0.5rem !important;
+  font-size: 0.6875rem !important;
 }
-.btn-nax-orange:hover { background: #EA580C !important; transform: translateY(-1px); }
 
-/* CRITICO: .hud-tab-btn-orange — JS seta className completo */
-.hud-tab-btn-orange {
-  border: 1px solid rgba(234,88,12,0.2);
-  background: rgba(234,88,12,0.04);
-  color: #FED7AA;
-  transition: all var(--transition-std);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.hud-tab-btn-orange:hover {
-  background: rgba(234,88,12,0.1);
-  border-color: rgba(234,88,12,0.4);
-  color: var(--text-primary);
-}
-.hud-tab-btn-orange.active {
-  color: #ffffff !important;
-  background: rgba(194,65,12,0.25) !important;
-  border-color: rgba(234,88,12,0.6) !important;
+.badge-clinical-yellow {
+  background: rgba(242, 184, 75, 0.1) !important;
+  color: var(--yellow-warn) !important;
+  border: 1px solid rgba(242, 184, 75, 0.25) !important;
   font-weight: 600 !important;
+  border-radius: 9999px !important;
+  padding: 0.125rem 0.5rem !important;
+  font-size: 0.6875rem !important;
 }
 
-/* Pilar 4 - Azul performance */
-.hud-card-blue {
-  background: #070C14 !important;
-  border: 1px solid rgba(59,130,246,0.2) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
-}
-.hud-card-blue:hover { border-color: rgba(59,130,246,0.35) !important; }
-.btn-nax-blue {
-  background: #1D4ED8 !important;
-  color: #ffffff !important;
-  font-weight: 600 !important;
-  transition: all var(--transition-std) !important;
-}
-.btn-nax-blue:hover { background: #2563EB !important; transform: translateY(-1px); }
-.hud-tab-btn-blue.active {
-  color: #ffffff !important;
-  background: rgba(29,78,216,0.3) !important;
-  border-color: rgba(59,130,246,0.5) !important;
+.badge-clinical-neutral {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border) !important;
+  font-weight: 500 !important;
+  border-radius: 9999px !important;
+  padding: 0.125rem 0.5rem !important;
+  font-size: 0.6875rem !important;
 }
 
-/* Pilar 5 - Ambar resultado */
-.hud-card-amber {
-  background: #0B0904 !important;
-  border: 1px solid rgba(245,158,11,0.2) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
-}
-.hud-card-amber:hover { border-color: rgba(245,158,11,0.35) !important; }
-.btn-nax-amber {
-  background: #B45309 !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  transition: all var(--transition-std) !important;
-}
-.btn-nax-amber:hover { background: #D97706 !important; transform: translateY(-1px); }
+/* Badges IEC */
+.badge-iec-recomp { background: rgba(0,200,150,0.1); color: #00C896; border: 1px solid rgba(0,200,150,0.3); }
+.badge-iec-bulk   { background: rgba(59,130,246,0.1); color: #93C5FD; border: 1px solid rgba(59,130,246,0.3); }
+.badge-iec-cut    { background: rgba(242,184,75,0.1); color: #F2B84B; border: 1px solid rgba(242,184,75,0.3); }
+.badge-iec-warn   { background: rgba(229,9,20,0.1);  color: #FF5A60; border: 1px solid rgba(229,9,20,0.3); }
 
-.score-giant-gold {
-  font-size: 3.5rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #F59E0B;
-  letter-spacing: -0.02em;
-}
-
-/* CRITICO: .hud-tab-btn-amber — JS seta className completo (linhas 4240, 4242) */
-.hud-tab-btn-amber {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #FDE68A;
-  border: 1px solid rgba(245,158,11,0.2);
-  background: rgba(245,158,11,0.04);
-  transition: all var(--transition-std);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.hud-tab-btn-amber:hover {
-  background: rgba(245,158,11,0.1);
-  border-color: rgba(245,158,11,0.4);
-  color: var(--text-primary);
-}
-.hud-tab-btn-amber.active {
-  color: #ffffff !important;
-  background: rgba(180,83,9,0.25) !important;
-  border-color: rgba(245,158,11,0.5) !important;
-  font-weight: 600 !important;
-}
-
-/* Heatmap Habitos */
+/* Heatmap Hábitos — Escala Clínica Neutra com Destaque */
 .heatmap-cell {
   width: 14px;
   height: 14px;
@@ -273,67 +304,50 @@ option {
   transition: transform var(--transition-fast), opacity var(--transition-fast);
   cursor: pointer;
 }
-.heatmap-cell:hover { transform: scale(1.25); z-index: 10; }
-.heatmap-cell-0 { background-color: rgba(39,39,42,0.5); border: 1px solid rgba(63,63,70,0.4); }
-.heatmap-cell-1 { background-color: #7C2D12; border: 1px solid #9A3412; }
-.heatmap-cell-2 { background-color: #C2410C; border: 1px solid #EA580C; }
-.heatmap-cell-3 { background-color: #EA580C; border: 1px solid #FB923C; }
-.heatmap-cell-4 { background-color: #F59E0B; border: 1px solid #FCD34D; }
+.heatmap-cell:hover { transform: scale(1.2); z-index: 10; }
+.heatmap-cell-0 { background-color: #171B1F; border: 1px solid var(--border); }
+.heatmap-cell-1 { background-color: #361A1C; border: 1px solid #522428; }
+.heatmap-cell-2 { background-color: #68171C; border: 1px solid #8B1E25; }
+.heatmap-cell-3 { background-color: #A31219; border: 1px solid #BF141D; }
+.heatmap-cell-4 { background-color: var(--red-nax); border: 1px solid #FF3038; }
 
-@keyframes streakPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.75; }
-}
-.streak-fire-pulse { animation: streakPulse 2.5s infinite ease-in-out; }
-
-/* Workout Themes */
-.workout-theme-blue-badge {
-  background: rgba(30,58,138,0.7) !important;
-  border: 1px solid rgba(59,130,246,0.45) !important;
-  color: #93C5FD !important;
-}
-.workout-theme-blue-btn {
-  background: rgba(30,58,138,0.5) !important;
-  border: 1px solid rgba(59,130,246,0.5) !important;
-  color: #BFDBFE !important;
-}
-.workout-theme-blue-btn:hover { background: rgba(37,99,235,0.7) !important; color: #ffffff !important; }
-.workout-theme-blue-active-card {
-  border: 1px solid rgba(59,130,246,0.5) !important;
-  background: linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(9,9,11,0.95) 100%) !important;
-}
-.workout-theme-blue-header { background: rgba(15,23,42,0.5) !important; }
-
+/* Workout Themes — Unificados no Design Grafite */
+.workout-theme-blue-badge,
 .workout-theme-purple-badge {
-  background: rgba(88,28,135,0.7) !important;
-  border: 1px solid rgba(139,92,246,0.45) !important;
-  color: #DDD6FE !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
 }
+
+.workout-theme-blue-btn,
 .workout-theme-purple-btn {
-  background: rgba(88,28,135,0.5) !important;
-  border: 1px solid rgba(139,92,246,0.5) !important;
-  color: #EDE9FE !important;
+  background: var(--card-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
 }
-.workout-theme-purple-btn:hover { background: rgba(109,40,217,0.7) !important; color: #ffffff !important; }
+.workout-theme-blue-btn:hover,
+.workout-theme-purple-btn:hover {
+  background: #20252A !important;
+}
+
+.workout-theme-blue-active-card,
 .workout-theme-purple-active-card {
-  border: 1px solid rgba(139,92,246,0.5) !important;
-  background: linear-gradient(180deg, rgba(30,11,43,0.5) 0%, rgba(9,9,11,0.95) 100%) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
 }
-.workout-theme-purple-header { background: rgba(30,11,43,0.5) !important; }
-
-/* Badges IEC */
-.badge-iec-recomp { background: rgba(6,78,59,0.6); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.4); }
-.badge-iec-bulk   { background: rgba(30,58,138,0.6); color: #93C5FD; border: 1px solid rgba(59,130,246,0.4); }
-.badge-iec-cut    { background: rgba(120,53,15,0.6); color: #FDE68A; border: 1px solid rgba(245,158,11,0.4); }
-.badge-iec-warn   { background: rgba(127,29,29,0.6); color: #FCA5A5; border: 1px solid rgba(229,9,20,0.4); }
-
-/* Shimmer IA */
-@keyframes shimmerSweep {
-  0%   { transform: translateX(-100%); }
-  60%  { transform: translateX(100%); }
-  100% { transform: translateX(100%); }
+.workout-theme-blue-header,
+.workout-theme-purple-header {
+  background: var(--card-elevated) !important;
 }
-.animate-shimmer { animation: shimmerSweep 2.5s infinite; }
+
+/* Transição de Abas */
+@keyframes tabScreenFade {
+  from { opacity: 0.95; transform: translateY(2px); }
+  to   { opacity: 1;    transform: translateY(0); }
+}
+section[id^="tab-"]:not(.hidden) {
+  animation: tabScreenFade 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 /* PWA Safe Area */
 body {
@@ -341,29 +355,22 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-input, textarea, [contenteditable="true"] {
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 @media (max-width: 1023px) {
   main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important; }
 }
 
-/* Bottom Nav Mobile — CRITICO: .mobile-nav-btn.active usado pelo JS */
+/* Mobile Bottom Navigation */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 60;
-  background: rgba(13,16,19,0.97);
+  background: rgba(13, 16, 19, 0.97);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -2px 16px rgba(0,0,0,0.7);
+  box-shadow: 0 -2px 16px rgba(0,0,0,0.6);
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
 .mobile-nav-btn {
@@ -380,11 +387,10 @@ input, textarea, [contenteditable="true"] {
   position: relative;
   touch-action: manipulation;
 }
-.mobile-nav-btn:active { transform: scale(0.92); }
+.mobile-nav-btn:active { transform: scale(0.95); }
 .mobile-nav-btn.active { color: var(--text-primary) !important; }
 .mobile-nav-btn.active .mobile-nav-icon {
   color: var(--red-nax);
-  transform: translateY(-2px);
 }
 .mobile-nav-btn.active::after {
   content: '';
@@ -394,27 +400,15 @@ input, textarea, [contenteditable="true"] {
   background: var(--red-nax);
   border-radius: 9999px;
 }
-.mobile-nav-btn-highlight.active .mobile-nav-icon { color: #3B82F6 !important; }
-.mobile-nav-btn-highlight.active::after { background: #3B82F6 !important; }
+.mobile-nav-btn-highlight.active .mobile-nav-icon { color: var(--red-nax) !important; }
+.mobile-nav-btn-highlight.active::after { background: var(--red-nax) !important; }
 
 /* Modal Animation */
 @keyframes modalSlideUp {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.modal-slide-up { animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-/* Install badge */
-.install-glow-badge { position: relative; }
-
-/* Tab Fade */
-@keyframes tabScreenFade {
-  from { opacity: 0.9; transform: translateY(4px); }
-  to   { opacity: 1;   transform: translateY(0); }
-}
-section[id^="tab-"]:not(.hidden) {
-  animation: tabScreenFade 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+.modal-slide-up { animation: modalSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 @media (max-width: 767px) {
   body { background-color: var(--bg-primary); }
@@ -426,12 +420,4 @@ section[id^="tab-"]:not(.hidden) {
     max-width: 100vw !important;
     overflow-x: hidden !important;
   }
-  #tab-performance { max-width: 100% !important; overflow-x: hidden !important; }
-  #tab-performance .hud-card-blue,
-  #tab-performance .hud-card { padding: 0.875rem !important; border-radius: 1rem !important; }
-  #perf-routines-container input { font-size: 0.75rem !important; padding: 0.25rem !important; }
-  #tab-performance select, #tab-performance button { max-width: 100% !important; }
-  #tab-evolution { max-width: 100% !important; overflow-x: hidden !important; }
-  #tab-evolution .hud-card-amber,
-  #tab-evolution .hud-card { padding: 0.875rem !important; border-radius: 1rem !important; }
 }

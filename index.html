@@ -69,11 +69,13 @@
   <!-- Dexie.js (IndexedDB) CDN -->
   <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
 
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons (Local + CDN fallback) -->
+  <script src="lucide.min.js"></script>
+  <script>if (typeof lucide === 'undefined') document.write('<script src="https://unpkg.com/lucide@latest"><\\/script>');</script>
 
-  <!-- Chart.js CDN for Evolution Graphs -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js (Local + CDN fallback) -->
+  <script src="chart.min.js"></script>
+  <script>if (typeof Chart === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\\/script>');</script>
 
   <!-- Firebase SDK & NutriPro Cloud Service -->
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -82,253 +84,222 @@
   <script src="firebase-service.js"></script>
 </head>
 
-<!-- Marca d'agua sutil -->
-<div class="fixed inset-0 pointer-events-none -z-10 opacity-[0.03]"
-  style="background-image: url('logo.png'); background-position: bottom right; background-repeat: no-repeat; background-size: 40%;"
-  aria-hidden="true"></div>
-
 <body class="min-h-screen flex flex-col antialiased" style="background-color:#08090A;color:#F2F3F5;selection-color:#fff;selection-background:#E50914">
+
+  <!-- Marca d'agua sutil -->
+  <div class="fixed inset-0 pointer-events-none -z-10 opacity-[0.03]"
+    style="background-image: url('logo.png'); background-position: bottom right; background-repeat: no-repeat; background-size: 40%;"
+    aria-hidden="true"></div>
 
   <!-- ═══ 1. CABEÇALHO SUPERIOR FIXO (TOP HEADER HUD) ═══ -->
   <header
     class="sticky top-0 z-50 w-full backdrop-blur-md border-b shadow-lg" style="background:rgba(8,9,10,0.97);border-color:#272C31;box-shadow:0 2px 16px rgba(0,0,0,0.7)">
 
     <!-- ── CABEÇALHO DESKTOP (MD E ACIMA) ── -->
-    <div class="hidden md:flex px-6 py-2.5 items-center justify-between gap-3">
-      <!-- Brand Title & Status (Left) -->
+    <div class="hidden md:flex px-6 py-2 items-center justify-between gap-4">
+      <!-- Brand Title & Context Breadcrumb (Left) -->
       <div class="flex items-center gap-3 shrink-0">
-        <span class="text-xl font-bold tracking-tight text-white">
-          Nutri<span style="color:#E50914">Ax</span>
-        </span>
-        <span
-          class="text-[11px] font-medium px-2 py-0.5 rounded tracking-wide" style="background:rgba(229,9,20,0.08);color:#B7BCC2;border:1px solid rgba(229,9,20,0.2)">
-          Pro · Clínico
-        </span>
-        <div
-          class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono" style="background:rgba(18,21,24,0.9);border:1px solid #272C31">
-          <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#00C896"></span>
-          <span class="font-medium" style="color:#00C896">Sistema Online</span>
+        <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('dashboard')">
+          <span class="text-xl font-black tracking-tight text-white">
+            Nutri<span style="color:#E50914">Ax</span>
+          </span>
+          <span
+            class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded tracking-wider" style="background:rgba(229,9,20,0.1);color:#FF4D55;border:1px solid rgba(229,9,20,0.3)">
+            PRO
+          </span>
+        </div>
+
+        <!-- Breadcrumb Contextual da Referência 2 -->
+        <div class="flex items-center gap-1.5 text-xs text-[#737A82] pl-3 border-l border-[#272C31]">
+          <span id="headerPilarBreadcrumb" class="font-medium text-[#B7BCC2]">Nutrição</span>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-[#737A82]"></i>
+          <span id="headerModuleBreadcrumb" class="font-medium text-white">Dashboard &amp; Radar</span>
         </div>
       </div>
 
-      <!-- ═══ ABAS DE NAVEGAÇÃO DOS MÓDULOS POR PILAR (HEADER DINÂMICO DESKTOP) ═══ -->
-      <nav class="flex flex-col gap-1.5 items-center justify-center mx-auto" id="main-header-nav">
+      <!-- ═══ NAVEGAÇÃO CONTEXTUAL EM PILLS (CENTRO - REFERÊNCIA 2) ═══ -->
+      <nav class="flex items-center justify-center overflow-x-auto no-scrollbar mx-auto" id="main-header-nav">
 
         <!-- ── MENU PILAR 1: MENTALIDADE ── -->
         <div id="header-pilar-nav-1" class="hidden items-center justify-center gap-2">
-          <span
-            class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-purple-950/80 text-purple-300 border border-purple-800/80 flex items-center gap-1.5">
-            <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i> PILAR 1 · MENTALIDADE &amp; COMPORTAMENTO
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#171B1F] text-[#B7BCC2] border border-[#272C31] flex items-center gap-1.5">
+            <i data-lucide="brain" class="w-3.5 h-3.5 text-[#E50914]"></i> Pilar 1 · Mentalidade
           </span>
           <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-            <i data-lucide="target" class="w-3.5 h-3.5 text-purple-400"></i> Foco &amp; Metas <span
-              class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+            <i data-lucide="target" class="w-3.5 h-3.5"></i> Foco &amp; Metas <span class="text-[9px] text-[#737A82] ml-1">(Em breve)</span>
           </button>
           <button class="hud-tab-btn opacity-60 cursor-not-allowed">
-            <i data-lucide="smile" class="w-3.5 h-3.5 text-purple-400"></i> Registro de Mindset <span
-              class="text-[9px] text-zinc-500 uppercase ml-1">(Em breve)</span>
+            <i data-lucide="smile" class="w-3.5 h-3.5"></i> Mindset <span class="text-[9px] text-[#737A82] ml-1">(Em breve)</span>
           </button>
         </div>
 
         <!-- ── MENU PILAR 2: DISCIPLINA ── -->
-        <div id="header-pilar-nav-2" class="hidden items-center justify-center gap-2">
-          <span
-            class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-800/80 flex items-center gap-1.5 shadow-[0_0_10px_rgba(249,115,22,0.2)]">
-            <i data-lucide="shield" class="w-3.5 h-3.5 text-orange-400"></i> PILAR 2 · DISCIPLINA &amp; HÁBITOS
-          </span>
+        <div id="header-pilar-nav-2" class="hidden items-center justify-center gap-1.5">
           <button onclick="selectDisciplineSubView('dashboard')" id="pilar2-subnav-dashboard"
-            class="hud-tab-btn-orange active px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-orange-400"></i> Dashboard &amp; IDC
+            class="hud-tab-btn active">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Dashboard &amp; IDC
           </button>
           <button onclick="selectDisciplineSubView('heatmap')" id="pilar2-subnav-heatmap"
-            class="hud-tab-btn-orange px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400"></i> Heatmap 30 Dias
+            class="hud-tab-btn">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Heatmap 30 Dias
           </button>
           <button onclick="selectDisciplineSubView('habits')" id="pilar2-subnav-habits"
-            class="hud-tab-btn-orange px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-orange-400"></i> Matriz de Hábitos
+            class="hud-tab-btn">
+            <i data-lucide="list-checks" class="w-3.5 h-3.5"></i> Matriz de Hábitos
           </button>
           <button onclick="openPatientShareModal()"
-            class="btn-nax-orange px-3.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(249,115,22,0.4)]">
-            <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i> 📲 Compartilhar App do Paciente
+            class="btn-nax-primary px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 ml-2">
+            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> App Paciente
           </button>
         </div>
 
-        <!-- ── MENU PILAR 3: NUTRIÇÃO (ATIVO POR PADRÃO) ── -->
-        <div id="header-pilar-nav-3" class="flex flex-col gap-1.5 items-center justify-center">
-          <!-- Linha 1: Módulos Clínicos & Prescrição -->
-          <div class="flex items-center justify-center gap-1.5">
-            <button id="nav-dashboard" onclick="switchTab('dashboard')" class="hud-tab-btn active">
-              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-500"></i> Dashboard &amp; Radar
-            </button>
-            <button id="nav-anamnese" onclick="switchTab('anamnese')" class="hud-tab-btn">
-              <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-red-500"></i> Anamnese &amp; Perfil
-            </button>
-            <button id="nav-exams" onclick="switchTab('exams')" class="hud-tab-btn">
-              <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-red-500"></i> Exames Clínicos
-            </button>
-            <button id="nav-recall" onclick="switchTab('recall')" class="hud-tab-btn">
-              <i data-lucide="utensils" class="w-3.5 h-3.5 text-red-500"></i> Recordatório
-            </button>
-            <button id="nav-evaluation" onclick="switchTab('evaluation')" class="hud-tab-btn">
-              <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500"></i> Avaliação &amp; Corpo
-              <button id="nav-prescription" onclick="switchTab('prescription')" class="hud-tab-btn">
-                <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500"></i> Prescrição &amp; Macros
-              </button>
-              <button id="nav-fasting" onclick="switchTab('fasting')" class="hud-tab-btn">
-                <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500"></i> Jejum Intermitente
-              </button>
-          </div>
+        <!-- ── MENU PILAR 3: NUTRIÇÃO (ATIVO POR PADRÃO - 100% FIEL À REFERÊNCIA 2) ── -->
+        <div id="header-pilar-nav-3" class="flex items-center justify-center gap-1 flex-wrap">
+          <button id="nav-dashboard" onclick="switchTab('dashboard')" class="hud-tab-btn active">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Dashboard &amp; Radar
+          </button>
+          <button id="nav-prescription" onclick="switchTab('prescription')" class="hud-tab-btn">
+            <i data-lucide="utensils-crossed" class="w-3.5 h-3.5"></i> Prescrição &amp; Macros
+          </button>
+          <button id="nav-fasting" onclick="switchTab('fasting')" class="hud-tab-btn">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i> Jejum Intermitente
+          </button>
+          <button id="nav-foods" onclick="switchTab('foods')" class="hud-tab-btn">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i> Base de Alimentos
+          </button>
+          <button id="nav-evaluation" onclick="switchTab('evaluation')" class="hud-tab-btn">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i> Avaliação Corporal
+          </button>
+          <button id="nav-evolution" onclick="switchTab('evolution')" class="hud-tab-btn">
+            <i data-lucide="line-chart" class="w-3.5 h-3.5"></i> Evolução Temporal
+          </button>
 
-          <!-- Linha 2: Acompanhamento, Alimentos, App e Backup -->
-          <div class="flex items-center justify-center gap-1.5">
-            <button id="nav-evolution" onclick="switchTab('evolution')" class="hud-tab-btn">
-              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500"></i> Evolução Temporal
+          <!-- Dropdown / Módulos Complementares de Nutrição -->
+          <div class="relative group ml-1">
+            <button class="hud-tab-btn flex items-center gap-1 text-[#B7BCC2] hover:text-white" title="Módulos Clínicos Complementares">
+              <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              <span>Mais</span>
+              <i data-lucide="chevron-down" class="w-3 h-3 text-[#737A82]"></i>
             </button>
-            <button id="nav-adherence" onclick="switchTab('adherence')" class="hud-tab-btn">
-              <i data-lucide="check-check" class="w-3.5 h-3.5 text-red-500"></i> Controle de Adesão
-            </button>
-            <button id="nav-foods" onclick="switchTab('foods')" class="hud-tab-btn">
-              <i data-lucide="database" class="w-3.5 h-3.5 text-red-500"></i> Base de Alimentos
-            </button>
-            <button id="nav-patientApp" onclick="switchTab('patientApp')" class="hud-tab-btn" style="color:#f87171;">
-              <i data-lucide="smartphone" class="w-3.5 h-3.5 text-red-400"></i> App do Paciente
-            </button>
-            <button id="nav-backup" onclick="switchTab('backup')" class="hud-tab-btn">
-              <i data-lucide="cloud" class="w-3.5 h-3.5 text-red-500"></i> Drive Backup
-            </button>
+            <div class="hidden group-hover:flex flex-col absolute top-full right-0 mt-1 py-1.5 w-44 bg-[#121518] border border-[#272C31] rounded-xl shadow-2xl z-50">
+              <button id="nav-anamnese" onclick="switchTab('anamnese')" class="px-3 py-1.5 text-left text-xs text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] flex items-center gap-2 transition-colors">
+                <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-[#E50914]"></i> Anamnese &amp; Perfil
+              </button>
+              <button id="nav-exams" onclick="switchTab('exams')" class="px-3 py-1.5 text-left text-xs text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] flex items-center gap-2 transition-colors">
+                <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-[#E50914]"></i> Exames Clínicos
+              </button>
+              <button id="nav-recall" onclick="switchTab('recall')" class="px-3 py-1.5 text-left text-xs text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] flex items-center gap-2 transition-colors">
+                <i data-lucide="utensils" class="w-3.5 h-3.5 text-[#E50914]"></i> Recordatório 24h
+              </button>
+              <button id="nav-adherence" onclick="switchTab('adherence')" class="px-3 py-1.5 text-left text-xs text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] flex items-center gap-2 transition-colors">
+                <i data-lucide="check-check" class="w-3.5 h-3.5 text-[#E50914]"></i> Controle de Adesão
+              </button>
+              <button id="nav-patientApp" onclick="switchTab('patientApp')" class="px-3 py-1.5 text-left text-xs text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] flex items-center gap-2 transition-colors">
+                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-[#E50914]"></i> App do Paciente
+              </button>
+              <button id="nav-backup" onclick="switchTab('backup')" class="px-3 py-1.5 text-left text-xs text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] flex items-center gap-2 transition-colors border-t border-[#272C31] mt-1 pt-1.5">
+                <i data-lucide="cloud" class="w-3.5 h-3.5 text-[#00C896]"></i> Drive Backup
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- ── MENU PILAR 4: PERFORMANCE COM AGENDA DIÁRIA IA ── -->
-        <div id="header-pilar-nav-4" class="hidden flex-col gap-1.5 items-center justify-center">
-          <!-- Linha 1: Módulos & Ação da IA -->
-          <div class="flex items-center justify-center gap-1.5 flex-wrap">
-            <button id="perf-nav-btn-prescription" onclick="perfSwitchView('prescription')" class="hud-tab-btn active"
-              style="color:#93c5fd;border-color:rgba(59,130,246,0.5);background:rgba(30,58,138,0.45);">
-              <i data-lucide="trending-up" class="w-3.5 h-3.5 text-blue-400"></i> Prescrição de Força
-            </button>
-            <button id="perf-nav-btn-schedule" onclick="perfSwitchView('schedule')" class="hud-tab-btn"
-              style="color:#60a5fa;">
-              <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i> Agenda Semanal (7 Dias)
-            </button>
-            <button id="perf-nav-btn-cardio" onclick="perfSwitchView('cardio')" class="hud-tab-btn font-bold"
-              style="color:#fbbf24;border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.12);">
-              <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i> Cardios &amp; Engine (Déficit)
-            </button>
-            <button id="perf-nav-btn-catalog" onclick="perfSwitchView('catalog')" class="hud-tab-btn">
-              <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-400"></i> Catálogo Biomecânico
-            </button>
-            <button id="perf-nav-btn-pdf" onclick="perfGeneratePDF()" class="hud-tab-btn font-bold text-emerald-300"
-              style="border-color:rgba(16,185,129,0.5);background:rgba(6,78,59,0.45);box-shadow:0 0 10px rgba(16,185,129,0.25);">
-              <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-400"></i> PDF do Treino Completo
-            </button>
-            <button onclick="handleGenerateAITraining()" class="hud-tab-btn font-bold"
-              style="background:linear-gradient(135deg,rgba(124,58,237,0.45),rgba(37,99,235,0.45));border-color:rgba(167,139,250,0.5);color:#ffffff;box-shadow:0 0 12px rgba(139,92,246,0.35);">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-300"></i> Gerar Treino via IA
-            </button>
-          </div>
+        <div id="header-pilar-nav-4" class="hidden items-center justify-center gap-1.5 flex-wrap">
+          <button id="perf-nav-btn-prescription" onclick="perfSwitchView('prescription')" class="hud-tab-btn active">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Prescrição de Força
+          </button>
+          <button id="perf-nav-btn-schedule" onclick="perfSwitchView('schedule')" class="hud-tab-btn">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Agenda Semanal
+          </button>
+          <button id="perf-nav-btn-cardio" onclick="perfSwitchView('cardio')" class="hud-tab-btn">
+            <i data-lucide="flame" class="w-3.5 h-3.5"></i> Cardios &amp; Déficit
+          </button>
+          <button id="perf-nav-btn-catalog" onclick="perfSwitchView('catalog')" class="hud-tab-btn">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Catálogo Biomecânico
+          </button>
+          <button id="perf-nav-btn-pdf" onclick="perfGeneratePDF()" class="hud-tab-btn">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i> PDF Treino
+          </button>
+          <button onclick="handleGenerateAITraining()" class="btn-nax-primary px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i> Gerar via IA
+          </button>
 
-          <!-- Linha 2: AGENDA PERIÓDICA INTERATIVA (DIA 1 A DIA 7 - GERADA PELA IA) -->
-          <div class="flex items-center justify-center gap-1 flex-wrap" id="perf-header-daily-schedule">
-            <span
-              class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mr-1 flex items-center gap-1">
-              <i data-lucide="clock" class="w-3 h-3 text-blue-400"></i> Microciclo:
-            </span>
-            <button id="day-btn-d1" onclick="perfFocusDay('d1')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 1: Treino A · Push A">
-              <span class="font-bold text-blue-400">DIA 1</span> <span class="text-[10px] text-zinc-300">Push A
-                (A)</span>
-            </button>
-            <button id="day-btn-d2" onclick="perfFocusDay('d2')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 2: Treino B · Pull A">
-              <span class="font-bold text-purple-400">DIA 2</span> <span class="text-[10px] text-zinc-300">Pull A
-                (B)</span>
-            </button>
-            <button id="day-btn-d3" onclick="perfFocusDay('d3')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 3: Treino C · Legs A">
-              <span class="font-bold text-blue-400">DIA 3</span> <span class="text-[10px] text-zinc-300">Legs A
-                (C)</span>
-            </button>
-            <button id="day-btn-d4" onclick="perfFocusDay('d4')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 4: Treino D · Push B">
-              <span class="font-bold text-purple-400">DIA 4</span> <span class="text-[10px] text-zinc-300">Push B
-                (D)</span>
-            </button>
-            <button id="day-btn-d5" onclick="perfFocusDay('d5')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 5: Treino E · Pull B + Cardio Z2">
-              <span class="font-bold text-amber-400">DIA 5</span> <span class="text-[10px] text-amber-300">Pull B + Z2
-                (E)</span>
-            </button>
-            <button id="day-btn-d6" onclick="perfFocusDay('d6')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 6: Treino F · Legs B">
-              <span class="font-bold text-blue-400">DIA 6</span> <span class="text-[10px] text-zinc-300">Legs B
-                (F)</span>
-            </button>
-            <button id="day-btn-d7" onclick="perfFocusDay('d7')" class="hud-tab-btn text-[11px] px-2 py-0.5"
-              title="Dia 7: Descanso Total">
-              <span class="font-bold text-zinc-500">DIA 7</span> <span class="text-[10px] text-zinc-500">Descanso
-                (OFF)</span>
-            </button>
+          <!-- Microciclo 7 Dias (Sub-nav compacta) -->
+          <div class="hidden xl:flex items-center gap-1 pl-2 border-l border-[#272C31]" id="perf-header-daily-schedule">
+            <span class="text-[10px] font-medium text-[#737A82] uppercase mr-0.5">Dias:</span>
+            <button id="day-btn-d1" onclick="perfFocusDay('d1')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="Push A">D1</button>
+            <button id="day-btn-d2" onclick="perfFocusDay('d2')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="Pull A">D2</button>
+            <button id="day-btn-d3" onclick="perfFocusDay('d3')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="Legs A">D3</button>
+            <button id="day-btn-d4" onclick="perfFocusDay('d4')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="Push B">D4</button>
+            <button id="day-btn-d5" onclick="perfFocusDay('d5')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="Pull B + Z2">D5</button>
+            <button id="day-btn-d6" onclick="perfFocusDay('d6')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="Legs B">D6</button>
+            <button id="day-btn-d7" onclick="perfFocusDay('d7')" class="hud-tab-btn text-[11px] px-1.5 py-0.5" title="OFF">OFF</button>
           </div>
         </div>
 
         <!-- ── MENU PILAR 5: RESULTADO & IMPACTO ── -->
         <div id="header-pilar-nav-5" class="hidden items-center justify-center gap-1.5 flex-wrap">
-          <span
-            class="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-800/80 flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.25)]">
-            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> PILAR 5 · RESULTADO &amp; IMPACTO
-          </span>
-          <button onclick="resultsSwitchSubView('dashboard')" id="results-nav-dashboard"
-            class="hud-tab-btn hud-tab-btn-amber active text-xs font-bold flex items-center gap-1">
-            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-amber-400"></i> Dashboard &amp; IEC
+          <button onclick="resultsSwitchSubView('dashboard')" id="results-nav-dashboard" class="hud-tab-btn active">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Dashboard &amp; IEC
           </button>
-          <button onclick="resultsSwitchSubView('charts')" id="results-nav-charts"
-            class="hud-tab-btn text-xs font-bold flex items-center gap-1">
-            <i data-lucide="line-chart" class="w-3.5 h-3.5 text-amber-400"></i> Gráficos
+          <button onclick="resultsSwitchSubView('charts')" id="results-nav-charts" class="hud-tab-btn">
+            <i data-lucide="line-chart" class="w-3.5 h-3.5"></i> Gráficos
           </button>
-          <button onclick="resultsSwitchSubView('synergy')" id="results-nav-synergy"
-            class="hud-tab-btn text-xs font-bold flex items-center gap-1">
-            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Sinergia Nutri × Treino
+          <button onclick="resultsSwitchSubView('synergy')" id="results-nav-synergy" class="hud-tab-btn">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Sinergia Nutri × Treino
           </button>
-          <button onclick="resultsSwitchSubView('gallery')" id="results-nav-gallery"
-            class="hud-tab-btn text-xs font-bold flex items-center gap-1">
-            <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i> Linha do Tempo &amp; Fotos
+          <button onclick="resultsSwitchSubView('gallery')" id="results-nav-gallery" class="hud-tab-btn">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i> Fotos
           </button>
-          <button onclick="resultsSwitchSubView('predictive')" id="results-nav-predictive"
-            class="hud-tab-btn text-xs font-bold flex items-center gap-1">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Projeção IA
+          <button onclick="resultsSwitchSubView('predictive')" id="results-nav-predictive" class="hud-tab-btn">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Projeção IA
           </button>
-          <button onclick="exportImpactReportPDF()"
-            class="hud-tab-btn text-xs font-bold flex items-center gap-1 text-amber-300 hover:text-white">
-            <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i> Laudo PDF
+          <button onclick="exportImpactReportPDF()" class="btn-nax-primary px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-white"></i> Laudo PDF
           </button>
         </div>
 
       </nav>
-      <!-- Header Right Actions: Drive Backup & Mobile Install Button -->
+
+      <!-- ── AÇÕES DA DIREITA (REFERÊNCIA 2: NOTIFICAÇÕES, TEMA, AVATAR) ── -->
       <div class="flex items-center gap-2 shrink-0">
-        <!-- Botão Rápido de Drive Backup -->
-        <button onclick="switchTab('backup')"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95"
-          style="color:#00C896;background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.25)"
-          title="Abrir Drive Backup / Sincronizar Google Drive">
-          <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
-          <span>Drive Backup</span>
+        <!-- Notificações -->
+        <button class="p-1.5 rounded-lg text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] transition-colors" title="Notificações Clínicas">
+          <i data-lucide="bell" class="w-4 h-4"></i>
         </button>
 
-        <!-- Botão Instalar App -->
+        <!-- Alternar Tema / Exibição -->
+        <button class="p-1.5 rounded-lg text-[#B7BCC2] hover:text-white hover:bg-white/[0.04] transition-colors" title="Ajuste de Visualização">
+          <i data-lucide="sun" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Avatar do Usuário / Nutricionista -->
+        <div class="w-7 h-7 rounded-full bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-[11px] text-white font-semibold cursor-pointer hover:border-[#E50914] transition-colors" title="Paulo Vitor R de Sousa — Nutricionista Responsável">
+          <i data-lucide="user" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
+        </div>
+
+        <!-- Botão Rápido de Drive Backup (Mantido Funcional) -->
+        <button onclick="switchTab('backup')"
+          class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+          style="color:#00C896;background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.25)"
+          title="Abrir Drive Backup / Sincronizar Google Drive">
+          <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+          <span>Drive</span>
+        </button>
+
+        <!-- Botão Instalar App (Mantido Funcional) -->
         <button id="header-install-app-btn" onclick="openMobileInstallModal()"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all active:scale-95"
-          style="background:#E50914;border:1px solid rgba(229,9,20,0.6)"
+          class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-white transition-colors"
+          style="background:rgba(229,9,20,0.15);border:1px solid rgba(229,9,20,0.4)"
           title="Instalar NutriAx Pro no Celular / Computador">
-          <i data-lucide="smartphone" class="w-3.5 h-3.5 text-white"></i>
-          <span>Instalar App</span>
+          <i data-lucide="smartphone" class="w-3.5 h-3.5 text-[#E50914]"></i>
+          <span>App</span>
         </button>
         <div id="header-app-installed-badge"
           class="hidden items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.3);color:#00C896">
           <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-          <span>App Instalado</span>
+          <span>Instalado</span>
         </div>
       </div>
     </div>
@@ -338,7 +309,7 @@
       <!-- Brand Logo / Title -->
       <div class="flex items-center gap-1.5 shrink-0" onclick="switchTab('dashboard')" role="button">
         <span class="text-base font-black tracking-tight text-white flex items-center gap-1">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.9)]"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
           Nutri<span class="text-red-500">Ax</span>
         </span>
       </div>
@@ -361,7 +332,7 @@
       <!-- Ações Rápidas Mobile (Sincronizar Nuvem & Menu Geral) -->
       <div class="flex items-center gap-1.5 shrink-0">
         <button onclick="loadPatientFromCloud(activePatientId, true)"
-          class="p-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.25)] active:scale-90 transition-all"
+          class="p-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 text-emerald-300 active:scale-90 transition-all"
           title="Baixar Dados do Paciente do Drive">
           <i data-lucide="cloud-download" class="w-4 h-4 text-emerald-400"></i>
         </button>
@@ -379,264 +350,150 @@
   <div class="flex-1 flex flex-col md:flex-row">
 
     <!-- ═══ SIDEBAR (GESTÃO DO PACIENTE ATIVO + PILARES + CARTÃO NUTRICIONISTA - EXCLUSIVO DESKTOP) ═══ -->
+    <!-- ═══ SIDEBAR DESKTOP (REFERÊNCIA 2) ═══ -->
     <aside
-      class="hidden md:flex md:w-72 md:flex-col justify-between shrink-0 p-5 space-y-6 z-40 md:sticky md:top-[75px] md:h-[calc(100vh-75px)] md:overflow-y-auto" style="background:#0D1013;border-right:1px solid #272C31">
+      class="hidden md:flex md:w-64 lg:w-72 md:flex-col justify-between shrink-0 p-5 space-y-6 z-40 md:sticky md:top-[57px] md:h-[calc(100vh-57px)] md:overflow-y-auto" style="background:#0D1013;border-right:1px solid #272C31">
 
-      <div class="space-y-5">
-        <!-- Logo Original da Marca no Topo da Sidebar -->
-        <div class="pt-1 text-center">
-          <img src="logo.png" alt="NutriAx Logo"
-            class="w-44 mx-auto object-contain" style="opacity:0.92" />
+      <div class="space-y-6">
+        <!-- Logo Oficial NutriAx no Topo da Sidebar (Referência 2) -->
+        <div class="pt-2 text-center">
+          <img src="logo.png" alt="NAX NutriAx" class="w-40 mx-auto object-contain" />
         </div>
 
-        <!-- Card de Instalação Mobile PWA na Sidebar -->
-        <div id="sidebar-install-card"
-          class="hud-card p-3.5 space-y-2">
-          <div class="flex items-center justify-between">
-            <span
-              class="text-[11px] font-medium flex items-center gap-1.5" style="color:#B7BCC2">
-              <i data-lucide="smartphone" class="w-3.5 h-3.5" style="color:#E50914"></i> Versão Celular
-            </span>
-            <span
-              class="text-[9px] px-1.5 py-0.5 rounded font-medium" style="background:rgba(229,9,20,0.08);color:#B7BCC2;border:1px solid rgba(229,9,20,0.2)">PWA</span>
-          </div>
-          <p class="text-[11px] leading-snug" style="color:#737A82">
-            Instale o NutriAx Pro no seu Android ou iPhone para acesso instantâneo e offline.
-          </p>
-          <button onclick="openMobileInstallModal()"
-            class="w-full btn-nax-primary text-white text-xs font-medium py-2 rounded-lg flex items-center justify-center gap-2">
-            <i data-lucide="download" class="w-3.5 h-3.5"></i> Instalar no Celular
-          </button>
-        </div>
-
-        <!-- Card de Gestão do Paciente Ativo -->
-        <div class="hud-card p-4 space-y-3.5">
-          <div class="flex items-center justify-between pb-2" style="border-bottom:1px solid #272C31">
-            <span class="text-xs font-medium flex items-center gap-1.5" style="color:#737A82">
-              <span class="w-1.5 h-1.5 rounded-full" style="background:#E50914"></span> Paciente Ativo
-            </span>
-            <button onclick="openNewPatientModal()" title="Cadastrar Novo Paciente"
-              class="btn-nax-primary text-white text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1">
-              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Novo
-            </button>
-          </div>
-
-          <!-- Seletor do Paciente -->
-          <select id="activePatientSelect" onchange="onPatientChange(this.value)"
-            class="w-full rounded-lg p-2 text-xs font-medium outline-none">
-            <option value="paulo-vitor">Paulo Vitor R de Sousa</option>
-          </select>
-
-          <!-- Dados do Paciente -->
-          <div class="text-xs space-y-1">
-            <p id="headerPatientName" class="font-semibold text-sm truncate" style="color:#F2F3F5">Paulo Vitor R de Sousa</p>
-            <p id="headerPatientInfo" class="font-normal" style="color:#B7BCC2">38 anos • 1,96 m • <strong style="color:#E50914">116 kg</strong></p>
-            <span id="headerPatientGoal" class="font-normal block" style="color:#B7BCC2">Objetivo: Perda de peso</span>
-          </div>
-
-          <!-- Ações de Nuvem & PDF -->
-          <div class="space-y-2 pt-1">
-            <div class="grid grid-cols-2 gap-2">
-              <button onclick="loadPatientFromCloud(activePatientId, true)"
-                class="w-full text-xs font-medium py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                style="color:#00C896;background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.25)"
-                title="Baixar dados do paciente atualizados do Google Drive">
-                <i data-lucide="cloud-download" class="w-4 h-4"></i> Baixar
-              </button>
-              <button onclick="savePatientToCloud(activePatientId)"
-                class="btn-nax-primary text-white text-xs font-medium py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                title="Salvar dados do paciente no Google Drive">
-                <i data-lucide="cloud-upload" class="w-4 h-4 text-white"></i> Salvar
-              </button>
-            </div>
-            <button onclick="switchTab('backup')"
-              class="w-full text-[11px] font-medium py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all"
-              style="color:#00C896;background:rgba(0,200,150,0.05);border:1px solid rgba(0,200,150,0.2)">
-              <i data-lucide="cloud" class="w-3.5 h-3.5"></i> Painel do Drive Backup
-            </button>
-            <button onclick="exportPrescriptionAndEvaluationPDF()"
-              class="w-full text-xs font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-all"
-              style="color:#B7BCC2;background:rgba(229,9,20,0.05);border:1px solid rgba(229,9,20,0.2)">
-              <i data-lucide="file-text" class="w-3.5 h-3.5" style="color:#E50914"></i> Exportar Relatório PDF
-            </button>
-          </div>
-        </div>
-
-        <!-- PILARES NUTRIAX -->
-        <div class="hud-card p-3.5 space-y-2.5" style="background:#121518;border:1px solid #272C31">
-          <div class="flex items-center gap-1.5 pb-2" style="border-bottom:1px solid #272C31">
-            <i data-lucide="award" class="w-4 h-4" style="color:#E50914"></i>
-            <span class="text-xs font-medium" style="color:#737A82;letter-spacing:0.05em">Pilares NutriAx</span>
-          </div>
-          <div class="space-y-1.5 text-xs font-medium">
-            <!-- Pilar 1 -->
+        <!-- SEÇÃO 1: PILARES NUTRIAX (01 a 05) -->
+        <div class="space-y-2">
+          <span class="text-[11px] font-semibold text-[#737A82] uppercase tracking-wider block px-1">Pilares NutriAx</span>
+          <div class="space-y-1 text-xs">
+            <!-- 01 Mentalidade -->
             <button id="pilar-1" onclick="switchPilar(1)"
-              class="w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-              <span class="flex items-center gap-2"><i data-lucide="brain" class="w-3.5 h-3.5" style="color:#8B5CF6"></i> 1. Mentalidade</span>
-              <span class="text-[9px] font-normal" style="color:#737A82">Em breve</span>
+              class="w-full text-left px-3 py-2 rounded-xl bg-transparent border border-transparent text-[#B7BCC2] hover:text-white hover:bg-white/[0.03] flex items-center justify-between transition-all">
+              <span class="flex items-center gap-2.5">
+                <span class="text-[10px] font-mono text-[#737A82]">01</span>
+                <i data-lucide="brain" class="w-4 h-4 text-[#B7BCC2]"></i>
+                <span class="font-medium">Mentalidade</span>
+              </span>
+              <span class="text-[9px] text-[#737A82]">Em breve</span>
             </button>
 
-            <!-- Pilar 2 (Disciplina) -->
+            <!-- 02 Disciplina -->
             <button id="pilar-2" onclick="switchPilar(2)"
-              class="w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-              <span class="flex items-center gap-2"><i data-lucide="shield" class="w-3.5 h-3.5" style="color:#EA580C"></i> 2. Disciplina</span>
-              <span class="w-1.5 h-1.5 rounded-full" style="background:#EA580C"></span>
+              class="w-full text-left px-3 py-2 rounded-xl bg-transparent border border-transparent text-[#B7BCC2] hover:text-white hover:bg-white/[0.03] flex items-center justify-between transition-all">
+              <span class="flex items-center gap-2.5">
+                <span class="text-[10px] font-mono text-[#737A82]">02</span>
+                <i data-lucide="shield" class="w-4 h-4 text-[#B7BCC2]"></i>
+                <span class="font-medium">Disciplina</span>
+              </span>
+              <span class="text-[9px] text-[#00C896]">Em andamento</span>
             </button>
 
-            <!-- Pilar 3 (Nutrição - Ativo por Padrão) -->
+            <!-- 03 Nutrição (Ativo na Referência 2) -->
             <button id="pilar-3" onclick="switchPilar(3)"
-              class="w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between transition-all" style="background:rgba(229,9,20,0.1);border:1px solid rgba(229,9,20,0.35);color:#F2F3F5;font-weight:600">
-              <span class="flex items-center gap-2"><i data-lucide="utensils" class="w-3.5 h-3.5" style="color:#E50914"></i> 3. Nutrição</span>
-              <span class="w-1.5 h-1.5 rounded-full" style="background:#E50914"></span>
+              class="w-full text-left px-3 py-2 rounded-xl bg-[#E50914] text-white font-semibold flex items-center justify-between shadow-sm transition-all">
+              <span class="flex items-center gap-2.5">
+                <span class="text-[10px] font-mono text-white/80">03</span>
+                <i data-lucide="utensils" class="w-4 h-4 text-white"></i>
+                <span>Nutrição</span>
+              </span>
+              <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
             </button>
 
-            <!-- Pilar 4 (Performance) -->
+            <!-- 04 Performance -->
             <button id="pilar-4" onclick="switchPilar(4)"
-              class="w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-              <span class="flex items-center gap-2"><i data-lucide="trending-up" class="w-3.5 h-3.5" style="color:#3B82F6"></i> 4. Performance</span>
-              <span class="w-1.5 h-1.5 rounded-full" style="background:#3B82F6"></span>
+              class="w-full text-left px-3 py-2 rounded-xl bg-transparent border border-transparent text-[#B7BCC2] hover:text-white hover:bg-white/[0.03] flex items-center justify-between transition-all">
+              <span class="flex items-center gap-2.5">
+                <span class="text-[10px] font-mono text-[#737A82]">04</span>
+                <i data-lucide="dumbbell" class="w-4 h-4 text-[#B7BCC2]"></i>
+                <span class="font-medium">Performance</span>
+              </span>
+              <span class="text-[9px] text-[#737A82]">Em breve</span>
             </button>
 
-            <!-- Pilar 5 -->
+            <!-- 05 Resultado -->
             <button id="pilar-5" onclick="switchPilar(5)"
-              class="w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-              <span class="flex items-center gap-2"><i data-lucide="trophy" class="w-3.5 h-3.5" style="color:#F59E0B"></i> 5. Resultado</span>
-              <span class="w-1.5 h-1.5 rounded-full" style="background:#F59E0B"></span>
+              class="w-full text-left px-3 py-2 rounded-xl bg-transparent border border-transparent text-[#B7BCC2] hover:text-white hover:bg-white/[0.03] flex items-center justify-between transition-all">
+              <span class="flex items-center gap-2.5">
+                <span class="text-[10px] font-mono text-[#737A82]">05</span>
+                <i data-lucide="trophy" class="w-4 h-4 text-[#B7BCC2]"></i>
+                <span class="font-medium">Resultado</span>
+              </span>
+              <span class="text-[9px] text-[#737A82]">Em breve</span>
             </button>
           </div>
         </div>
 
-        <!-- Menu Mobile de Abas (para telas pequenas) -->
-        <div class="block lg:hidden space-y-1 pt-2 border-t border-zinc-800" id="mobile-menu-container">
-          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2"
-            id="mobile-menu-title">Navegação · Nutrição</span>
+        <!-- SEÇÃO 2: PACIENTES (CARD CONFORME REFERÊNCIA 2) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-[11px] font-semibold text-[#737A82] uppercase tracking-wider">Pacientes</span>
+            <button onclick="openNewPatientModal()" title="Cadastrar Novo Paciente" class="text-[11px] font-medium text-[#E50914] hover:text-[#FF3038]">
+              + Novo
+            </button>
+          </div>
+          <div class="hud-card p-3 space-y-2.5">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-[#171B1F] border border-[#272C31] flex items-center justify-center shrink-0">
+                <i data-lucide="user" class="w-4 h-4 text-[#B7BCC2]"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <select id="activePatientSelect" onchange="onPatientChange(this.value)"
+                  class="w-full bg-transparent border-0 p-0 text-xs font-semibold text-white focus:ring-0 cursor-pointer truncate">
+                  <option value="paulo-vitor">Paulo Vitor Ribeiro de Sousa</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-[11px] space-y-0.5 pt-1 border-t border-[#272C31]">
+              <p id="headerPatientInfo" class="text-[#B7BCC2]">39 anos • 1,93 m • <strong class="text-white">116,1 kg</strong></p>
+              <p id="headerPatientGoal" class="text-[#737A82]">Objetivo: <span class="text-[#E50914]">Perda de peso</span></p>
+            </div>
+          </div>
+        </div>
 
-          <!-- Mobile Pilar 3 -->
-          <div id="mobile-pilar-nav-3" class="space-y-1.5">
-            <!-- Botão em Destaque Especial: Drive Backup -->
-            <button onclick="switchTab('backup')"
-              class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-emerald-300 bg-emerald-950/80 border border-emerald-700/80 flex items-center justify-between shadow-[0_0_12px_rgba(16,185,129,0.25)]">
-              <span class="flex items-center gap-2">
-                <i data-lucide="cloud-upload" class="w-4 h-4 text-emerald-400 animate-pulse"></i>
-                <span>Drive Backup (Google Drive)</span>
-              </span>
-              <span
-                class="text-[9px] font-mono bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded-full font-bold">NUVEM</span>
-            </button>
-
-            <button onclick="switchTab('dashboard')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-red-500"></i> Dashboard &amp; Radar
-            </button>
-            <button onclick="switchTab('anamnese')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-red-500"></i> Anamnese &amp; Perfil
-            </button>
-            <button onclick="switchTab('exams')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-red-500"></i> Exames Clínicos
-            </button>
+        <!-- SEÇÃO 3: AÇÕES RÁPIDAS (REFERÊNCIA 2) -->
+        <div class="space-y-2">
+          <span class="text-[11px] font-semibold text-[#737A82] uppercase tracking-wider block px-1">Ações Rápidas</span>
+          <div class="space-y-1 text-xs">
             <button onclick="switchTab('evaluation')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="activity" class="w-3.5 h-3.5 text-red-500"></i> Avaliação &amp; Corpo
-            </button>
-            <button onclick="switchTab('prescription')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-red-500"></i> Prescrição &amp; Macros
-            </button>
-            <button onclick="switchTab('evolution')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-red-500"></i> Evolução Temporal
-            </button>
-            <button onclick="switchTab('adherence')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="check-check" class="w-3.5 h-3.5 text-red-500"></i> Controle de Adesão
-            </button>
-            <button onclick="switchTab('foods')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="database" class="w-3.5 h-3.5 text-red-500"></i> Alimentos TACO / Rótulos
-            </button>
-            <button onclick="switchTab('patientApp')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-300 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="smartphone" class="w-3.5 h-3.5 text-rose-400"></i> App do Paciente
-            </button>
-          </div>
-
-          <!-- Mobile Pilar 4 -->
-          <div id="mobile-pilar-nav-4" class="hidden space-y-1">
-            <button onclick="switchTab('performance'); perfRender();"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-blue-300 bg-blue-950/40 border border-blue-800/40">Prescrição
-              de Treino (Constructor)</button>
-            <button onclick="perfSetTarget('A'); switchTab('performance');"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Treino
-              A (Push)</button>
-            <button onclick="perfSetTarget('B'); switchTab('performance');"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Treino
-              B (Pull)</button>
-            <button onclick="perfSetTarget('C'); switchTab('performance');"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Treino
-              C (Legs)</button>
-            <button onclick="handleGenerateAITraining()"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-violet-300 bg-violet-950/40 border border-violet-800/40">Gerar
-              via IA (Co-piloto)</button>
-          </div>
-
-          <!-- Mobile Pilar 1, 2, 5 -->
-          <div id="mobile-pilar-nav-1" class="hidden p-2 text-xs text-zinc-400">Módulos de Mentalidade em
-            desenvolvimento.</div>
-          <div id="mobile-pilar-nav-2" class="hidden space-y-1.5">
-            <button onclick="openPatientShareModal()"
-              class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-orange-300 bg-orange-950/80 border border-orange-700/80 flex items-center justify-between shadow-[0_0_12px_rgba(249,115,22,0.25)]">
+              class="w-full text-left px-3 py-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#F2F3F5] font-medium flex items-center justify-between transition-colors">
               <span class="flex items-center gap-2">
-                <i data-lucide="smartphone" class="w-4 h-4 text-orange-400 animate-pulse"></i>
-                <span>📲 Compartilhar App do Paciente</span>
+                <i data-lucide="clipboard-pen" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
+                <span>Nova avaliação</span>
               </span>
-              <span
-                class="text-[9px] font-mono bg-orange-900 text-orange-200 px-2 py-0.5 rounded-full font-bold">APP</span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-[#737A82]"></i>
             </button>
-            <button onclick="selectDisciplineSubView('dashboard')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-orange-500"></i> Dashboard &amp; Score IDC
+            <button onclick="savePatientToCloud(activePatientId)"
+              class="w-full text-left px-3 py-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#F2F3F5] font-medium flex items-center justify-between transition-colors">
+              <span class="flex items-center gap-2">
+                <i data-lucide="cloud-upload" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
+                <span>Salvar</span>
+              </span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-[#737A82]"></i>
             </button>
-            <button onclick="selectDisciplineSubView('heatmap')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-500"></i> Heatmap de Hábitos (30 Dias)
-            </button>
-            <button onclick="selectDisciplineSubView('habits')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800 flex items-center gap-2">
-              <i data-lucide="list-checks" class="w-3.5 h-3.5 text-orange-500"></i> Matriz de Metas Prescritas
-            </button>
-          </div>
-          <div id="mobile-pilar-nav-5" class="hidden space-y-1">
             <button onclick="exportPrescriptionAndEvaluationPDF()"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-amber-300 hover:bg-zinc-800">Exportar
-              Relatório PDF</button>
-            <button onclick="switchTab('evolution')"
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:bg-zinc-800">Evolução
-              &amp; Comparativos</button>
+              class="w-full text-left px-3 py-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#F2F3F5] font-medium flex items-center justify-between transition-colors">
+              <span class="flex items-center gap-2">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
+                <span>Exportar PDF</span>
+              </span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-[#737A82]"></i>
+            </button>
           </div>
         </div>
       </div>
 
-        <!-- CARTÃO DO NUTRICIONISTA (RODAPÉ DA SIDEBAR) -->
-      <div class="hud-card p-3.5 space-y-3" style="background:#121518;border:1px solid #272C31">
-        <div class="flex items-center gap-3">
-          <div
-            class="relative w-11 h-11 rounded-lg overflow-hidden shrink-0" style="border:1px solid #272C31">
-            <img src="nutritionist.jpg" alt="Paulo Vitor Ribeiro de Sousa" class="w-full h-full object-cover" />
+      <!-- SEÇÃO RODAPÉ DA SIDEBAR: STATUS & CITAÇÃO (REFERÊNCIA 2) -->
+      <div class="pt-4 border-t border-[#272C31] space-y-3">
+        <div class="text-[11px] space-y-0.5">
+          <div class="flex items-center gap-1.5 font-medium text-[#00C896]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00C896] animate-pulse"></span>
+            <span>Sistema online</span>
           </div>
-          <div class="min-w-0 flex-1">
-            <h3 class="text-xs font-semibold leading-tight truncate" style="color:#F2F3F5">Paulo Vitor Ribeiro de Sousa</h3>
-            <p class="text-[11px] font-normal mt-0.5 truncate" style="color:#737A82">Nutricionista Responsável</p>
-          </div>
+          <p class="text-[10px] text-[#737A82]">Última sincronização: 25/08/2026 14:32</p>
         </div>
-
-        <div class="flex items-center justify-between pt-2 text-xs" style="border-top:1px solid #272C31">
-          <span style="color:#737A82">Status:</span>
-          <div class="flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#00C896"></span>
-            <span class="font-medium" style="color:#00C896">Online</span>
-          </div>
+        <div class="pt-2 border-t border-[#1E2227]">
+          <p class="text-[10px] text-[#737A82] italic leading-relaxed">
+            "Disciplina é o que transforma planos em resultados."
+          </p>
+          <span class="text-[9px] font-bold text-[#B7BCC2] tracking-widest block mt-0.5 uppercase">NUTRIAX</span>
         </div>
       </div>
 
@@ -794,7 +651,7 @@
                 <span class="font-bold text-[11px] truncate">Catálogo Biomecânico</span>
               </button>
               <button onclick="handleGenerateAITraining()"
-                class="col-span-2 p-2 rounded-xl bg-gradient-to-r from-violet-900 to-blue-900 border border-violet-600 flex items-center justify-center gap-2 text-white font-bold text-xs shadow-[0_0_12px_rgba(139,92,246,0.3)] transition-all">
+                class="col-span-2 p-2 rounded-xl bg-gradient-to-r from-violet-900 to-blue-900 border border-violet-600 flex items-center justify-center gap-2 text-white font-bold text-xs transition-all">
                 <i data-lucide="sparkles" class="w-4 h-4 text-violet-300"></i>
                 <span>Gerar Treino Completo via IA</span>
               </button>
@@ -827,7 +684,7 @@
                 <span class="text-[11px] truncate">Protocolo SOS</span>
               </button>
               <button onclick="openPatientShareModal()"
-                class="col-span-2 p-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 border border-orange-500 flex items-center justify-center gap-2 text-white font-bold text-xs shadow-[0_0_12px_rgba(249,115,22,0.35)] transition-all">
+                class="col-span-2 p-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 border border-orange-500 flex items-center justify-center gap-2 text-white font-bold text-xs transition-all">
                 <i data-lucide="smartphone" class="w-4 h-4 text-white"></i>
                 <span>📲 Compartilhar App do Paciente</span>
               </button>
@@ -895,21 +752,460 @@
       </div>
 
       <!-- ═══ 0. PERFORMANCE TAB (PILAR 4 · ALINHADO AO TOPO DO MAIN) ═══ -->
-      <section id="tab-performance" class="max-w-7xl mx-auto space-y-6 w-full" style="display:none">
+            <!-- ═══ 1. PILAR 3 / MÓDULO 1: DASHBOARD & RADAR (100% FIEL À REFERÊNCIA 2) ═══ -->
+      <section id="tab-dashboard" class="max-w-7xl mx-auto space-y-4 md:space-y-6 w-full">
+
+        <!-- ── ROW 1: BANNER DO PACIENTE (HERO) ── -->
+        <div class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          style="background: linear-gradient(135deg, rgba(13,16,19,0.95) 0%, rgba(23,27,31,0.9) 100%), url('shapes_banner.jpg') center/cover no-repeat; border: 1px solid #272C31;">
+          
+          <!-- Lado Esquerdo: Identificação & Metadados do Paciente -->
+          <div class="flex-1 min-w-0 z-10">
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="text-[10px] md:text-[11px] font-bold tracking-widest uppercase text-[#737A82]">
+                NUTRIÇÃO &bull; SAÚDE &bull; PERFORMANCE
+              </span>
+            </div>
+            <h1 id="dashPatientName" class="text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#F2F3F5] tracking-tight truncate">
+              Paulo Vitor Ribeiro de Sousa
+            </h1>
+            <p id="dashPatientInfo" class="text-xs md:text-sm text-[#B7BCC2] mt-1.5 flex flex-wrap items-center gap-2 font-medium">
+              39 anos &nbsp;|&nbsp; 1,93 m &nbsp;|&nbsp; 116,1 kg &nbsp;|&nbsp; Objetivo: <span id="dashPatientGoal" class="text-[#E50914] font-bold">Perda de peso</span>
+            </p>
+          </div>
+
+          <!-- Centro/Frase Motivacional da Referência 2 -->
+          <div class="hidden xl:flex items-center max-w-xs z-10 px-4 py-2.5 rounded-xl bg-black/40 border border-[#272C31]/60 backdrop-blur-sm">
+            <p class="text-xs italic text-[#B7BCC2] leading-relaxed">
+              "Melhorar hoje para ter mais resultados amanhã."
+            </p>
+          </div>
+
+          <!-- Lado Direito: KPIs Energéticos (TMB & Alvo Diário) -->
+          <div class="flex items-center gap-3 shrink-0 z-10 w-full sm:w-auto justify-end">
+            <!-- TMB -->
+            <div class="px-5 py-3 rounded-xl min-w-[130px] flex items-center gap-3"
+              style="background: #121518; border: 1px solid #272C31;">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[#E50914]/10 text-[#E50914]">
+                <i data-lucide="flame" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold tracking-wider text-[#737A82] uppercase block">TMB</span>
+                <p class="text-lg md:text-xl font-bold text-[#F2F3F5] tracking-tight">
+                  <span id="dashTmb">2.468</span> <span class="text-xs font-normal text-[#737A82]">kcal</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Alvo Diário -->
+            <div class="px-5 py-3 rounded-xl min-w-[140px] flex items-center gap-3"
+              style="background: #121518; border: 1px solid #272C31;">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[#E50914]/10 text-[#E50914]">
+                <i data-lucide="target" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold tracking-wider text-[#737A82] uppercase block">ALVO DIÁRIO</span>
+                <p class="text-lg md:text-xl font-bold text-[#F2F3F5] tracking-tight">
+                  <span id="dashCaloricTarget">3.352</span> <span class="text-xs font-normal text-[#737A82]">kcal</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── ROW 2: ÍNDICE NUTRIAX & DIAGNÓSTICO SINTÉTICO (2 CARDS) ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+
+          <!-- Card Esquerdo: Índice NutriAx (col-span-8) -->
+          <div class="lg:col-span-8 hud-card p-5 md:p-6 flex flex-col justify-between gap-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold tracking-wider uppercase text-[#F2F3F5]">ÍNDICE NUTRIAX</span>
+                <span id="dashScoreBadge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#171B1F] text-[#B7BCC2] border border-[#272C31]">
+                  Alta Performance
+                </span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+              <!-- Score Gigante -->
+              <div class="sm:col-span-1 pl-2 border-l-2 border-[#E50914]">
+                <div class="flex items-baseline">
+                  <span id="dashScoreValue" class="text-4xl md:text-5xl font-extrabold text-[#E50914] tracking-tight">91</span>
+                  <span class="text-xl font-light text-[#737A82] ml-1">/100</span>
+                </div>
+                <div class="flex items-center gap-1.5 mt-1.5">
+                  <span class="text-[11px] text-[#737A82]">Eficiência Metabólica</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">
+                    Excelente
+                  </span>
+                </div>
+              </div>
+
+              <!-- Idade Metabólica -->
+              <div class="sm:col-span-1 p-3 rounded-xl bg-[#0D1013] border border-[#272C31] text-center">
+                <span class="text-[10px] uppercase tracking-wider text-[#737A82] block">Idade Metabólica</span>
+                <span id="dashMetabolicAge" class="text-base font-bold text-[#F2F3F5] mt-1 block">30 anos</span>
+              </div>
+
+              <!-- Idade Cronológica -->
+              <div class="sm:col-span-1 p-3 rounded-xl bg-[#0D1013] border border-[#272C31] text-center">
+                <span class="text-[10px] uppercase tracking-wider text-[#737A82] block">Idade Cronológica</span>
+                <span id="dashChronoAge" class="text-base font-bold text-[#F2F3F5] mt-1 block">39 anos</span>
+              </div>
+
+              <!-- Vitalidade Metabólica -->
+              <div class="sm:col-span-1 p-3 rounded-xl bg-[#00C896]/5 border border-[#00C896]/20 text-center">
+                <span class="text-[10px] uppercase tracking-wider text-[#737A82] block">Vitalidade Metabólica</span>
+                <span id="dashAgeDiff" class="text-base font-bold text-[#00C896] mt-1 block">+9 anos</span>
+                <span class="text-[9px] text-[#00C896]/80 block">(Mais jovem)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Direito: Diagnóstico Sintético (col-span-4) -->
+          <div class="lg:col-span-4 hud-card p-5 md:p-6 flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="heart-pulse" class="w-4 h-4 text-[#00C896]"></i>
+                <span class="text-xs font-bold tracking-wider uppercase text-[#F2F3F5]">DIAGNÓSTICO SINTÉTICO</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">
+                Excelente
+              </span>
+            </div>
+            <p id="dashAgeObs" class="text-xs text-[#B7BCC2] leading-relaxed font-normal flex-1">
+              A idade metabólica estimada é 9 ano(s) inferior à cronológica — indica alta eficiência metabólica, bom condicionamento cardiorrespiratório e composição corporal favorável.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- ── ROW 3: RADAR METABÓLICO 6D & COMPOSIÇÃO CORPORAL (2 CARDS) ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+
+          <!-- Card Esquerdo: Radar Metabólico NutriAx 6 Dimensões (col-span-7) -->
+          <div class="lg:col-span-7 hud-card p-5 md:p-6 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#272C31]">
+              <div class="flex items-center gap-2">
+                <i data-lucide="crosshair" class="w-4 h-4 text-[#E50914]"></i>
+                <div>
+                  <h2 class="text-xs md:text-sm font-bold tracking-wider uppercase text-[#F2F3F5]">
+                    RADAR METABÓLICO NUTRIAX (6 DIMENSÕES)
+                  </h2>
+                  <span id="radarOverallLabel" class="text-[10px] text-[#737A82] block">Diagnóstico Clínico Multidimensional</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gráfico Radar + Dimensões -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+              <!-- Radar Canvas -->
+              <div class="sm:col-span-5 h-64 sm:h-72 w-full flex items-center justify-center relative">
+                <canvas id="radarChartCanvas" class="w-full h-full"></canvas>
+              </div>
+
+              <!-- 6 Dimensões Clínicas com Barras Finas -->
+              <div class="sm:col-span-7 space-y-2.5">
+                <!-- 1. Massa Muscular -->
+                <div class="p-2.5 rounded-xl bg-[#0D1013] border border-[#1E2227]">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span id="radarFfmiLabel" class="text-[#B7BCC2] flex items-center gap-1.5">
+                      <i data-lucide="dumbbell" class="w-3 h-3 text-[#737A82]"></i> Massa Muscular
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span id="radarFfmiScore" class="font-bold text-[#F2F3F5]">100/100</span>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">Excelente</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
+                    <div id="radarFfmiBar" class="h-full bg-[#00C896] rounded-full transition-all duration-500" style="width: 100%"></div>
+                  </div>
+                  <p id="radarFfmiObs" class="text-[10px] text-[#737A82] mt-0.5 leading-tight hidden"></p>
+                </div>
+
+                <!-- 2. Potencial Metabólico -->
+                <div class="p-2.5 rounded-xl bg-[#0D1013] border border-[#1E2227]">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span id="radarPotencialLabel" class="text-[#B7BCC2] flex items-center gap-1.5">
+                      <i data-lucide="zap" class="w-3 h-3 text-[#737A82]"></i> Potencial Metabólico
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span id="radarPotencialScore" class="font-bold text-[#F2F3F5]">96/100</span>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">Excelente</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
+                    <div id="radarPotencialBar" class="h-full bg-[#00C896] rounded-full transition-all duration-500" style="width: 96%"></div>
+                  </div>
+                  <p id="radarPotencialObs" class="text-[10px] text-[#737A82] mt-0.5 leading-tight hidden"></p>
+                </div>
+
+                <!-- 3. Reserva Muscular -->
+                <div class="p-2.5 rounded-xl bg-[#0D1013] border border-[#1E2227]">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span id="radarReservaLabel" class="text-[#B7BCC2] flex items-center gap-1.5">
+                      <i data-lucide="shield" class="w-3 h-3 text-[#737A82]"></i> Reserva Muscular
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span id="radarReservaScore" class="font-bold text-[#F2F3F5]">98/100</span>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">Excelente</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
+                    <div id="radarReservaBar" class="h-full bg-[#00C896] rounded-full transition-all duration-500" style="width: 98%"></div>
+                  </div>
+                  <p id="radarReservaObs" class="text-[10px] text-[#737A82] mt-0.5 leading-tight hidden"></p>
+                </div>
+
+                <!-- 4. Adesão ao Plano (CORRIGIDO 100%) -->
+                <div class="p-2.5 rounded-xl bg-[#0D1013] border border-[#1E2227]">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span id="radarAdesaoLabel" class="text-[#B7BCC2] flex items-center gap-1.5">
+                      <i data-lucide="check-circle" class="w-3 h-3 text-[#737A82]"></i> Adesão ao Plano
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span id="radarAdesaoScore" class="font-bold text-[#F2F3F5]">85/100</span>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">Muito Bom</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
+                    <div id="radarAdesaoBar" class="h-full bg-[#00C896] rounded-full transition-all duration-500" style="width: 85%"></div>
+                  </div>
+                  <p id="radarAdesaoObs" class="text-[10px] text-[#737A82] mt-0.5 leading-tight hidden"></p>
+                </div>
+
+                <!-- 5. Composição Corporal -->
+                <div class="p-2.5 rounded-xl bg-[#0D1013] border border-[#1E2227]">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span id="radarGorduraLabel" class="text-[#B7BCC2] flex items-center gap-1.5">
+                      <i data-lucide="heart" class="w-3 h-3 text-[#737A82]"></i> Composição Corporal
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span id="radarGorduraScore" class="font-bold text-[#F2F3F5]">80/100</span>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#F2B84B]/10 text-[#F2B84B] border border-[#F2B84B]/20">Muito Bom</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
+                    <div id="radarGorduraBar" class="h-full bg-[#F2B84B] rounded-full transition-all duration-500" style="width: 80%"></div>
+                  </div>
+                  <p id="radarGorduraObs" class="text-[10px] text-[#737A82] mt-0.5 leading-tight hidden"></p>
+                </div>
+
+                <!-- 6. Risco Central -->
+                <div class="p-2.5 rounded-xl bg-[#0D1013] border border-[#1E2227]">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span id="radarRiscoLabel" class="text-[#B7BCC2] flex items-center gap-1.5">
+                      <i data-lucide="activity" class="w-3 h-3 text-[#737A82]"></i> Risco Central
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span id="radarRiscoScore" class="font-bold text-[#F2F3F5]">90/100</span>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20">Excelente</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
+                    <div id="radarRiscoBar" class="h-full bg-[#00C896] rounded-full transition-all duration-500" style="width: 90%"></div>
+                  </div>
+                  <p id="radarRiscoObs" class="text-[10px] text-[#737A82] mt-0.5 leading-tight hidden"></p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Direito: Composição Corporal (col-span-5) -->
+          <div class="lg:col-span-5 hud-card p-5 md:p-6 space-y-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-3 border-b border-[#272C31]">
+              <div class="flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-[#E50914]"></i>
+                <h2 class="text-xs md:text-sm font-bold tracking-wider uppercase text-[#F2F3F5]">
+                  COMPOSIÇÃO CORPORAL
+                </h2>
+              </div>
+            </div>
+
+            <!-- Topo: Donut circular + Métricas -->
+            <div class="flex items-center justify-around gap-4 py-2">
+              <!-- Circular Donut Gauge -->
+              <div class="relative w-28 h-28 flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <!-- Background Circle -->
+                  <path class="text-[#1E2227]" stroke-width="3.5" stroke="currentColor" fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <!-- Progress Circle -->
+                  <path id="dashBodyFatCircle" class="text-[#00C896]" stroke-dasharray="16.34, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span class="text-[9px] uppercase tracking-wider text-[#737A82] font-semibold">% Gordura</span>
+                  <span id="dashFatPercentVal" class="text-sm font-extrabold text-[#F2F3F5]">16,34%</span>
+                </div>
+              </div>
+
+              <!-- Lista de 3 Métricas -->
+              <div class="space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-[#737A82] flex items-center gap-1.5"><i data-lucide="user" class="w-3 h-3 text-[#B7BCC2]"></i> Massa Magra</span>
+                  <strong id="dashLeanMassVal" class="text-[#F2F3F5] font-bold">83,66%</strong>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-[#737A82] flex items-center gap-1.5"><i data-lucide="scale" class="w-3 h-3 text-[#B7BCC2]"></i> Massa Gorda</span>
+                  <strong id="dashFatMassVal" class="text-[#F2F3F5] font-bold">16,34%</strong>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-[#737A82] flex items-center gap-1.5"><i data-lucide="weight" class="w-3 h-3 text-[#B7BCC2]"></i> Peso Corporal</span>
+                  <strong id="dashWeightVal" class="text-[#F2F3F5] font-bold">116,1 kg</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Barras de Dimensão na Composição Corporal -->
+            <div class="pt-3 border-t border-[#272C31] space-y-2">
+              <div class="space-y-1">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-[#B7BCC2] flex items-center gap-1.5 text-[11px]"><i data-lucide="dumbbell" class="w-3 h-3 text-[#737A82]"></i> Massa Muscular</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-xs text-[#F2F3F5]">98/100</span>
+                    <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896]">Excelente</span>
+                  </div>
+                </div>
+                <div class="w-full h-1 bg-[#1C2024] rounded-full overflow-hidden">
+                  <div class="h-full bg-[#00C896] rounded-full" style="width: 98%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-[#B7BCC2] flex items-center gap-1.5 text-[11px]"><i data-lucide="heart" class="w-3 h-3 text-[#737A82]"></i> Composição Corporal</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-xs text-[#F2F3F5]">80/100</span>
+                    <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#F2B84B]/10 text-[#F2B84B]">Adequado</span>
+                  </div>
+                </div>
+                <div class="w-full h-1 bg-[#1C2024] rounded-full overflow-hidden">
+                  <div class="h-full bg-[#F2B84B] rounded-full" style="width: 80%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-[#B7BCC2] flex items-center gap-1.5 text-[11px]"><i data-lucide="user-check" class="w-3 h-3 text-[#737A82]"></i> Adesão ao Plano</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-xs text-[#F2F3F5]">90/100</span>
+                    <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896]">Muito Alta</span>
+                  </div>
+                </div>
+                <div class="w-full h-1 bg-[#1C2024] rounded-full overflow-hidden">
+                  <div class="h-full bg-[#00C896] rounded-full" style="width: 90%"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ── ROW 4: EVOLUÇÃO E TENDÊNCIA & BRAND CARD (2 CARDS) ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+
+          <!-- Card Esquerdo: Evolução e Tendência (col-span-8) -->
+          <div class="lg:col-span-8 hud-card p-5 md:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#272C31]">
+              <div class="flex items-center gap-2">
+                <i data-lucide="trending-down" class="w-4 h-4 text-[#E50914]"></i>
+                <h2 class="text-xs md:text-sm font-bold tracking-wider uppercase text-[#F2F3F5]">
+                  EVOLUÇÃO E TENDÊNCIA
+                </h2>
+              </div>
+              <!-- Filtros da Referência 2 -->
+              <div class="flex items-center gap-1 bg-[#0D1013] p-1 rounded-xl border border-[#272C31]">
+                <button type="button" onclick="dashSetEvolutionMetric('weight')" id="dash-btn-evo-weight"
+                  class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-[#E50914] text-white transition-all">Peso</button>
+                <button type="button" onclick="dashSetEvolutionMetric('fat')" id="dash-btn-evo-fat"
+                  class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-[#737A82] hover:text-[#F2F3F5] transition-all">% Gordura</button>
+                <button type="button" onclick="dashSetEvolutionMetric('lean')" id="dash-btn-evo-lean"
+                  class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-[#737A82] hover:text-[#F2F3F5] transition-all">Massa Magra</button>
+                <button type="button" onclick="dashSetEvolutionMetric('tmb')" id="dash-btn-evo-tmb"
+                  class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-[#737A82] hover:text-[#F2F3F5] transition-all">TMB</button>
+              </div>
+            </div>
+
+            <!-- Gráfico de Linha + Caixa de Última Avaliação -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+              <!-- Canvas da Tendência -->
+              <div class="sm:col-span-8 h-48 sm:h-56 w-full flex items-center justify-center relative">
+                <canvas id="dashEvolutionCanvas" class="w-full h-full"></canvas>
+              </div>
+
+              <!-- Caixa de Última Avaliação da Referência 2 -->
+              <div class="sm:col-span-4 p-3.5 rounded-xl bg-[#0D1013] border border-[#272C31] space-y-2.5 text-xs">
+                <div class="flex items-center justify-between border-b border-[#1E2227] pb-1.5">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-[#737A82]">Última Avaliação</span>
+                  <span class="text-[10px] font-mono text-[#B7BCC2]">25/08/2026</span>
+                </div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[#737A82] flex items-center gap-1 text-[11px]"><i data-lucide="scale" class="w-3 h-3"></i> Peso</span>
+                    <span class="font-bold text-[#F2F3F5] flex items-center gap-1">116,1 kg <i data-lucide="arrow-down" class="w-3 h-3 text-[#00C896]"></i></span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[#737A82] flex items-center gap-1 text-[11px]"><i data-lucide="percent" class="w-3 h-3"></i> % Gordura</span>
+                    <span class="font-bold text-[#F2F3F5] flex items-center gap-1">16,34% <i data-lucide="arrow-down" class="w-3 h-3 text-[#00C896]"></i></span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[#737A82] flex items-center gap-1 text-[11px]"><i data-lucide="dumbbell" class="w-3 h-3"></i> Massa Muscular</span>
+                    <span class="font-bold text-[#F2F3F5] flex items-center gap-1">98,0 kg <i data-lucide="arrow-up" class="w-3 h-3 text-[#00C896]"></i></span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[#737A82] flex items-center gap-1 text-[11px]"><i data-lucide="flame" class="w-3 h-3"></i> TMB</span>
+                    <span class="font-bold text-[#F2F3F5] flex items-center gap-1">2.468 kcal <i data-lucide="arrow-up" class="w-3 h-3 text-[#00C896]"></i></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Direito: NutriAx Brand Card (col-span-4) -->
+          <div class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31]"
+            style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('nutritionist.jpg') center/cover no-repeat;">
+            
+            <div class="z-10 pt-2">
+              <p class="text-sm md:text-base font-medium text-[#F2F3F5] leading-relaxed">
+                Mais do que números, é sobre <strong class="text-white">longevidade</strong>, <strong class="text-white">saúde</strong> e <strong class="text-[#E50914]">performance</strong>.
+              </p>
+            </div>
+
+            <div class="z-10 pt-6 flex items-center gap-3">
+              <img src="logo.png" alt="NutriAx" class="h-9 w-auto object-contain brightness-100" />
+              <div>
+                <span class="text-xs font-black text-white tracking-widest uppercase block">NutriAx</span>
+                <span class="text-[9px] text-[#737A82] tracking-wider block">NUTRIÇÃO &bull; PERFORMANCE &bull; RESULTADOS</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+<section id="tab-performance" class="max-w-7xl mx-auto space-y-6 w-full hidden" hidden>
 
         <!-- Header Banner HUD de Performance (Pilar 4 - Azul Cobalto) -->
         <div
-          class="hud-card-blue p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+          class="hud-card p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
           <div class="flex-1 min-w-0 w-full">
             <div class="flex items-center gap-2 flex-wrap mb-2">
               <span
-                class="text-xs font-mono font-bold bg-blue-950/90 text-blue-300 border border-blue-700/60 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_10px_rgba(59,130,246,0.25)]">
+                class="text-xs font-mono font-bold bg-blue-950/90 text-blue-300 border border-blue-700/60 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                 <i data-lucide="zap" class="w-3.5 h-3.5 text-blue-400"></i> Pilar 4 · Performance &amp; Biomecânica
               </span>
               <span class="text-xs font-mono font-medium text-zinc-400">Delavier · Nick Evans · Jim Stoppani</span>
             </div>
             <h1 class="text-xl md:text-3xl font-bold text-white tracking-tight">
-              Prescrição de <span class="text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.5)]">Treinamento</span>
+              Prescrição de <span class="text-blue-400 drop-">Treinamento</span>
             </h1>
             <p class="text-xs md:text-sm font-medium text-gray-300 mt-1 flex flex-wrap gap-2">
               <span id="perfPatientName">Paulo Vitor R de Sousa</span> • <span id="perfPatientGoal"
@@ -919,7 +1215,7 @@
             <!-- Ação Rápida do Co-piloto IA no Banner -->
             <div class="mt-3 flex items-center gap-2 flex-wrap">
               <button id="perf-ai-btn" onclick="handleGenerateAITraining()"
-                class="w-full sm:w-auto relative flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all overflow-hidden border border-violet-400/40 shadow-[0_0_16px_rgba(139,92,246,0.45)] hover:shadow-[0_0_24px_rgba(139,92,246,0.7)]"
+                class="w-full sm:w-auto relative flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all overflow-hidden border border-violet-400/40 hover:"
                 style="background:linear-gradient(135deg,#7c3aed 0%,#2563eb 100%)">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-200"></i>
                 <span>Gerar Treino via IA (Co-piloto Biomecânico)</span>
@@ -959,7 +1255,7 @@
 
               <!-- Botão de Exportar PDF Completo -->
               <button onclick="perfGeneratePDF()"
-                class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-600/70 hover:bg-emerald-900 transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-600/70 hover:bg-emerald-900 transition-all">
                 <i data-lucide="file-down" class="w-3.5 h-3.5 text-emerald-400"></i>
                 <span>Exportar PDF da Semana</span>
               </button>
@@ -967,16 +1263,16 @@
 
             <!-- Toast & Card de Auditoria Cruzada Nutrição x Treino -->
             <div id="perf-ai-toast" style="display:none;margin-top:12px;"
-              class="items-start gap-3 px-4 py-2.5 rounded-xl text-xs font-medium bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+              class="items-start gap-3 px-4 py-2.5 rounded-xl text-xs font-medium bg-emerald-950/60 border border-emerald-700/60 text-emerald-300">
             </div>
 
             <!-- Card HUD de Integração com o Pilar Nutrição (Gerado pela IA) -->
             <div id="perf-nutrition-audit-card" style="display:none;margin-top:14px;"
-              class="hud-card p-3 sm:p-4 border border-blue-500/40 bg-gradient-to-r from-blue-950/70 via-black/80 to-purple-950/60 space-y-2.5 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.18)]">
+              class="hud-card p-3 sm:p-4 border border-blue-500/40 bg-gradient-to-r from-blue-950/70 via-black/80 to-purple-950/60 space-y-2.5 rounded-xl">
               <div class="flex items-center justify-between flex-wrap gap-2 border-b border-blue-900/40 pb-2">
                 <div class="flex items-center gap-2">
                   <span
-                    class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]"></span>
+                    class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span class="text-[11px] sm:text-xs font-mono font-bold text-blue-300 uppercase tracking-wider">Metas
                     do Pilar 3 (Nutrição) Integradas ao Treino</span>
                 </div>
@@ -1050,7 +1346,7 @@
                   class="text-[10px] text-zinc-500 font-normal">totais</span></p>
             </div>
             <div
-              class="bg-blue-950/60 border border-blue-800/80 p-2.5 sm:p-3.5 rounded-xl text-center shadow-[0_0_15px_rgba(59,130,246,0.25)]">
+              class="bg-blue-950/60 border border-blue-800/80 p-2.5 sm:p-3.5 rounded-xl text-center">
               <span
                 class="text-[9px] sm:text-[10px] font-mono font-bold text-blue-300 block uppercase tracking-wide">Séries</span>
               <p class="text-lg sm:text-xl font-black text-white mt-0.5"><span id="perf-total-sets">33</span> <span
@@ -1077,11 +1373,11 @@
 
           <!-- Painel Nobre de Racional Biomecânico, Motivos, Metas & Periodização da IA -->
           <div id="perf-ai-rationale-panel"
-            class="hud-card p-6 space-y-5 border-blue-500/50 bg-gradient-to-br from-blue-950/40 via-black/90 to-zinc-950/90 shadow-[0_0_25px_rgba(59,130,246,0.15)] rounded-2xl">
+            class="hud-card p-6 space-y-5 border-blue-500/50 bg-gradient-to-br from-blue-950/40 via-black/90 to-zinc-950/90 rounded-2xl">
             <div class="flex items-center justify-between border-b border-blue-500/30 pb-3 flex-wrap gap-2">
               <div class="flex items-center gap-2.5">
                 <span
-                  class="p-2 rounded-xl bg-blue-950/90 border border-blue-500/60 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.35)]">
+                  class="p-2 rounded-xl bg-blue-950/90 border border-blue-500/60 text-blue-400">
                   <i data-lucide="brain-circuit" class="w-5 h-5"></i>
                 </span>
                 <div>
@@ -1103,7 +1399,7 @@
 
               <div class="flex items-center gap-2">
                 <button onclick="perfSwitchView('catalog', true)"
-                  class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/30 transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                  class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/30 transition-all flex items-center gap-1.5">
                   <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
                   <span>Abrir Catálogo Completo (90+ Exercícios)</span>
                 </button>
@@ -1206,11 +1502,11 @@
 
           <!-- Cronograma Semanal & Sinergia Nutricional (7 Dias Integrados) -->
           <div id="perf-prescription-schedule-card"
-            class="hud-card p-5 space-y-4 border-blue-500/40 bg-gradient-to-br from-blue-950/30 via-black/80 to-zinc-950/90 shadow-[0_0_20px_rgba(59,130,246,0.12)] rounded-2xl">
+            class="hud-card p-5 space-y-4 border-blue-500/40 bg-gradient-to-br from-blue-950/30 via-black/80 to-zinc-950/90 rounded-2xl">
             <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3 flex-wrap gap-2">
               <div class="flex items-center gap-2.5">
                 <span
-                  class="p-2 rounded-xl bg-blue-950/90 border border-blue-700/70 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                  class="p-2 rounded-xl bg-blue-950/90 border border-blue-700/70 text-blue-400">
                   <i data-lucide="calendar" class="w-5 h-5"></i>
                 </span>
                 <div>
@@ -1246,7 +1542,7 @@
           <div class="flex items-center justify-between flex-wrap gap-3 pt-2">
             <div class="flex items-center gap-2.5">
               <span
-                class="p-2 rounded-xl bg-blue-950/80 border border-blue-700/60 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.25)]">
+                class="p-2 rounded-xl bg-blue-950/80 border border-blue-700/60 text-blue-400">
                 <i data-lucide="dumbbell" class="w-5 h-5"></i>
               </span>
               <div>
@@ -1274,7 +1570,7 @@
 
           <!-- Barra de Busca Rápida de Exercícios para Inserção Direta na Rotina Alvo -->
           <div
-            class="hud-card p-3.5 rounded-2xl border border-blue-500/40 bg-zinc-950/90 shadow-[0_0_20px_rgba(37,99,235,0.15)] space-y-2.5">
+            class="hud-card p-3.5 rounded-2xl border border-blue-500/40 bg-zinc-950/90 space-y-2.5">
             <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               <div class="relative flex-1">
                 <i data-lucide="search" class="w-4 h-4 text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
@@ -1322,7 +1618,7 @@
             <div class="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
               <div class="flex items-center gap-2.5">
                 <span
-                  class="p-2 rounded-xl bg-blue-950/80 border border-blue-700/60 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
+                  class="p-2 rounded-xl bg-blue-950/80 border border-blue-700/60 text-blue-400">
                   <i data-lucide="calendar" class="w-5 h-5"></i>
                 </span>
                 <div>
@@ -1349,11 +1645,11 @@
         <!-- ── SUB-VIEW 3: CARDIOS & COMPROMISED RUNNING (ENGINE HUB) ── -->
         <div id="perf-view-cardio" class="perf-subview space-y-4" style="display:none">
           <div id="perf-cardio-section"
-            class="hud-card p-6 space-y-5 border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-black/90 to-zinc-950/80 shadow-[0_0_25px_rgba(245,158,11,0.1)]">
+            class="hud-card p-6 space-y-5 border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-black/90 to-zinc-950/80">
             <div class="flex items-center justify-between border-b border-zinc-800 pb-4 flex-wrap gap-3">
               <div class="flex items-center gap-2.5">
                 <span
-                  class="p-2.5 rounded-xl bg-amber-950/80 border border-amber-600/60 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+                  class="p-2.5 rounded-xl bg-amber-950/80 border border-amber-600/60 text-amber-400">
                   <i data-lucide="flame" class="w-6 h-6"></i>
                 </span>
                 <div>
@@ -1372,7 +1668,7 @@
                 <span class="text-xs font-mono text-zinc-400">Filtrar:</span>
                 <div class="flex flex-wrap gap-1" id="perf-cardio-filters">
                   <button onclick="perfSetCardioFilter('Todos')"
-                    class="perf-cardio-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-black shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                    class="perf-cardio-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-black"
                     data-cfilter="Todos">Todos</button>
                   <button onclick="perfSetCardioFilter('Compromised')"
                     class="perf-cardio-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
@@ -1424,7 +1720,7 @@
               </div>
               <div class="flex flex-wrap gap-1.5 w-full md:w-auto">
                 <button onclick="perfSetGroupFilter('Todos')" data-group="Todos"
-                  class="perf-group-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 text-white shadow-[0_0_8px_rgba(59,130,246,0.5)]">Todos</button>
+                  class="perf-group-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 text-white">Todos</button>
                 <button onclick="perfSetGroupFilter('Peitoral')" data-group="Peitoral"
                   class="perf-group-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">Peitoral</button>
                 <button onclick="perfSetGroupFilter('Dorsal')" data-group="Dorsal"
@@ -1451,211 +1747,11 @@
 
       </section>
 
-      <!-- 1. DASHBOARD TAB -->
-      <section id="tab-dashboard" class="max-w-7xl mx-auto space-y-6 w-full">
-
-        <!-- Header Banner HUD -->
-        <div class="hud-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <div class="flex items-center gap-2 flex-wrap mb-3">
-              <span
-                class="text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5" style="background:rgba(229,9,20,0.08);color:#B7BCC2;border:1px solid rgba(229,9,20,0.2)">
-                <i data-lucide="activity" class="w-3.5 h-3.5" style="color:#E50914"></i> Painel Clínico &amp; Diagnóstico Metabólico
-              </span>
-              <span class="text-xs font-normal" style="color:#737A82">25.06.2026</span>
-            </div>
-            <h1 id="dashPatientName" class="text-2xl md:text-3xl font-semibold tracking-tight" style="color:#F2F3F5">Paulo Vitor R de Sousa</h1>
-            <p id="dashPatientInfo" class="text-sm font-normal mt-1 flex flex-wrap gap-2" style="color:#B7BCC2">
-              38 anos • 1,96 m • 116 kg • Objetivo: <span id="dashPatientGoal" class="font-medium" style="color:#E50914">Perda de peso</span>
-            </p>
-          </div>
-
-          <div class="flex items-center gap-3 shrink-0">
-            <div class="p-4 rounded-xl text-center min-w-[130px]" style="background:#121518;border:1px solid #272C31">
-              <span class="text-[11px] font-medium block" style="color:#737A82;letter-spacing:0.04em">TMB Katch</span>
-              <p class="text-xl font-semibold mt-0.5" style="color:#F2F3F5"><span id="dashTmb">2715</span> <span class="text-xs font-normal" style="color:#737A82">kcal</span></p>
-            </div>
-            <div class="p-4 rounded-xl text-center min-w-[140px]" style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25)">
-              <span class="text-[11px] font-medium block" style="color:#B7BCC2;letter-spacing:0.04em">Alvo Diário</span>
-              <p class="text-xl font-bold mt-0.5" style="color:#E50914"><span id="dashCaloricTarget">3739</span> <span class="text-xs font-normal" style="color:#B7BCC2">kcal</span></p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ═══ 1. CARD ÍNDICE NUTRIAX (DISTRIBUÍDO HORIZONTALMENTE EM LARGURA TOTAL) ═══ -->
-        <div class="hud-card p-6">
-          <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
-
-            <!-- Bloco 1: Índice NutriAx -->
-            <div
-              class="flex items-center gap-6 shrink-0 pb-4 lg:pb-0 lg:pr-8 w-full lg:w-auto justify-between lg:justify-start" style="border-bottom: 1px solid #272C31" data-lg-border-style="border-bottom:none;border-right:1px solid #272C31">
-              <div>
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="text-[11px] font-medium flex items-center gap-1.5" style="color:#737A82;letter-spacing:0.04em">
-                    <i data-lucide="zap" class="w-3.5 h-3.5" style="color:#E50914"></i> Índice NutriAx
-                  </span>
-                  <span id="dashScoreBadge"
-                    class="text-[11px] px-2.5 py-0.5 rounded-full font-medium" style="background:rgba(0,200,150,0.1);color:#00C896;border:1px solid rgba(0,200,150,0.3)">
-                    Alta Performance
-                  </span>
-                </div>
-                <div class="inline-flex items-baseline justify-center">
-                  <span id="dashScoreValue" class="score-giant-neon">87</span>
-                  <span class="text-2xl font-light ml-1.5" style="color:#737A82">/100</span>
-                </div>
-                <p class="text-xs font-normal mt-1" style="color:#737A82">Eficiência Metabólica</p>
-              </div>
-            </div>
-
-            <!-- Bloco 2: Idades e Vitalidade -->
-            <div
-              class="flex-1 w-full flex flex-wrap md:flex-nowrap items-center justify-around gap-3 pb-4 lg:pb-0 lg:px-6" style="border-bottom:1px solid #272C31">
-              <div class="rounded-xl px-4 py-3 text-center flex-1 min-w-[130px]" style="background:#121518;border:1px solid #272C31">
-                <span class="text-xs font-normal block whitespace-nowrap" style="color:#737A82">Idade Cronológica</span>
-                <span id="dashChronoAge" class="text-base font-semibold mt-0.5 block whitespace-nowrap" style="color:#F2F3F5">39 anos</span>
-              </div>
-              <div class="rounded-xl px-4 py-3 text-center flex-1 min-w-[130px]" style="background:#121518;border:1px solid #272C31">
-                <span class="text-xs font-normal block whitespace-nowrap" style="color:#737A82">Idade Metabólica Est.</span>
-                <span id="dashMetabolicAge" class="text-base font-semibold mt-0.5 block whitespace-nowrap" style="color:#00C896">31 anos</span>
-              </div>
-              <div class="rounded-xl px-4 py-3 text-center flex-1 min-w-[160px]" style="background:rgba(0,200,150,0.06);border:1px solid rgba(0,200,150,0.25)">
-                <span class="text-xs font-normal block whitespace-nowrap" style="color:#B7BCC2">Vitalidade Metabólica</span>
-                <span id="dashAgeDiff" class="text-sm font-bold mt-0.5 block whitespace-nowrap" style="color:#00C896">-8 anos (Mais jovem)</span>
-              </div>
-            </div>
-
-            <!-- Bloco 3: Diagnóstico Sintético -->
-            <div class="w-full lg:w-80 shrink-0 text-xs space-y-2">
-              <div class="flex items-center gap-1.5 font-medium" style="color:#F2F3F5">
-                <i data-lucide="check-circle-2" class="w-4 h-4" style="color:#00C896"></i>
-                <span>Diagnóstico Sintético</span>
-              </div>
-              <p id="dashAgeObs" class="leading-relaxed font-normal" style="color:#B7BCC2">
-                Excelente! A idade metabólica estimada é 8 ano(s) inferior à cronológica — indica alta eficiência
-                metabólica e condicionamento favorável.
-              </p>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- ═══ 2. CARD RADAR METABÓLICO (GRÁFICO NO CENTRO + RESULTADOS AO REDOR) ═══ -->
-        <div class="hud-card p-6 space-y-5">
-          <!-- Radar Metabólico NutriAx -->
-          <div class="flex items-center justify-between pb-3" style="border-bottom:1px solid #272C31">
-            <h2 class="font-semibold text-base md:text-lg flex items-center gap-2" style="color:#F2F3F5">
-              <i data-lucide="activity" class="w-5 h-5" style="color:#E50914"></i> Radar Metabólico NutriAx
-              <span class="text-sm font-normal" style="color:#737A82">(6 Dimensões)</span>
-            </h2>
-            <span id="radarOverallLabel" class="text-xs font-normal" style="color:#737A82">Diagnóstico Clínico Multidimensional</span>
-          </div>
-
-          <!-- Grid em 3 Colunas: 3 Métricas à Esquerda | Gráfico no Centro | 3 Métricas à Direita -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-
-            <!-- Coluna Esquerda: Dimensões 1, 2 e 3 -->
-            <div class="lg:col-span-4 space-y-3">
-              <!-- 1. Massa Muscular -->
-              <div class="bg-black/60 p-3 rounded-xl border border-zinc-800/90 shadow-sm">
-                <div class="flex justify-between items-center text-xs font-semibold mb-1">
-                  <span id="radarFfmiLabel" class="text-gray-200">Massa Muscular (FFMI)</span>
-                  <span id="radarFfmiScore" class="text-emerald-400 font-bold">100/100 • Excelente</span>
-                </div>
-                <div class="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                  <div id="radarFfmiBar" class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style="width: 100%"></div>
-                </div>
-                <p id="radarFfmiObs" class="text-[11px] text-gray-400 mt-1 leading-relaxed"></p>
-              </div>
-
-              <!-- 2. Potencial Metabólico -->
-              <div class="bg-black/60 p-3 rounded-xl border border-zinc-800/90 shadow-sm">
-                <div class="flex justify-between items-center text-xs font-semibold mb-1">
-                  <span id="radarPotencialLabel" class="text-gray-200">Potencial Metabólico</span>
-                  <span id="radarPotencialScore" class="text-emerald-400 font-bold">94/100 • Excelente</span>
-                </div>
-                <div class="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                  <div id="radarPotencialBar" class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style="width: 94%"></div>
-                </div>
-                <p id="radarPotencialObs" class="text-[11px] text-gray-400 mt-1 leading-relaxed"></p>
-              </div>
-
-              <!-- 3. Risco Central -->
-              <div class="bg-black/60 p-3 rounded-xl border border-zinc-800/90 shadow-sm">
-                <div class="flex justify-between items-center text-xs font-semibold mb-1">
-                  <span id="radarRiscoLabel" class="text-gray-200">Risco Central (RCEst)</span>
-                  <span id="radarRiscoScore" class="text-emerald-400 font-bold">80/100 • Adequado</span>
-                </div>
-                <div class="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                  <div id="radarRiscoBar" class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style="width: 80%"></div>
-                </div>
-                <p id="radarRiscoObs" class="text-[11px] text-gray-400 mt-1 leading-relaxed"></p>
-              </div>
-            </div>
-
-            <!-- Coluna Central: Spider Radar Chart Canvas -->
-            <div
-              class="lg:col-span-4 h-80 w-full flex items-center justify-center relative p-2 rounded-xl" style="background:#0D1013;border:1px solid #272C31">
-              <canvas id="radarChartCanvas" class="w-full h-full"></canvas>
-            </div>
-
-            <!-- Coluna Direita: Dimensões 4, 5 e 6 -->
-            <div class="lg:col-span-4 space-y-3">
-              <!-- 4. Reserva Muscular -->
-              <div class="bg-black/60 p-3 rounded-xl border border-zinc-800/90 shadow-sm">
-                <div class="flex justify-between items-center text-xs font-semibold mb-1">
-                  <span id="radarReservaLabel" class="text-gray-200">Reserva Muscular</span>
-                  <span id="radarReservaScore" class="text-emerald-400 font-bold">98/100 • Excelente</span>
-                </div>
-                <div class="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                  <div id="radarReservaBar" class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style="width: 98%"></div>
-                </div>
-                <p id="radarReservaObs" class="text-[11px] text-gray-400 mt-1 leading-relaxed"></p>
-              </div>
-
-              <!-- 5. Composição Corporal -->
-              <div class="bg-[#0D1013] p-3 rounded-xl border border-[#272C31]">
-                <div class="flex justify-between items-center text-xs font-semibold mb-1">
-                  <span id="radarGorduraLabel" style="color:#B7BCC2">Composição Corporal (%G)</span>
-                  <span id="radarGorduraScore" style="color:#F59E0B">80/100</span>
-                </div>
-                <div class="w-full h-1.5 bg-[#1C2024] rounded-full overflow-hidden">
-                  <div id="radarGorduraBar" class="h-full rounded-full transition-all duration-500"
-                    style="width: 80%; background:#F59E0B"></div>
-                </div>
-                <p id="radarGorduraObs" class="text-[11px] mt-1 leading-relaxed" style="color:#737A82"></p>
-              </div>
-
-              <!-- 6. Adesão -->
-                    style="width: 90%"></div>
-                </div>
-                <p id="radarAdesaoObs" class="text-[11px] text-gray-400 mt-1 leading-relaxed"></p>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Foco da Conduta -->
-          <div
-            class="p-4 bg-red-950/30 rounded-xl border border-red-900/40 text-xs font-medium text-gray-200 flex items-start gap-3">
-            <i data-lucide="zap" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
-            <p>
-              <strong class="text-red-400 font-bold">Foco Estratégico Atual:</strong> Composição Corporal e Manutenção
-              Anabólica. Manter ingestão proteica de 1.8g/kg e hidratação de 5.3L/dia.
-            </p>
-          </div>
-        </div>
-
-      </section>
-
       <!-- 1.1 ANAMNESE & PERFIL TAB (ABA 01 & TREINO) -->
       <section id="tab-anamnese" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner HUD -->
         <div
-          class="module-header glass-card hud-box rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          class="module-header glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div class="flex items-center gap-2">
               <span class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md"
@@ -1937,7 +2033,7 @@
       <section id="tab-exams" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner HUD -->
         <div
-          class="module-header glass-card hud-box rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          class="module-header glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div class="flex items-center gap-2">
               <span class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md"
@@ -2173,7 +2269,7 @@
       <section id="tab-recall" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner HUD -->
         <div
-          class="module-header glass-card hud-box rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          class="module-header glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div class="flex items-center gap-2">
               <span class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md"
@@ -3329,11 +3425,11 @@
 
         <!-- Header Banner HUD do Pilar 5 (Âmbar / Ouro) -->
         <div
-          class="hud-card-amber p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+          class="hud-card p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
           <div class="flex-1 min-w-0 w-full">
             <div class="flex items-center gap-2 flex-wrap mb-2">
               <span
-                class="text-xs font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.25)]">
+                class="text-xs font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                 <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> Pilar 5 · Resultado &amp; Impacto
                 Clínico
               </span>
@@ -3341,7 +3437,7 @@
                 &amp; P-Ratio</span>
             </div>
             <h1 class="text-xl md:text-3xl font-bold text-white tracking-tight">
-              Painel de <span class="text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]">Resultados &amp;
+              Painel de <span class="text-amber-400">Resultados &amp;
                 Impacto</span>
             </h1>
             <p class="text-xs md:text-sm font-medium text-gray-300 mt-1 flex flex-wrap gap-2">
@@ -3352,7 +3448,7 @@
             <!-- Ação Rápida e Sub-View Selector no Banner -->
             <div class="mt-3 flex items-center gap-2 flex-wrap">
               <button onclick="resultsSwitchSubView('dashboard')" id="results-subbtn-dashboard"
-                class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.4)] flex items-center gap-1.5 transition-all">
+                class="results-sub-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black flex items-center gap-1.5 transition-all">
                 <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Dashboard &amp; IEC
               </button>
               <button onclick="resultsSwitchSubView('charts')" id="results-subbtn-charts"
@@ -3372,11 +3468,11 @@
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Projeção IA
               </button>
               <button onclick="openNewAssessmentModal()"
-                class="btn-nax-amber px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.3)] transition-all">
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#121518] border border-[#272C31] text-[#F2F3F5] hover:border-[#E50914] transition-all px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> + Nova Reavaliação
               </button>
               <button onclick="exportImpactReportPDF()"
-                class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-200 bg-amber-950/80 border border-amber-600/70 hover:bg-amber-900 flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-200 bg-amber-950/80 border border-amber-600/70 hover:bg-amber-900 flex items-center gap-1.5 transition-all">
                 <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-400"></i> Exportar Laudo PDF
               </button>
             </div>
@@ -3401,7 +3497,7 @@
 
             <div onclick="openMetricsGlossaryModal('pratio')"
               title="Clique para ver a explicação do P-Ratio (Forbes Tissue Partitioning)"
-              class="bg-amber-950/60 border border-amber-800/80 hover:border-amber-500 p-2 sm:p-3 rounded-xl text-center shadow-[0_0_15px_rgba(245,158,11,0.25)] cursor-pointer group transition-all">
+              class="bg-amber-950/60 border border-amber-800/80 hover:border-amber-500 p-2 sm:p-3 rounded-xl text-center cursor-pointer group transition-all">
               <div class="flex items-center justify-center gap-1">
                 <span
                   class="text-[9px] sm:text-[10px] font-mono font-bold text-amber-300 block uppercase tracking-wide">P-Ratio</span>
@@ -3437,11 +3533,11 @@
 
           <!-- Card Nobre de Diagnóstico de Eficiência Composta (IEC) -->
           <div
-            class="hud-card-amber p-6 space-y-4 rounded-2xl border border-amber-500/50 bg-gradient-to-br from-amber-950/40 via-black/90 to-zinc-950 shadow-[0_0_25px_rgba(245,158,11,0.15)]">
+            class="hud-card p-6 space-y-4 rounded-2xl border border-amber-500/50 bg-gradient-to-br from-amber-950/40 via-black/90 to-zinc-950">
             <div class="flex items-center justify-between border-b border-amber-500/30 pb-3 flex-wrap gap-2">
               <div class="flex items-center gap-2.5">
                 <span
-                  class="p-2 rounded-xl bg-amber-950/90 border border-amber-500/60 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.35)]">
+                  class="p-2 rounded-xl bg-amber-950/90 border border-amber-500/60 text-amber-400">
                   <i data-lucide="award" class="w-5 h-5"></i>
                 </span>
                 <div>
@@ -3536,7 +3632,7 @@
                 <p class="text-xs text-zinc-400">Banco de dados local criptografado com sincronização em nuvem</p>
               </div>
               <button onclick="openNewAssessmentModal()"
-                class="btn-nax-amber px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1">
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#121518] border border-[#272C31] text-[#F2F3F5] hover:border-[#E50914] transition-all px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Inserir Registro
               </button>
             </div>
@@ -3702,7 +3798,7 @@
                   · Costas · Perfil</span>
               </div>
               <button onclick="resultsTriggerPhotoUpload()"
-                class="btn-nax-amber px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#121518] border border-[#272C31] text-[#F2F3F5] hover:border-[#E50914] transition-all px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload de Nova Foto
               </button>
               <input type="file" id="resultsPhotoFileInput" accept="image/*" class="hidden"
@@ -3728,7 +3824,7 @@
               </div>
 
               <div
-                class="p-4 rounded-2xl bg-black/60 border border-amber-600/40 text-center space-y-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                class="p-4 rounded-2xl bg-black/60 border border-amber-600/40 text-center space-y-3">
                 <div class="flex justify-between items-center text-xs font-mono text-amber-400">
                   <span class="font-bold text-amber-300">🔥 Foto Atual (Reavaliação Recente)</span>
                   <span>15.08.2026</span>
@@ -3829,7 +3925,7 @@
       <section id="tab-discipline" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner HUD -->
         <div
-          class="module-header hud-card-orange rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          class="module-header hud-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div class="flex items-center gap-2 flex-wrap">
               <span
@@ -3861,7 +3957,7 @@
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-orange-400"></i> Sincronizar
             </button>
             <button onclick="openPatientShareModal()"
-              class="btn-nax-orange text-white font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.4)]">
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#E50914] text-white hover:bg-[#B80710] transition-all text-white font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
               <i data-lucide="smartphone" class="w-4 h-4 text-white"></i> 📲 Compartilhar App com Paciente
             </button>
           </div>
@@ -3900,7 +3996,7 @@
         <!-- ═══ 1. TOP 4 KPI CARDS (SCORE IDC & ADESÃO) ═══ -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- 1. Score IDC Geral -->
-          <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+          <div class="hud-card p-5 rounded-2xl space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Score IDC Geral</span>
               <span id="kpiIdcTierBadge"
@@ -3920,7 +4016,7 @@
           </div>
 
           <!-- 2. Taxa de Adesão Alimentar -->
-          <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+          <div class="hud-card p-5 rounded-2xl space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Adesão Alimentar</span>
               <span id="kpiDietBadge"
@@ -3937,7 +4033,7 @@
           </div>
 
           <!-- 3. Hidratação Fracionada -->
-          <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+          <div class="hud-card p-5 rounded-2xl space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Hidratação Média</span>
               <span id="kpiWaterBadge"
@@ -3954,7 +4050,7 @@
           </div>
 
           <!-- 4. Treino & Cardio (Pilar 4) -->
-          <div class="hud-card-orange p-5 rounded-2xl space-y-2">
+          <div class="hud-card p-5 rounded-2xl space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-orange-300 uppercase tracking-wider">Estímulo Físico</span>
               <span id="kpiWorkoutBadge"
@@ -4193,7 +4289,7 @@
       <section id="tab-adherence" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner HUD -->
         <div
-          class="module-header glass-card hud-box rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          class="module-header glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div class="flex items-center gap-2">
               <span class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md"
@@ -4324,7 +4420,7 @@
       <section id="tab-foods" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner HUD -->
         <div
-          class="module-header glass-card hud-box rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          class="module-header glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div class="flex items-center gap-2">
               <span class="mono-label flex items-center gap-1.5 px-2.5 py-1 rounded-md"
@@ -4540,13 +4636,13 @@
 
         <!-- Card Principal de Sincronização Google Drive -->
         <div
-          class="hud-card p-5 md:p-7 border border-emerald-800/80 bg-gradient-to-br from-emerald-950/60 via-zinc-950 to-black space-y-6 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.22)]">
+          class="hud-card p-5 md:p-7 border border-emerald-800/80 bg-gradient-to-br from-emerald-950/60 via-zinc-950 to-black space-y-6 rounded-3xl">
 
           <!-- Header da Aba de Backup -->
           <div class="flex items-center justify-between border-b border-zinc-800 pb-5 flex-wrap gap-3">
             <div class="flex items-center gap-3.5">
               <div
-                class="w-14 h-14 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-700/80 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] shrink-0">
+                class="w-14 h-14 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-700/80 flex items-center justify-center shrink-0">
                 <i data-lucide="cloud-upload" class="w-7 h-7 text-emerald-400"></i>
               </div>
               <div>
@@ -4573,7 +4669,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Botão 1: Carregar da Nuvem -->
             <button onclick="loadPatientFromCloud(activePatientId, true)"
-              class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950 to-zinc-900 hover:from-emerald-900 hover:to-zinc-800 border-2 border-emerald-600/80 text-white font-bold transition-all shadow-[0_0_25px_rgba(16,185,129,0.25)] flex flex-col items-start gap-1.5 group active:scale-95 text-left cursor-pointer">
+              class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950 to-zinc-900 hover:from-emerald-900 hover:to-zinc-800 border-2 border-emerald-600/80 text-white font-bold transition-all flex flex-col items-start gap-1.5 group active:scale-95 text-left cursor-pointer">
               <div class="flex items-center justify-between w-full">
                 <span class="text-sm md:text-base font-black text-emerald-300 flex items-center gap-2">
                   <i data-lucide="cloud-download" class="w-5 h-5 text-emerald-400 group-hover:animate-bounce"></i>
@@ -4590,7 +4686,7 @@
 
             <!-- Botão 2: Salvar na Nuvem -->
             <button onclick="savePatientToCloud(activePatientId)"
-              class="p-5 rounded-2xl btn-nax-primary text-white font-bold transition-all shadow-[0_0_25px_rgba(239,68,68,0.4)] flex flex-col items-start gap-1.5 group active:scale-95 text-left cursor-pointer">
+              class="p-5 rounded-2xl btn-nax-primary text-white font-bold transition-all flex flex-col items-start gap-1.5 group active:scale-95 text-left cursor-pointer">
               <div class="flex items-center justify-between w-full">
                 <span class="text-sm md:text-base font-black text-white flex items-center gap-2">
                   <i data-lucide="cloud-upload" class="w-5 h-5 text-white"></i>
@@ -5410,7 +5506,7 @@
   <div id="modal-exercise-guide"
     class="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 overflow-y-auto">
     <div
-      class="hud-card-blue bg-zinc-950 border border-blue-600/50 rounded-2xl w-full max-w-4xl overflow-hidden shadow-[0_0_50px_rgba(37,99,235,0.35)] animate-in fade-in zoom-in-95 duration-200 my-auto">
+      class="hud-card bg-zinc-950 border border-blue-600/50 rounded-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto">
 
       <!-- Modal Header -->
       <div
@@ -5461,7 +5557,7 @@
 
           <a id="guide-modal-external-link" href="https://www.gifdotreino.com/" target="_blank"
             rel="noopener noreferrer"
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.35)] transition-all">
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/40 transition-all">
             <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
             <span>Ver Biblioteca Completa em GifDoTreino.com</span>
           </a>
@@ -5618,7 +5714,7 @@
     class="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
 
     <div
-      class="hud-card modal-slide-up w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col max-h-[90vh]">
+      class="hud-card modal-slide-up w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
 
       <!-- Menu Header -->
       <div
@@ -5676,7 +5772,7 @@
 
         <!-- Bloco de Destaque: DRIVE BACKUP GOOGLE DRIVE -->
         <div
-          class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-zinc-900 border border-emerald-700/80 space-y-2.5 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+          class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-zinc-900 border border-emerald-700/80 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="text-xs font-mono font-bold text-emerald-300 flex items-center gap-2">
               <i data-lucide="cloud-upload" class="w-4 h-4 text-emerald-400 animate-pulse"></i>
@@ -5835,14 +5931,14 @@
     class="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
 
     <div
-      class="hud-card modal-slide-up w-full max-w-xl bg-zinc-950 border border-red-800/80 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.3)] flex flex-col max-h-[90vh]">
+      class="hud-card modal-slide-up w-full max-w-xl bg-zinc-950 border border-red-800/80 rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
 
       <!-- Modal Header -->
       <div
         class="p-5 bg-gradient-to-r from-red-950/80 via-black to-zinc-950 border-b border-red-900/60 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(255,0,0,0.4)]">
+            class="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/50 flex items-center justify-center">
             <i data-lucide="smartphone" class="w-5 h-5 text-red-400"></i>
           </div>
           <div>
@@ -5895,7 +5991,7 @@
               Store.
             </p>
             <button id="btn-pwa-install-action" onclick="triggerPWAInstall()"
-              class="w-full btn-nax-primary py-3 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+              class="w-full btn-nax-primary py-3 rounded-2xl font-black text-sm flex items-center justify-center gap-2">
               <i data-lucide="download-cloud" class="w-5 h-5"></i>
               <span>🚀 Instalar NutriAx Pro Agora</span>
             </button>
@@ -6024,14 +6120,14 @@
     class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden"
     onclick="if(event.target === this) closeMetricsGlossaryModal()">
     <div
-      class="bg-zinc-950 border border-amber-500/50 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(245,158,11,0.25)] animate-in fade-in zoom-in-95 duration-200">
+      class="bg-zinc-950 border border-amber-500/50 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
       <!-- Header do Modal -->
       <div
         class="p-5 bg-gradient-to-r from-amber-950/80 via-zinc-950 to-zinc-900 border-b border-amber-500/30 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <span
-            class="p-2.5 rounded-xl bg-amber-950 border border-amber-500/60 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.35)]">
+            class="p-2.5 rounded-xl bg-amber-950 border border-amber-500/60 text-amber-400">
             <i data-lucide="book-open" class="w-5 h-5"></i>
           </span>
           <div>
@@ -6138,7 +6234,7 @@
       <!-- Footer do Modal -->
       <div class="p-4 bg-black/80 border-t border-zinc-800 flex justify-end">
         <button onclick="closeMetricsGlossaryModal()"
-          class="btn-nax-amber px-5 py-2 rounded-xl text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#121518] border border-[#272C31] text-[#F2F3F5] hover:border-[#E50914] transition-all px-5 py-2 rounded-xl text-xs font-bold">
           Entendi, Fechar
         </button>
       </div>
@@ -6275,7 +6371,7 @@
           <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Testar App no Navegador
         </button>
         <button onclick="closePatientShareModal()"
-          class="btn-nax-orange px-5 py-2 rounded-xl text-xs font-bold shadow-[0_0_12px_rgba(249,115,22,0.3)]">
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#E50914] text-white hover:bg-[#B80710] transition-all px-5 py-2 rounded-xl text-xs font-bold">
           Concluído
         </button>
       </div>
