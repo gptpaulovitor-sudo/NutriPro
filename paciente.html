@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="h-full bg-[#08090A]">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
@@ -202,265 +201,448 @@
       transform: scale(1.1);
     }
   </style>
+
+  <style>
+    /* Tab View Animations & UX */
+    .tab-view {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+    .tab-view.active {
+      display: block;
+      opacity: 1;
+      animation: tabFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Hero Image Overlay styling */
+    .hero-banner-overlay {
+      background: linear-gradient(180deg, rgba(8,9,10,0.15) 0%, rgba(8,9,10,0.7) 60%, rgba(8,9,10,0.98) 100%);
+    }
+    /* Pillar bottom sheet */
+    #pilarBottomSheet.hidden {
+      display: none;
+    }
+    #pilarBottomSheet.active {
+      display: flex;
+    }
+  </style>
+
 </head>
+<body class="min-h-full bg-[#08090A] text-[#F2F3F5] flex flex-col items-center justify-start pb-28 safe-top select-none">
 
-<body class="min-h-full bg-[#08090A] text-[#F2F3F5] flex flex-col items-center justify-start pb-24 safe-top">
-
-  <!-- ═══════════════════════════════════════════════════════════
-       HEADER MOBILE COMPACTO (Fixo / Sticky)
-  ═══════════════════════════════════════════════════════════ -->
-  <header class="sticky top-0 z-40 w-full max-w-lg mx-auto bg-[#08090A]/95 backdrop-blur-md border-b border-[#272C31] px-4 py-2.5 flex items-center justify-between">
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- HEADER COMPACTO MOBILE (IDENTIDADE NUTRIAX PRO)            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <header class="w-full max-w-md sticky top-0 z-30 bg-[#08090A]/95 backdrop-blur-md border-b border-[#272C31] px-4 py-2.5 flex items-center justify-between shadow-lg">
     <div class="flex items-center gap-2">
-      <span class="text-base font-black tracking-tight text-white flex items-center">
-        Nutri<span class="text-[#E50914]">Ax</span>
-      </span>
-      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 bg-[#171B1F] px-2 py-0.5 rounded border border-[#272C31]">Paciente</span>
+      <div class="w-7 h-7 rounded-lg bg-[#121518] border border-[#272C31] flex items-center justify-center shadow-inner">
+        <span class="text-xs font-black text-white tracking-tighter">N<span class="text-[#E50914]">x</span></span>
+      </div>
+      <div>
+        <div class="text-xs font-black text-white leading-none tracking-tight flex items-center gap-1">
+          Nutri<span class="text-[#E50914]">Ax</span> <span class="text-[9px] font-mono font-bold text-zinc-400">PRO</span>
+        </div>
+        <div class="text-[9px] font-mono text-zinc-400 leading-none mt-0.5" id="patientHeaderSubname">Naiane Andrade Sousa</div>
+      </div>
     </div>
+    
     <div class="flex items-center gap-2">
-      <button onclick="openPatientScoresModal()" class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-[#171B1F] border border-[#272C31] transition-colors" title="Meus Scores &amp; Evolução">
-        <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+      <!-- Sync Status Badge -->
+      <span id="syncLiveStatusBadge"
+        class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sincronizado
+      </span>
+
+      <!-- Notification Bell -->
+      <button type="button" onclick="alert('Todas as orientações e prescrições do Pilar 02 estão em dia!')"
+        class="w-7 h-7 rounded-lg bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-zinc-400 hover:text-white transition-colors" title="Notificações">
+        <i data-lucide="bell" class="w-3.5 h-3.5"></i>
       </button>
-      <button onclick="openSosModal()" class="p-2 rounded-xl text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 border border-amber-800/60 transition-colors" title="Protocolo SOS">
-        <i data-lucide="shield-alert" class="w-4 h-4"></i>
-      </button>
-      <button onclick="openPatientProfileModal()" class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-[#171B1F] border border-[#272C31] transition-colors" title="Perfil &amp; Configurações">
-        <i data-lucide="menu" class="w-4 h-4"></i>
+
+      <!-- Profile Menu -->
+      <button type="button" onclick="openPatientProfileModal()"
+        class="w-7 h-7 rounded-lg bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-zinc-400 hover:text-white transition-colors" title="Perfil e Configurações">
+        <i data-lucide="user" class="w-3.5 h-3.5"></i>
       </button>
     </div>
   </header>
 
-  <!-- Container Principal Mobile Max 520px -->
-  <main class="w-full max-w-lg px-3.5 sm:px-4 space-y-4 pt-2">
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SELETOR INTERATIVO DE PILAR (PILAR 02 · DISCIPLINA & HÁBITOS)-->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="w-full max-w-md px-3 pt-2.5 pb-1">
+    <button type="button" id="btnOpenPilarSheet" onclick="openPilarBottomSheet()"
+      class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-left transition-all active:scale-[0.99] shadow-md group">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-[#E50914]/15 border border-[#E50914]/30 flex items-center justify-center text-[#E50914] shrink-0">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <div class="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Pilar Ativo no App</div>
+          <div class="text-xs font-black text-white flex items-center gap-1.5">
+            <span>PILAR 02 · DISCIPLINA &amp; HÁBITOS</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 text-zinc-400 text-[10px] font-mono">
+        <span class="text-[9px] px-2 py-0.5 rounded-full bg-red-950/70 text-[#E50914] border border-red-800/60 font-bold">Central de Execução</span>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors"></i>
+      </div>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- CONTEÚDO PRINCIPAL (5 TELAS DEDICADAS DO MOCKUP)           -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <main class="w-full max-w-md px-3 py-2 flex flex-col gap-4">
 
     <!-- ═══ 1. BANNER PWA INSTALL (SE NÃO INSTALADO) ═══ -->
     <div id="pwaInstallBanner"
-      class="hidden p-3 rounded-2xl bg-[#171B1F] border border-[#272C31] flex items-center justify-between gap-3 shadow-xl">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <div class="w-9 h-9 rounded-xl bg-[#E50914]/20 border border-[#E50914]/50 flex items-center justify-center shrink-0">
-          <i data-lucide="smartphone" class="w-5 h-5 text-[#E50914]"></i>
+      class="hidden w-full p-3.5 rounded-2xl bg-gradient-to-r from-[#171B1F] to-[#121518] border border-[#E50914]/40 shadow-xl flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-[#E50914]/20 border border-[#E50914]/40 flex items-center justify-center text-[#E50914]">
+          <i data-lucide="download" class="w-4 h-4"></i>
         </div>
-        <div class="min-w-0">
-          <h4 class="text-xs font-bold text-white truncate">Instalar App NutriAx</h4>
-          <p class="text-[10px] text-zinc-400 truncate">Acesse offline direto da sua tela inicial</p>
+        <div>
+          <h4 class="text-xs font-black text-white leading-tight">Instalar App do Paciente</h4>
+          <p class="text-[10px] text-zinc-400 leading-tight">Acesse rápido na sua tela de início</p>
         </div>
       </div>
-      <button id="btnPwaInstall" onclick="promptPwaInstall()"
-        class="px-3 py-1.5 rounded-xl btn-nax-primary text-xs font-black shrink-0 active:scale-95 transition-transform">
+      <button onclick="installPatientPWA()"
+        class="px-3 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#b80710] text-white text-[10px] font-bold uppercase font-mono tracking-wider transition-all">
         Instalar
       </button>
     </div>
 
-    <!-- ═══ STATUS DO PILAR & SINCRONIZAÇÃO ═══ -->
-    <div class="w-full flex items-center justify-between px-1">
-      <div class="flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-[#E50914]"></span>
-        <span class="text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider">
-          PILAR 02 · DISCIPLINA &amp; HÁBITOS
-        </span>
-      </div>
-      <span id="syncLiveStatusBadge"
-        class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center gap-1">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sincronizado
-      </span>
-    </div>
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <!-- TAB VIEW 1: HOJE (VISÃO GERAL DO DIA & EXECUÇÃO)          -->
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <section id="tabViewHoje" class="tab-view active w-full space-y-4">
 
-    <!-- ═══ 2. HERO CARD DO PACIENTE (DISCIPLINA & ROTINA) ═══ -->
-    <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
-      <img src="assets/patient/discipline-hero.jpg" alt="Disciplina &amp; Hábitos"
-        class="w-full h-36 object-cover object-center opacity-45" />
-      <div class="absolute inset-0 bg-gradient-to-t from-[#121518] via-[#121518]/70 to-transparent"></div>
-      <div class="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-        <div>
-          <p class="text-[10px] text-zinc-400 font-medium" id="currentDateDisplay">Hoje, 08 de setembro de 2026</p>
-          <h1 class="text-lg sm:text-xl font-black text-white tracking-tight leading-tight" id="patientNameDisplay">
-            Paciente
-          </h1>
+      <!-- HERO BANNER: DISCIPLINA & ROTINA -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/discipline-hero.jpg" alt="02. Disciplina & Hábitos"
+          class="w-full h-44 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute top-3 left-3">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 02 · DISCIPLINA &amp; HÁBITOS
+          </span>
         </div>
-        <div class="text-right">
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm">
-            <span class="text-sm">🔥</span>
+        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+          <div>
+            <p class="text-[10px] text-zinc-400 font-medium font-mono" id="currentDateDisplay">Hoje, 08 de setembro de 2026</p>
+            <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight" id="patientNameDisplay">
+              Naiane Andrade Sousa
+            </h1>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Rotina • consistência • hábitos</p>
+          </div>
+          <div class="text-right flex flex-col items-end gap-1">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#08090A]/95 border border-[#272C31] backdrop-blur-sm shadow-md">
+              <span class="text-sm">🔥</span>
+              <div class="text-left">
+                <div class="text-[11px] font-black text-white leading-none" id="streakDaysCount">1 DIA</div>
+                <div class="text-[8px] font-mono text-[#E50914] font-bold uppercase leading-none mt-0.5" id="streakLabel">PRIMEIRO DIA</div>
+              </div>
+            </div>
+            <div class="text-[9px] font-mono text-zinc-400 font-bold" id="disciplineTierBadge">🌱 Nível: Focado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCORE DO DIA (IDC) — GAUGE CIRCULAR & CHECKLIST LATERAL -->
+      <div class="nax-card p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-center text-[#00C896]">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            </div>
             <div>
-              <div class="text-[11px] font-black text-white leading-none" id="streakDaysCount">1 DIA</div>
-              <div class="text-[8px] font-mono text-[#E50914] font-bold uppercase leading-none mt-0.5" id="streakLabel">PRIMEIRO DIA</div>
+              <h2 class="text-xs font-black text-white tracking-wide uppercase font-mono">Score do Dia (IDC)</h2>
+              <p class="text-[10px] text-zinc-400 font-mono">Índice de Disciplina e Cumprimento</p>
             </div>
           </div>
-          <div class="text-[9px] font-mono text-zinc-400 mt-1 font-bold" id="disciplineTierBadge">🌱 Nível: Focado</div>
+          <button type="button" onclick="switchPatientTab('progresso')" class="text-[10px] text-zinc-400 hover:text-white font-mono flex items-center gap-1 transition-colors">
+            Evolução <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-center">
+          <!-- SVG Circular Ring Gauge -->
+          <div class="sm:col-span-5 flex items-center justify-center py-1">
+            <div class="relative w-28 h-28 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" stroke="#171B1F" stroke-width="8" fill="transparent"></circle>
+                <circle id="patientIdcProgressCircle" cx="50" cy="50" r="40" stroke="#00C896" stroke-width="8"
+                  stroke-dasharray="251.327" stroke-dashoffset="251.327" stroke-linecap="round" fill="transparent"
+                  class="transition-all duration-1000 ease-out"></circle>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span id="dailyScoreDisplay" class="text-2xl font-black text-white tracking-tight font-mono">0%</span>
+                <span class="text-[8px] font-mono uppercase text-zinc-400 font-bold tracking-wider">Score IDC</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist de Dimensões -->
+          <div class="sm:col-span-7 space-y-1.5">
+            <div id="idcDimWorkout" class="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-[#08090A]/60 border border-[#272C31]">
+              <span class="flex items-center gap-2 text-zinc-300 font-medium">
+                <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-[#E50914]"></i> Treino
+              </span>
+              <span class="dim-status font-mono font-bold text-zinc-500">○</span>
+            </div>
+            <div id="idcDimNutrition" class="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-[#08090A]/60 border border-[#272C31]">
+              <span class="flex items-center gap-2 text-zinc-300 font-medium">
+                <i data-lucide="utensils" class="w-3.5 h-3.5 text-amber-400"></i> Alimentação
+              </span>
+              <span class="dim-status font-mono font-bold text-zinc-500">○</span>
+            </div>
+            <div id="idcDimFasting" class="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-[#08090A]/60 border border-[#272C31]">
+              <span class="flex items-center gap-2 text-zinc-300 font-medium">
+                <i data-lucide="timer" class="w-3.5 h-3.5 text-purple-400"></i> Jejum
+              </span>
+              <span class="dim-status font-mono font-bold text-zinc-500">○</span>
+            </div>
+            <div id="idcDimHydration" class="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-[#08090A]/60 border border-[#272C31]">
+              <span class="flex items-center gap-2 text-zinc-300 font-medium">
+                <i data-lucide="droplet" class="w-3.5 h-3.5 text-sky-400"></i> Hidratação
+              </span>
+              <span class="dim-status font-mono font-bold text-zinc-500">○</span>
+            </div>
+            <div id="idcDimSleep" class="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-[#08090A]/60 border border-[#272C31]">
+              <span class="flex items-center gap-2 text-zinc-300 font-medium">
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-indigo-400"></i> Sono
+              </span>
+              <span class="dim-status font-mono font-bold text-zinc-500">○</span>
+            </div>
+          </div>
+        </div>
+
+        <p id="dailyScoreFeedback" class="text-[11px] text-zinc-400 italic text-center pt-1 border-t border-[#272C31]">
+          Início de jornada (0%). Registre suas refeições, água e treino para acompanhar seu Score IDC.
+        </p>
+
+        <!-- Shims ocultos para compatibilidade com seletores legados -->
+        <div class="hidden">
+          <div id="dailyScoreProgressBar" style="width: 0%"></div>
+          <div id="dailyScoreCircleGauge"></div>
         </div>
       </div>
-    </div>
 
-    <!-- ═══ 2.1 SCORE DO DIA (IDC) — DESTAQUE VISUAL COM GAUGE CIRCULAR ═══ -->
-    <div class="nax-card p-4 space-y-3">
-      <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
-        <span class="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#00C896]"></i> Score do Dia (IDC)
-        </span>
-        <button onclick="openPatientScoresModal()" class="text-[10px] text-zinc-400 hover:text-white font-mono flex items-center gap-1">
-          Ver detalhes <i data-lucide="chevron-right" class="w-3 h-3"></i>
+      <!-- ÁREA DE PENDÊNCIAS DINÂMICAS: "QUE FAZER HOJE" -->
+      <div class="nax-card p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-red-950/60 border border-red-800/80 flex items-center justify-center text-[#E50914]">
+              <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
+            </div>
+            <h2 class="text-xs font-black text-white tracking-wide uppercase font-mono">Que Fazer Hoje</h2>
+          </div>
+          <span id="pendingCountBadge" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#171B1F] text-zinc-300 border border-[#272C31]">Pendências</span>
+        </div>
+        <div id="pendingActionsContainer" class="space-y-2">
+          <!-- Renderizado dinamicamente via renderPendingActions() -->
+        </div>
+      </div>
+
+      <!-- ATALHOS RÁPIDOS PARA AS DEMAIS ÁREAS -->
+      <div class="grid grid-cols-2 gap-2.5">
+        <button type="button" onclick="switchPatientTab('treino')"
+          class="p-3 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-left transition-all active:scale-95 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-red-950/60 border border-red-800/60 text-[#E50914] flex items-center justify-center">
+              <i data-lucide="dumbbell" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white">Treino</div>
+              <div class="text-[9px] font-mono text-zinc-400">Ver exercícios</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-zinc-500"></i>
+        </button>
+
+        <button type="button" onclick="switchPatientTab('nutricao')"
+          class="p-3 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-left transition-all active:scale-95 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-400 flex items-center justify-center">
+              <i data-lucide="utensils" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white">Nutrição</div>
+              <div class="text-[9px] font-mono text-zinc-400">Ver refeições</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-zinc-500"></i>
+        </button>
+
+        <button type="button" onclick="switchPatientTab('mais')"
+          class="p-3 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-left transition-all active:scale-95 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-sky-950/60 border border-sky-800/60 text-sky-400 flex items-center justify-center">
+              <i data-lucide="droplet" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white">Hidratação</div>
+              <div class="text-[9px] font-mono text-zinc-400">Meta de água</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-zinc-500"></i>
+        </button>
+
+        <button type="button" onclick="switchPatientTab('progresso')"
+          class="p-3 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-left transition-all active:scale-95 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 flex items-center justify-center">
+              <i data-lucide="trending-up" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white">Progresso</div>
+              <div class="text-[9px] font-mono text-zinc-400">Scores e dados</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-zinc-500"></i>
         </button>
       </div>
 
-      <div class="grid grid-cols-12 gap-3 items-center">
-        <!-- SVG Circular Ring Gauge -->
-        <div class="col-span-5 flex flex-col items-center justify-center">
-          <div class="relative w-24 h-24 flex items-center justify-center">
-            <svg class="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" class="circle-bg"></circle>
-              <circle id="dailyScoreCircleGauge" cx="50" cy="50" r="40" class="circle-progress-idc"
-                stroke-dasharray="251.327" stroke-dashoffset="251.327"></circle>
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span class="text-xl font-black text-white tracking-tight font-mono" id="dailyScoreDisplay">0%</span>
-              <span class="text-[8px] font-mono font-bold uppercase text-zinc-400">Score IDC</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Checklist de Dimensões -->
-        <div class="col-span-7 space-y-1.5 text-xs">
-          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#171B1F] border border-[#272C31]/70">
-            <span class="text-zinc-300 flex items-center gap-1.5">🏋️ Treino</span>
-            <span id="idcDimWorkout" class="font-mono font-bold text-zinc-500">—</span>
-          </div>
-          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#171B1F] border border-[#272C31]/70">
-            <span class="text-zinc-300 flex items-center gap-1.5">🥗 Nutrição</span>
-            <span id="idcDimNutrition" class="font-mono font-bold text-zinc-500">—</span>
-          </div>
-          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#171B1F] border border-[#272C31]/70">
-            <span class="text-zinc-300 flex items-center gap-1.5">⏱ Jejum</span>
-            <span id="idcDimFasting" class="font-mono font-bold text-zinc-500">—</span>
-          </div>
-          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#171B1F] border border-[#272C31]/70">
-            <span class="text-zinc-300 flex items-center gap-1.5">💧 Hidratação</span>
-            <span id="idcDimHydration" class="font-mono font-bold text-zinc-400">0%</span>
-          </div>
-          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#171B1F] border border-[#272C31]/70">
-            <span class="text-zinc-300 flex items-center gap-1.5">🌙 Sono</span>
-            <span id="idcDimSleep" class="font-mono font-bold text-zinc-500">—</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Hidden shim for legacy progress bar -->
-      <div class="hidden">
-        <div id="dailyScoreProgressBar" style="width: 0%;"></div>
-      </div>
-
-      <p class="text-[10px] text-zinc-400 text-center font-medium pt-1" id="dailyScoreFeedback">
-        Início de jornada (0%). Registre suas refeições, água e treino para acompanhar seu Score IDC.
-      </p>
-    </div>
-
-    <!-- ═══ 2.2 ÁREA DE PENDÊNCIAS DINÂMICAS: "O QUE FAZER HOJE" ═══ -->
-    <div class="nax-card p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="check-square" class="w-3.5 h-3.5 text-[#E50914]"></i> O Que Fazer Hoje
-        </h2>
-        <span id="pendingCountBadge" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#171B1F] text-zinc-300 border border-[#272C31]">Pendências</span>
-      </div>
-      <div id="pendingActionsContainer" class="space-y-2">
-        <!-- Renderizado dinamicamente via renderPendingActions() -->
-      </div>
-    </div>
-
-    <!-- ═══ 3. AGENDA SEMANAL & SINERGIA NUTRICIONAL (7 DIAS) ═══ -->
-    <section class="nax-card p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-[#171B1F] border border-[#272C31] text-[#00C896] flex items-center justify-center">
-            <i data-lucide="calendar" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h3 class="text-xs font-black text-white">Agenda Semanal &amp; Sinergia</h3>
-            <p class="text-[10px] text-zinc-400">Toque em qualquer dia para carregar o treino e a dieta</p>
-          </div>
-        </div>
-        <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#171B1F] text-zinc-300 border border-[#272C31]">7 Dias</span>
-      </div>
-
-      <!-- Carrossel Horizontal de 7 Dias -->
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5" id="weeklyScheduleCarousel">
-        <!-- Renderizado dinamicamente via JS -->
-      </div>
-
-      <!-- Card Expandido de Sinergia Nutricional do Dia Selecionado -->
-      <div id="scheduleSynergyCard" class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] space-y-2 text-xs">
-        <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
-          <span class="text-[10px] font-mono font-bold text-[#00C896] uppercase flex items-center gap-1">
-            <i data-lucide="zap" class="w-3 h-3"></i> Sinergia Nutricional do Dia
-          </span>
-          <span id="synergyDayLabel"
-            class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#171B1F] text-zinc-300 border border-[#272C31]">
-            DIA 1 - TREINO A
-          </span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 text-[11px]">
-          <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/60">
-            <span class="text-[9px] font-mono text-amber-400 uppercase block">🍞 Carbo Pré-Treino:</span>
-            <p id="synergyCarbo" class="text-zinc-200 font-medium text-[11px] mt-0.5">50-60g carbo pré-treino</p>
-          </div>
-          <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/60">
-            <span class="text-[9px] font-mono text-rose-400 uppercase block">🥩 Aporte Proteico:</span>
-            <p id="synergyProt" class="text-zinc-200 font-medium text-[11px] mt-0.5">2.0 g/kg</p>
-          </div>
-          <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/60">
-            <span class="text-[9px] font-mono text-sky-400 uppercase block">💧 Meta Hídrica:</span>
-            <p id="synergyWater" class="text-zinc-200 font-medium text-[11px] mt-0.5">4.000 mL</p>
-          </div>
-          <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/60">
-            <span class="text-[9px] font-mono text-emerald-400 uppercase block">⚡ Foco Metabólico:</span>
-            <p id="synergyFocus" class="text-zinc-200 font-medium text-[11px] mt-0.5">Aporte proteico fracionado</p>
-          </div>
-        </div>
-      </div>
     </section>
 
-    <!-- ═══ 4. ESTÍMULO FÍSICO & FICHA COMPLETA DE TREINO ═══ -->
-    <section id="workoutSectionContainer" class="nax-card p-4 space-y-3.5 transition-all duration-200">
-      
-      <!-- Cabeçalho do Treino Selecionado -->
-      <div class="flex items-start justify-between gap-3 border-b border-[#272C31] pb-3">
-        <div class="flex items-center gap-3">
-          <div id="workoutRoutineBadge"
-            class="w-10 h-10 rounded-xl bg-[#E50914]/20 border border-[#E50914]/60 text-[#E50914] flex items-center justify-center font-black text-base shadow-sm shrink-0">
-            A
-          </div>
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <!-- TAB VIEW 2: TREINO (PRESCRIÇÃO, PERFORMANCE & EXECUÇÃO)   -->
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <section id="tabViewTreino" class="tab-view hidden w-full space-y-4">
+
+      <!-- HERO BANNER: TREINO & PERFORMANCE -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/training-hero.jpg" alt="04. Performance & Força"
+          class="w-full h-44 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute top-3 left-3">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 04 · PERFORMANCE &amp; FORÇA
+          </span>
+        </div>
+        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
           <div>
-            <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400">Rotina Ativa</span>
-            <h2 id="workoutRoutineTitle" class="text-sm sm:text-base font-black text-white tracking-tight">
+            <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight" id="workoutRoutineTitle">
               Treino A - Push
             </h2>
-            <p id="workoutRoutineSubtitle" class="text-[11px] text-zinc-400 font-mono mt-0.5">
-              Peitoral, Deltoides &amp; Tríceps
+            <p class="text-[10px] text-zinc-400 font-mono mt-0.5" id="workoutRoutineSubtitle">
+              Peitoral, Deltoides &amp; Tríceps • 60 min
             </p>
+          </div>
+          <span id="workoutRoutineBadge" class="px-2.5 py-1 rounded-xl bg-[#E50914]/20 border border-[#E50914]/40 text-[#E50914] font-mono font-bold text-[10px] uppercase">
+            Alvo Ativo
+          </span>
+        </div>
+      </div>
+
+      <!-- SUBTABS DO TREINO: EXERCÍCIOS / ORIENTAÇÕES -->
+      <div class="flex items-center gap-2 p-1 rounded-xl bg-[#121518] border border-[#272C31]">
+        <button type="button" id="subtabWorkoutExercisesBtn" onclick="switchWorkoutSubtab('exercises')"
+          class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md">
+          Exercícios
+        </button>
+        <button type="button" id="subtabWorkoutGuidelinesBtn" onclick="switchWorkoutSubtab('guidelines')"
+          class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
+          Orientações
+        </button>
+      </div>
+
+      <!-- CICLO SEMANAL DE 7 DIAS (CARROSSEL DE SELEÇÃO) -->
+      <div class="nax-card p-3 space-y-2">
+        <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+          <span class="flex items-center gap-1.5 font-bold"><i data-lucide="calendar" class="w-3.5 h-3.5 text-[#00C896]"></i> Ciclo Semanal</span>
+          <span class="text-[10px]">Toque para alternar</span>
+        </div>
+        <div id="weeklyScheduleCarousel" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <!-- Renderizado dinamicamente via renderWeeklyCarousel() -->
+        </div>
+      </div>
+
+      <!-- CARD DE SINERGIA NUTRICIONAL DO DIA -->
+      <div class="nax-card p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-mono font-bold text-[#00C896] uppercase flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Sinergia Nutricional
+          </span>
+          <span id="synergyDayLabel" class="text-[9px] font-mono text-zinc-400 bg-[#08090A] px-2 py-0.5 rounded border border-[#272C31]">DIA 1</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="p-2 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+            <div class="text-[9px] font-mono text-amber-400">🍞 Carbo Pré-Treino</div>
+            <div id="synergyCarbo" class="font-bold text-white mt-0.5">50-60g carbo</div>
+          </div>
+          <div class="p-2 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+            <div class="text-[9px] font-mono text-red-400">🥩 Aporte Proteico</div>
+            <div id="synergyProt" class="font-bold text-white mt-0.5">2.0 g/kg</div>
+          </div>
+          <div class="p-2 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+            <div class="text-[9px] font-mono text-sky-400">💧 Meta Hídrica</div>
+            <div id="synergyWater" class="font-bold text-white mt-0.5">40 mL/kg</div>
+          </div>
+          <div class="p-2 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+            <div class="text-[9px] font-mono text-emerald-400">⚡ Foco Anabólico</div>
+            <div id="synergyFocus" class="font-bold text-white mt-0.5">Hipertrofia</div>
           </div>
         </div>
       </div>
 
-      <!-- Ação Rápida de Concluir Treino Todo -->
-      <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] flex items-center justify-between gap-2">
-        <span class="text-xs text-zinc-300 font-medium">Finalizou a sessão de força?</span>
-        <button id="btnCompleteFullWorkout" onclick="toggleWorkoutCheck()"
-          class="px-3.5 py-2 rounded-xl btn-nax-primary text-xs font-black flex items-center gap-1.5 active:scale-95 transition-transform">
-          <i data-lucide="check" class="w-3.5 h-3.5"></i>
-          <span id="btnCompleteWorkoutText">Concluir Treino</span>
-        </button>
+      <!-- FICHA DE EXERCÍCIOS & CONTAINER DO TREINO -->
+      <div id="workoutSectionContainer" class="space-y-3">
+        <!-- Subview Exercícios -->
+        <div id="workoutExercisesSubtabView" class="space-y-3">
+          <!-- Ação Rápida de Concluir Treino Todo -->
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-xs font-mono text-zinc-400">Lista de Exercícios Prescritos</span>
+            <button type="button" id="btnCompleteFullWorkout" onclick="toggleCompleteFullWorkout()"
+              class="px-3.5 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 font-mono font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 border border-[#272C31]">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-zinc-400"></i>
+              <span id="btnCompleteWorkoutText">Concluir Tudo</span>
+            </button>
+          </div>
+
+          <!-- Lista de Exercícios Prescritos -->
+          <div id="patientExercisesList" class="space-y-2.5">
+            <!-- Inserido dinamicamente via renderWorkoutExercises() -->
+          </div>
+
+          <!-- Rodapé de Progressão de Cargas -->
+          <div id="workoutFooterProgression" class="nax-card p-3 flex items-center justify-between text-xs text-zinc-400">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i> Progressão Linear
+            </span>
+            <span class="font-mono text-[11px] text-zinc-300">RIR Alvo: 1-2 reps</span>
+          </div>
+        </div>
+
+        <!-- Subview Orientações Técnicas (Oculta por padrão) -->
+        <div id="workoutGuidelinesSubtabView" class="hidden nax-card p-4 space-y-3 text-xs text-zinc-300">
+          <div class="flex items-center gap-2 border-b border-[#272C31] pb-2">
+            <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+            <h3 class="font-bold text-white">Orientações Gerais do Treino</h3>
+          </div>
+          <div class="space-y-2 text-[11px] leading-relaxed text-zinc-400">
+            <p>• <strong>Aquecimento Específico:</strong> Faça 2 séries de aproximação com 50% da carga no primeiro exercício multiarticular.</p>
+            <p>• <strong>Cadência de Execução:</strong> Controle a fase excêntrica em 2 a 3 segundos. Nunca deixe a carga despencar.</p>
+            <p>• <strong>Reserva de Repetições (RIR):</strong> Trabalhe com RIR de 1 a 2 repetições antes da falha mecânica concêntrica.</p>
+            <p>• <strong>Intervalo de Descanso:</strong> Respeite o cronômetro para garantir ressíntese ideal de fosfocreatina.</p>
+          </div>
+        </div>
       </div>
 
-      <!-- Lista de Exercícios Prescritos -->
-      <div class="space-y-3" id="patientExercisesList">
-        <!-- Renderizado dinamicamente via JS -->
-      </div>
-
-      <!-- Rodapé de Progressão de Cargas -->
-      <div id="workoutFooterProgression"
-        class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] flex items-center gap-2.5 text-xs text-zinc-400">
-        <i data-lucide="trending-up" class="w-4 h-4 text-[#00C896] shrink-0"></i>
-        <span><strong>Diretriz:</strong> Suba a carga sempre que atingir o topo das repetições em todas as séries com RIR &gt; 2.</span>
-      </div>
-
+      <!-- CARDIO INTEGRADO ZONA 2 -->
       <!-- Seção de Cardio Integrado e Guia de Execução de Zona 2 -->
       <div id="workoutCardioBlock"
         class="mt-4 p-4 rounded-2xl bg-[#08090A] border border-[#272C31] space-y-3 shadow-inner">
@@ -526,24 +708,51 @@
 
     </section>
 
-    <!-- ═══ 5. CARDÁPIO & PLANO ALIMENTAR (REFEIÇÕES) ═══ -->
-    <section id="mealsSectionContainer" class="nax-card p-4 space-y-3">
-      <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-[#171B1F] border border-[#272C31] text-[#E50914] flex items-center justify-center">
-            <i data-lucide="utensils" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h3 class="text-xs font-black text-white">Cardápio &amp; Refeições</h3>
-            <p class="text-[10px] text-zinc-400">Marque os alimentos para atualizar calorias e IDC</p>
-          </div>
+    
+
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <!-- TAB VIEW 3: NUTRIÇÃO (CARDÁPIO, MACROS & REFEIÇÕES)      -->
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <section id="tabViewNutricao" class="tab-view hidden w-full space-y-4">
+
+      <!-- HERO BANNER: NUTRIÇÃO & SAÚDE -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/nutrition-hero.jpg" alt="03. Nutrição & Saúde"
+          class="w-full h-44 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute top-3 left-3">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 03 · NUTRIÇÃO ESTRATÉGICA
+          </span>
         </div>
-        <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#171B1F] text-amber-300 border border-amber-800/80"
-          id="mealsCompletedTag">
-          0/0 feitas
-        </span>
+        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
+              Cardápio &amp; Plano Alimentar
+            </h2>
+            <p class="text-[10px] text-zinc-400 font-mono mt-0.5">
+              Prescrição nutricional fracionada e equilibrada
+            </p>
+          </div>
+          <span id="mealsCompletedTag" class="px-2.5 py-1 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-400 font-mono font-bold text-[10px]">
+            0 / 4 refeições
+          </span>
+        </div>
       </div>
 
+      <!-- SUBTABS DA NUTRIÇÃO: HOJE / SEMANA -->
+      <div class="flex items-center gap-2 p-1 rounded-xl bg-[#121518] border border-[#272C31]">
+        <button type="button" class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg bg-[#E50914] text-white shadow-md">
+          Hoje
+        </button>
+        <button type="button" onclick="switchPatientTab('treino')" class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg text-zinc-400 hover:text-white">
+          Sinergia Semanal
+        </button>
+      </div>
+
+      <!-- RESUMO GERAL DE MACRONUTRIENTES -->
       <!-- Resumo Geral de Macronutrientes -->
       <div id="patientMacroSummaryContainer" class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] space-y-2.5">
         <div class="flex items-center justify-between text-xs">
@@ -587,16 +796,155 @@
         </div>
       </div>
 
-      <!-- Lista de Refeições Prescritas -->
-      <div class="space-y-3" id="patientMealsList">
-        <!-- Inserido dinamicamente via renderMeals() -->
+      
+
+      <!-- LISTA DE REFEIÇÕES PRESCRITAS -->
+      <div id="mealsSectionContainer" class="space-y-3">
+        <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
+          <span class="font-bold flex items-center gap-1.5 text-white">
+            <i data-lucide="utensils" class="w-3.5 h-3.5 text-amber-400"></i> Refeições do Dia
+          </span>
+          <span class="text-[10px]">Marque os alimentos consumidos</span>
+        </div>
+        <div id="patientMealsList" class="space-y-3">
+          <!-- Inserido dinamicamente via renderMeals() -->
+        </div>
       </div>
+
     </section>
 
-    <!-- ═══ 5.1 JEJUM INTERMITENTE & JANELA ALIMENTAR ═══ -->
-    <section id="patientFastingCardContainer" class="hidden"></section>
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <!-- TAB VIEW 4: PROGRESSO (SCORES, EVOLUÇÃO & HISTÓRICO)      -->
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <section id="tabViewProgresso" class="tab-view hidden w-full space-y-4">
 
-    <!-- ═══ 6. HIDRATAÇÃO FRACIONADA (CONTADOR RÁPIDO) ═══ -->
+      <!-- HERO BANNER: EVOLUÇÃO & RESULTADO -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/evolution-hero.jpg" alt="05. Resultado & Evolução"
+          class="w-full h-44 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute top-3 left-3">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 05 · RESULTADO &amp; EVOLUÇÃO
+          </span>
+        </div>
+        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
+              Evolução &amp; Consistência
+            </h2>
+            <p class="text-[10px] text-zinc-400 font-mono mt-0.5">
+              Histórico • tendências • constância
+            </p>
+          </div>
+          <span id="scoresPeriodTrendDisplay" class="px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-400 font-mono font-bold text-[10px]">
+            ↑ +6% no período
+          </span>
+        </div>
+      </div>
+
+      <!-- SELETOR DE PERÍODO: 7 DIAS / 30 DIAS / 90 DIAS -->
+      <div class="flex items-center gap-2 p-1 rounded-xl bg-[#121518] border border-[#272C31]">
+        <button type="button" id="periodBtn7d" onclick="renderScoreEvolutionChart(7)"
+          class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md">
+          7 dias
+        </button>
+        <button type="button" id="periodBtn30d" onclick="renderScoreEvolutionChart(30)"
+          class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
+          30 dias
+        </button>
+        <button type="button" id="periodBtn90d" onclick="renderScoreEvolutionChart(90)"
+          class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
+          90 dias
+        </button>
+      </div>
+
+      <!-- CARD SCORE GERAL (IDC MÉDIO) -->
+      <div class="nax-card p-4 flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Score Geral</div>
+          <div class="text-xs text-zinc-400 mt-0.5">Média ponderada no período selecionado</div>
+          <div id="scoresPeriodAvgDisplay" class="text-xs font-mono font-bold text-emerald-400 mt-1">Média: 81%</div>
+        </div>
+        <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
+          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="38" stroke="#171B1F" stroke-width="8" fill="transparent"></circle>
+            <circle id="globalScoreRingVal" cx="50" cy="50" r="38" stroke="#00C896" stroke-width="8"
+              stroke-dasharray="238.76" stroke-dashoffset="45" stroke-linecap="round" fill="transparent"></circle>
+          </svg>
+          <span class="absolute inset-0 flex items-center justify-center text-sm font-black text-white font-mono">81%</span>
+        </div>
+      </div>
+
+      <!-- CARD EVOLUÇÃO DOS SCORES COM GRÁFICO SVG -->
+      <div class="nax-card p-4 space-y-2">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
+          <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="line-chart" class="w-4 h-4 text-[#E50914]"></i> Evolução dos Scores Diários
+          </h3>
+          <span class="text-[10px] font-mono text-zinc-400">Eixo IDC 0-100%</span>
+        </div>
+        <div class="w-full flex items-center justify-center pt-2">
+          <svg id="scoresEvolutionSvg" class="w-full h-32" viewBox="0 0 320 120"></svg>
+        </div>
+      </div>
+
+      <!-- CARD DETALHAMENTO DE SCORES POR DIMENSÃO -->
+      <div class="nax-card p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
+          <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-[#00C896]"></i> Cumprimento por Dimensão
+          </h3>
+          <div class="flex items-center gap-1 p-0.5 rounded-lg bg-[#08090A] border border-[#272C31]">
+            <button type="button" id="scoresTabDiarioBtn" onclick="switchScoresModalTab('diario')"
+              class="px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all bg-[#E50914] text-white">
+              Diário
+            </button>
+            <button type="button" id="scoresTabGeralBtn" onclick="switchScoresModalTab('geral')"
+              class="px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all text-zinc-400 hover:text-white">
+              Geral
+            </button>
+          </div>
+        </div>
+
+        <div id="scoresPanelDiario" class="space-y-2 text-xs">
+          <!-- Inserido dinamicamente via renderScoresBreakdown() -->
+        </div>
+
+        <div id="scoresPanelGeral" class="hidden space-y-2 text-xs">
+          <!-- Inserido dinamicamente via renderScoresBreakdown() -->
+        </div>
+      </div>
+
+      <button type="button" onclick="openPatientScoresModal()"
+        class="w-full py-3 rounded-xl bg-[#171B1F] hover:bg-[#272C31] border border-[#272C31] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95">
+        <i data-lucide="file-text" class="w-4 h-4 text-zinc-400"></i>
+        Ver Relatório Completo de Disciplina
+      </button>
+
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <!-- TAB VIEW 5: MAIS (HIDRATAÇÃO, SONO, JEJUM, SOS & CONTA)   -->
+    <!-- ═════════════════════════════════════════════════════════ -->
+    <section id="tabViewMais" class="tab-view hidden w-full space-y-4">
+
+      <!-- AMBIENTE DE HIDRATAÇÃO -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/hydration-hero.jpg" alt="Hidratação & Equilíbrio"
+          class="w-full h-32 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between">
+          <div>
+            <span class="text-[9px] font-mono text-sky-400 font-bold uppercase tracking-wider">Aporte Hídrico</span>
+            <h3 class="text-sm font-black text-white">Hidratação Fracionada</h3>
+          </div>
+          <span class="text-[10px] font-mono text-zinc-400 bg-sky-950/60 border border-sky-800/70 px-2 py-0.5 rounded-full text-sky-300">
+            Vitalidade
+          </span>
+        </div>
+      </div>
+      <!-- ═══ 6. HIDRATAÇÃO FRACIONADA (CONTADOR RÁPIDO) ═══ -->
     <section id="hydrationSectionContainer" class="nax-card p-4 space-y-3">
       <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
         <div class="flex items-center gap-2">
@@ -653,7 +1001,24 @@
       </div>
     </section>
 
-    <!-- ═══ 7. SONO & HÁBITOS COMPORTAMENTAIS ═══ -->
+    
+
+      <!-- AMBIENTE DE SONO -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/sleep-hero.jpg" alt="Sono & Recuperação"
+          class="w-full h-32 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between">
+          <div>
+            <span class="text-[9px] font-mono text-indigo-400 font-bold uppercase tracking-wider">Neuromuscular</span>
+            <h3 class="text-sm font-black text-white">Higiene do Sono &amp; Descanso</h3>
+          </div>
+          <span class="text-[10px] font-mono text-zinc-400 bg-indigo-950/60 border border-indigo-800/70 px-2 py-0.5 rounded-full text-indigo-300">
+            Recuperação
+          </span>
+        </div>
+      </div>
+      <!-- ═══ 7. SONO & HÁBITOS COMPORTAMENTAIS ═══ -->
     <section id="sleepSectionContainer" class="nax-card p-4 space-y-3">
       <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
         <div class="flex items-center gap-2">
@@ -704,7 +1069,30 @@
       </button>
     </section>
 
-    <!-- ═══ 8. BOTÃO SOS "DESLIZEI NA DIETA" ═══ -->
+    
+
+      <!-- AMBIENTE DE JEJUM -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
+        <img src="assets/patient/fasting-hero.jpg" alt="Jejum & Autofagia"
+          class="w-full h-32 object-cover object-center" />
+        <div class="absolute inset-0 hero-banner-overlay"></div>
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between">
+          <div>
+            <span class="text-[9px] font-mono text-purple-400 font-bold uppercase tracking-wider">Controle Metabólico</span>
+            <h3 class="text-sm font-black text-white">Jejum Intermitente</h3>
+          </div>
+          <span class="text-[10px] font-mono text-zinc-400 bg-purple-950/60 border border-purple-800/70 px-2 py-0.5 rounded-full text-purple-300">
+            Protocolo 16:8
+          </span>
+        </div>
+      </div>
+      <!-- ═══ 5.1 JEJUM INTERMITENTE & JANELA ALIMENTAR ═══ -->
+    <section id="patientFastingCardContainer" class="hidden"></section>
+
+    
+
+      <!-- PROTOCOLO SOS "DESLIZEI NA DIETA" -->
+      <!-- ═══ 8. BOTÃO SOS "DESLIZEI NA DIETA" ═══ -->
     <div class="p-3.5 rounded-2xl bg-[#121518] border border-amber-500/40 flex items-center justify-between gap-3 shadow-lg">
       <div class="flex items-center gap-2.5">
         <span class="text-xl">🛡️</span>
@@ -719,7 +1107,10 @@
       </button>
     </div>
 
-    <!-- ═══ 9. SINCRONIZAÇÃO EM NUVEM (CONTA GOOGLE) ═══ -->
+    
+
+      <!-- SINCRONIZAÇÃO EM NUVEM (CONTA GOOGLE) -->
+      <!-- ═══ 9. SINCRONIZAÇÃO EM NUVEM (CONTA GOOGLE) ═══ -->
     <div id="googleAccountSyncCard"
       class="p-3 rounded-2xl bg-[#121518] border border-[#272C31] flex items-center justify-between gap-3 shadow-sm">
       <div class="flex items-center gap-2.5 min-w-0">
@@ -747,46 +1138,190 @@
       </button>
     </div>
 
+  
+
+      <!-- PERFIL DO PACIENTE E CONFIGURAÇÕES -->
+      <div class="nax-card p-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-lg font-black text-white">
+            NA
+          </div>
+          <div>
+            <h4 class="text-sm font-black text-white">Naiane Andrade Sousa</h4>
+            <p class="text-[11px] text-zinc-400 font-mono">Paciente NutriAx Pro</p>
+          </div>
+        </div>
+        <div class="space-y-1.5 pt-2 border-t border-[#272C31]">
+          <button type="button" onclick="openPatientProfileModal()"
+            class="w-full flex items-center justify-between p-2 rounded-lg bg-[#08090A]/60 hover:bg-[#171B1F] text-left text-xs text-zinc-300 transition-colors">
+            <span class="flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-zinc-400"></i> Meus Dados Cadastrais</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-zinc-500"></i>
+          </button>
+          <button type="button" onclick="openPatientScoresModal()"
+            class="w-full flex items-center justify-between p-2 rounded-lg bg-[#08090A]/60 hover:bg-[#171B1F] text-left text-xs text-zinc-300 transition-colors">
+            <span class="flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-zinc-400"></i> Histórico de Conquistas &amp; IDC</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-zinc-500"></i>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       FIXED BOTTOM NAVIGATION BAR (5 TABS TOUCH)
-  ═══════════════════════════════════════════════════════════ -->
-  <nav class="fixed bottom-0 left-0 right-0 z-40 bottom-nav safe-bottom">
-    <div class="max-w-lg mx-auto px-4 py-2 flex items-center justify-between">
-      <button onclick="switchBottomTab('hoje')" id="navTabHoje"
-        class="bottom-nav-item active flex flex-col items-center gap-0.5 flex-1 py-1 transition-colors">
-        <i data-lucide="home" class="w-5 h-5"></i>
-        <span class="text-[10px] font-bold">Hoje</span>
-      </button>
-      <button onclick="switchBottomTab('treino')" id="navTabTreino"
-        class="bottom-nav-item text-zinc-400 hover:text-white flex flex-col items-center gap-0.5 flex-1 py-1 transition-colors">
-        <i data-lucide="timer" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Treino</span>
-      </button>
-      <button onclick="switchBottomTab('nutricao')" id="navTabNutricao"
-        class="bottom-nav-item text-zinc-400 hover:text-white flex flex-col items-center gap-0.5 flex-1 py-1 transition-colors">
-        <i data-lucide="utensils" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Nutrição</span>
-      </button>
-      <button onclick="switchBottomTab('progresso')" id="navTabProgresso"
-        class="bottom-nav-item text-zinc-400 hover:text-white flex flex-col items-center gap-0.5 flex-1 py-1 transition-colors">
-        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Progresso</span>
-      </button>
-      <button onclick="switchBottomTab('mais')" id="navTabMais"
-        class="bottom-nav-item text-zinc-400 hover:text-white flex flex-col items-center gap-0.5 flex-1 py-1 transition-colors">
-        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Mais</span>
-      </button>
-    </div>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR FIXA (5 ABAS DO MOCKUP)        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav class="fixed bottom-0 inset-x-0 z-40 max-w-md mx-auto bg-[#08090A]/95 backdrop-blur-md border-t border-[#272C31] px-2 py-2 flex items-center justify-around shadow-2xl safe-bottom">
+    
+    <!-- Aba 1: Hoje -->
+    <button type="button" id="navItemHoje" onclick="switchPatientTab('hoje')"
+      class="nav-tab-btn flex-1 flex flex-col items-center justify-center gap-1 text-[#E50914] transition-colors py-1">
+      <i data-lucide="calendar-days" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold font-mono leading-none">Hoje</span>
+    </button>
+
+    <!-- Aba 2: Treino -->
+    <button type="button" id="navItemTreino" onclick="switchPatientTab('treino')"
+      class="nav-tab-btn flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors py-1">
+      <i data-lucide="dumbbell" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold font-mono leading-none">Treino</span>
+    </button>
+
+    <!-- Aba 3: Nutrição -->
+    <button type="button" id="navItemNutricao" onclick="switchPatientTab('nutricao')"
+      class="nav-tab-btn flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors py-1">
+      <i data-lucide="utensils" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold font-mono leading-none">Nutrição</span>
+    </button>
+
+    <!-- Aba 4: Progresso -->
+    <button type="button" id="navItemProgresso" onclick="switchPatientTab('progresso')"
+      class="nav-tab-btn flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors py-1">
+      <i data-lucide="trending-up" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold font-mono leading-none">Progresso</span>
+    </button>
+
+    <!-- Aba 5: Mais -->
+    <button type="button" id="navItemMais" onclick="switchPatientTab('mais')"
+      class="nav-tab-btn flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors py-1">
+      <i data-lucide="grid" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold font-mono leading-none">Mais</span>
+    </button>
   </nav>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       MODAIS E BOTTOM SHEETS
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- BOTTOM SHEET: SELETOR DE PILARES NUTRIAX PRO               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="pilarBottomSheet" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end justify-center">
+    <div class="fixed inset-0" onclick="closePilarBottomSheet()"></div>
+    <div class="relative w-full max-w-md bg-[#121518] border-t border-[#272C31] rounded-t-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto no-scrollbar shadow-2xl z-10 animate-in slide-in-from-bottom duration-200">
+      
+      <!-- Drag handle & Header -->
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-12 h-1.5 rounded-full bg-zinc-700"></div>
+        <div class="w-full flex items-center justify-between pt-1">
+          <div>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider">Pilares NutriAx Pro</h3>
+            <p class="text-[11px] text-zinc-400">Estrutura metodológica dos 5 Pilares</p>
+          </div>
+          <button type="button" onclick="closePilarBottomSheet()"
+            class="w-7 h-7 rounded-full bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-zinc-400 hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
 
-  <!-- MODAL DE DEMONSTRAÇÃO VISUAL & BIOMECÂNICA (GIF & GUIA) -->
+      <!-- 5 Pilares Cards -->
+      <div class="space-y-2.5">
+        <!-- Pilar 01 -->
+        <div class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] flex items-center justify-between opacity-75">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-[#171B1F] text-zinc-400 flex items-center justify-center font-mono font-bold text-xs">
+              01
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">01. Mentalidade</div>
+              <div class="text-[10px] text-zinc-400">Foco • comportamento • preparação</div>
+            </div>
+          </div>
+          <span class="text-[9px] font-mono text-zinc-500">Clínico</span>
+        </div>
+
+        <!-- Pilar 02 (Ativo) -->
+        <div class="p-3 rounded-xl bg-[#08090A] border-2 border-[#E50914] flex items-center justify-between shadow-lg shadow-red-950/30">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-[#E50914] text-white flex items-center justify-center font-mono font-bold text-xs">
+              02
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>02. Disciplina &amp; Hábitos</span>
+                <span class="w-2 h-2 rounded-full bg-[#E50914] animate-ping"></span>
+              </div>
+              <div class="text-[10px] text-[#E50914] font-medium">Rotina • consistência • hábitos</div>
+            </div>
+          </div>
+          <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-red-950 text-[#E50914] border border-red-800 font-bold">
+            App Ativo
+          </span>
+        </div>
+
+        <!-- Pilar 03 -->
+        <div class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] flex items-center justify-between opacity-75">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-[#171B1F] text-zinc-400 flex items-center justify-center font-mono font-bold text-xs">
+              03
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">03. Nutrição</div>
+              <div class="text-[10px] text-zinc-400">Saúde • estratégia • alimentação</div>
+            </div>
+          </div>
+          <span class="text-[9px] font-mono text-zinc-500">Clínico</span>
+        </div>
+
+        <!-- Pilar 04 -->
+        <div class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] flex items-center justify-between opacity-75">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-[#171B1F] text-zinc-400 flex items-center justify-center font-mono font-bold text-xs">
+              04
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">04. Performance</div>
+              <div class="text-[10px] text-zinc-400">Força • condicionamento • desempenho</div>
+            </div>
+          </div>
+          <span class="text-[9px] font-mono text-zinc-500">Clínico</span>
+        </div>
+
+        <!-- Pilar 05 -->
+        <div class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] flex items-center justify-between opacity-75">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-[#171B1F] text-zinc-400 flex items-center justify-center font-mono font-bold text-xs">
+              05
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">05. Resultado</div>
+              <div class="text-[10px] text-zinc-400">Evolução • composição • progresso</div>
+            </div>
+          </div>
+          <span class="text-[9px] font-mono text-zinc-500">Clínico</span>
+        </div>
+      </div>
+
+      <button type="button" onclick="closePilarBottomSheet()"
+        class="w-full py-2.5 rounded-xl bg-[#171B1F] hover:bg-[#272C31] text-white font-bold text-xs active:scale-95 transition-all">
+        Permanecer no App do Paciente
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MODALS & DRAWERS PRESERVADOS                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODAL DE DEMONSTRAÇÃO VISUAL & BIOMECÂNICA (GIF & GUIA) -->
   <div id="exerciseGuideModal"
     class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div
@@ -1194,7 +1729,103 @@
   </div>
 
   <!-- ═══ JAVASCRIPT DO APP DO PACIENTE ═══ -->
-  <script>
+  
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCRIPTS & APPLICATION LOGIC PRESERVADOS                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+
+    // ═══════════════════════════════════════════════════════════
+    // NAVEGAÇÃO ENTRE AS 5 TELAS/ABAS DO APP (MOCKUP VISUAL)
+    // ═══════════════════════════════════════════════════════════
+    window.switchPatientTab = function(tabKey) {
+      const tabs = ['hoje', 'treino', 'nutricao', 'progresso', 'mais'];
+      tabs.forEach(t => {
+        const viewId = 'tabView' + t.charAt(0).toUpperCase() + t.slice(1);
+        const navId = 'navItem' + t.charAt(0).toUpperCase() + t.slice(1);
+        const viewEl = document.getElementById(viewId);
+        const navEl = document.getElementById(navId);
+
+        if (viewEl) {
+          if (t === tabKey) {
+            viewEl.classList.remove('hidden');
+            viewEl.classList.add('active');
+          } else {
+            viewEl.classList.remove('active');
+            viewEl.classList.add('hidden');
+          }
+        }
+
+        if (navEl) {
+          if (t === tabKey) {
+            navEl.classList.remove('text-zinc-500', 'hover:text-zinc-300');
+            navEl.classList.add('text-[#E50914]');
+          } else {
+            navEl.classList.remove('text-[#E50914]');
+            navEl.classList.add('text-zinc-500', 'hover:text-zinc-300');
+          }
+        }
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Se navegou para Progresso, atualiza o gráfico SVG de evolução
+      if (tabKey === 'progresso' && typeof renderScoreEvolutionChart === 'function') {
+        renderScoreEvolutionChart(7);
+      }
+
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+    };
+
+    window.openPilarBottomSheet = function() {
+      const sheet = document.getElementById('pilarBottomSheet');
+      if (sheet) {
+        sheet.classList.remove('hidden');
+        sheet.classList.add('active');
+      }
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    window.closePilarBottomSheet = function() {
+      const sheet = document.getElementById('pilarBottomSheet');
+      if (sheet) {
+        sheet.classList.remove('active');
+        sheet.classList.add('hidden');
+      }
+    };
+
+    window.switchWorkoutSubtab = function(subtabKey) {
+      const exView = document.getElementById('workoutExercisesSubtabView');
+      const gdView = document.getElementById('workoutGuidelinesSubtabView');
+      const exBtn = document.getElementById('subtabWorkoutExercisesBtn');
+      const gdBtn = document.getElementById('subtabWorkoutGuidelinesBtn');
+
+      if (subtabKey === 'exercises') {
+        if (exView) exView.classList.remove('hidden');
+        if (gdView) gdView.classList.add('hidden');
+        if (exBtn) {
+          exBtn.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md';
+        }
+        if (gdBtn) {
+          gdBtn.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white';
+        }
+      } else {
+        if (exView) exView.classList.add('hidden');
+        if (gdView) gdView.classList.remove('hidden');
+        if (exBtn) {
+          exBtn.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white';
+        }
+        if (gdBtn) {
+          gdBtn.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md';
+        }
+      }
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+
 
     // 1. BANCO DE DADOS DE TODAS AS ROTINAS DE TREINO (A, B, C, D, E, F, CARDIO, OFF)
     const WORKOUT_DATABASE = {
@@ -4771,7 +5402,7 @@
           desc: `Concluir ${curRoutine.name || 'Treino ' + selectedRoutineKey}`,
           actionLabel: 'Iniciar',
           actionClass: 'btn-nax-primary',
-          actionFn: "document.getElementById('workoutSectionContainer')?.scrollIntoView({ behavior: 'smooth' })"
+          actionFn: "switchPatientTab('treino')"
         });
       }
 
@@ -4787,7 +5418,7 @@
             desc: `Marcar ${nextUnfinishedMeal.name} (${nextUnfinishedMeal.time || ''})`,
             actionLabel: 'Registrar',
             actionClass: 'bg-[#171B1F] hover:bg-[#272C31] text-amber-300 border border-amber-800/70',
-            actionFn: "document.getElementById('mealsSectionContainer')?.scrollIntoView({ behavior: 'smooth' })"
+            actionFn: "switchPatientTab('nutricao')"
           });
         }
       }
@@ -4819,7 +5450,7 @@
           desc: 'Registrar horas e qualidade de descanso',
           actionLabel: 'Registrar',
           actionClass: 'bg-[#171B1F] hover:bg-[#272C31] text-indigo-300 border border-indigo-800/70',
-          actionFn: "document.getElementById('sleepSectionContainer')?.scrollIntoView({ behavior: 'smooth' })"
+          actionFn: "switchPatientTab('mais')"
         });
       }
 
@@ -5049,5 +5680,8 @@
     }
 
   </script>
+</body>
+</html>
+
 </body>
 </html>
