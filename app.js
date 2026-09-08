@@ -7333,7 +7333,7 @@ const PILAR_CONFIG = {
     id: 1,
     title: 'MENTALIDADE',
     name: 'Mentalidade & Mindset',
-    subtitle: 'Contexto relacionado ao propósito, percepção, comportamento e mudança.',
+    subtitle: 'Comportamento, percepção e fundamentos para mudança sustentável.',
     icon: 'brain',
     defaultModule: 'goals',
     heroImg: 'assets/pilares/mentalidade/hero.jpg',
@@ -7439,6 +7439,118 @@ function togglePilaresAcessosCard() {
   }
 }
 
+// ═══ CONTROLES DOS BOTTOM SHEETS MOBILE (NUTRIAX PRO) ═══
+function openMobilePilarSheet() {
+  const sheet = document.getElementById('mobile-pilar-bottom-sheet');
+  if (sheet) {
+    sheet.style.display = 'flex';
+    updateMobilePilarSheetActive(currentActivePilar);
+  }
+}
+
+function closeMobilePilarSheet() {
+  const sheet = document.getElementById('mobile-pilar-bottom-sheet');
+  if (sheet) sheet.style.display = 'none';
+}
+
+function openMobileModuleSheet() {
+  const sheet = document.getElementById('mobile-module-bottom-sheet');
+  if (sheet) {
+    sheet.style.display = 'flex';
+    renderMobileModuleSheetList(currentActivePilar, currentActiveModule);
+  }
+}
+
+function closeMobileModuleSheet() {
+  const sheet = document.getElementById('mobile-module-bottom-sheet');
+  if (sheet) sheet.style.display = 'none';
+}
+
+function openMobilePatientSheet() {
+  const sheet = document.getElementById('mobile-patient-bottom-sheet');
+  if (sheet) {
+    sheet.style.display = 'flex';
+    const mobSelect = document.getElementById('mobileActivePatientSelect');
+    if (mobSelect && typeof activePatientId !== 'undefined') {
+      mobSelect.value = activePatientId;
+    }
+  }
+}
+
+function closeMobilePatientSheet() {
+  const sheet = document.getElementById('mobile-patient-bottom-sheet');
+  if (sheet) sheet.style.display = 'none';
+}
+
+function openMobileActionsSheet() {
+  const sheet = document.getElementById('mobile-actions-bottom-sheet');
+  if (sheet) sheet.style.display = 'flex';
+}
+
+function closeMobileActionsSheet() {
+  const sheet = document.getElementById('mobile-actions-bottom-sheet');
+  if (sheet) sheet.style.display = 'none';
+}
+
+function updateMobilePilarSheetActive(pilarId = currentActivePilar) {
+  for (let i = 1; i <= 5; i++) {
+    const item = document.getElementById(`sheet-pilar-${i}`);
+    if (item) {
+      const isAct = (i === pilarId);
+      item.className = `nax-sheet-item ${isAct ? 'active' : ''}`;
+      const statusWrap = document.getElementById(`sheet-pilar-status-${i}`);
+      if (statusWrap) {
+        statusWrap.innerHTML = isAct
+          ? '<i data-lucide="check" class="w-4 h-4 text-[#E50914] shrink-0"></i>'
+          : '<i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82] shrink-0"></i>';
+      }
+    }
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function renderMobileModuleSheetList(pilarId = currentActivePilar, activeModId = currentActiveModule) {
+  const pilar = PILAR_CONFIG[pilarId] || PILAR_CONFIG[3];
+  const tagEl = document.getElementById('mobile-module-sheet-pilar-tag');
+  if (tagEl) tagEl.textContent = `PILAR 0${pilarId} · ${pilar.title}`;
+
+  const titleEl = document.getElementById('mobile-module-sheet-title');
+  if (titleEl) titleEl.textContent = `Módulos de ${pilar.name}`;
+
+  const container = document.getElementById('mobile-module-sheet-items');
+  if (!container) return;
+
+  const targetMod = activeModId || pilar.defaultModule;
+
+  container.innerHTML = pilar.modules.map(mod => {
+    const isActive = mod.id === targetMod;
+    return `
+      <button onclick="selectContextualModule(${pilarId}, '${mod.id}'); closeMobileModuleSheet();"
+        class="nax-sheet-item ${isActive ? 'active' : ''}">
+        <div class="nax-item-icon-box">
+          <i data-lucide="${mod.icon}" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <span class="text-xs font-bold block ${isActive ? 'text-white' : 'text-[#F2F3F5]'} truncate">${mod.label}</span>
+          <p class="text-[10px] text-[#737A82] truncate mt-0.5">${mod.desc}</p>
+        </div>
+        ${isActive ? '<i data-lucide="check" class="w-4 h-4 text-[#E50914] shrink-0"></i>' : '<i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82] shrink-0"></i>'}
+      </button>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+window.openMobilePilarSheet = openMobilePilarSheet;
+window.closeMobilePilarSheet = closeMobilePilarSheet;
+window.openMobileModuleSheet = openMobileModuleSheet;
+window.closeMobileModuleSheet = closeMobileModuleSheet;
+window.openMobilePatientSheet = openMobilePatientSheet;
+window.closeMobilePatientSheet = closeMobilePatientSheet;
+window.openMobileActionsSheet = openMobileActionsSheet;
+window.closeMobileActionsSheet = closeMobileActionsSheet;
+
 function toggleModuleDropdown(event) {
   if (event) {
     event.stopPropagation();
@@ -7499,7 +7611,7 @@ function renderContextualHeader(pilarId, activeModId = null) {
   currentActiveModule = targetModId;
   const activeMod = pilar.modules.find(m => m.id === targetModId) || pilar.modules[0];
 
-  // 1. Desktop Header Contextual
+  // 1. Desktop Header Contextual (Preservado 100%)
   const deskIcon = document.getElementById('contextPilarIcon');
   if (deskIcon) deskIcon.setAttribute('data-lucide', pilar.icon || 'utensils');
 
@@ -7524,26 +7636,50 @@ function renderContextualHeader(pilarId, activeModId = null) {
   const deskDropCount = document.getElementById('nax-dropdown-count-badge');
   if (deskDropCount) deskDropCount.textContent = `${pilar.modules.length} módulos`;
 
-  // 2. Mobile Contextual Bar
+  // 2. Novo Mobile Pillar Hero Card & Seletor de Módulo (Mockup Mobile)
+  const mobHero = document.getElementById('mobileActivePilarHero');
+  if (mobHero && pilar.heroImg) {
+    mobHero.style.backgroundImage = `linear-gradient(180deg, rgba(8,9,10,0.35) 0%, rgba(8,9,10,0.85) 60%, rgba(8,9,10,0.98) 100%), linear-gradient(90deg, rgba(8,9,10,0.92) 0%, rgba(8,9,10,0.50) 100%), url('${pilar.heroImg}')`;
+  }
+  const mobHeroNum = document.getElementById('mobileHeroPilarNum');
+  if (mobHeroNum) mobHeroNum.textContent = `0${pilarId}`;
+
+  const mobHeroTag = document.getElementById('mobileHeroPilarTag');
+  if (mobHeroTag) mobHeroTag.textContent = `PILAR 0${pilarId}`;
+
+  const mobHeroTitle = document.getElementById('mobileHeroPilarTitle');
+  if (mobHeroTitle) mobHeroTitle.textContent = pilar.title;
+
+  const mobHeroSub = document.getElementById('mobileHeroPilarSub');
+  if (mobHeroSub) mobHeroSub.textContent = pilar.subtitle;
+
+  const mobModIcon = document.getElementById('mobileActiveModuleIcon');
+  if (mobModIcon) mobModIcon.setAttribute('data-lucide', activeMod.icon || 'layout-dashboard');
+
+  const mobModLabel = document.getElementById('mobileActiveModuleLabel');
+  if (mobModLabel) mobModLabel.textContent = activeMod.label;
+
+  // Subnavegação de Dias no Pilar 4 (Prescrição / Schedule)
+  const daySubnav = document.getElementById('mobilePerfDaySubnav');
+  if (daySubnav) {
+    if (pilarId === 4 && (targetModId === 'prescription' || targetModId === 'schedule')) {
+      daySubnav.classList.remove('hidden');
+    } else {
+      daySubnav.classList.add('hidden');
+    }
+  }
+
+  // 3. Shims de compatibilidade legados
   const mobIcon = document.getElementById('mobileContextPilarIcon');
   if (mobIcon) mobIcon.setAttribute('data-lucide', pilar.icon || 'utensils');
-
   const mobTitle = document.getElementById('mobileContextPilarTitle');
   if (mobTitle) mobTitle.textContent = pilar.title;
-
   const mobSub = document.getElementById('mobileContextPilarSubtitle');
   if (mobSub) mobSub.textContent = pilar.subtitle;
-
   const mobActiveLabel = document.getElementById('mobile-module-trigger-label');
   if (mobActiveLabel) mobActiveLabel.textContent = activeMod.label;
 
-  const mobDropTitle = document.getElementById('mobile-dropdown-pilar-title');
-  if (mobDropTitle) mobDropTitle.textContent = `MÓDULOS DE ${pilar.title}`;
-
-  const mobDropCount = document.getElementById('mobile-dropdown-count-badge');
-  if (mobDropCount) mobDropCount.textContent = `${pilar.modules.length} módulos`;
-
-  // 3. Renderiza a lista de itens nos dropdowns
+  // 4. Renderiza a lista de itens nos dropdowns desktop
   const itemsHtml = pilar.modules.map(mod => {
     const isActive = mod.id === activeMod.id;
     return `
@@ -7566,14 +7702,17 @@ function renderContextualHeader(pilarId, activeModId = null) {
   const deskList = document.getElementById('nax-dropdown-items-list');
   if (deskList) deskList.innerHTML = itemsHtml;
 
-  const mobList = document.getElementById('mobile-dropdown-items-list');
-  if (mobList) mobList.innerHTML = itemsHtml;
+  // Atualiza também os Bottom Sheets mobile
+  updateMobilePilarSheetActive(pilarId);
+  renderMobileModuleSheetList(pilarId, targetModId);
 
   if (window.lucide) window.lucide.createIcons();
 }
 
 async function selectContextualModule(pilarId, moduleId) {
   closeContextualDropdown();
+  if (typeof closeMobileModuleSheet === 'function') closeMobileModuleSheet();
+  if (typeof closeMobilePilarSheet === 'function') closeMobilePilarSheet();
 
   currentActivePilar = pilarId;
   updateSidebarPilarVisuals(pilarId);
@@ -7923,7 +8062,7 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
     modBreadEl.innerText = breadcrumbModuleMap[tabName] || tabName;
   }
 
-  // 6. Atualiza estado ativo na Bottom Navigation Bar Mobile
+  // 6. Atualiza estado ativo na Bottom Navigation Bar Mobile (Barra de 4 itens + Shims)
   const mobNavIds = ['dashboard', 'prescription', 'performance', 'evaluation', 'backup', 'patientApp'];
   mobNavIds.forEach(id => {
     const mobBtn = document.getElementById('mob-nav-' + id);
@@ -7935,6 +8074,16 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
       }
     }
   });
+
+  const mobHomeBtn = document.getElementById('mob-nav-home');
+  if (mobHomeBtn) {
+    const isHomeTab = ['dashboard', 'discipline', 'mentality', 'performance', 'evolution'].includes(tabName);
+    if (isHomeTab) {
+      mobHomeBtn.classList.add('active');
+    } else {
+      mobHomeBtn.classList.remove('active');
+    }
+  }
 
   // 7. Fecha o modal de menu mobile se estiver aberto
   const menuModal = document.getElementById('mobile-menu-modal');
@@ -13932,6 +14081,15 @@ function perfFocusDay(dayKey) {
     activeBtn.style.boxShadow = day.type === 'Treino'
       ? (isColor2 ? '0 0 12px rgba(168,85,247,0.65)' : '0 0 12px rgba(59,130,246,0.65)')
       : (day.type === 'Cardio' ? '0 0 12px rgba(245,158,11,0.65)' : '0 0 10px rgba(113,113,122,0.4)');
+  }
+
+  // Sincroniza botões na subnavegação mobile
+  const mobDayBtns = document.querySelectorAll('#mobilePerfDaySubnav button');
+  if (mobDayBtns.length) {
+    mobDayBtns.forEach(btn => btn.classList.remove('active'));
+    const targetKey = day.dayKey || normalizedKey || dayKey;
+    const mobActive = document.getElementById('mob-day-btn-' + targetKey);
+    if (mobActive) mobActive.classList.add('active');
   }
 
   if (day.routineId) {

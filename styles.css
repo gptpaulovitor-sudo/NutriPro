@@ -411,14 +411,246 @@ body {
 .modal-slide-up { animation: modalSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 @media (max-width: 767px) {
-  body { background-color: var(--bg-primary); }
+  html, body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    position: relative;
+    background-color: var(--bg-primary);
+  }
+
   main {
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
-    padding-top: 0.75rem !important;
-    padding-bottom: 5.5rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
     max-width: 100vw !important;
     overflow-x: hidden !important;
+  }
+
+  /* ═══ TOP APP BAR COMPACTA MOBILE ═══ */
+  .nax-mobile-top-header {
+    height: 50px;
+    background: rgba(8, 9, 10, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  /* ═══ PILAR HERO VISUAL MOBILE ═══ */
+  .nax-mobile-pilar-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    min-height: 135px;
+    background-size: cover;
+    background-position: center right;
+    background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.15rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+  }
+  .nax-mobile-pilar-hero:active {
+    transform: scale(0.99);
+    border-color: rgba(229, 9, 20, 0.6);
+  }
+
+  .nax-mobile-pilar-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(8,9,10,0.35) 0%, rgba(8,9,10,0.85) 60%, rgba(8,9,10,0.98) 100%),
+                linear-gradient(90deg, rgba(8,9,10,0.92) 0%, rgba(8,9,10,0.50) 100%);
+    pointer-events: none;
+  }
+
+  .nax-pilar-circle-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: #171B1F;
+    border: 1px solid #272C31;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ═══ SELETOR DE MÓDULOS MOBILE ═══ */
+  .nax-mobile-module-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: all var(--transition-fast);
+  }
+  .nax-mobile-module-btn:active {
+    background: var(--card-elevated);
+    border-color: #3E454D;
+    transform: scale(0.99);
+  }
+
+  /* ═══ SUBNAVEGAÇÃO DE DIAS (PERFORMANCE) ═══ */
+  .nax-mobile-day-subnav {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.25rem 0.15rem;
+    width: 100%;
+  }
+  .nax-mobile-day-subnav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ═══ BOTTOM SHEETS MOBILE ═══ */
+  .nax-bottom-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transition: opacity 200ms ease;
+  }
+
+  .nax-bottom-sheet-panel {
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    background: #0D1013;
+    border-top: 1px solid #272C31;
+    border-left: 1px solid #272C31;
+    border-right: 1px solid #272C31;
+    border-top-left-radius: 26px;
+    border-top-right-radius: 26px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.85);
+    animation: naxSheetSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes naxSheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .nax-sheet-handle {
+    width: 42px;
+    height: 4px;
+    border-radius: 9999px;
+    background: #3A4048;
+    margin: 10px auto 4px auto;
+  }
+
+  .nax-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    width: 100%;
+    min-height: 52px;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    background: #121518;
+    border: 1px solid #272C31;
+    color: var(--text-secondary);
+    text-align: left;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .nax-sheet-item:active {
+    transform: scale(0.985);
+  }
+  .nax-sheet-item.active {
+    background: #171B1F;
+    border-color: var(--red-nax);
+    color: #ffffff;
+  }
+  .nax-sheet-item.active .nax-sheet-item-num {
+    background: var(--red-nax);
+    color: #ffffff;
+    border-color: var(--red-nax);
+  }
+  .nax-sheet-item.active .nax-item-icon-box {
+    background: rgba(229, 9, 20, 0.12) !important;
+    border-color: rgba(229, 9, 20, 0.35) !important;
+    color: var(--red-nax) !important;
+  }
+
+  .nax-sheet-item-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: #171B1F;
+    border: 1px solid #272C31;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* ═══ MOBILE BOTTOM NAVIGATION BAR ═══ */
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 60;
+    background: rgba(13, 16, 19, 0.98);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.7);
+    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  }
+
+  /* ═══ TABELAS & CONTAINERS RESPONSIVOS ═══ */
+  .table-responsive-wrapper,
+  div[style*="overflow-x"],
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100% !important;
+  }
+
+  /* ═══ INPUTS & SELECTS TOUCH ═══ */
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    font-size: 14px !important;
   }
 }
 

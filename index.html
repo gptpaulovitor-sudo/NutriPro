@@ -243,80 +243,44 @@
     </div>
 
     <!-- ── CABEÇALHO COMPACTO MOBILE (EXCLUSIVO SMARTPHONES) ── -->
-    <div class="flex md:hidden px-3 py-2 items-center justify-between gap-2 w-full">
+    <div class="flex md:hidden px-4 py-2.5 items-center justify-between gap-2 w-full nax-mobile-top-header">
       <!-- Brand Logo / Title -->
-      <div class="flex items-center gap-1.5 shrink-0" onclick="switchTab('dashboard')" role="button">
-        <span class="text-base font-black tracking-tight text-white flex items-center gap-1">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-          Nutri<span class="text-red-500">Ax</span>
+      <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('dashboard')" role="button">
+        <span class="text-base font-black tracking-tight text-white flex items-center">
+          Nutri<span style="color:#E50914">Ax</span>
+        </span>
+        <span class="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded" style="background:rgba(229,9,20,0.12);color:#FF4D55;border:1px solid rgba(229,9,20,0.3)">
+          PRO
         </span>
       </div>
 
-      <!-- Seletor do Paciente em Chip Dropdown Interativo (Mobile Top Bar) -->
-      <div
-        class="flex-1 max-w-[210px] flex items-center gap-1 bg-zinc-900/90 border border-zinc-700/80 hover:border-red-500/60 rounded-xl px-2 py-1 transition-all shadow-inner">
-        <i data-lucide="user" class="w-3.5 h-3.5 text-red-400 shrink-0"></i>
-        <select id="mobileActivePatientSelect" onchange="onPatientChange(this.value)"
-          class="bg-transparent text-xs font-bold text-white border-0 p-0 focus:ring-0 cursor-pointer w-full truncate"
-          title="Alternar Paciente Ativo">
-          <option value="paulo-vitor">Paulo Vitor R de Sousa</option>
-        </select>
-        <button onclick="openNewPatientModal()" title="Cadastrar Novo Paciente"
-          class="text-red-400 hover:text-white font-black text-xs px-1 shrink-0">
-          +
-        </button>
-      </div>
-
-      <!-- Ações Rápidas Mobile (Sincronizar Nuvem & Menu Geral) -->
+      <!-- Ações Rápidas Mobile (Notificações / Menu) -->
       <div class="flex items-center gap-1.5 shrink-0">
-        <button onclick="loadPatientFromCloud(activePatientId, true)"
-          class="p-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 text-emerald-300 active:scale-90 transition-all"
-          title="Baixar Dados do Paciente do Drive">
-          <i data-lucide="cloud-download" class="w-4 h-4 text-emerald-400"></i>
+        <button onclick="openMobileActionsSheet()" class="p-2 rounded-xl text-[#B7BCC2] hover:text-white transition-colors" title="Notificações & Avisos">
+          <i data-lucide="bell" class="w-4 h-4"></i>
         </button>
-        <button onclick="openMobileMenuModal()"
-          class="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 active:scale-90 transition-all"
-          title="Abrir Menu de Módulos">
-          <i data-lucide="grid" class="w-4 h-4"></i>
+        <button onclick="openMobileActionsSheet()" class="p-2 rounded-xl text-[#B7BCC2] hover:text-white transition-colors" title="Menu e Ações Rápidas">
+          <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
       </div>
-    </div>
 
-    <!-- ── BARRA CONTEXTUAL MOBILE DO PILAR (EXCLUSIVO SMARTPHONES) ── -->
-    <div class="flex md:hidden px-3.5 py-2 border-t border-[#272C31] bg-[#0D1013] items-center justify-between gap-2 w-full" id="mobile-contextual-bar">
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-1.5">
-          <i id="mobileContextPilarIcon" data-lucide="utensils" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-          <span id="mobileContextPilarTitle" class="text-xs font-black tracking-wide text-white uppercase truncate">NUTRIÇÃO</span>
-        </div>
-        <p id="mobileContextPilarSubtitle" class="text-[10px] text-[#737A82] truncate">Estratégias alimentares, avaliação e organização nutricional.</p>
-      </div>
-
-      <div class="relative shrink-0" id="mobile-module-selector-wrapper">
-        <button id="mobile-module-trigger-btn" onclick="toggleModuleDropdown(event)"
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#121518] border border-[#272C31] text-[#F2F3F5] text-xs font-semibold shadow-sm cursor-pointer">
-          <span id="mobile-module-trigger-label" class="truncate max-w-[120px]">Dashboard &amp; Radar</span>
-          <i id="mobile-module-chevron" data-lucide="chevron-down" class="w-3 h-3 text-[#737A82] transition-transform"></i>
-        </button>
-
-        <!-- Dropdown Mobile List (1 nível, fechamento automático) -->
-        <div id="mobile-context-dropdown-menu"
-          class="hidden absolute top-full mt-2 right-0 w-[290px] max-h-[380px] overflow-y-auto bg-[#121518] border border-[#272C31] rounded-2xl shadow-2xl z-50 p-2 space-y-1">
-          <div class="px-2.5 py-1.5 border-b border-[#272C31] mb-1 flex items-center justify-between">
-            <span id="mobile-dropdown-pilar-title" class="text-[10px] font-bold tracking-wider uppercase text-[#737A82]">
-              MÓDULOS DE NUTRIÇÃO
-            </span>
-            <span id="mobile-dropdown-count-badge" class="text-[9px] px-1.5 py-0.5 rounded bg-[#171B1F] text-[#B7BCC2] border border-[#272C31]">
-              12 módulos
-            </span>
-          </div>
-          <div id="mobile-dropdown-items-list" class="space-y-1">
-            <!-- Preenchido dinamicamente pelo app.js -->
+      <!-- Shim de compatibilidade com IDs legados da barra móvel antiga -->
+      <div class="hidden" style="display:none !important">
+        <i id="mobileContextPilarIcon"></i>
+        <span id="mobileContextPilarTitle"></span>
+        <p id="mobileContextPilarSubtitle"></p>
+        <div id="mobile-module-selector-wrapper">
+          <button id="mobile-module-trigger-btn"></button>
+          <span id="mobile-module-trigger-label"></span>
+          <i id="mobile-module-chevron"></i>
+          <div id="mobile-context-dropdown-menu">
+            <span id="mobile-dropdown-pilar-title"></span>
+            <span id="mobile-dropdown-count-badge"></span>
+            <div id="mobile-dropdown-items-list"></div>
           </div>
         </div>
       </div>
     </div>
-
   </header>
 
   <!-- ═══ 2. ESTRUTURA PRINCIPAL: SIDEBAR (DESKTOP) + CONTEÚDO ═══ -->
@@ -488,272 +452,107 @@
     <!-- ═══ ÁREA DE CONTEÚDO PRINCIPAL ═══ -->
     <main class="flex-1 flex flex-col p-3 md:p-6 lg:p-8 space-y-4 md:space-y-6">
 
-      <!-- ═══ QUADRO SELETOR ÚNICO: PILARES E ACESSOS ═══ -->
-      <div id="mobile-pilares-acessos-card"
-        class="block md:hidden hud-card p-3.5 space-y-3 mb-2" style="background:#0D1013;border:1px solid #272C31">
+      <!-- ═══ NUTRIAX PRO — NOVO PAINEL EXCLUSIVO MOBILE: PILAR HERO & SELETOR DE MÓDULOS ═══ -->
+      <div id="mobile-pilar-control-panel" class="block md:hidden space-y-3 mb-2">
 
-        <!-- Cabeçalho do Quadro -->
-        <div class="flex items-center justify-between pb-2.5" style="border-bottom:1px solid #272C31">
-          <div class="flex items-center gap-2">
-            <div
-              class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(229,9,20,0.1);border:1px solid rgba(229,9,20,0.3)">
-              <i data-lucide="layers" class="w-4 h-4" style="color:#E50914"></i>
-            </div>
-            <div>
-              <span class="text-xs font-semibold tracking-wide block" style="color:#F2F3F5">Pilares e Acessos</span>
-              <span id="cardActivePilarBadge" class="text-[10px] font-medium" style="color:#E50914">Pilar 3 · Nutrição</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <button onclick="togglePilaresAcessosCard()" title="Recolher / Expandir Painel"
-              class="p-1.5 rounded-lg transition-all" style="background:#121518;border:1px solid #272C31;color:#737A82">
-              <i id="pilaresAcessosChevron" data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
-            </button>
-          </div>
-        </div>
-
-        <div id="pilaresAcessosBody" class="space-y-3">
-          <!-- 1. Grid dos 5 Pilares na Ordem Correta (1 a 5) -->
-          <div class="space-y-1">
-            <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider block">1. Selecione o
-              Pilar:</span>
-            <div class="grid grid-cols-5 gap-1 text-center">
-              <!-- Pilar 1 -->
-              <button id="card-pilar-1" onclick="switchPilar(1)"
-                class="p-1.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-                <i data-lucide="brain" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
-                <span class="text-[9px] sm:text-[10px] font-medium truncate w-full">1. Mentalidade</span>
-              </button>
-
-              <!-- Pilar 2 -->
-              <button id="card-pilar-2" onclick="switchPilar(2)"
-                class="p-1.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-                <i data-lucide="shield" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
-                <span class="text-[9px] sm:text-[10px] font-medium truncate w-full">2. Disciplina</span>
-              </button>
-
-              <!-- Pilar 3 (Nutrição - Ativo) -->
-              <button id="card-pilar-3" onclick="switchPilar(3)"
-                class="p-1.5 rounded-xl flex flex-col items-center justify-center gap-1 font-semibold transition-all" style="background:#E50914;color:#ffffff">
-                <i data-lucide="utensils" class="w-3.5 h-3.5 text-white"></i>
-                <span class="text-[9px] sm:text-[10px] font-semibold truncate w-full">3. Nutrição</span>
-              </button>
-
-              <!-- Pilar 4 (Performance) -->
-              <button id="card-pilar-4" onclick="switchPilar(4)"
-                class="p-1.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-                <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
-                <span class="text-[9px] sm:text-[10px] font-medium truncate w-full">4. Performance</span>
-              </button>
-
-              <!-- Pilar 5 -->
-              <button id="card-pilar-5" onclick="switchPilar(5)"
-                class="p-1.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all" style="background:#121518;border:1px solid #272C31;color:#B7BCC2">
-                <i data-lucide="trophy" class="w-3.5 h-3.5 text-[#B7BCC2]"></i>
-                <span class="text-[9px] sm:text-[10px] font-medium truncate w-full">5. Resultado</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 2. Sub-Módulos do Pilar Ativo -->
-          <div class="space-y-1">
-            <span class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider block">2. Módulos &amp;
-              Ferramentas:</span>
-
-            <!-- Pilar 1 Sub-módulos Grid -->
-            <div id="card-subnav-1" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button id="card-subnav-btn-1-goals" onclick="selectMobilePilarTool(1, 'goals')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="target" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Foco &amp; Metas</span>
-              </button>
-              <button id="card-subnav-btn-1-mindset" onclick="selectMobilePilarTool(1, 'mindset')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Mindset &amp; Hábitos</span>
-              </button>
-            </div>
-
-            <!-- Pilar 2 Sub-módulos Grid -->
-            <div id="card-subnav-2" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button id="card-subnav-btn-2-dashboard" onclick="selectMobilePilarTool(2, 'dashboard')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Dashboard &amp; IDC</span>
-              </button>
-              <button id="card-subnav-btn-2-heatmap" onclick="selectMobilePilarTool(2, 'heatmap')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Heatmap 30 Dias</span>
-              </button>
-              <button id="card-subnav-btn-2-habits" onclick="selectMobilePilarTool(2, 'habits')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="list-checks" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Matriz de Hábitos</span>
-              </button>
-              <button id="card-subnav-btn-2-sos" onclick="selectMobilePilarTool(2, 'sos')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="life-buoy" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Protocolo SOS</span>
-              </button>
-              <button onclick="openPatientShareModal()"
-                class="col-span-2 p-2 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center justify-center gap-2 text-white font-semibold text-xs transition-all">
-                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-[#E50914]"></i>
-                <span>Compartilhar App do Paciente</span>
-              </button>
-            </div>
-
-            <!-- Pilar 3 Sub-módulos Grid -->
-            <div id="card-subnav-3" class="grid grid-cols-2 gap-1.5 text-xs">
-              <button id="card-subnav-btn-3-dashboard" onclick="selectMobilePilarTool(3, 'dashboard')"
-                class="p-2 rounded-xl bg-[#E50914]/15 border border-[#E50914]/60 text-white font-semibold flex items-center gap-2 text-left transition-all">
-                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Radar &amp; Scores</span>
-              </button>
-              <button id="card-subnav-btn-3-prescription" onclick="selectMobilePilarTool(3, 'prescription')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="utensils" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Dieta &amp; Macros</span>
-              </button>
-              <button id="card-subnav-btn-3-fasting" onclick="selectMobilePilarTool(3, 'fasting')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="clock" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Jejum Intermitente</span>
-              </button>
-              <button id="card-subnav-btn-3-evaluation" onclick="selectMobilePilarTool(3, 'evaluation')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="activity" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Avaliação Física</span>
-              </button>
-              <button id="card-subnav-btn-3-anamnese" onclick="selectMobilePilarTool(3, 'anamnese')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Anamnese Clínica</span>
-              </button>
-              <button id="card-subnav-btn-3-exams" onclick="selectMobilePilarTool(3, 'exams')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Exames de Sangue</span>
-              </button>
-              <button id="card-subnav-btn-3-recall" onclick="selectMobilePilarTool(3, 'recall')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="utensils-crossed" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Recordatório 24h</span>
-              </button>
-              <button id="card-subnav-btn-3-adherence" onclick="selectMobilePilarTool(3, 'adherence')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="check-check" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Adesão do Paciente</span>
-              </button>
-              <button id="card-subnav-btn-3-foods" onclick="selectMobilePilarTool(3, 'foods')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="database" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Base TACO &amp; TBCA</span>
-              </button>
-              <button id="card-subnav-btn-3-patientApp" onclick="selectMobilePilarTool(3, 'patientApp')"
-                class="col-span-2 p-2 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center justify-center gap-2 text-white font-semibold transition-all">
-                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">App do Paciente (Painel &amp; Acesso)</span>
-              </button>
-            </div>
-
-            <!-- Pilar 4 Sub-módulos Grid -->
-            <div id="card-subnav-4" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button id="card-subnav-btn-4-prescription" onclick="selectMobilePilarTool(4, 'prescription')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="dumbbell" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Prescrição de Força</span>
-              </button>
-              <button id="card-subnav-btn-4-schedule" onclick="selectMobilePilarTool(4, 'schedule')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Agenda Semanal</span>
-              </button>
-              <button id="card-subnav-btn-4-cardio" onclick="selectMobilePilarTool(4, 'cardio')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="flame" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Cardios &amp; Déficit</span>
-              </button>
-              <button id="card-subnav-btn-4-catalog" onclick="selectMobilePilarTool(4, 'catalog')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="book-open" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="font-bold text-[11px] truncate">Catálogo Biomecânico</span>
-              </button>
-              <button onclick="handleGenerateAITraining()"
-                class="col-span-2 p-2 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center justify-center gap-2 text-white font-semibold text-xs transition-all">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E50914]"></i>
-                <span>Gerar Treino via IA</span>
-              </button>
-            </div>
-
-            <!-- Pilar 5 Sub-módulos Grid -->
-            <div id="card-subnav-5" class="hidden grid grid-cols-2 gap-1.5 text-xs">
-              <button id="card-subnav-btn-5-dashboard" onclick="selectMobilePilarTool(5, 'dashboard')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Dashboard &amp; IEC</span>
-              </button>
-              <button id="card-subnav-btn-5-charts" onclick="selectMobilePilarTool(5, 'charts')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="line-chart" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Gráficos Evolutivos</span>
-              </button>
-              <button id="card-subnav-btn-5-synergy" onclick="selectMobilePilarTool(5, 'synergy')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="zap" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Sinergia Nutri × Treino</span>
-              </button>
-              <button id="card-subnav-btn-5-gallery" onclick="selectMobilePilarTool(5, 'gallery')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="camera" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Fotos Antes/Depois</span>
-              </button>
-              <button id="card-subnav-btn-5-predictive" onclick="selectMobilePilarTool(5, 'predictive')"
-                class="p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] text-[#B7BCC2] hover:text-[#F2F3F5] flex items-center gap-2 text-left transition-all">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Projeção IA</span>
-              </button>
-              <button onclick="exportImpactReportPDF()"
-                class="p-2 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center gap-2 text-left text-white font-semibold transition-all">
-                <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#E50914] shrink-0"></i>
-                <span class="text-[11px] font-bold truncate">Exportar Laudo PDF</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 3. Painel do Google Drive Backup Integrado -->
-          <div
-            class="p-2.5 rounded-xl bg-gradient-to-r from-emerald-950/70 via-zinc-950 to-zinc-900 border border-emerald-700/70 flex items-center justify-between gap-2 shadow-sm">
-            <button onclick="switchTab('backup')" class="flex items-center gap-2 text-left flex-1 min-w-0"
-              title="Abrir Painel do Drive Backup">
-              <i data-lucide="cloud-upload" class="w-4 h-4 text-emerald-400 shrink-0 animate-pulse"></i>
-              <div class="truncate">
-                <span class="text-[11px] font-black text-emerald-300 block truncate">Painel do Drive Backup</span>
-                <span class="text-[9px] text-zinc-400 block truncate">Sincronização &amp; Nuvem</span>
+        <!-- 1. Card Hero do Pilar Ativo (Ao tocar, abre o Bottom Sheet de Seleção de Pilar) -->
+        <div id="mobileActivePilarHero" onclick="openMobilePilarSheet()" class="nax-mobile-pilar-hero"
+          style="background-image: linear-gradient(180deg, rgba(8,9,10,0.35) 0%, rgba(8,9,10,0.85) 60%, rgba(8,9,10,0.98) 100%), linear-gradient(90deg, rgba(8,9,10,0.92) 0%, rgba(8,9,10,0.50) 100%), url('assets/pilares/nutricao/hero.jpg');"
+          role="button" title="Toque para alternar o Pilar">
+          <div class="relative z-10 space-y-1 w-full">
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2.5">
+                <span id="mobileHeroPilarNum" class="nax-pilar-circle-badge">03</span>
+                <div>
+                  <span id="mobileHeroPilarTag" class="text-[10px] font-mono font-bold tracking-widest text-[#737A82] uppercase block">PILAR 03</span>
+                  <h2 id="mobileHeroPilarTitle" class="text-base font-black tracking-wide text-white uppercase">NUTRIÇÃO</h2>
+                </div>
               </div>
-            </button>
-            <div class="flex items-center gap-1 shrink-0">
-              <button onclick="loadPatientFromCloud(activePatientId, true)"
-                class="p-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-[10px] font-bold flex items-center gap-1 active:scale-95"
-                title="Baixar dados">
-                <i data-lucide="cloud-download" class="w-3 h-3"></i> Baixar
-              </button>
-              <button onclick="savePatientToCloud(activePatientId)"
-                class="p-1.5 rounded-lg btn-nax-primary text-white text-[10px] font-bold flex items-center gap-1 active:scale-95"
-                title="Salvar dados">
-                <i data-lucide="cloud-upload" class="w-3 h-3"></i> Salvar
-              </button>
+              <div class="w-8 h-8 rounded-full bg-black/40 border border-[#272C31] flex items-center justify-center text-[#B7BCC2] shrink-0">
+                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+              </div>
             </div>
+            <p id="mobileHeroPilarSub" class="text-[11px] text-[#B7BCC2] leading-tight line-clamp-2 pt-0.5">
+              Estratégias alimentares, avaliação e organização nutricional.
+            </p>
           </div>
         </div>
 
+        <!-- 2. Seletor de Módulo (Ao tocar, abre o Bottom Sheet de Módulos) -->
+        <button id="mobileModuleTriggerBtn" onclick="openMobileModuleSheet()" class="nax-mobile-module-btn" type="button" title="Toque para selecionar o módulo">
+          <span class="flex items-center gap-2.5 min-w-0">
+            <i id="mobileActiveModuleIcon" data-lucide="layout-dashboard" class="w-4 h-4 text-[#E50914] shrink-0"></i>
+            <span id="mobileActiveModuleLabel" class="truncate font-semibold text-white">Dashboard &amp; Radar</span>
+          </span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-[#737A82] shrink-0"></i>
+        </button>
+
+        <!-- 3. Subnavegação de Dias (Microciclo Semanal - Exclusivo Pilar 4 Prescrição) -->
+        <div id="mobilePerfDaySubnav" class="hidden nax-mobile-day-subnav">
+          <button id="mob-day-btn-d1" onclick="perfFocusDay('d1')" class="perf-day-subnav-btn active">DIA 1</button>
+          <button id="mob-day-btn-d2" onclick="perfFocusDay('d2')" class="perf-day-subnav-btn">DIA 2</button>
+          <button id="mob-day-btn-d3" onclick="perfFocusDay('d3')" class="perf-day-subnav-btn">DIA 3</button>
+          <button id="mob-day-btn-d4" onclick="perfFocusDay('d4')" class="perf-day-subnav-btn">DIA 4</button>
+          <button id="mob-day-btn-d5" onclick="perfFocusDay('d5')" class="perf-day-subnav-btn">DIA 5</button>
+          <button id="mob-day-btn-d6" onclick="perfFocusDay('d6')" class="perf-day-subnav-btn">DIA 6</button>
+          <button id="mob-day-btn-d7" onclick="perfFocusDay('d7')" class="perf-day-subnav-btn">DIA 7</button>
+        </div>
+
+      </div>
+
+      <!-- Shim de compatibilidade com funções legadas do quadro mobile antigo -->
+      <div id="mobile-legacy-shim" class="hidden" style="display:none !important">
+        <span id="cardActivePilarBadge"></span>
+        <i id="pilaresAcessosChevron"></i>
+        <div id="pilaresAcessosBody">
+          <button id="card-pilar-1" onclick="switchPilar(1)"></button>
+          <button id="card-pilar-2" onclick="switchPilar(2)"></button>
+          <button id="card-pilar-3" onclick="switchPilar(3)"></button>
+          <button id="card-pilar-4" onclick="switchPilar(4)"></button>
+          <button id="card-pilar-5" onclick="switchPilar(5)"></button>
+          <div id="card-subnav-1">
+            <button id="card-subnav-btn-1-goals"></button>
+            <button id="card-subnav-btn-1-mindset"></button>
+          </div>
+          <div id="card-subnav-2">
+            <button id="card-subnav-btn-2-dashboard"></button>
+            <button id="card-subnav-btn-2-heatmap"></button>
+            <button id="card-subnav-btn-2-habits"></button>
+            <button id="card-subnav-btn-2-sos"></button>
+          </div>
+          <div id="card-subnav-3">
+            <button id="card-subnav-btn-3-dashboard"></button>
+            <button id="card-subnav-btn-3-prescription"></button>
+            <button id="card-subnav-btn-3-fasting"></button>
+            <button id="card-subnav-btn-3-evaluation"></button>
+            <button id="card-subnav-btn-3-anamnese"></button>
+            <button id="card-subnav-btn-3-exams"></button>
+            <button id="card-subnav-btn-3-recall"></button>
+            <button id="card-subnav-btn-3-adherence"></button>
+            <button id="card-subnav-btn-3-foods"></button>
+            <button id="card-subnav-btn-3-patientApp"></button>
+          </div>
+          <div id="card-subnav-4">
+            <button id="card-subnav-btn-4-prescription"></button>
+            <button id="card-subnav-btn-4-schedule"></button>
+            <button id="card-subnav-btn-4-cardio"></button>
+            <button id="card-subnav-btn-4-catalog"></button>
+          </div>
+          <div id="card-subnav-5">
+            <button id="card-subnav-btn-5-dashboard"></button>
+            <button id="card-subnav-btn-5-charts"></button>
+            <button id="card-subnav-btn-5-synergy"></button>
+            <button id="card-subnav-btn-5-gallery"></button>
+            <button id="card-subnav-btn-5-predictive"></button>
+          </div>
+        </div>
       </div>
 
       <!-- ═══ PILAR 1: MENTALIDADE & PROPÓSITO (DESIGN SYSTEM UNIFICADO) ═══ -->
       <section id="tab-mentality" class="max-w-7xl mx-auto space-y-4 md:space-y-6 w-full hidden" hidden>
 
-        <!-- ── BANNER HERO CLÍNICO (PADRÃO DASHBOARD) ── -->
-        <div id="pilar1HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+        <!-- ── BANNER HERO CLÍNICO (PADRÃO DASHBOARD - DESKTOP) ── -->
+        <div id="pilar1HeroBanner" class="hidden md:flex relative overflow-hidden rounded-2xl p-5 md:p-6 flex-col md:flex-row justify-between items-start md:items-center gap-6"
           style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/mentalidade/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
@@ -957,8 +756,8 @@
       <!-- ═══ 1. PILAR 3 / MÓDULO 1: DASHBOARD & RADAR (100% FIEL À REFERÊNCIA 2) ═══ -->
       <section id="tab-dashboard" class="max-w-7xl mx-auto space-y-4 md:space-y-6 w-full">
 
-        <!-- ── ROW 1: BANNER DO PACIENTE (HERO) ── -->
-        <div id="pilar3HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+        <!-- ── ROW 1: BANNER DO PACIENTE (HERO - DESKTOP) ── -->
+        <div id="pilar3HeroBanner" class="hidden md:flex relative overflow-hidden rounded-2xl p-5 md:p-6 flex-col md:flex-row justify-between items-start md:items-center gap-6"
           style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/nutricao/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <!-- Lado Esquerdo: Identificação & Metadados do Paciente -->
@@ -1395,8 +1194,8 @@
 
 <section id="tab-performance" class="max-w-7xl mx-auto space-y-6 w-full hidden" hidden>
 
-        <!-- Header Banner Clínico de Performance (Pilar 4 - Design System Unificado) -->
-        <div id="pilar4HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+        <!-- Header Banner Clínico de Performance (Pilar 4 - Desktop) -->
+        <div id="pilar4HeroBanner" class="hidden md:flex relative overflow-hidden rounded-2xl p-5 md:p-6 flex-col md:flex-row justify-between items-start md:items-center gap-6"
           style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/performance/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
@@ -3635,8 +3434,8 @@
       <!-- 4. PILAR 5: RESULTADO & IMPACTO (DESIGN SYSTEM UNIFICADO) -->
       <section id="tab-evolution" class="max-w-7xl mx-auto space-y-6 w-full hidden">
 
-        <!-- Header Banner Clínico do Pilar 5 (Design System Unificado) -->
-        <div id="pilar5HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+        <!-- Header Banner Clínico do Pilar 5 (Desktop) -->
+        <div id="pilar5HeroBanner" class="hidden md:flex relative overflow-hidden rounded-2xl p-5 md:p-6 flex-col md:flex-row justify-between items-start md:items-center gap-6"
           style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/resultado/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
@@ -4173,8 +3972,8 @@
        PILAR 2: DISCIPLINA, HÁBITOS & SCORE IDC (ABA DEDICADA)
   ═══════════════════════════════════════════════════════════ -->
       <section id="tab-discipline" class="max-w-7xl mx-auto space-y-6 w-full hidden">
-        <!-- Header Banner Clínico (Pilar 2 - Design System Unificado) -->
-        <div id="pilar2HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+        <!-- Header Banner Clínico (Pilar 2 - Desktop) -->
+        <div id="pilar2HeroBanner" class="hidden md:flex relative overflow-hidden rounded-2xl p-5 md:p-6 flex-col md:flex-row justify-between items-start md:items-center gap-6"
           style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/disciplina/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
@@ -5945,43 +5744,225 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       MOBILE BOTTOM NAVIGATION BAR (FIXA PARA SMARTPHONES)
+       BOTTOM SHEETS MOBILE NUTRIAX PRO (100% FIEL AO MOCKUP)
   ═══════════════════════════════════════════════════════════ -->
-  <nav id="mobile-bottom-nav" class="mobile-bottom-nav block lg:hidden" aria-label="Navegação Mobile">
-    <div class="grid grid-cols-5 items-center justify-around px-1 pt-1 text-center">
 
-      <!-- 1. Dashboard / Radar -->
-      <button id="mob-nav-dashboard" onclick="switchTab('dashboard')" class="mobile-nav-btn active">
-        <i data-lucide="layout-dashboard" class="w-5 h-5 mobile-nav-icon"></i>
-        <span>Radar</span>
+  <!-- 1. Bottom Sheet: Seletor de Pilares (01 a 05) -->
+  <div id="mobile-pilar-bottom-sheet" class="nax-bottom-sheet-backdrop" style="display:none;" onclick="if(event.target===this) closeMobilePilarSheet()">
+    <div class="nax-bottom-sheet-panel">
+      <div class="nax-sheet-handle"></div>
+      <div class="px-5 py-3.5 border-b border-[#272C31] flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#737A82] block">SELECIONE O PILAR</span>
+          <h3 class="text-sm font-bold text-white">Arquitetura Clínica NutriAx</h3>
+        </div>
+        <button onclick="closeMobilePilarSheet()" class="p-2 rounded-xl text-[#737A82] hover:text-white hover:bg-white/[0.04]">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-2.5 overflow-y-auto max-h-[60vh]" id="mobile-pilar-sheet-list">
+        <!-- Pilar 01 -->
+        <button onclick="switchPilar(1); closeMobilePilarSheet();" id="sheet-pilar-1" class="nax-sheet-item">
+          <span class="nax-sheet-item-num">01</span>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-white block tracking-wide">01 — MENTALIDADE</span>
+            <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Foco • Comportamento • Preparação</span>
+          </div>
+          <span id="sheet-pilar-status-1" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+        </button>
+        <!-- Pilar 02 -->
+        <button onclick="switchPilar(2); closeMobilePilarSheet();" id="sheet-pilar-2" class="nax-sheet-item">
+          <span class="nax-sheet-item-num">02</span>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-white block tracking-wide">02 — DISCIPLINA</span>
+            <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Rotina • Consistência • Hábitos</span>
+          </div>
+          <span id="sheet-pilar-status-2" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+        </button>
+        <!-- Pilar 03 -->
+        <button onclick="switchPilar(3); closeMobilePilarSheet();" id="sheet-pilar-3" class="nax-sheet-item active">
+          <span class="nax-sheet-item-num">03</span>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-white block tracking-wide">03 — NUTRIÇÃO</span>
+            <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Saúde • Estratégia • Alimentação</span>
+          </div>
+          <span id="sheet-pilar-status-3" class="shrink-0"><i data-lucide="check" class="w-4 h-4 text-[#E50914]"></i></span>
+        </button>
+        <!-- Pilar 04 -->
+        <button onclick="switchPilar(4); closeMobilePilarSheet();" id="sheet-pilar-4" class="nax-sheet-item">
+          <span class="nax-sheet-item-num">04</span>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-white block tracking-wide">04 — PERFORMANCE</span>
+            <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Força • Condicionamento • Desempenho</span>
+          </div>
+          <span id="sheet-pilar-status-4" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+        </button>
+        <!-- Pilar 05 -->
+        <button onclick="switchPilar(5); closeMobilePilarSheet();" id="sheet-pilar-5" class="nax-sheet-item">
+          <span class="nax-sheet-item-num">05</span>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-white block tracking-wide">05 — RESULTADO</span>
+            <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Evolução • Composição • Progresso</span>
+          </div>
+          <span id="sheet-pilar-status-5" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Bottom Sheet: Seletor de Módulos do Pilar Ativo -->
+  <div id="mobile-module-bottom-sheet" class="nax-bottom-sheet-backdrop" style="display:none;" onclick="if(event.target===this) closeMobileModuleSheet()">
+    <div class="nax-bottom-sheet-panel">
+      <div class="nax-sheet-handle"></div>
+      <div class="px-5 py-3.5 border-b border-[#272C31] flex items-center justify-between">
+        <div>
+          <span id="mobile-module-sheet-pilar-tag" class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#737A82] block">PILAR 03</span>
+          <h3 id="mobile-module-sheet-title" class="text-sm font-bold text-white">Módulos de Nutrição</h3>
+        </div>
+        <button onclick="closeMobileModuleSheet()" class="p-2 rounded-xl text-[#737A82] hover:text-white hover:bg-white/[0.04]">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-2 overflow-y-auto max-h-[60vh]" id="mobile-module-sheet-items">
+        <!-- Preenchido dinamicamente pelo app.js de acordo com o pilar ativo -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Bottom Sheet: Gestão do Paciente Ativo -->
+  <div id="mobile-patient-bottom-sheet" class="nax-bottom-sheet-backdrop" style="display:none;" onclick="if(event.target===this) closeMobilePatientSheet()">
+    <div class="nax-bottom-sheet-panel">
+      <div class="nax-sheet-handle"></div>
+      <div class="px-5 py-3.5 border-b border-[#272C31] flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#737A82] block">PACIENTE ATIVO</span>
+          <h3 class="text-sm font-bold text-white">Gestão Clínica</h3>
+        </div>
+        <button onclick="closeMobilePatientSheet()" class="p-2 rounded-xl text-[#737A82] hover:text-white hover:bg-white/[0.04]">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-3.5 overflow-y-auto max-h-[60vh]">
+        <div class="p-3.5 rounded-2xl bg-[#121518] border border-[#272C31] space-y-2">
+          <label class="text-[11px] font-bold text-[#737A82] uppercase tracking-wider block">Alternar Paciente:</label>
+          <div class="flex items-center gap-2.5 bg-[#171B1F] border border-[#272C31] rounded-xl px-3 py-2.5">
+            <i data-lucide="user" class="w-4 h-4 text-[#E50914] shrink-0"></i>
+            <select id="mobileActivePatientSelect" onchange="onPatientChange(this.value); closeMobilePatientSheet();"
+              class="bg-transparent text-xs font-bold text-white border-0 p-0 focus:ring-0 cursor-pointer w-full truncate">
+              <option value="paulo-vitor">Paulo Vitor R de Sousa</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="openNewPatientModal(); closeMobilePatientSheet();"
+            class="p-3 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center justify-center gap-2 text-white font-semibold text-xs transition-all">
+            <i data-lucide="user-plus" class="w-4 h-4 text-[#E50914]"></i>
+            <span>Novo Paciente</span>
+          </button>
+          <button onclick="openPatientShareModal(); closeMobilePatientSheet();"
+            class="p-3 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center justify-center gap-2 text-white font-semibold text-xs transition-all">
+            <i data-lucide="share-2" class="w-4 h-4 text-[#00C896]"></i>
+            <span>Compartilhar App</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Bottom Sheet: Ações Rápidas & Google Drive -->
+  <div id="mobile-actions-bottom-sheet" class="nax-bottom-sheet-backdrop" style="display:none;" onclick="if(event.target===this) closeMobileActionsSheet()">
+    <div class="nax-bottom-sheet-panel">
+      <div class="nax-sheet-handle"></div>
+      <div class="px-5 py-3.5 border-b border-[#272C31] flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#737A82] block">AÇÕES CONTEXTUAIS</span>
+          <h3 class="text-sm font-bold text-white">Nuvem &amp; Ferramentas</h3>
+        </div>
+        <button onclick="closeMobileActionsSheet()" class="p-2 rounded-xl text-[#737A82] hover:text-white hover:bg-white/[0.04]">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-2.5 overflow-y-auto max-h-[65vh]">
+        <!-- Google Drive Sincronização -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-zinc-950 to-zinc-900 border border-emerald-700/60 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-300 flex items-center gap-2">
+              <i data-lucide="cloud" class="w-4 h-4 text-emerald-400"></i> Google Drive Backup
+            </span>
+            <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-200 border border-emerald-600/50">Ativo</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="loadPatientFromCloud(activePatientId, true); closeMobileActionsSheet();"
+              class="py-2.5 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-600/60 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
+              <i data-lucide="cloud-download" class="w-3.5 h-3.5 text-emerald-400"></i> Baixar
+            </button>
+            <button onclick="savePatientToCloud(activePatientId); closeMobileActionsSheet();"
+              class="py-2.5 px-3 rounded-xl btn-nax-primary font-bold text-xs flex items-center justify-center gap-1.5 text-white active:scale-95">
+              <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i> Salvar
+            </button>
+          </div>
+        </div>
+        <!-- Painel Drive Completo -->
+        <button onclick="switchTab('backup'); closeMobileActionsSheet();" class="nax-sheet-item">
+          <div class="nax-sheet-item-num"><i data-lucide="hard-drive" class="w-4 h-4 text-emerald-400"></i></div>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-semibold text-white block">Painel do Drive Backup</span>
+            <span class="text-[10px] text-[#737A82] block">Histórico de backups e arquivos na nuvem</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i>
+        </button>
+        <!-- Instalar PWA -->
+        <button onclick="openMobileInstallModal(); closeMobileActionsSheet();" class="nax-sheet-item">
+          <div class="nax-sheet-item-num"><i data-lucide="smartphone" class="w-4 h-4 text-[#E50914]"></i></div>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-semibold text-white block">Instalar App no Celular (PWA)</span>
+            <span class="text-[10px] text-[#737A82] block">Adicionar à tela de início para acesso rápido</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MOBILE BOTTOM NAVIGATION BAR (4 ITENS - FIEL AO MOCKUP)
+  ═══════════════════════════════════════════════════════════ -->
+  <nav id="mobile-bottom-nav" class="mobile-bottom-nav block md:hidden" aria-label="Navegação Mobile">
+    <div class="grid grid-cols-4 items-center justify-around px-2 pt-1 text-center">
+
+      <!-- 1. Início -->
+      <button id="mob-nav-home" onclick="switchPilar(currentActivePilar, 'dashboard')" class="mobile-nav-btn active">
+        <i data-lucide="home" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Início</span>
       </button>
 
-      <!-- 2. Prescrição de Dieta -->
-      <button id="mob-nav-prescription" onclick="switchTab('prescription')" class="mobile-nav-btn">
-        <i data-lucide="utensils" class="w-5 h-5 mobile-nav-icon"></i>
-        <span>Dieta</span>
+      <!-- 2. Pilar -->
+      <button id="mob-nav-pilar" onclick="openMobilePilarSheet()" class="mobile-nav-btn">
+        <i data-lucide="layers" class="w-5 h-5 mobile-nav-icon text-[#E50914]"></i>
+        <span class="text-white font-semibold">Pilar</span>
       </button>
 
-      <!-- 3. Performance / Treino (Highlight) -->
-      <button id="mob-nav-performance"
-        onclick="switchTab('performance'); if(typeof perfRender==='function') perfRender();"
-        class="mobile-nav-btn mobile-nav-btn-highlight">
-        <i data-lucide="dumbbell" class="w-5 h-5 mobile-nav-icon"></i>
-        <span>Treino</span>
+      <!-- 3. Paciente -->
+      <button id="mob-nav-paciente" onclick="openMobilePatientSheet()" class="mobile-nav-btn">
+        <i data-lucide="user" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Paciente</span>
       </button>
 
-      <!-- 4. Painel do Drive Backup (Acesso Direto em 1 Toque) -->
-      <button id="mob-nav-backup" onclick="switchTab('backup')" class="mobile-nav-btn">
-        <i data-lucide="cloud-upload" class="w-5 h-5 mobile-nav-icon text-emerald-400"></i>
-        <span class="text-emerald-400 font-bold">Drive</span>
+      <!-- 4. Mais -->
+      <button id="mob-nav-mais" onclick="openMobileActionsSheet()" class="mobile-nav-btn">
+        <i data-lucide="more-horizontal" class="w-5 h-5 mobile-nav-icon"></i>
+        <span>Mais</span>
       </button>
 
-      <!-- 5. Mais Módulos & Pilares (Menu Bottom Sheet) -->
-      <button id="mob-nav-menu" onclick="openMobileMenuModal()" class="mobile-nav-btn">
-        <i data-lucide="grid" class="w-5 h-5 mobile-nav-icon text-zinc-300"></i>
-        <span>Pilares</span>
-      </button>
+    </div>
 
+    <!-- Shim com IDs legados da barra móvel para evitar erros em scripts antigos -->
+    <div class="hidden" style="display:none !important">
+      <button id="mob-nav-dashboard"></button>
+      <button id="mob-nav-prescription"></button>
+      <button id="mob-nav-performance"></button>
+      <button id="mob-nav-backup"></button>
+      <button id="mob-nav-menu"></button>
     </div>
   </nav>
 
