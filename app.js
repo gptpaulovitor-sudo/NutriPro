@@ -33,6 +33,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     lucide.createIcons();
   }
 
+  // Inicializa data da última sincronização no rodapé da Sidebar
+  if (typeof initSystemLastSyncDate === "function") {
+    initSystemLastSyncDate();
+  }
+
   // Ensure database seeding runs
   if (typeof seedDatabase === "function") {
     await seedDatabase();
@@ -7873,6 +7878,164 @@ function getLocalDateIso(d = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+// ═══════════════════════════════════════════════════════════
+// SINCRONIZAÇÃO GERAL DO SISTEMA & TIMESTAMP DO RODAPÉ
+// ═══════════════════════════════════════════════════════════
+
+function formatSystemSyncTimestamp(date = new Date()) {
+  const d = (date instanceof Date && !isNaN(date)) ? date : new Date(date);
+  const valid = !isNaN(d.getTime()) ? d : new Date();
+  const day = String(valid.getDate()).padStart(2, '0');
+  const month = String(valid.getMonth() + 1).padStart(2, '0');
+  const year = valid.getFullYear();
+  const hours = String(valid.getHours()).padStart(2, '0');
+  const minutes = String(valid.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
+function updateSystemLastSyncDate(customDate = null) {
+  let validDate = null;
+  if (customDate instanceof Date && !isNaN(customDate.getTime())) {
+    validDate = customDate;
+  } else if (typeof customDate === 'string' || typeof customDate === 'number') {
+    const d = new Date(customDate);
+    if (!isNaN(d.getTime())) validDate = d;
+  }
+  if (!validDate) validDate = new Date();
+
+  try {
+    localStorage.setItem('nutriax_last_sync_timestamp', validDate.toISOString());
+  } catch (_) {}
+
+  const formatted = formatSystemSyncTimestamp(validDate);
+
+  const syncEl = document.getElementById('sidebarLastSyncDate');
+  if (syncEl) {
+    syncEl.textContent = formatted;
+  }
+}
+
+function initSystemLastSyncDate() {
+  let savedTime = null;
+  try {
+    savedTime = localStorage.getItem('nutriax_last_sync_timestamp') || localStorage.getItem('nutriax_sync_timestamp');
+  } catch (_) {}
+
+  if (savedTime) {
+    const num = Number(savedTime);
+    const d = (!isNaN(num) && num > 1000000000) ? new Date(num) : new Date(savedTime);
+    if (!isNaN(d.getTime())) {
+      updateSystemLastSyncDate(d);
+      return;
+    }
+  }
+  updateSystemLastSyncDate(new Date());
+}
+
+// Disparado pelo botão 'Sincronizar' do cabeçalho do Pilar 2
+async function syncDisciplineFromUI(btn = null) {
+  const icon = btn ? btn.querySelector('[data-lucide], i, svg') : null;
+  const label = btn ? btn.querySelector('span') : null;
+  if (icon) icon.classList.add('animate-spin');
+  if (label) label.textContent = 'Sincronizando...';
+
+  try {
+    await renderDisciplineDashboard();
+    updateSystemLastSyncDate(new Date());
+    if (label) label.textContent = 'Sincronizado!';
+  } catch (err) {
+    console.warn('Aviso ao sincronizar disciplina:', err);
+    if (label) label.textContent = 'Sincronizado!';
+  } finally {
+    if (icon) icon.classList.remove('animate-spin');
+    setTimeout(() => {
+      if (label) label.textContent = 'Sincronizar';
+      if (window.lucide) window.lucide.createIcons();
+    }, 1500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MOTOR DE CÁLCULO DE STREAK E DIAS ATIVOS (PILAR 2)
+// ═══════════════════════════════════════════════════════════
+
+function calculateDisciplineStreak(pState, realScoreIDC) {
+  const today = new Date();
+  const todayIso = getLocalDateIso(today);
+  const history = pState?.history || {};
+
+  // Verifica se hoje tem qualquer atividade registrada no cliente ou no app
+  const todayHasActivity = (realScoreIDC > 0) ||
+    (pState?.waterCurrent && Number(pState.waterCurrent) > 0) ||
+    pState?.workoutDone ||
+    pState?.cardioDone ||
+    (Array.isArray(pState?.meals) && pState.meals.some(m => m.done)) ||
+    (pState?.itemsChecked && Number(pState.itemsChecked) > 0) ||
+    pState?.sleepLogged ||
+    (history[todayIso] && (Number(history[todayIso].scoreIDC) > 0 || history[todayIso].workoutDone || history[todayIso].waterCurrent > 0 || history[todayIso].mealsDone > 0));
+
+  function dayHasActivity(isoDate, isToday = false) {
+    if (isToday) return todayHasActivity;
+    let h = history[isoDate];
+    if (!h) {
+      const found = Object.entries(history).find(([k]) => k.startsWith(isoDate));
+      if (found) h = found[1];
+    }
+    if (!h) return false;
+    const s = Number(h.scoreIDC) || 0;
+    const w = Number(h.waterCurrent) || 0;
+    const m = Number(h.mealsDone) || Number(h.itemsChecked) || 0;
+    return s > 0 || w > 0 || !!h.workoutDone || !!h.cardioDone || m > 0 || !!h.sleepLogged || Number(h.sleepHours) > 0;
+  }
+
+  // 1. Sequência consecutiva terminando hoje ou ontem
+  let consecutiveStreak = 0;
+  const startOffset = todayHasActivity ? 0 : 1;
+
+  for (let i = startOffset; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = getLocalDateIso(d);
+    if (dayHasActivity(iso, i === 0)) {
+      consecutiveStreak++;
+    } else {
+      break;
+    }
+  }
+
+  // 2. Contagem de dias ativos no Heatmap (últimos 30 dias)
+  let heatmapActiveDays = 0;
+  let maxRunInHeatmap = consecutiveStreak;
+  let currentRun = 0;
+
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = getLocalDateIso(d);
+    if (dayHasActivity(iso, i === 0)) {
+      heatmapActiveDays++;
+      currentRun++;
+      if (currentRun > maxRunInHeatmap) maxRunInHeatmap = currentRun;
+    } else {
+      if (currentRun > 0 && maxRunInHeatmap === 0) maxRunInHeatmap = currentRun;
+      currentRun = 0;
+    }
+  }
+
+  // 3. Sequência contínua recente mais representativa
+  let finalStreak = Math.max(consecutiveStreak, maxRunInHeatmap);
+  if (finalStreak === 0) {
+    finalStreak = heatmapActiveDays > 0 ? heatmapActiveDays : (todayHasActivity ? 1 : 0);
+  }
+
+  // Se o paciente tiver streakDays salvo que for coerente e maior
+  if (pState?.streakDays && pState.streakDays > finalStreak && finalStreak > 0) {
+    finalStreak = pState.streakDays;
+  }
+
+  return Math.max(1, finalStreak);
+}
+
 async function renderDisciplineDashboard() {
   const pId = activePatientId || "paulo-vitor";
   let patientName = "Paulo Vitor";
@@ -8226,8 +8389,12 @@ async function renderDisciplineDashboard() {
   const kpiStreakFb = document.getElementById('kpiIdcStreakFeedback');
 
   const headerStreak = document.getElementById('disciplineHeaderStreak');
-  const streakDaysCount = pState.streakDays || 1;
-  if (headerStreak) headerStreak.textContent = `${streakDaysCount} ${streakDaysCount === 1 ? 'Dia Ativo' : 'Dias Invictos'}`;
+  const streakDaysCount = calculateDisciplineStreak(pState, realScoreIDC);
+  pState.streakDays = streakDaysCount;
+  if (headerStreak) {
+    headerStreak.textContent = `${streakDaysCount} ${streakDaysCount === 1 ? 'Dia Ativo' : 'Dias Ativos'}`;
+  }
+  updateSystemLastSyncDate(new Date());
 
   if (realScoreIDC > 0) {
     if (kpiScore) kpiScore.textContent = `${realScoreIDC.toFixed(1)}%`;
@@ -8426,6 +8593,14 @@ async function renderDisciplineDashboard() {
 
   // Renderiza o Feed Cronológico com eventos reais
   renderDisciplineTimeline(pState);
+
+  // Persiste estado consolidado no localStorage
+  try {
+    const rawKey = `nutriax_patient_discipline_v3_${pId}`;
+    const pStateJson = JSON.stringify(pState);
+    localStorage.setItem(rawKey, pStateJson);
+    localStorage.setItem('nutriax_patient_discipline_v3', pStateJson);
+  } catch (_) { }
 
   // Conecta ouvinte em tempo real do Firebase Firestore para o paciente ativo
   try {
@@ -9113,6 +9288,9 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
           if (discSec && !discSec.classList.contains('hidden')) {
             renderDisciplineDashboard();
           }
+          if (typeof updateSystemLastSyncDate === 'function') {
+            updateSystemLastSyncDate(new Date());
+          }
         }
       };
     }
@@ -9124,6 +9302,9 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
       if (discSec && !discSec.classList.contains('hidden')) {
         renderDisciplineDashboard();
       }
+      if (typeof updateSystemLastSyncDate === 'function') {
+        updateSystemLastSyncDate(new Date());
+      }
     }
   });
 
@@ -9131,6 +9312,9 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
     const discSec = document.getElementById('tab-discipline');
     if (discSec && !discSec.classList.contains('hidden')) {
       renderDisciplineDashboard();
+    }
+    if (typeof updateSystemLastSyncDate === 'function') {
+      updateSystemLastSyncDate(new Date());
     }
   });
 }
@@ -9316,6 +9500,9 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     localStorage.setItem("nutriax_sync_active_patient", JSON.stringify(syncPayload));
     localStorage.setItem(`nutriax_patient_payload_${pId}`, JSON.stringify(syncPayload));
     localStorage.setItem("nutriax_sync_timestamp", String(Date.now()));
+    if (typeof updateSystemLastSyncDate === 'function') {
+      updateSystemLastSyncDate(new Date());
+    }
   } catch (e) {
     console.warn("Erro ao salvar syncPayload local", e);
   }
