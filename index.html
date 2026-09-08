@@ -64,7 +64,7 @@
   </script>
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260907_premium_v1">
+  <link rel="stylesheet" href="styles.css?v=20260908_mobile_v3">
 
   <!-- Dexie.js (IndexedDB) CDN -->
   <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
@@ -456,10 +456,10 @@
       <div id="mobile-pilar-control-panel" class="block md:hidden space-y-3 mb-2">
 
         <!-- 1. Card Hero do Pilar Ativo (Ao tocar, abre o Bottom Sheet de Seleção de Pilar) -->
-        <div id="mobileActivePilarHero" onclick="openMobilePilarSheet()" class="nax-mobile-pilar-hero"
+        <button type="button" id="mobileActivePilarHero" onclick="openMobilePilarSheet()" class="w-full text-left nax-mobile-pilar-hero"
           style="background-image: linear-gradient(180deg, rgba(8,9,10,0.35) 0%, rgba(8,9,10,0.85) 60%, rgba(8,9,10,0.98) 100%), linear-gradient(90deg, rgba(8,9,10,0.92) 0%, rgba(8,9,10,0.50) 100%), url('assets/pilares/nutricao/hero.jpg');"
-          role="button" title="Toque para alternar o Pilar">
-          <div class="relative z-10 space-y-1 w-full">
+          title="Toque para alternar o Pilar">
+          <div class="relative z-10 space-y-1 w-full pointer-events-none">
             <div class="flex items-center justify-between w-full">
               <div class="flex items-center gap-2.5">
                 <span id="mobileHeroPilarNum" class="nax-pilar-circle-badge">03</span>
@@ -476,15 +476,17 @@
               Estratégias alimentares, avaliação e organização nutricional.
             </p>
           </div>
-        </div>
+        </button>
 
         <!-- 2. Seletor de Módulo (Ao tocar, abre o Bottom Sheet de Módulos) -->
         <button id="mobileModuleTriggerBtn" onclick="openMobileModuleSheet()" class="nax-mobile-module-btn" type="button" title="Toque para selecionar o módulo">
-          <span class="flex items-center gap-2.5 min-w-0">
-            <i id="mobileActiveModuleIcon" data-lucide="layout-dashboard" class="w-4 h-4 text-[#E50914] shrink-0"></i>
+          <span class="flex items-center gap-2.5 min-w-0 pointer-events-none">
+            <span id="mobileActiveModuleIconWrap" class="w-4 h-4 flex items-center justify-center text-[#E50914] shrink-0">
+              <i id="mobileActiveModuleIcon" data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            </span>
             <span id="mobileActiveModuleLabel" class="truncate font-semibold text-white">Dashboard &amp; Radar</span>
           </span>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-[#737A82] shrink-0"></i>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-[#737A82] shrink-0 pointer-events-none"></i>
         </button>
 
         <!-- 3. Subnavegação de Dias (Microciclo Semanal - Exclusivo Pilar 4 Prescrição) -->
@@ -5762,49 +5764,49 @@
       </div>
       <div class="p-4 space-y-2.5 overflow-y-auto max-h-[60vh]" id="mobile-pilar-sheet-list">
         <!-- Pilar 01 -->
-        <button onclick="switchPilar(1); closeMobilePilarSheet();" id="sheet-pilar-1" class="nax-sheet-item">
-          <span class="nax-sheet-item-num">01</span>
-          <div class="flex-1 min-w-0">
+        <button type="button" onclick="switchPilar(1); closeMobilePilarSheet();" id="sheet-pilar-1" class="nax-sheet-item">
+          <span class="nax-sheet-item-num pointer-events-none">01</span>
+          <div class="flex-1 min-w-0 pointer-events-none">
             <span class="text-xs font-bold text-white block tracking-wide">01 — MENTALIDADE</span>
             <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Foco • Comportamento • Preparação</span>
           </div>
-          <span id="sheet-pilar-status-1" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+          <span id="sheet-pilar-status-1" class="shrink-0 pointer-events-none"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
         </button>
         <!-- Pilar 02 -->
-        <button onclick="switchPilar(2); closeMobilePilarSheet();" id="sheet-pilar-2" class="nax-sheet-item">
-          <span class="nax-sheet-item-num">02</span>
-          <div class="flex-1 min-w-0">
+        <button type="button" onclick="switchPilar(2); closeMobilePilarSheet();" id="sheet-pilar-2" class="nax-sheet-item">
+          <span class="nax-sheet-item-num pointer-events-none">02</span>
+          <div class="flex-1 min-w-0 pointer-events-none">
             <span class="text-xs font-bold text-white block tracking-wide">02 — DISCIPLINA</span>
             <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Rotina • Consistência • Hábitos</span>
           </div>
-          <span id="sheet-pilar-status-2" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+          <span id="sheet-pilar-status-2" class="shrink-0 pointer-events-none"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
         </button>
         <!-- Pilar 03 -->
-        <button onclick="switchPilar(3); closeMobilePilarSheet();" id="sheet-pilar-3" class="nax-sheet-item active">
-          <span class="nax-sheet-item-num">03</span>
-          <div class="flex-1 min-w-0">
+        <button type="button" onclick="switchPilar(3); closeMobilePilarSheet();" id="sheet-pilar-3" class="nax-sheet-item active">
+          <span class="nax-sheet-item-num pointer-events-none">03</span>
+          <div class="flex-1 min-w-0 pointer-events-none">
             <span class="text-xs font-bold text-white block tracking-wide">03 — NUTRIÇÃO</span>
             <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Saúde • Estratégia • Alimentação</span>
           </div>
-          <span id="sheet-pilar-status-3" class="shrink-0"><i data-lucide="check" class="w-4 h-4 text-[#E50914]"></i></span>
+          <span id="sheet-pilar-status-3" class="shrink-0 pointer-events-none"><i data-lucide="check" class="w-4 h-4 text-[#E50914]"></i></span>
         </button>
         <!-- Pilar 04 -->
-        <button onclick="switchPilar(4); closeMobilePilarSheet();" id="sheet-pilar-4" class="nax-sheet-item">
-          <span class="nax-sheet-item-num">04</span>
-          <div class="flex-1 min-w-0">
+        <button type="button" onclick="switchPilar(4); closeMobilePilarSheet();" id="sheet-pilar-4" class="nax-sheet-item">
+          <span class="nax-sheet-item-num pointer-events-none">04</span>
+          <div class="flex-1 min-w-0 pointer-events-none">
             <span class="text-xs font-bold text-white block tracking-wide">04 — PERFORMANCE</span>
             <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Força • Condicionamento • Desempenho</span>
           </div>
-          <span id="sheet-pilar-status-4" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+          <span id="sheet-pilar-status-4" class="shrink-0 pointer-events-none"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
         </button>
         <!-- Pilar 05 -->
-        <button onclick="switchPilar(5); closeMobilePilarSheet();" id="sheet-pilar-5" class="nax-sheet-item">
-          <span class="nax-sheet-item-num">05</span>
-          <div class="flex-1 min-w-0">
+        <button type="button" onclick="switchPilar(5); closeMobilePilarSheet();" id="sheet-pilar-5" class="nax-sheet-item">
+          <span class="nax-sheet-item-num pointer-events-none">05</span>
+          <div class="flex-1 min-w-0 pointer-events-none">
             <span class="text-xs font-bold text-white block tracking-wide">05 — RESULTADO</span>
             <span class="text-[11px] text-[#737A82] truncate block mt-0.5">Evolução • Composição • Progresso</span>
           </div>
-          <span id="sheet-pilar-status-5" class="shrink-0"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
+          <span id="sheet-pilar-status-5" class="shrink-0 pointer-events-none"><i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82]"></i></span>
         </button>
       </div>
     </div>
@@ -6642,7 +6644,7 @@
   <script src="db.js?v=20260831_pilar2_v2"></script>
   <script src="math.js?v=20260831_pilar2_v2"></script>
   <script src="fasting-module.js"></script>
-  <script src="app.js?v=20260831_pilar2_v2"></script>
+  <script src="app.js?v=20260908_mobile_v3"></script>
 </body>
 
 </html>

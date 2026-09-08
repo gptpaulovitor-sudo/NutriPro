@@ -7470,6 +7470,9 @@ function openMobilePatientSheet() {
   const sheet = document.getElementById('mobile-patient-bottom-sheet');
   if (sheet) {
     sheet.style.display = 'flex';
+    if (typeof populatePatientSelect === 'function') {
+      try { populatePatientSelect(); } catch (_) {}
+    }
     const mobSelect = document.getElementById('mobileActivePatientSelect');
     if (mobSelect && typeof activePatientId !== 'undefined') {
       mobSelect.value = activePatientId;
@@ -7525,16 +7528,16 @@ function renderMobileModuleSheetList(pilarId = currentActivePilar, activeModId =
   container.innerHTML = pilar.modules.map(mod => {
     const isActive = mod.id === targetMod;
     return `
-      <button onclick="selectContextualModule(${pilarId}, '${mod.id}'); closeMobileModuleSheet();"
+      <button type="button" onclick="selectContextualModule(${pilarId}, '${mod.id}'); closeMobileModuleSheet();"
         class="nax-sheet-item ${isActive ? 'active' : ''}">
-        <div class="nax-item-icon-box">
+        <div class="nax-item-icon-box pointer-events-none">
           <i data-lucide="${mod.icon}" class="w-4 h-4"></i>
         </div>
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 pointer-events-none">
           <span class="text-xs font-bold block ${isActive ? 'text-white' : 'text-[#F2F3F5]'} truncate">${mod.label}</span>
           <p class="text-[10px] text-[#737A82] truncate mt-0.5">${mod.desc}</p>
         </div>
-        ${isActive ? '<i data-lucide="check" class="w-4 h-4 text-[#E50914] shrink-0"></i>' : '<i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82] shrink-0"></i>'}
+        ${isActive ? '<i data-lucide="check" class="w-4 h-4 text-[#E50914] shrink-0 pointer-events-none"></i>' : '<i data-lucide="chevron-right" class="w-4 h-4 text-[#737A82] shrink-0 pointer-events-none"></i>'}
       </button>
     `;
   }).join('');
@@ -7542,6 +7545,7 @@ function renderMobileModuleSheetList(pilarId = currentActivePilar, activeModId =
   if (window.lucide) window.lucide.createIcons();
 }
 
+// Vinculação de funções contextuais e mobile ao escopo global window
 window.openMobilePilarSheet = openMobilePilarSheet;
 window.closeMobilePilarSheet = closeMobilePilarSheet;
 window.openMobileModuleSheet = openMobileModuleSheet;
@@ -7550,6 +7554,58 @@ window.openMobilePatientSheet = openMobilePatientSheet;
 window.closeMobilePatientSheet = closeMobilePatientSheet;
 window.openMobileActionsSheet = openMobileActionsSheet;
 window.closeMobileActionsSheet = closeMobileActionsSheet;
+window.updateMobilePilarSheetActive = updateMobilePilarSheetActive;
+window.renderMobileModuleSheetList = renderMobileModuleSheetList;
+
+function initMobileSelectors() {
+  const heroBtn = document.getElementById('mobileActivePilarHero');
+  if (heroBtn) {
+    heroBtn.onclick = function(e) {
+      if (e) e.preventDefault();
+      openMobilePilarSheet();
+    };
+  }
+
+  const modBtn = document.getElementById('mobileModuleTriggerBtn');
+  if (modBtn) {
+    modBtn.onclick = function(e) {
+      if (e) e.preventDefault();
+      openMobileModuleSheet();
+    };
+  }
+
+  const navPilar = document.getElementById('mob-nav-pilar');
+  if (navPilar) {
+    navPilar.onclick = function(e) {
+      if (e) e.preventDefault();
+      openMobilePilarSheet();
+    };
+  }
+
+  const navPatient = document.getElementById('mob-nav-paciente');
+  if (navPatient) {
+    navPatient.onclick = function(e) {
+      if (e) e.preventDefault();
+      openMobilePatientSheet();
+    };
+  }
+
+  const navMore = document.getElementById('mob-nav-mais');
+  if (navMore) {
+    navMore.onclick = function(e) {
+      if (e) e.preventDefault();
+      openMobileActionsSheet();
+    };
+  }
+
+  // Previne fechar bottom sheets ao tocar dentro do painel de conteúdo
+  document.querySelectorAll('.nax-bottom-sheet-panel').forEach(panel => {
+    panel.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  });
+}
+window.initMobileSelectors = initMobileSelectors;
 
 function toggleModuleDropdown(event) {
   if (event) {
@@ -7653,8 +7709,13 @@ function renderContextualHeader(pilarId, activeModId = null) {
   const mobHeroSub = document.getElementById('mobileHeroPilarSub');
   if (mobHeroSub) mobHeroSub.textContent = pilar.subtitle;
 
-  const mobModIcon = document.getElementById('mobileActiveModuleIcon');
-  if (mobModIcon) mobModIcon.setAttribute('data-lucide', activeMod.icon || 'layout-dashboard');
+  const mobModIconWrap = document.getElementById('mobileActiveModuleIconWrap');
+  if (mobModIconWrap) {
+    mobModIconWrap.innerHTML = `<i id="mobileActiveModuleIcon" data-lucide="${activeMod.icon || 'layout-dashboard'}" class="w-4 h-4"></i>`;
+  } else {
+    const mobModIcon = document.getElementById('mobileActiveModuleIcon');
+    if (mobModIcon) mobModIcon.setAttribute('data-lucide', activeMod.icon || 'layout-dashboard');
+  }
 
   const mobModLabel = document.getElementById('mobileActiveModuleLabel');
   if (mobModLabel) mobModLabel.textContent = activeMod.label;
@@ -7709,6 +7770,8 @@ function renderContextualHeader(pilarId, activeModId = null) {
   if (window.lucide) window.lucide.createIcons();
 }
 
+window.renderContextualHeader = renderContextualHeader;
+
 async function selectContextualModule(pilarId, moduleId) {
   closeContextualDropdown();
   if (typeof closeMobileModuleSheet === 'function') closeMobileModuleSheet();
@@ -7760,6 +7823,8 @@ async function selectContextualModule(pilarId, moduleId) {
 
   if (window.lucide) window.lucide.createIcons();
 }
+
+window.selectContextualModule = selectContextualModule;
 
 function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
   const activeClass = "p-2 rounded-xl bg-[#E50914]/15 border border-[#E50914]/60 text-white font-semibold flex items-center gap-2 text-left transition-all";
@@ -10150,6 +10215,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } else {
     switchPilar(3, 'dashboard', false);
+  }
+
+  // Inicializa seletores touch mobile e previne fechamento indesejado
+  if (typeof initMobileSelectors === 'function') {
+    initMobileSelectors();
   }
 
   // Inicializa o Motor PWA Mobile
@@ -20529,3 +20599,17 @@ window.perfSanitizeWorkoutPlan = perfSanitizeWorkoutPlan;
 window.perfOpenExerciseGuide = perfOpenExerciseGuide;
 window.perfCloseExerciseGuide = perfCloseExerciseGuide;
 window.perfSwapExercise = perfSwapExercise;
+window.selectContextualModule = selectContextualModule;
+window.renderContextualHeader = renderContextualHeader;
+window.openMobilePilarSheet = openMobilePilarSheet;
+window.closeMobilePilarSheet = closeMobilePilarSheet;
+window.openMobileModuleSheet = openMobileModuleSheet;
+window.closeMobileModuleSheet = closeMobileModuleSheet;
+window.openMobilePatientSheet = openMobilePatientSheet;
+window.closeMobilePatientSheet = closeMobilePatientSheet;
+window.openMobileActionsSheet = openMobileActionsSheet;
+window.closeMobileActionsSheet = closeMobileActionsSheet;
+window.updateMobilePilarSheetActive = updateMobilePilarSheetActive;
+window.renderMobileModuleSheetList = renderMobileModuleSheetList;
+window.initMobileSelectors = initMobileSelectors;
+
