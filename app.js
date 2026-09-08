@@ -354,56 +354,121 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
     }
   }
 
-  // Atualiza as 6 Dimensões do Radar
-  // 1. FFMI
+  // Helper: Padronização clínica oficial das 6 Dimensões do Radar Metabólico NutriAx
+  function getNutriAxDimensionClassification(score) {
+    if (score >= 90) {
+      return {
+        label: "Excelente",
+        badgeCls: "text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20",
+        barCls: "h-full bg-[#00C896] rounded-full transition-all duration-500"
+      };
+    }
+    if (score >= 75) {
+      return {
+        label: "Muito Bom",
+        badgeCls: "text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#00C896]/10 text-[#00C896] border border-[#00C896]/20",
+        barCls: "h-full bg-[#00C896] rounded-full transition-all duration-500"
+      };
+    }
+    if (score >= 60) {
+      return {
+        label: "Adequado",
+        badgeCls: "text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#F2B84B]/10 text-[#F2B84B] border border-[#F2B84B]/20",
+        barCls: "h-full bg-[#F2B84B] rounded-full transition-all duration-500"
+      };
+    }
+    return {
+      label: "Foco de Ajuste",
+      badgeCls: "text-[9px] font-semibold px-1.5 py-0.2 rounded bg-[#E50914]/10 text-[#E50914] border border-[#E50914]/20",
+      barCls: "h-full bg-[#E50914] rounded-full transition-all duration-500"
+    };
+  }
+
+  // Atualiza as 6 Dimensões do Radar com padronização unificada
+  // 1. FFMI / Massa Muscular
   const rfLabel = document.getElementById("radarFfmiLabel");
   const rfScore = document.getElementById("radarFfmiScore");
+  const rfBadge = document.getElementById("radarFfmiBadge");
   const rfBar = document.getElementById("radarFfmiBar");
+  const cMuscular = getNutriAxDimensionClassification(scoreMuscular);
   if (rfLabel) rfLabel.innerText = `Massa Muscular (FFMI: ${ffmi.toFixed(2)})`;
-  if (rfScore) rfScore.innerText = `${scoreMuscular}/100 • ${scoreMuscular >= 85 ? "Excelente" : scoreMuscular >= 70 ? "Adequado" : "Foco de Ajuste"}`;
-  if (rfBar) rfBar.style.width = `${scoreMuscular}%`;
+  if (rfScore) rfScore.innerText = `${scoreMuscular}/100`;
+  if (rfBadge) { rfBadge.innerText = cMuscular.label; rfBadge.className = cMuscular.badgeCls; }
+  if (rfBar) { rfBar.style.width = `${scoreMuscular}%`; rfBar.className = cMuscular.barCls; }
 
-  // 2. Potencial
+  // 2. Potencial Metabólico
   const rpScore = document.getElementById("radarPotencialScore");
+  const rpBadge = document.getElementById("radarPotencialBadge");
   const rpBar = document.getElementById("radarPotencialBar");
-  if (rpScore) rpScore.innerText = `${scorePotencial}/100 • ${scorePotencial >= 85 ? "Excelente" : "Adequado"}`;
-  if (rpBar) rpBar.style.width = `${scorePotencial}%`;
+  const cPotencial = getNutriAxDimensionClassification(scorePotencial);
+  if (rpScore) rpScore.innerText = `${scorePotencial}/100`;
+  if (rpBadge) { rpBadge.innerText = cPotencial.label; rpBadge.className = cPotencial.badgeCls; }
+  if (rpBar) { rpBar.style.width = `${scorePotencial}%`; rpBar.className = cPotencial.barCls; }
 
-  // 3. Risco Central
-  const rrLabel = document.getElementById("radarRiscoLabel");
-  const rrScore = document.getElementById("radarRiscoScore");
-  const rrBar = document.getElementById("radarRiscoBar");
-  if (rrLabel) rrLabel.innerText = `Risco Central (RCEst: ${rcEst.toFixed(2)})`;
-  if (rrScore) rrScore.innerText = `${scoreRisco}/100 • ${scoreRisco >= 85 ? "Excelente" : scoreRisco >= 65 ? "Adequado" : "Alerta de Risco"}`;
-  if (rrBar) rrBar.style.width = `${scoreRisco}%`;
-
-  // 4. Reserva
+  // 3. Reserva Muscular
   const rresScore = document.getElementById("radarReservaScore");
+  const rresBadge = document.getElementById("radarReservaBadge");
   const rresBar = document.getElementById("radarReservaBar");
-  if (rresScore) rresScore.innerText = `${scoreReserva}/100 • ${scoreReserva >= 85 ? "Excelente" : "Adequado"}`;
-  if (rresBar) rresBar.style.width = `${scoreReserva}%`;
+  const cReserva = getNutriAxDimensionClassification(scoreReserva);
+  if (rresScore) rresScore.innerText = `${scoreReserva}/100`;
+  if (rresBadge) { rresBadge.innerText = cReserva.label; rresBadge.className = cReserva.badgeCls; }
+  if (rresBar) { rresBar.style.width = `${scoreReserva}%`; rresBar.className = cReserva.barCls; }
 
-  // 5. Gordura
+  // 4. Adesão ao Plano
+  const raScore = document.getElementById("radarAdesaoScore");
+  const raBadge = document.getElementById("radarAdesaoBadge");
+  const raBar = document.getElementById("radarAdesaoBar");
+  const cAdesao = getNutriAxDimensionClassification(scoreAdesao);
+  if (raScore) raScore.innerText = `${scoreAdesao}/100`;
+  if (raBadge) { raBadge.innerText = cAdesao.label; raBadge.className = cAdesao.badgeCls; }
+  if (raBar) { raBar.style.width = `${scoreAdesao}%`; raBar.className = cAdesao.barCls; }
+
+  // 5. Composição Corporal (%G)
   const rgLabel = document.getElementById("radarGorduraLabel");
   const rgScore = document.getElementById("radarGorduraScore");
+  const rgBadge = document.getElementById("radarGorduraBadge");
   const rgBar = document.getElementById("radarGorduraBar");
+  const cGordura = getNutriAxDimensionClassification(scoreGordura);
   if (rgLabel) rgLabel.innerText = `Composição Corporal (%G: ${fatPercent.toFixed(2)}%)`;
   if (rgScore) {
-    rgScore.innerText = `${scoreGordura}/100 • ${scoreGordura >= 85 ? "Excelente" : scoreGordura >= 70 ? "Adequado" : "Foco de Ajuste"}`;
-    rgScore.className = scoreGordura >= 80 ? "text-red-400 font-bold" : "text-amber-400 font-bold";
+    rgScore.innerText = `${scoreGordura}/100`;
+    rgScore.className = "font-bold text-[#F2F3F5]";
   }
-  if (rgBar) {
-    rgBar.style.width = `${scoreGordura}%`;
-    rgBar.className = scoreGordura >= 80
-      ? "h-full bg-gradient-to-r from-red-600 to-rose-500 rounded-full transition-all duration-500"
-      : "h-full bg-amber-500 rounded-full transition-all duration-500";
-  }
+  if (rgBadge) { rgBadge.innerText = cGordura.label; rgBadge.className = cGordura.badgeCls; }
+  if (rgBar) { rgBar.style.width = `${scoreGordura}%`; rgBar.className = cGordura.barCls; }
 
-  // 6. Adesão
-  const raScore = document.getElementById("radarAdesaoScore");
-  const raBar = document.getElementById("radarAdesaoBar");
-  if (raScore) raScore.innerText = `${scoreAdesao}/100 • Muito Alta`;
-  if (raBar) raBar.style.width = `${scoreAdesao}%`;
+  // 6. Risco Central
+  const rrLabel = document.getElementById("radarRiscoLabel");
+  const rrScore = document.getElementById("radarRiscoScore");
+  const rrBadge = document.getElementById("radarRiscoBadge");
+  const rrBar = document.getElementById("radarRiscoBar");
+  const cRisco = getNutriAxDimensionClassification(scoreRisco);
+  if (rrLabel) rrLabel.innerText = `Risco Central (RCEst: ${rcEst.toFixed(2)})`;
+  if (rrScore) rrScore.innerText = `${scoreRisco}/100`;
+  if (rrBadge) { rrBadge.innerText = cRisco.label; rrBadge.className = cRisco.badgeCls; }
+  if (rrBar) { rrBar.style.width = `${scoreRisco}%`; rrBar.className = cRisco.barCls; }
+
+  // Sincroniza também as 3 mini barras da coluna da direita (Composição Corporal)
+  const dMiniFfmiScore = document.getElementById("dashMiniFfmiScore");
+  const dMiniFfmiBadge = document.getElementById("dashMiniFfmiBadge");
+  const dMiniFfmiBar = document.getElementById("dashMiniFfmiBar");
+  if (dMiniFfmiScore) dMiniFfmiScore.innerText = `${scoreMuscular}/100`;
+  if (dMiniFfmiBadge) { dMiniFfmiBadge.innerText = cMuscular.label; dMiniFfmiBadge.className = cMuscular.badgeCls; }
+  if (dMiniFfmiBar) { dMiniFfmiBar.style.width = `${scoreMuscular}%`; dMiniFfmiBar.className = cMuscular.barCls; }
+
+  const dMiniFatScore = document.getElementById("dashMiniFatScore");
+  const dMiniFatBadge = document.getElementById("dashMiniFatBadge");
+  const dMiniFatBar = document.getElementById("dashMiniFatBar");
+  if (dMiniFatScore) dMiniFatScore.innerText = `${scoreGordura}/100`;
+  if (dMiniFatBadge) { dMiniFatBadge.innerText = cGordura.label; dMiniFatBadge.className = cGordura.badgeCls; }
+  if (dMiniFatBar) { dMiniFatBar.style.width = `${scoreGordura}%`; dMiniFatBar.className = cGordura.barCls; }
+
+  const dMiniAdesaoScore = document.getElementById("dashMiniAdesaoScore");
+  const dMiniAdesaoBadge = document.getElementById("dashMiniAdesaoBadge");
+  const dMiniAdesaoBar = document.getElementById("dashMiniAdesaoBar");
+  if (dMiniAdesaoScore) dMiniAdesaoScore.innerText = `${scoreAdesao}/100`;
+  if (dMiniAdesaoBadge) { dMiniAdesaoBadge.innerText = cAdesao.label; dMiniAdesaoBadge.className = cAdesao.badgeCls; }
+  if (dMiniAdesaoBar) { dMiniAdesaoBar.style.width = `${scoreAdesao}%`; dMiniAdesaoBar.className = cAdesao.barCls; }
 
   // Renderiza Gráfico de Teia (Spider Radar) com Chart.js
   renderNutriAxSpiderRadar([scoreMuscular, scorePotencial, scoreRisco, scoreReserva, scoreGordura, scoreAdesao]);
@@ -554,45 +619,140 @@ async function renderDashEvolutionChart(patientId = activePatientId) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  let labels = ["01/07", "08/07", "15/07", "22/07", "29/07", "05/08", "12/08", "19/08", "25/08"];
-  let dataPoints = [128.5, 126.0, 124.2, 122.0, 120.1, 118.8, 117.5, 116.8, 116.1];
-  let metricLabel = "Peso Corporal (kg)";
+  let evals = [];
+  let p = null;
 
-  if (typeof db !== "undefined" && db.assessments) {
-    const evals = await db.assessments.where("patientId").equals(patientId).toArray();
-    if (evals && evals.length > 1) {
-      evals.sort((a, b) => new Date(a.date) - new Date(b.date));
-      labels = evals.map(e => {
-        const p = e.date.split("-");
-        return `${p[2] || p[0]}/${p[1] || ''}`;
-      });
-      if (currentDashEvolutionMetric === 'fat') {
-        dataPoints = evals.map(e => parseFloat(e.fatPercent) || 0);
-        metricLabel = "% Gordura Corporal";
-      } else if (currentDashEvolutionMetric === 'lean') {
-        dataPoints = evals.map(e => parseFloat(e.leanMass) || 0);
-        metricLabel = "Massa Magra (kg)";
-      } else if (currentDashEvolutionMetric === 'tmb') {
-        dataPoints = evals.map(e => Math.round(370 + 21.6 * (parseFloat(e.leanMass) || 0)));
-        metricLabel = "TMB (kcal)";
-      } else {
-        dataPoints = evals.map(e => parseFloat(e.weight) || 0);
-        metricLabel = "Peso Corporal (kg)";
+  if (typeof db !== "undefined") {
+    if (db.assessments) {
+      let raw = await db.assessments.where("patientId").equals(patientId).toArray();
+      if ((!raw || raw.length === 0) && typeof patientId === "string" && !isNaN(patientId)) {
+        raw = await db.assessments.where("patientId").equals(Number(patientId)).toArray();
+      } else if ((!raw || raw.length === 0) && typeof patientId === "number") {
+        raw = await db.assessments.where("patientId").equals(String(patientId)).toArray();
       }
-    } else {
-      if (currentDashEvolutionMetric === 'fat') {
-        dataPoints = [22.4, 21.8, 20.9, 19.8, 18.9, 18.0, 17.4, 16.8, 16.34];
-        metricLabel = "% Gordura Corporal";
-      } else if (currentDashEvolutionMetric === 'lean') {
-        dataPoints = [96.0, 96.2, 96.5, 96.9, 97.2, 97.5, 97.7, 97.9, 98.0];
-        metricLabel = "Massa Magra (kg)";
-      } else if (currentDashEvolutionMetric === 'tmb') {
-        dataPoints = [2443, 2447, 2454, 2463, 2469, 2476, 2480, 2484, 2487];
-        metricLabel = "TMB (kcal)";
+      evals = (raw || []).filter(e => e && !String(e.id).startsWith("eval_pv_"));
+      evals.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    if (db.patients) {
+      p = await db.patients.get(patientId);
+      if (!p && typeof patientId === "string" && !isNaN(patientId)) {
+        p = await db.patients.get(Number(patientId));
+      } else if (!p && typeof patientId === "number") {
+        p = await db.patients.get(String(patientId));
       }
     }
   }
 
+  if (!p && typeof activePatientData !== "undefined" && activePatientData && activePatientData.id == patientId) {
+    p = activePatientData;
+  }
+
+  // ── Atualiza Caixa Lateral: "Última Avaliação" com dados reais ───────────────
+  const dateEl = document.getElementById("dashLastEvalDate");
+  const wEl = document.getElementById("dashLastEvalWeight");
+  const fEl = document.getElementById("dashLastEvalFat");
+  const lEl = document.getElementById("dashLastEvalLean");
+  const tmbEl = document.getElementById("dashLastEvalTmb");
+
+  if (evals && evals.length > 0) {
+    const latest = evals[evals.length - 1];
+    const prev = evals.length > 1 ? evals[evals.length - 2] : null;
+
+    if (dateEl) {
+      const parts = (latest.date || "").split("-");
+      dateEl.innerText = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : (latest.date || "—");
+    }
+
+    const curW = parseFloat(latest.weight) || 0;
+    const curF = parseFloat(latest.fatPercent) || 0;
+    const curL = parseFloat(latest.leanMass) || 0;
+    const curTmb = Math.round(370 + 21.6 * curL);
+
+    let wArrow = "", fArrow = "", lArrow = "", tmbArrow = "";
+    if (prev) {
+      const pW = parseFloat(prev.weight) || 0;
+      const pF = parseFloat(prev.fatPercent) || 0;
+      const pL = parseFloat(prev.leanMass) || 0;
+      const pTmb = Math.round(370 + 21.6 * pL);
+
+      if (curW - pW > 0.05) wArrow = ` <span class="text-[#E50914] font-bold">↑</span>`;
+      else if (curW - pW < -0.05) wArrow = ` <span class="text-[#00C896] font-bold">↓</span>`;
+
+      if (curF - pF > 0.05) fArrow = ` <span class="text-[#E50914] font-bold">↑</span>`;
+      else if (curF - pF < -0.05) fArrow = ` <span class="text-[#00C896] font-bold">↓</span>`;
+
+      if (curL - pL > 0.05) lArrow = ` <span class="text-[#00C896] font-bold">↑</span>`;
+      else if (curL - pL < -0.05) lArrow = ` <span class="text-[#E50914] font-bold">↓</span>`;
+
+      if (curTmb - pTmb > 5) tmbArrow = ` <span class="text-[#00C896] font-bold">↑</span>`;
+      else if (curTmb - pTmb < -5) tmbArrow = ` <span class="text-[#E50914] font-bold">↓</span>`;
+    }
+
+    if (wEl) wEl.innerHTML = `${curW.toFixed(1).replace('.', ',')} kg${wArrow}`;
+    if (fEl) fEl.innerHTML = `${curF.toFixed(2).replace('.', ',')}%${fArrow}`;
+    if (lEl) lEl.innerHTML = `${curL.toFixed(1).replace('.', ',')} kg${lArrow}`;
+    if (tmbEl) tmbEl.innerHTML = `${curTmb.toLocaleString('pt-BR')} kcal${tmbArrow}`;
+  } else {
+    // Sem registros na tabela de reavaliações: usa dados do perfil
+    const curW = parseFloat(p?.currentWeight || p?.weight || 70);
+    const curF = parseFloat(p?.fatPercent || (p?.gender === "Feminino" ? 22 : 15));
+    const curL = parseFloat(p?.leanMass || (curW * (1 - curF / 100)));
+    const curTmb = Math.round(370 + 21.6 * curL);
+
+    if (dateEl) dateEl.innerText = "Cadastro Inicial";
+    if (wEl) wEl.innerText = `${curW.toFixed(1).replace('.', ',')} kg`;
+    if (fEl) fEl.innerText = `${curF.toFixed(2).replace('.', ',')}%`;
+    if (lEl) lEl.innerText = `${curL.toFixed(1).replace('.', ',')} kg`;
+    if (tmbEl) tmbEl.innerText = `${curTmb.toLocaleString('pt-BR')} kcal`;
+  }
+
+  // ── Prepara Labels e Pontos da Métrica Ativa ────────────────────────────────
+  let labels = [];
+  let dataPoints = [];
+  let metricLabel = "Peso Corporal (kg)";
+
+  if (evals && evals.length > 0) {
+    labels = evals.map(e => {
+      const parts = (e.date || "").split("-");
+      return parts.length === 3 ? `${parts[2]}/${parts[1]}` : (e.date || "Medição");
+    });
+
+    if (currentDashEvolutionMetric === 'fat') {
+      dataPoints = evals.map(e => parseFloat(e.fatPercent) || 0);
+      metricLabel = "% Gordura Corporal";
+    } else if (currentDashEvolutionMetric === 'lean') {
+      dataPoints = evals.map(e => parseFloat(e.leanMass) || 0);
+      metricLabel = "Massa Magra (kg)";
+    } else if (currentDashEvolutionMetric === 'tmb') {
+      dataPoints = evals.map(e => Math.round(370 + 21.6 * (parseFloat(e.leanMass) || 0)));
+      metricLabel = "TMB (kcal)";
+    } else {
+      dataPoints = evals.map(e => parseFloat(e.weight) || 0);
+      metricLabel = "Peso Corporal (kg)";
+    }
+  } else {
+    labels = ["Inicial"];
+    const curW = parseFloat(p?.currentWeight || p?.weight || 70);
+    const curF = parseFloat(p?.fatPercent || (p?.gender === "Feminino" ? 22 : 15));
+    const curL = parseFloat(p?.leanMass || (curW * (1 - curF / 100)));
+    const curTmb = Math.round(370 + 21.6 * curL);
+
+    if (currentDashEvolutionMetric === 'fat') {
+      dataPoints = [Number(curF.toFixed(2))];
+      metricLabel = "% Gordura Corporal";
+    } else if (currentDashEvolutionMetric === 'lean') {
+      dataPoints = [Number(curL.toFixed(1))];
+      metricLabel = "Massa Magra (kg)";
+    } else if (currentDashEvolutionMetric === 'tmb') {
+      dataPoints = [curTmb];
+      metricLabel = "TMB (kcal)";
+    } else {
+      dataPoints = [Number(curW.toFixed(1))];
+      metricLabel = "Peso Corporal (kg)";
+    }
+  }
+
+  // ── Renderiza Gráfico Chart.js ──────────────────────────────────────────────
   if (dashEvolutionChartInstance) {
     dashEvolutionChartInstance.destroy();
   }
@@ -600,6 +760,9 @@ async function renderDashEvolutionChart(patientId = activePatientId) {
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 220);
   gradient.addColorStop(0, "rgba(229, 9, 20, 0.22)");
   gradient.addColorStop(1, "rgba(229, 9, 20, 0.0)");
+
+  const isSingle = dataPoints.length === 1;
+  const singleVal = isSingle ? dataPoints[0] : null;
 
   dashEvolutionChartInstance = new Chart(ctx, {
     type: "line",
@@ -616,9 +779,9 @@ async function renderDashEvolutionChart(patientId = activePatientId) {
           tension: 0.35,
           pointBackgroundColor: "#E50914",
           pointBorderColor: "#F2F3F5",
-          pointBorderWidth: 1.5,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointBorderWidth: 2,
+          pointRadius: isSingle ? 6 : 4,
+          pointHoverRadius: isSingle ? 8 : 6,
           pointHoverBackgroundColor: "#FF3038",
         }
       ]
@@ -651,6 +814,8 @@ async function renderDashEvolutionChart(patientId = activePatientId) {
         },
         y: {
           grid: { color: "#1E2227", drawBorder: false },
+          suggestedMin: isSingle ? Math.max(0, Math.floor(singleVal * 0.85)) : undefined,
+          suggestedMax: isSingle ? Math.ceil(singleVal * 1.15 || 10) : undefined,
           ticks: {
             color: "#737A82",
             font: { family: "'Inter', sans-serif", size: 10 }
