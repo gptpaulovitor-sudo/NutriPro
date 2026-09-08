@@ -3,7 +3,7 @@
 // Offline Support & Smart Caching Strategy
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-pro-v1.7.0';
+const CACHE_NAME = 'nutriax-pro-v1.8.0';
 
 const PRECACHE_ASSETS = [
   './',
@@ -22,7 +22,14 @@ const PRECACHE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './apple-touch-icon.png',
-  './favicon.png'
+  './favicon.png',
+  './assets/patient/discipline-hero.jpg',
+  './assets/patient/training-hero.jpg',
+  './assets/patient/nutrition-hero.jpg',
+  './assets/patient/fasting-hero.jpg',
+  './assets/patient/hydration-hero.jpg',
+  './assets/patient/sleep-hero.jpg',
+  './assets/patient/evolution-hero.jpg'
 ];
 
 // 1. Instalação: Pré-cache dos ativos vitais da aplicação
