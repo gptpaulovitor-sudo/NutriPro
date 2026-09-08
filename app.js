@@ -7166,6 +7166,9 @@ const PILAR_CONFIG = {
     subtitle: 'Contexto relacionado ao propósito, percepção, comportamento e mudança.',
     icon: 'brain',
     defaultModule: 'goals',
+    heroImg: 'assets/pilares/mentalidade/hero.jpg',
+    instImg: 'assets/pilares/mentalidade/institucional.jpg',
+    quote: 'A mudança começa antes do resultado aparecer.',
     modules: [
       { id: 'goals', label: 'Foco & Metas', desc: 'Alinhamento de expectativas e metas clínicas', icon: 'target' },
       { id: 'mindset', label: 'Mindset & Comportamento', desc: 'Gestão comportamental e autocontrole', icon: 'sparkles' }
@@ -7178,6 +7181,9 @@ const PILAR_CONFIG = {
     subtitle: 'Consistência, hábitos e acompanhamento da execução diária.',
     icon: 'shield',
     defaultModule: 'dashboard',
+    heroImg: 'assets/pilares/disciplina/hero.jpg',
+    instImg: 'assets/pilares/disciplina/institucional.jpg',
+    quote: 'Resultado é consequência daquilo que se repete.',
     modules: [
       { id: 'dashboard', label: 'Dashboard & IDC', desc: 'Diagnóstico do Índice de Disciplina Clínica', icon: 'layout-dashboard' },
       { id: 'heatmap', label: 'Heatmap 30 Dias', desc: 'Mapa de calor e consistência de execução', icon: 'calendar' },
@@ -7193,6 +7199,9 @@ const PILAR_CONFIG = {
     subtitle: 'Estratégias alimentares, avaliação e organização nutricional.',
     icon: 'utensils',
     defaultModule: 'dashboard',
+    heroImg: 'assets/pilares/nutricao/hero.jpg',
+    instImg: 'assets/pilares/nutricao/institucional.jpg',
+    quote: 'Nutrição não é restrição. É estratégia.',
     modules: [
       { id: 'dashboard', label: 'Dashboard & Radar', desc: 'Visão geral, diagnóstico e radar nutricional', icon: 'layout-dashboard' },
       { id: 'prescription', label: 'Prescrição & Macros', desc: 'Planejamento alimentar, metas e micronutrientes', icon: 'utensils' },
@@ -7215,6 +7224,9 @@ const PILAR_CONFIG = {
     subtitle: 'Treinamento, biomecânica, condicionamento e evolução física.',
     icon: 'dumbbell',
     defaultModule: 'prescription',
+    heroImg: 'assets/pilares/performance/hero.jpg',
+    instImg: 'assets/pilares/performance/institucional.jpg',
+    quote: 'Performance é transformar capacidade em resultado.',
     modules: [
       { id: 'prescription', label: 'Prescrição de Força', desc: 'Periodização, séries, reps e subnavegação de dias', icon: 'dumbbell' },
       { id: 'schedule', label: 'Agenda Semanal', desc: 'Microciclo semanal e divisão ABCDEF', icon: 'calendar-days' },
@@ -7231,6 +7243,9 @@ const PILAR_CONFIG = {
     subtitle: 'Integração entre nutrição, treinamento e resposta corporal.',
     icon: 'trophy',
     defaultModule: 'dashboard',
+    heroImg: 'assets/pilares/resultado/hero.jpg',
+    instImg: 'assets/pilares/resultado/institucional.jpg',
+    quote: 'Mais do que números, é sobre evolução.',
     modules: [
       { id: 'dashboard', label: 'Dashboard & IEC', desc: 'Índice de Eficiência Corporal e diagnóstico', icon: 'gauge' },
       { id: 'charts', label: 'Gráficos Evolutivos', desc: 'Tendência de peso, % gordura e massa magra', icon: 'line-chart' },
@@ -7566,6 +7581,9 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
   // 5. Atualiza os botões dos Pilares na Sidebar Desktop e no Quadro "Pilares e Acessos"
   updateSidebarPilarVisuals(pilarId);
 
+  // 5.1 Sincroniza assets visuais (HERO e Institucional) do Pilar
+  applyPilarVisualAssets(pilarId);
+
   // 6. Atualiza o Contextual Header e navega para o módulo solicitado ou padrão
   const chosenModule = targetTab || pilarCfg.defaultModule;
   await selectContextualModule(pilarId, chosenModule);
@@ -7575,6 +7593,41 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
   }
 
   if (window.lucide) window.lucide.createIcons();
+}
+
+function applyPilarVisualAssets(pilarId) {
+  const cfg = PILAR_CONFIG[pilarId];
+  if (!cfg) return;
+
+  const heroBanners = {
+    1: document.getElementById('pilar1HeroBanner'),
+    2: document.getElementById('pilar2HeroBanner'),
+    3: document.getElementById('pilar3HeroBanner'),
+    4: document.getElementById('pilar4HeroBanner'),
+    5: document.getElementById('pilar5HeroBanner')
+  };
+  const currentBanner = heroBanners[pilarId];
+  if (currentBanner && cfg.heroImg) {
+    currentBanner.style.backgroundImage = `linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('${cfg.heroImg}')`;
+    currentBanner.style.backgroundPosition = 'right center';
+    currentBanner.style.backgroundSize = 'cover';
+    currentBanner.style.backgroundRepeat = 'no-repeat';
+  }
+
+  const instCards = {
+    1: document.getElementById('pilar1InstCard'),
+    2: document.getElementById('pilar2InstCard'),
+    3: document.getElementById('pilar3InstCard'),
+    4: document.getElementById('pilar4InstCard'),
+    5: document.getElementById('pilar5InstCard')
+  };
+  const currentInst = instCards[pilarId];
+  if (currentInst && cfg.instImg) {
+    currentInst.style.backgroundImage = `linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('${cfg.instImg}')`;
+    currentInst.style.backgroundPosition = 'center';
+    currentInst.style.backgroundSize = 'cover';
+    currentInst.style.backgroundRepeat = 'no-repeat';
+  }
 }
 
 function updateSidebarPilarVisuals(activePilarId) {

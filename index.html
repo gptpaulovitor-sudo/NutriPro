@@ -740,8 +740,8 @@
       <section id="tab-mentality" class="max-w-7xl mx-auto space-y-4 md:space-y-6 w-full hidden" hidden>
 
         <!-- ── BANNER HERO CLÍNICO (PADRÃO DASHBOARD) ── -->
-        <div class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-          style="background: linear-gradient(135deg, rgba(13,16,19,0.95) 0%, rgba(23,27,31,0.9) 100%), url('shapes_banner.jpg') center/cover no-repeat; border: 1px solid #272C31;">
+        <div id="pilar1HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/mentalidade/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
             <div class="flex items-center gap-2 mb-2 flex-wrap">
@@ -892,14 +892,61 @@
           </div>
         </div>
 
+        <!-- ── LINHA INFERIOR: DIRETRIZES COMPORTAMENTAIS & CARD INSTITUCIONAL ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+          <div class="lg:col-span-8 hud-card p-5 md:p-6 space-y-3 border border-[#272C31] bg-[#121518] rounded-2xl">
+            <div class="flex items-center justify-between border-b border-[#272C31] pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="compass" class="w-4 h-4 text-[#E50914]"></i>
+                <h2 class="text-xs font-bold tracking-wider uppercase text-[#F2F3F5]">Diretriz Comportamental e Sustentabilidade</h2>
+              </div>
+              <span class="text-[10px] font-mono text-[#00C896] bg-[#00C896]/10 px-2 py-0.5 rounded border border-[#00C896]/20">Alinhamento 100%</span>
+            </div>
+            <p class="text-xs text-[#B7BCC2] leading-relaxed">
+              A consolidação da mudança não depende de motivação oscilante, mas da clareza dos fundamentos clínicos estabelecidos. O foco estratégico está na percepção de progresso contínuo e na gestão ativa das decisões diárias do paciente.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                <span class="text-[10px] font-bold text-[#737A82] uppercase block">Autocontrole</span>
+                <span class="text-xs font-semibold text-white mt-1 block">Decisão Consciente</span>
+              </div>
+              <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                <span class="text-[10px] font-bold text-[#737A82] uppercase block">Foco Clínico</span>
+                <span class="text-xs font-semibold text-white mt-1 block">Consistência Diária</span>
+              </div>
+              <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                <span class="text-[10px] font-bold text-[#737A82] uppercase block">Propósito</span>
+                <span class="text-xs font-semibold text-white mt-1 block">Saúde &amp; Longevidade</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Institucional Mentalidade (col-span-4 - inferior direito) -->
+          <div id="pilar1InstCard" class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31] min-h-[190px]"
+            style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('assets/pilares/mentalidade/institucional.jpg') center/cover no-repeat;">
+            <div class="z-10 pt-2">
+              <p class="text-sm md:text-base font-medium text-[#F2F3F5] leading-relaxed">
+                "A mudança começa antes do resultado aparecer."
+              </p>
+            </div>
+            <div class="z-10 pt-6 flex items-center gap-3">
+              <img src="logo.png" alt="NutriAx" class="h-9 w-auto object-contain brightness-100" />
+              <div>
+                <span class="text-xs font-black text-white tracking-widest uppercase block">NutriAx</span>
+                <span class="text-[9px] text-[#737A82] tracking-wider block">NUTRIÇÃO &bull; PERFORMANCE &bull; RESULTADOS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ═══ 1. PILAR 3 / MÓDULO 1: DASHBOARD & RADAR (100% FIEL À REFERÊNCIA 2) ═══ -->
       <section id="tab-dashboard" class="max-w-7xl mx-auto space-y-4 md:space-y-6 w-full">
 
         <!-- ── ROW 1: BANNER DO PACIENTE (HERO) ── -->
-        <div class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-          style="background: linear-gradient(135deg, rgba(13,16,19,0.95) 0%, rgba(23,27,31,0.9) 100%), url('shapes_banner.jpg') center/cover no-repeat; border: 1px solid #272C31;">
+        <div id="pilar3HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/nutricao/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <!-- Lado Esquerdo: Identificação & Metadados do Paciente -->
           <div class="flex-1 min-w-0 z-10">
@@ -1309,12 +1356,12 @@
           </div>
 
           <!-- Card Direito: NutriAx Brand Card (col-span-4) -->
-          <div class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31]"
-            style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('nutritionist.jpg') center/cover no-repeat;">
+          <div id="pilar3InstCard" class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31] min-h-[190px]"
+            style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('assets/pilares/nutricao/institucional.jpg') center/cover no-repeat;">
             
             <div class="z-10 pt-2">
               <p class="text-sm md:text-base font-medium text-[#F2F3F5] leading-relaxed">
-                Mais do que números, é sobre <strong class="text-white">longevidade</strong>, <strong class="text-white">saúde</strong> e <strong class="text-[#E50914]">performance</strong>.
+                "Nutrição não é restrição. É estratégia."
               </p>
             </div>
 
@@ -1336,8 +1383,8 @@
 <section id="tab-performance" class="max-w-7xl mx-auto space-y-6 w-full hidden" hidden>
 
         <!-- Header Banner Clínico de Performance (Pilar 4 - Design System Unificado) -->
-        <div class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-          style="background: linear-gradient(135deg, rgba(13,16,19,0.95) 0%, rgba(23,27,31,0.9) 100%), url('shapes_banner.jpg') center/cover no-repeat; border: 1px solid #272C31;">
+        <div id="pilar4HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/performance/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
             <div class="flex items-center gap-2 flex-wrap mb-2">
@@ -1713,6 +1760,53 @@
           <!-- Card de Cardio & Engine Prescrito pela IA (Compromised Running / Déficit) -->
           <div id="perf-prescribed-cardio-container" class="space-y-3 pt-2">
             <!-- Injetado dinamicamente via renderPerfPrescribedCardio() -->
+          </div>
+
+          <!-- ── LINHA INFERIOR: DIRETRIZES BIOMECÂNICAS & CARD INSTITUCIONAL ── -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 pt-2">
+            <div class="lg:col-span-8 hud-card p-5 md:p-6 space-y-3 border border-[#272C31] bg-[#121518] rounded-2xl">
+              <div class="flex items-center justify-between border-b border-[#272C31] pb-3">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-[#E50914]"></i>
+                  <h2 class="text-xs font-bold tracking-wider uppercase text-[#F2F3F5]">Diretrizes Biomecânicas &amp; Segurança Articular</h2>
+                </div>
+                <span class="text-[10px] font-mono text-[#00C896] bg-[#00C896]/10 px-2 py-0.5 rounded border border-[#00C896]/20">Protocolo Calibrado</span>
+              </div>
+              <p class="text-xs text-[#B7BCC2] leading-relaxed">
+                A progressão de sobrecarga deve priorizar cadência controlada (2-3s na fase excêntrica) e estabilização escapular e pélvica. A tensão mecânica ideal é gerada com precisão de alavancas e amplitude segura.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                  <span class="text-[10px] font-bold text-[#737A82] uppercase block">Cadência</span>
+                  <span class="text-xs font-semibold text-white mt-1 block">Excêntrica Lenta</span>
+                </div>
+                <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                  <span class="text-[10px] font-bold text-[#737A82] uppercase block">Sobrecarga</span>
+                  <span class="text-xs font-semibold text-white mt-1 block">RPE 8-9 Calibrado</span>
+                </div>
+                <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                  <span class="text-[10px] font-bold text-[#737A82] uppercase block">Integração</span>
+                  <span class="text-xs font-semibold text-white mt-1 block">Sinergia com Nutrição</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Institucional Performance (col-span-4 - inferior direito) -->
+            <div id="pilar4InstCard" class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31] min-h-[190px]"
+              style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('assets/pilares/performance/institucional.jpg') center/cover no-repeat;">
+              <div class="z-10 pt-2">
+                <p class="text-sm md:text-base font-medium text-[#F2F3F5] leading-relaxed">
+                  "Performance é transformar capacidade em resultado."
+                </p>
+              </div>
+              <div class="z-10 pt-6 flex items-center gap-3">
+                <img src="logo.png" alt="NutriAx" class="h-9 w-auto object-contain brightness-100" />
+                <div>
+                  <span class="text-xs font-black text-white tracking-widest uppercase block">NutriAx</span>
+                  <span class="text-[9px] text-[#737A82] tracking-wider block">NUTRIÇÃO &bull; PERFORMANCE &bull; RESULTADOS</span>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -3529,8 +3623,8 @@
       <section id="tab-evolution" class="max-w-7xl mx-auto space-y-6 w-full hidden">
 
         <!-- Header Banner Clínico do Pilar 5 (Design System Unificado) -->
-        <div class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-          style="background: linear-gradient(135deg, rgba(13,16,19,0.95) 0%, rgba(23,27,31,0.9) 100%), url('shapes_banner.jpg') center/cover no-repeat; border: 1px solid #272C31;">
+        <div id="pilar5HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/resultado/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
             <div class="flex items-center gap-2 flex-wrap mb-2">
@@ -3751,6 +3845,53 @@
                   <!-- Rendered dynamically by app.js -->
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- ── LINHA INFERIOR: SÍNTESE CLÍNICA & CARD INSTITUCIONAL ── -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 pt-2">
+            <div class="lg:col-span-8 hud-card p-5 md:p-6 space-y-3 border border-[#272C31] bg-[#121518] rounded-2xl">
+              <div class="flex items-center justify-between border-b border-[#272C31] pb-3">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="trending-up" class="w-4 h-4 text-[#E50914]"></i>
+                  <h2 class="text-xs font-bold tracking-wider uppercase text-[#F2F3F5]">Síntese Longitudinal de Eficiência Corporal</h2>
+                </div>
+                <span class="text-[10px] font-mono text-[#00C896] bg-[#00C896]/10 px-2 py-0.5 rounded border border-[#00C896]/20">Evolução Validada</span>
+              </div>
+              <p class="text-xs text-[#B7BCC2] leading-relaxed">
+                O monitoramento temporal confirma a eficácia cruzada entre a periodização nutricional e a resposta muscular. A redução progressiva de adiposidade ocorre concomitantemente à consolidação da densidade mineral e massa magra.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                  <span class="text-[10px] font-bold text-[#737A82] uppercase block">Particionamento</span>
+                  <span class="text-xs font-semibold text-white mt-1 block">P-Ratio Positivo</span>
+                </div>
+                <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                  <span class="text-[10px] font-bold text-[#737A82] uppercase block">Recomposição</span>
+                  <span class="text-xs font-semibold text-white mt-1 block">Massa Magra ↑ Fat ↓</span>
+                </div>
+                <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                  <span class="text-[10px] font-bold text-[#737A82] uppercase block">Longevidade</span>
+                  <span class="text-xs font-semibold text-white mt-1 block">Idade Metabólica -8a</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Institucional Resultado (col-span-4 - inferior direito) -->
+            <div id="pilar5InstCard" class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31] min-h-[190px]"
+              style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('assets/pilares/resultado/institucional.jpg') center/cover no-repeat;">
+              <div class="z-10 pt-2">
+                <p class="text-sm md:text-base font-medium text-[#F2F3F5] leading-relaxed">
+                  "Mais do que números, é sobre evolução."
+                </p>
+              </div>
+              <div class="z-10 pt-6 flex items-center gap-3">
+                <img src="logo.png" alt="NutriAx" class="h-9 w-auto object-contain brightness-100" />
+                <div>
+                  <span class="text-xs font-black text-white tracking-widest uppercase block">NutriAx</span>
+                  <span class="text-[9px] text-[#737A82] tracking-wider block">NUTRIÇÃO &bull; PERFORMANCE &bull; RESULTADOS</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -4020,8 +4161,8 @@
   ═══════════════════════════════════════════════════════════ -->
       <section id="tab-discipline" class="max-w-7xl mx-auto space-y-6 w-full hidden">
         <!-- Header Banner Clínico (Pilar 2 - Design System Unificado) -->
-        <div class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-          style="background: linear-gradient(135deg, rgba(13,16,19,0.95) 0%, rgba(23,27,31,0.9) 100%), url('shapes_banner.jpg') center/cover no-repeat; border: 1px solid #272C31;">
+        <div id="pilar2HeroBanner" class="relative overflow-hidden rounded-2xl p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          style="background: linear-gradient(90deg, rgba(8,9,10,0.98) 0%, rgba(13,16,19,0.92) 40%, rgba(13,16,19,0.55) 75%, rgba(13,16,19,0.20) 100%), url('assets/pilares/disciplina/hero.jpg') right center/cover no-repeat; border: 1px solid #272C31;">
           
           <div class="flex-1 min-w-0 z-10">
             <div class="flex items-center gap-2 flex-wrap mb-2">
@@ -4358,6 +4499,53 @@
 
           <div id="disciplineTimelineFeed" class="space-y-3">
             <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- ── LINHA INFERIOR: RASTREIO DE DISCIPLINA & CARD INSTITUCIONAL ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+          <div class="lg:col-span-8 hud-card p-5 md:p-6 space-y-3 border border-[#272C31] bg-[#121518] rounded-2xl">
+            <div class="flex items-center justify-between border-b border-[#272C31] pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-[#E50914]"></i>
+                <h2 class="text-xs font-bold tracking-wider uppercase text-[#F2F3F5]">Compromisso Clínico &amp; Rastreio de Consistência</h2>
+              </div>
+              <span class="text-[10px] font-mono text-[#F2B84B] bg-[#171B1F] border border-[#272C31] px-2 py-0.5 rounded">Rastreio 24/7</span>
+            </div>
+            <p class="text-xs text-[#B7BCC2] leading-relaxed">
+              O Índice de Disciplina Clínica (IDC) reflete a aderência sistemática aos micro-hábitos prescritos. Cada dia validado no heatmap fortalece a blindagem comportamental do paciente contra recaídas.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                <span class="text-[10px] font-bold text-[#737A82] uppercase block">Consistência</span>
+                <span class="text-xs font-semibold text-white mt-1 block">Rastreio Diário</span>
+              </div>
+              <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                <span class="text-[10px] font-bold text-[#737A82] uppercase block">Contenção SOS</span>
+                <span class="text-xs font-semibold text-white mt-1 block">Sem 2º Erro</span>
+              </div>
+              <div class="p-3 rounded-xl bg-[#0D1013] border border-[#272C31]">
+                <span class="text-[10px] font-bold text-[#737A82] uppercase block">Sincronização</span>
+                <span class="text-xs font-semibold text-white mt-1 block">App Conectado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Institucional Disciplina (col-span-4 - inferior direito) -->
+          <div id="pilar2InstCard" class="lg:col-span-4 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-[#272C31] min-h-[190px]"
+            style="background: linear-gradient(180deg, rgba(13,16,19,0.7) 0%, rgba(8,9,10,0.95) 100%), url('assets/pilares/disciplina/institucional.jpg') center/cover no-repeat;">
+            <div class="z-10 pt-2">
+              <p class="text-sm md:text-base font-medium text-[#F2F3F5] leading-relaxed">
+                "Resultado é consequência daquilo que se repete."
+              </p>
+            </div>
+            <div class="z-10 pt-6 flex items-center gap-3">
+              <img src="logo.png" alt="NutriAx" class="h-9 w-auto object-contain brightness-100" />
+              <div>
+                <span class="text-xs font-black text-white tracking-widest uppercase block">NutriAx</span>
+                <span class="text-[9px] text-[#737A82] tracking-wider block">NUTRIÇÃO &bull; PERFORMANCE &bull; RESULTADOS</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
