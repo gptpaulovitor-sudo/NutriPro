@@ -4422,6 +4422,14 @@ function resultsSwitchSubView(subViewName, scrollIntoView = false) {
     renderResultsPredictive(activePatientId);
   }
 
+  // Sincroniza Contextual Header e Mobile Subnav quando no Pilar 5
+  if (typeof renderContextualHeader === 'function' && currentActivePilar === 5) {
+    renderContextualHeader(5, subViewName);
+  }
+  if (typeof updateMobileSubnavActiveVisuals === 'function') {
+    updateMobileSubnavActiveVisuals(5, subViewName);
+  }
+
   if (scrollIntoView) {
     const mainSection = document.getElementById('tab-evolution');
     if (mainSection) mainSection.scrollIntoView({ behavior: 'smooth' });
@@ -7134,9 +7142,11 @@ async function renderP5FastingCard(patientId, resultsData) {
 // NAVEGAÇÃO DE ABAS & PILARES DINÂMICOS
 // =========================================================================
 let currentActivePilar = 3; // 1: Mentalidade, 2: Disciplina, 3: Nutrição, 4: Performance, 5: Resultado
+let currentActiveModule = 'dashboard';
+let isModuleDropdownOpen = false;
 
 const ALL_TAB_IDS = [
-  'dashboard', 'anamnese', 'exams', 'recall', 'evaluation',
+  'mentality', 'dashboard', 'anamnese', 'exams', 'recall', 'evaluation',
   'prescription', 'fasting', 'evolution', 'adherence', 'discipline', 'foods', 'patientApp', 'backup', 'performance'
 ];
 
@@ -7146,6 +7156,90 @@ const PILAR_NAMES = {
   3: 'Nutrição & Prescrição',
   4: 'Performance & Treino',
   5: 'Resultado & Impacto'
+};
+
+const PILAR_CONFIG = {
+  1: {
+    id: 1,
+    title: 'MENTALIDADE',
+    name: 'Mentalidade & Mindset',
+    subtitle: 'Contexto relacionado ao propósito, percepção, comportamento e mudança.',
+    icon: 'brain',
+    defaultModule: 'goals',
+    modules: [
+      { id: 'goals', label: 'Foco & Metas', desc: 'Alinhamento de expectativas e metas clínicas', icon: 'target' },
+      { id: 'mindset', label: 'Mindset & Comportamento', desc: 'Gestão comportamental e autocontrole', icon: 'sparkles' }
+    ]
+  },
+  2: {
+    id: 2,
+    title: 'DISCIPLINA',
+    name: 'Disciplina & Hábitos',
+    subtitle: 'Consistência, hábitos e acompanhamento da execução diária.',
+    icon: 'shield',
+    defaultModule: 'dashboard',
+    modules: [
+      { id: 'dashboard', label: 'Dashboard & IDC', desc: 'Diagnóstico do Índice de Disciplina Clínica', icon: 'layout-dashboard' },
+      { id: 'heatmap', label: 'Heatmap 30 Dias', desc: 'Mapa de calor e consistência de execução', icon: 'calendar' },
+      { id: 'habits', label: 'Matriz de Hábitos', desc: 'Controle e rastreio de rotinas diárias', icon: 'check-square' },
+      { id: 'sos', label: 'Protocolo SOS', desc: 'Plano de emergência e recuperação de rotina', icon: 'life-buoy' },
+      { id: 'patientApp', label: 'App do Paciente', desc: 'Sincronização com aplicativo do paciente', icon: 'smartphone' }
+    ]
+  },
+  3: {
+    id: 3,
+    title: 'NUTRIÇÃO',
+    name: 'Nutrição & Prescrição',
+    subtitle: 'Estratégias alimentares, avaliação e organização nutricional.',
+    icon: 'utensils',
+    defaultModule: 'dashboard',
+    modules: [
+      { id: 'dashboard', label: 'Dashboard & Radar', desc: 'Visão geral, diagnóstico e radar nutricional', icon: 'layout-dashboard' },
+      { id: 'prescription', label: 'Prescrição & Macros', desc: 'Planejamento alimentar, metas e micronutrientes', icon: 'utensils' },
+      { id: 'fasting', label: 'Jejum Intermitente', desc: 'Protocolos clínicos, janelas e acompanhamento', icon: 'clock' },
+      { id: 'foods', label: 'Base de Alimentos', desc: 'Consulta nutricional TACO e TBCA', icon: 'database' },
+      { id: 'evaluation', label: 'Avaliação Corporal', desc: 'Composição corporal, dobras e perímetros', icon: 'activity' },
+      { id: 'evolution', label: 'Evolução Temporal', desc: 'Histórico, tendências e bioimpedância', icon: 'trending-up' },
+      { id: 'anamnese', label: 'Anamnese & Perfil', desc: 'Histórico clínico, rotina e patologias', icon: 'clipboard-list' },
+      { id: 'exams', label: 'Exames Clínicos', desc: 'Bioquímica, hemograma e biomarcadores', icon: 'flask-conical' },
+      { id: 'recall', label: 'Recordatório 24h', desc: 'Inquérito alimentar qualitativo e quantitativo', icon: 'utensils-crossed' },
+      { id: 'adherence', label: 'Controle de Adesão', desc: 'Taxa de adesão alimentar e conformidade', icon: 'check-check' },
+      { id: 'patientApp', label: 'App do Paciente', desc: 'Acesso do paciente, plano alimentar e água', icon: 'smartphone' },
+      { id: 'backup', label: 'Drive Backup', desc: 'Sincronização e backup na nuvem', icon: 'cloud' }
+    ]
+  },
+  4: {
+    id: 4,
+    title: 'PERFORMANCE',
+    name: 'Performance & Treino',
+    subtitle: 'Treinamento, biomecânica, condicionamento e evolução física.',
+    icon: 'dumbbell',
+    defaultModule: 'prescription',
+    modules: [
+      { id: 'prescription', label: 'Prescrição de Força', desc: 'Periodização, séries, reps e subnavegação de dias', icon: 'dumbbell' },
+      { id: 'schedule', label: 'Agenda Semanal', desc: 'Microciclo semanal e divisão ABCDEF', icon: 'calendar-days' },
+      { id: 'cardio', label: 'Cardios & Déficit', desc: 'Zona 2, HIIT e gasto calórico integrado', icon: 'flame' },
+      { id: 'catalog', label: 'Catálogo Biomecânico', desc: 'Vídeos, anatomia e execução correta', icon: 'book-open' },
+      { id: 'ai', label: 'Gerar via IA', desc: 'Prescrição adaptativa inteligente com IA', icon: 'sparkles' },
+      { id: 'pdf', label: 'PDF de Treino', desc: 'Geração de laudo e ficha de musculação', icon: 'file-text' }
+    ]
+  },
+  5: {
+    id: 5,
+    title: 'RESULTADO',
+    name: 'Resultado & Impacto',
+    subtitle: 'Integração entre nutrição, treinamento e resposta corporal.',
+    icon: 'trophy',
+    defaultModule: 'dashboard',
+    modules: [
+      { id: 'dashboard', label: 'Dashboard & IEC', desc: 'Índice de Eficiência Corporal e diagnóstico', icon: 'gauge' },
+      { id: 'charts', label: 'Gráficos Evolutivos', desc: 'Tendência de peso, % gordura e massa magra', icon: 'line-chart' },
+      { id: 'synergy', label: 'Sinergia Nutri × Treino', desc: 'Correlação entre ingestão energética e desempenho', icon: 'zap' },
+      { id: 'gallery', label: 'Fotos Antes & Depois', desc: 'Galeria comparativa temporal com sobreposição', icon: 'camera' },
+      { id: 'predictive', label: 'Projeção Preditiva IA', desc: 'Estimativa preditiva de composição futura', icon: 'sparkles' },
+      { id: 'pdf', label: 'Laudo PDF Integrado', desc: 'Exportação do relatório consolidado multipilar', icon: 'file-text' }
+    ]
+  }
 };
 
 function togglePilaresAcessosCard() {
@@ -7160,33 +7254,222 @@ function togglePilaresAcessosCard() {
   }
 }
 
+function toggleModuleDropdown(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  isModuleDropdownOpen = !isModuleDropdownOpen;
+
+  const deskMenu = document.getElementById('nax-context-dropdown-menu');
+  const mobMenu = document.getElementById('mobile-context-dropdown-menu');
+  const deskChevron = document.getElementById('nax-module-chevron');
+  const mobChevron = document.getElementById('mobile-module-chevron');
+
+  if (isModuleDropdownOpen) {
+    if (deskMenu) deskMenu.classList.remove('hidden');
+    if (mobMenu) mobMenu.classList.remove('hidden');
+    if (deskChevron) deskChevron.style.transform = 'rotate(180deg)';
+    if (mobChevron) mobChevron.style.transform = 'rotate(180deg)';
+  } else {
+    closeContextualDropdown();
+  }
+}
+
+function closeContextualDropdown() {
+  isModuleDropdownOpen = false;
+  const deskMenu = document.getElementById('nax-context-dropdown-menu');
+  const mobMenu = document.getElementById('mobile-context-dropdown-menu');
+  const deskChevron = document.getElementById('nax-module-chevron');
+  const mobChevron = document.getElementById('mobile-module-chevron');
+
+  if (deskMenu) deskMenu.classList.add('hidden');
+  if (mobMenu) mobMenu.classList.add('hidden');
+  if (deskChevron) deskChevron.style.transform = 'rotate(0deg)';
+  if (mobChevron) mobChevron.style.transform = 'rotate(0deg)';
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', function(e) {
+    if (!isModuleDropdownOpen) return;
+    const deskWrapper = document.getElementById('nax-module-selector-wrapper');
+    const mobWrapper = document.getElementById('mobile-module-selector-wrapper');
+    if (deskWrapper && deskWrapper.contains(e.target)) return;
+    if (mobWrapper && mobWrapper.contains(e.target)) return;
+    closeContextualDropdown();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && isModuleDropdownOpen) {
+      closeContextualDropdown();
+    }
+  });
+}
+
+function renderContextualHeader(pilarId, activeModId = null) {
+  const pilar = PILAR_CONFIG[pilarId] || PILAR_CONFIG[3];
+  currentActivePilar = pilarId;
+
+  const targetModId = activeModId || pilar.defaultModule;
+  currentActiveModule = targetModId;
+  const activeMod = pilar.modules.find(m => m.id === targetModId) || pilar.modules[0];
+
+  // 1. Desktop Header Contextual
+  const deskIcon = document.getElementById('contextPilarIcon');
+  if (deskIcon) deskIcon.setAttribute('data-lucide', pilar.icon || 'utensils');
+
+  const deskTitle = document.getElementById('contextPilarTitle');
+  if (deskTitle) deskTitle.textContent = pilar.title;
+
+  const deskNum = document.getElementById('contextPilarNumber');
+  if (deskNum) deskNum.textContent = `Pilar 0${pilarId}`;
+
+  const deskSub = document.getElementById('contextPilarSubtitle');
+  if (deskSub) deskSub.textContent = pilar.subtitle;
+
+  const deskActiveIcon = document.getElementById('nax-active-module-icon');
+  if (deskActiveIcon) deskActiveIcon.setAttribute('data-lucide', activeMod.icon || 'layout-dashboard');
+
+  const deskActiveTitle = document.getElementById('nax-active-module-title');
+  if (deskActiveTitle) deskActiveTitle.textContent = activeMod.label;
+
+  const deskDropTitle = document.getElementById('nax-dropdown-pilar-title');
+  if (deskDropTitle) deskDropTitle.textContent = `MÓDULOS DE ${pilar.title}`;
+
+  const deskDropCount = document.getElementById('nax-dropdown-count-badge');
+  if (deskDropCount) deskDropCount.textContent = `${pilar.modules.length} módulos`;
+
+  // 2. Mobile Contextual Bar
+  const mobIcon = document.getElementById('mobileContextPilarIcon');
+  if (mobIcon) mobIcon.setAttribute('data-lucide', pilar.icon || 'utensils');
+
+  const mobTitle = document.getElementById('mobileContextPilarTitle');
+  if (mobTitle) mobTitle.textContent = pilar.title;
+
+  const mobSub = document.getElementById('mobileContextPilarSubtitle');
+  if (mobSub) mobSub.textContent = pilar.subtitle;
+
+  const mobActiveLabel = document.getElementById('mobile-module-trigger-label');
+  if (mobActiveLabel) mobActiveLabel.textContent = activeMod.label;
+
+  const mobDropTitle = document.getElementById('mobile-dropdown-pilar-title');
+  if (mobDropTitle) mobDropTitle.textContent = `MÓDULOS DE ${pilar.title}`;
+
+  const mobDropCount = document.getElementById('mobile-dropdown-count-badge');
+  if (mobDropCount) mobDropCount.textContent = `${pilar.modules.length} módulos`;
+
+  // 3. Renderiza a lista de itens nos dropdowns
+  const itemsHtml = pilar.modules.map(mod => {
+    const isActive = mod.id === activeMod.id;
+    return `
+      <button onclick="selectContextualModule(${pilarId}, '${mod.id}')"
+        class="nax-dropdown-item ${isActive ? 'active' : ''}">
+        <div class="nax-item-icon-box">
+          <i data-lucide="${mod.icon}" class="w-3.5 h-3.5"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-1">
+            <span class="nax-item-title text-xs font-semibold truncate ${isActive ? 'text-white' : 'text-[#F2F3F5]'}">${mod.label}</span>
+            ${isActive ? '<span class="nax-active-indicator" title="Módulo Ativo"></span>' : ''}
+          </div>
+          <p class="text-[10px] text-[#737A82] truncate mt-0.5">${mod.desc}</p>
+        </div>
+      </button>
+    `;
+  }).join('');
+
+  const deskList = document.getElementById('nax-dropdown-items-list');
+  if (deskList) deskList.innerHTML = itemsHtml;
+
+  const mobList = document.getElementById('mobile-dropdown-items-list');
+  if (mobList) mobList.innerHTML = itemsHtml;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function selectContextualModule(pilarId, moduleId) {
+  closeContextualDropdown();
+
+  currentActivePilar = pilarId;
+  updateSidebarPilarVisuals(pilarId);
+
+  // Executa ativação de acordo com o Pilar
+  if (pilarId === 1) {
+    await switchTab('mentality', false, false);
+    if (moduleId === 'goals') {
+      const el = document.getElementById('mentalityGoalsCard');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (moduleId === 'mindset') {
+      const el = document.getElementById('mentalityHabitsCard');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } else if (pilarId === 2) {
+    if (moduleId === 'patientApp') {
+      await switchTab('patientApp', false, false);
+    } else {
+      await switchTab('discipline', false, false);
+      selectDisciplineSubView(moduleId);
+    }
+  } else if (pilarId === 3) {
+    await switchTab(moduleId, false, false);
+  } else if (pilarId === 4) {
+    await switchTab('performance', false, false);
+    if (typeof perfRender === 'function') perfRender();
+    if (moduleId === 'pdf') {
+      if (typeof perfGeneratePDF === 'function') perfGeneratePDF();
+    } else if (moduleId === 'ai') {
+      if (typeof handleGenerateAITraining === 'function') handleGenerateAITraining();
+    } else {
+      if (typeof perfSwitchView === 'function') perfSwitchView(moduleId, false);
+    }
+  } else if (pilarId === 5) {
+    await switchTab('evolution', false, false);
+    if (moduleId === 'pdf') {
+      if (typeof exportImpactReportPDF === 'function') exportImpactReportPDF();
+    } else {
+      if (typeof resultsSwitchSubView === 'function') resultsSwitchSubView(moduleId, false);
+    }
+  }
+
+  renderContextualHeader(pilarId, moduleId);
+  updateMobileSubnavActiveVisuals(pilarId, moduleId);
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
 function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
+  const activeClass = "p-2 rounded-xl bg-[#E50914]/15 border border-[#E50914]/60 text-white font-semibold flex items-center gap-2 text-left transition-all";
+  const inactiveClass = "p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] flex items-center gap-2 text-left text-[#B7BCC2] hover:text-[#F2F3F5] transition-all";
+
+  // Pilar 1 Tools
+  const p1Tools = ['goals', 'mindset'];
+  p1Tools.forEach(t => {
+    const btn = document.getElementById(`card-subnav-btn-1-${t}`);
+    if (btn) {
+      btn.className = (pilarId === 1 && t === toolKey) ? activeClass : inactiveClass;
+    }
+  });
+
   // Pilar 2 Tools
   const p2Tools = ['dashboard', 'heatmap', 'habits', 'sos'];
   p2Tools.forEach(t => {
     const btn = document.getElementById(`card-subnav-btn-2-${t}`);
     if (btn) {
-      if (pilarId === 2 && t === toolKey) {
-        btn.className = "p-2 rounded-xl bg-orange-950 border border-orange-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-orange-950 transition-all";
-      } else {
-        btn.className = "p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
-      }
+      btn.className = (pilarId === 2 && t === toolKey) ? activeClass : inactiveClass;
     }
   });
 
   // Pilar 3 Tools
-  const p3Tools = ['dashboard', 'prescription', 'evaluation', 'anamnese', 'exams', 'recall', 'adherence', 'foods', 'patientApp'];
+  const p3Tools = ['dashboard', 'prescription', 'fasting', 'evaluation', 'anamnese', 'exams', 'recall', 'adherence', 'foods', 'patientApp'];
   p3Tools.forEach(t => {
     const btn = document.getElementById(`card-subnav-btn-3-${t}`);
     if (btn) {
-      if (pilarId === 3 && t === toolKey) {
-        btn.className = (t === 'patientApp')
-          ? "col-span-2 p-2 rounded-xl bg-rose-950 border border-rose-500 text-white font-bold flex items-center justify-center gap-2 shadow-sm shadow-rose-950 transition-all"
-          : "p-2 rounded-xl bg-red-950/90 border border-red-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-red-950 transition-all";
+      if (t === 'patientApp') {
+        btn.className = (pilarId === 3 && t === toolKey)
+          ? "col-span-2 p-2 rounded-xl bg-[#E50914]/15 border border-[#E50914]/60 text-white font-semibold flex items-center justify-center gap-2 transition-all"
+          : "col-span-2 p-2 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] flex items-center justify-center gap-2 text-white font-semibold transition-all";
       } else {
-        btn.className = (t === 'patientApp')
-          ? "col-span-2 p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 flex items-center justify-center gap-2 text-rose-200 transition-all"
-          : "p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
+        btn.className = (pilarId === 3 && t === toolKey) ? activeClass : inactiveClass;
       }
     }
   });
@@ -7196,11 +7479,7 @@ function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
   p4Tools.forEach(t => {
     const btn = document.getElementById(`card-subnav-btn-4-${t}`);
     if (btn) {
-      if (pilarId === 4 && t === toolKey) {
-        btn.className = "p-2 rounded-xl bg-blue-950 border border-blue-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-blue-950 transition-all";
-      } else {
-        btn.className = "p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
-      }
+      btn.className = (pilarId === 4 && t === toolKey) ? activeClass : inactiveClass;
     }
   });
 
@@ -7209,38 +7488,14 @@ function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
   p5Tools.forEach(t => {
     const btn = document.getElementById(`card-subnav-btn-5-${t}`);
     if (btn) {
-      if (pilarId === 5 && t === toolKey) {
-        btn.className = "p-2 rounded-xl bg-amber-950 border border-amber-600 text-white font-bold flex items-center gap-2 text-left shadow-sm shadow-amber-950 transition-all";
-      } else {
-        btn.className = "p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-2 text-left text-zinc-300 transition-all";
-      }
+      btn.className = (pilarId === 5 && t === toolKey) ? activeClass : inactiveClass;
     }
   });
 }
 
 async function selectMobilePilarTool(pilarId, toolKey) {
-  // 1. Atualiza pilar ativo
-  switchPilar(pilarId, null, false);
+  await selectContextualModule(pilarId, toolKey);
 
-  // 2. Executa a ativação de acordo com o pilar
-  if (pilarId === 2) {
-    await switchTab('discipline', false, false);
-    selectDisciplineSubView(toolKey);
-  } else if (pilarId === 3) {
-    await switchTab(toolKey, false, false);
-  } else if (pilarId === 4) {
-    await switchTab('performance', false, false);
-    if (typeof perfRender === 'function') perfRender();
-    if (typeof perfSwitchView === 'function') perfSwitchView(toolKey, false);
-  } else if (pilarId === 5) {
-    await switchTab('evolution', false, false);
-    if (typeof resultsSwitchSubView === 'function') resultsSwitchSubView(toolKey, false);
-  }
-
-  // 3. Atualiza os botões visuais no card móvel
-  updateMobileSubnavActiveVisuals(pilarId, toolKey);
-
-  // 4. Scroll suave no mobile para trazer a ferramenta para a tela
   const isMobile = window.innerWidth < 1024;
   if (isMobile) {
     const cardEl = document.getElementById("mobile-pilares-acessos-card");
@@ -7276,7 +7531,7 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
     if (cardSub) {
       if (i === pilarId) {
         cardSub.classList.remove('hidden');
-        cardSub.style.display = (i === 2 || i === 3 || i === 4 || i === 5) ? 'grid' : 'block';
+        cardSub.style.display = 'grid';
       } else {
         cardSub.classList.add('hidden');
         cardSub.style.display = 'none';
@@ -7286,8 +7541,9 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
 
   // 3. Atualiza o badge do Pilar ativo no cabeçalho do quadro
   const cardBadge = document.getElementById("cardActivePilarBadge");
-  if (cardBadge && PILAR_NAMES[pilarId]) {
-    cardBadge.textContent = `Pilar ${pilarId} · ${PILAR_NAMES[pilarId]}`;
+  const pilarCfg = PILAR_CONFIG[pilarId] || PILAR_CONFIG[3];
+  if (cardBadge) {
+    cardBadge.textContent = `Pilar 0${pilarId} · ${pilarCfg.name}`;
     cardBadge.className = "text-[10px] font-semibold text-[#E50914]";
   }
 
@@ -7303,36 +7559,19 @@ async function switchPilar(pilarId, targetTab = null, autoScroll = true) {
     }
   }
   const mobTitle = document.getElementById('mobile-menu-title');
-  if (mobTitle && PILAR_NAMES[pilarId]) {
-    mobTitle.textContent = `Navegação · ${PILAR_NAMES[pilarId]}`;
+  if (mobTitle) {
+    mobTitle.textContent = `Navegação · ${pilarCfg.name}`;
   }
 
   // 5. Atualiza os botões dos Pilares na Sidebar Desktop e no Quadro "Pilares e Acessos"
   updateSidebarPilarVisuals(pilarId);
 
-  // 6. Determina qual aba abrir por padrão no pilar escolhido
-  if (targetTab) {
-    await switchTab(targetTab, false, autoScroll);
-    if (pilarId === 2) updateMobileSubnavActiveVisuals(2, targetTab);
-    else if (pilarId === 3) updateMobileSubnavActiveVisuals(3, targetTab);
-    else if (pilarId === 4) updateMobileSubnavActiveVisuals(4, 'prescription');
-    else if (pilarId === 5) updateMobileSubnavActiveVisuals(5, 'dashboard');
-  } else {
-    if (pilarId === 2) {
-      await switchTab('discipline', false, autoScroll);
-      updateMobileSubnavActiveVisuals(2, 'dashboard');
-      if (typeof renderDisciplineDashboard === 'function') renderDisciplineDashboard();
-    } else if (pilarId === 3) {
-      await switchTab('dashboard', false, autoScroll);
-      updateMobileSubnavActiveVisuals(3, 'dashboard');
-    } else if (pilarId === 4) {
-      await switchTab('performance', false, autoScroll);
-      updateMobileSubnavActiveVisuals(4, 'prescription');
-    } else if (pilarId === 5) {
-      await switchTab('evolution', false, autoScroll);
-      if (typeof resultsSwitchSubView === 'function') resultsSwitchSubView('dashboard', false);
-      updateMobileSubnavActiveVisuals(5, 'dashboard');
-    }
+  // 6. Atualiza o Contextual Header e navega para o módulo solicitado ou padrão
+  const chosenModule = targetTab || pilarCfg.defaultModule;
+  await selectContextualModule(pilarId, chosenModule);
+
+  if (autoScroll) {
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   if (window.lucide) window.lucide.createIcons();
@@ -7373,16 +7612,19 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
 
   // 2. Sincroniza o Pilar correspondente se acionado diretamente
   if (syncPilar) {
-    if (tabName === 'discipline' && currentActivePilar !== 2) {
-      switchPilar(2, 'discipline', autoScroll);
+    if (tabName === 'mentality' && currentActivePilar !== 1) {
+      switchPilar(1, 'goals', autoScroll);
+      return;
+    } else if (tabName === 'discipline' && currentActivePilar !== 2) {
+      switchPilar(2, 'dashboard', autoScroll);
       return;
     } else if (tabName === 'performance' && currentActivePilar !== 4) {
-      switchPilar(4, 'performance', autoScroll);
+      switchPilar(4, 'prescription', autoScroll);
       return;
     } else if (tabName === 'evolution' && currentActivePilar !== 5) {
-      switchPilar(5, 'evolution', autoScroll);
+      switchPilar(5, 'dashboard', autoScroll);
       return;
-    } else if (tabName !== 'discipline' && tabName !== 'performance' && tabName !== 'evolution' && currentActivePilar !== 3) {
+    } else if (tabName !== 'mentality' && tabName !== 'discipline' && tabName !== 'performance' && tabName !== 'evolution' && currentActivePilar !== 3) {
       switchPilar(3, tabName, autoScroll);
       return;
     }
@@ -7413,6 +7655,17 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
   });
   const activeBtn = document.getElementById('nav-' + tabName);
   if (activeBtn) activeBtn.classList.add('active');
+
+  // Sincroniza Contextual Header e Mobile Subnav
+  if (typeof renderContextualHeader === 'function') {
+    let modKey = tabName;
+    if (tabName === 'mentality') modKey = 'goals';
+    else if (tabName === 'discipline') modKey = 'dashboard';
+    else if (tabName === 'performance') modKey = (typeof perfActiveSubView !== 'undefined' && perfActiveSubView) ? perfActiveSubView : 'prescription';
+    else if (tabName === 'evolution') modKey = (typeof resultsActiveSubView !== 'undefined' && resultsActiveSubView) ? resultsActiveSubView : 'dashboard';
+    renderContextualHeader(currentActivePilar, modKey);
+    updateMobileSubnavActiveVisuals(currentActivePilar, modKey);
+  }
 
   // Atualiza breadcrumbs dinâmicos da interface (Referência 2)
   const breadcrumbModuleMap = {
@@ -7547,6 +7800,14 @@ async function selectDisciplineSubView(viewKey) {
   } else if (viewKey === 'sos') {
     const el = document.getElementById('tab-discipline');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  // Sincroniza Contextual Header e Mobile Subnav quando no Pilar 2
+  if (typeof renderContextualHeader === 'function' && currentActivePilar === 2) {
+    renderContextualHeader(2, viewKey);
+  }
+  if (typeof updateMobileSubnavActiveVisuals === 'function') {
+    updateMobileSubnavActiveVisuals(2, viewKey);
   }
 }
 
@@ -9322,8 +9583,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const requestedTab = urlParams.get('tab') || window.location.hash.replace('#', '');
 
   if (requestedTab && ALL_TAB_IDS.includes(requestedTab)) {
-    if (requestedTab === 'performance') {
-      switchPilar(4, 'performance');
+    if (requestedTab === 'mentality') {
+      switchPilar(1, 'goals');
+    } else if (requestedTab === 'discipline') {
+      switchPilar(2, 'dashboard');
+    } else if (requestedTab === 'performance') {
+      switchPilar(4, 'prescription');
+    } else if (requestedTab === 'evolution') {
+      switchPilar(5, 'dashboard');
     } else {
       switchPilar(3, requestedTab);
     }
@@ -9787,6 +10054,14 @@ function perfSwitchView(viewKey, shouldScroll = false) {
   });
 
   if (window.lucide) window.lucide.createIcons();
+
+  // Sincroniza Contextual Header e Mobile Subnav quando no Pilar 4
+  if (typeof renderContextualHeader === 'function' && currentActivePilar === 4) {
+    renderContextualHeader(4, viewKey);
+  }
+  if (typeof updateMobileSubnavActiveVisuals === 'function') {
+    updateMobileSubnavActiveVisuals(4, viewKey);
+  }
 
   // Scroll suave apenas quando solicitado explicitamente por clique
   if (shouldScroll && targetView) {

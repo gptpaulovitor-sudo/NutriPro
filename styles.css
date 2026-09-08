@@ -421,3 +421,250 @@ body {
     overflow-x: hidden !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   NOVA NAVEGAÇÃO CONTEXTUAL & SELETOR DE MÓDULOS (DESIGN SYSTEM)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Header Contextual Wrapper */
+.nax-context-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Trigger do Seletor de Módulo */
+#nax-module-trigger-btn,
+#mobile-module-trigger-btn {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  transition: all var(--transition-std) !important;
+  cursor: pointer;
+}
+
+#nax-module-trigger-btn:hover,
+#mobile-module-trigger-btn:hover {
+  background: var(--card-elevated) !important;
+  border-color: #3E454D !important;
+}
+
+#nax-module-trigger-btn:focus-visible,
+#mobile-module-trigger-btn:focus-visible {
+  border-color: var(--red-nax) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2) !important;
+}
+
+/* Menu Dropdown de Módulos (1 Nível) */
+@keyframes naxDropdownOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#nax-context-dropdown-menu,
+#mobile-context-dropdown-menu {
+  animation: naxDropdownOpen 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  background: #121518 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* Item do Seletor de Módulos */
+.nax-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.nax-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.nax-dropdown-item.active {
+  background: var(--card-elevated) !important;
+  border-color: rgba(229, 9, 20, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.nax-dropdown-item.active .nax-item-title {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.nax-dropdown-item.active .nax-item-icon-box {
+  background: rgba(229, 9, 20, 0.12) !important;
+  border-color: rgba(229, 9, 20, 0.35) !important;
+  color: var(--red-nax) !important;
+}
+
+.nax-item-icon-box {
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: var(--radius-sm);
+  background: var(--card-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.nax-dropdown-item:hover .nax-item-icon-box {
+  color: var(--text-primary);
+  border-color: #3E454D;
+}
+
+/* Indicador de Módulo Ativo no Dropdown */
+.nax-active-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: var(--red-nax);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(229, 9, 20, 0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NEUTRALIZAÇÃO GLOBAL DO PADRÃO ANTIGO (GAMER / HUD / NEON / CORES)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Remove gradientes neon e brilhos excessivos */
+[class*="shadow-[0_0_"] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Unifica fundos de cards temáticos que usavam azul, roxo, laranja ou âmbar */
+[class*="bg-orange-950"],
+[class*="bg-blue-950"],
+[class*="bg-purple-950"],
+[class*="bg-amber-950"],
+[class*="bg-violet-950"],
+[class*="bg-rose-950"] {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+}
+
+/* Bordas temáticas antigas -> Borda padrão do Design System */
+[class*="border-orange-"],
+[class*="border-blue-"],
+[class*="border-purple-"],
+[class*="border-amber-"],
+[class*="border-violet-"] {
+  border-color: var(--border) !important;
+}
+
+/* Textos com cores arbitrárias de pilares antigos -> Tipografia Clínica */
+[class*="text-orange-200"],
+[class*="text-orange-300"],
+[class*="text-blue-200"],
+[class*="text-blue-300"],
+[class*="text-purple-200"],
+[class*="text-purple-300"],
+[class*="text-amber-200"],
+[class*="text-amber-300"],
+[class*="text-violet-200"],
+[class*="text-violet-300"] {
+  color: var(--text-secondary) !important;
+}
+
+/* Headers e títulos unificados */
+.module-header,
+.perf-header-banner,
+.discipline-header-banner,
+.results-header-banner {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Botões de sub-navegação unificados */
+.results-sub-btn,
+.perf-sub-btn,
+.discipline-sub-btn {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+  border-radius: var(--radius-sm) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.results-sub-btn:hover,
+.perf-sub-btn:hover,
+.discipline-sub-btn:hover {
+  background: var(--card-elevated) !important;
+  border-color: #3E454D !important;
+  color: var(--text-primary) !important;
+}
+
+.results-sub-btn.active,
+.perf-sub-btn.active,
+.discipline-sub-btn.active {
+  background: var(--red-nax) !important;
+  border-color: var(--red-nax) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Subnavegação de Dias (Pilar 4: Prescrição de Força - D1 a D7) */
+.perf-day-subnav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--card-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.perf-day-subnav-btn:hover {
+  background: #20252A;
+  border-color: #3E454D;
+  color: var(--text-primary);
+}
+
+.perf-day-subnav-btn.active {
+  background: var(--red-nax) !important;
+  border-color: var(--red-nax) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(229, 9, 20, 0.4) !important;
+}
+
+/* Badges e Tags Monocromáticas */
+.mono-label {
+  background: var(--card-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
