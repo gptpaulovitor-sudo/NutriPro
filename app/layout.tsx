@@ -228,14 +228,17 @@ export default function RootLayout({
                 <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">Em breve</span>
               </div>
 
-              {/* Pilar 2 — Disciplina (Em Breve) */}
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-zinc-900/40 border border-zinc-800/40 opacity-50 cursor-not-allowed">
-                <ShieldAlert className="w-4 h-4 text-zinc-500 shrink-0" />
+              {/* Pilar 2 — Disciplina */}
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-950/30 border border-emerald-800/40 hover:border-emerald-600/60 hover:bg-emerald-950/50 transition-all group"
+              >
+                <ShieldAlert className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-semibold text-zinc-400 block">2. Disciplina</span>
+                  <span className="text-xs font-bold text-emerald-300 block">2. Disciplina</span>
                 </div>
-                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">Em breve</span>
-              </div>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
+              </Link>
 
               {/* Pilar 3 — Nutrição */}
               <Link
@@ -261,14 +264,17 @@ export default function RootLayout({
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.9)]" />
               </Link>
 
-              {/* Pilar 5 — Resultado (Em Breve) */}
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-zinc-900/40 border border-zinc-800/40 opacity-50 cursor-not-allowed">
-                <Flame className="w-4 h-4 text-zinc-500 shrink-0" />
+              {/* Pilar 5 — Resultado */}
+              <Link
+                href="/dashboard/evolution"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-950/30 border border-amber-800/40 hover:border-amber-600/60 hover:bg-amber-950/50 transition-all group"
+              >
+                <Flame className="w-4 h-4 text-amber-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-semibold text-zinc-400 block">5. Resultado</span>
+                  <span className="text-xs font-bold text-amber-300 block">5. Resultado</span>
                 </div>
-                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">Em breve</span>
-              </div>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]" />
+              </Link>
             </div>
 
             {/* ═══ CARTÃO DO NUTRICIONISTA (RODAPÉ DA SIDEBAR) ═══ */}
