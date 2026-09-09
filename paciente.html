@@ -70,6 +70,34 @@
 
   <!-- Lucide Icons & Canvas Confetti -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide High-Performance Optimizer: evita repetição destrutiva de SVGs e elimina lag de navegação -->
+  <script>
+    (function() {
+      function patchLucide() {
+        if (!window.lucide || window.lucide._optimized) return;
+        const originalCreateIcons = window.lucide.createIcons;
+        window.lucide._origCreateIcons = originalCreateIcons;
+        window.lucide._optimized = true;
+
+        window.lucide.createIcons = function(options) {
+          const root = (options && options.root) || document;
+          if (root && root.querySelectorAll) {
+            const pending = root.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)');
+            if (pending.length === 0) return;
+          }
+          try {
+            originalCreateIcons.call(window.lucide, options);
+          } catch (e) {
+            console.warn('Lucide notice:', e);
+          }
+        };
+      }
+      patchLucide();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', patchLucide);
+      }
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <!-- Firebase SDK Compat & NutriPro Cloud Service -->
@@ -1773,7 +1801,7 @@
         }
       });
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
 
       // Se navegou para Progresso, atualiza o gráfico SVG de evolução
       if (tabKey === 'progresso' && typeof renderScoreEvolutionChart === 'function') {
@@ -5688,11 +5716,11 @@
       });
 
       if (tabId === 'hoje') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'auto' });
       } else if (tabId === 'treino') {
-        document.getElementById('workoutSectionContainer')?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('workoutSectionContainer')?.scrollIntoView({ behavior: 'auto' });
       } else if (tabId === 'nutricao') {
-        document.getElementById('mealsSectionContainer')?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('mealsSectionContainer')?.scrollIntoView({ behavior: 'auto' });
       } else if (tabId === 'progresso') {
         openPatientScoresModal();
       } else if (tabId === 'mais') {

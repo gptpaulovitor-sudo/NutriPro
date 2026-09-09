@@ -1,6 +1,21 @@
 // app.js - Application Controller, Per-Patient Cloud Sync & Bidirectional Engine
 // v2026.08.18-1323 — Drive list com botões + seletor atualiza após importar
 
+// Lucide High-Performance Optimizer (Safeguard)
+if (typeof window !== 'undefined' && window.lucide && !window.lucide._optimized) {
+  const _origCreateIcons = window.lucide.createIcons;
+  window.lucide._origCreateIcons = _origCreateIcons;
+  window.lucide._optimized = true;
+  window.lucide.createIcons = function(options) {
+    const root = (options && options.root) || document;
+    if (root && root.querySelectorAll) {
+      const pending = root.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)');
+      if (pending.length === 0) return; // Nada pendente: saída instantânea (0ms)
+    }
+    try { _origCreateIcons.call(window.lucide, options); } catch (e) { console.warn('Lucide notice:', e); }
+  };
+}
+
 // Google Apps Script Web App Endpoint URL Configuration
 let GOOGLE_SCRIPT_URL = localStorage.getItem("NUTRIAX_GOOGLE_SCRIPT_URL") || "https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec";
 let activePatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") || "paulo-vitor";
@@ -884,26 +899,45 @@ async function onPatientChange(patientId) {
   const perfPatientGoalEl = document.getElementById("perfPatientGoal");
   if (perfPatientGoalEl) perfPatientGoalEl.innerText = p.objective || "Hipertrofia & Recomposição";
 
-  // ── 2. Carrega todos os módulos locais em paralelo (Dexie = ultra rápido) ─
-  const localLoads = [
-    loadEvaluationForPatient(patientId),
-    updateDashboardAndRadar(patientId),
-    loadPrescriptionForPatient(patientId),
-  ];
-  if (typeof loadPerformanceForPatient === "function") localLoads.push(loadPerformanceForPatient(patientId));
-  if (typeof loadPatientAnamnese === "function") localLoads.push(loadPatientAnamnese(patientId));
-  if (typeof loadDietaryRecall === "function") localLoads.push(loadDietaryRecall(patientId));
-  if (typeof loadClinicalExams === "function") localLoads.push(loadClinicalExams(patientId));
-  if (typeof loadAssessmentsAndRenderCharts === "function") localLoads.push(loadAssessmentsAndRenderCharts(patientId));
-  if (typeof loadAdherenceDashboard === "function") localLoads.push(loadAdherenceDashboard(patientId));
-
-  await Promise.all(localLoads);
-
-  if (typeof renderPatientAppView === "function") {
-    renderPatientAppView(patientId);
+  // ── 2. Carrega prioritariamente apenas o módulo visível na tela para resposta instantânea ─
+  let currentVisibleTab = 'dashboard';
+  if (typeof ALL_TAB_IDS !== 'undefined' && Array.isArray(ALL_TAB_IDS)) {
+    for (const tid of ALL_TAB_IDS) {
+      const el = document.getElementById('tab-' + tid);
+      if (el && !el.classList.contains('hidden') && el.style.display !== 'none' && !el.hasAttribute('hidden')) {
+        currentVisibleTab = tid;
+        break;
+      }
+    }
   }
-  if (typeof renderDisciplineDashboard === "function") {
-    renderDisciplineDashboard();
+
+  const primaryLoad = [];
+  if (currentVisibleTab === 'dashboard') {
+    primaryLoad.push(updateDashboardAndRadar(patientId));
+  } else if (currentVisibleTab === 'prescription') {
+    primaryLoad.push(loadPrescriptionForPatient(patientId));
+  } else if (currentVisibleTab === 'evaluation') {
+    primaryLoad.push(loadEvaluationForPatient(patientId));
+  } else if (currentVisibleTab === 'performance') {
+    if (typeof loadPerformanceForPatient === "function") primaryLoad.push(loadPerformanceForPatient(patientId));
+  } else if (currentVisibleTab === 'discipline') {
+    if (typeof renderDisciplineDashboard === "function") primaryLoad.push(renderDisciplineDashboard());
+  } else if (currentVisibleTab === 'evolution') {
+    if (typeof loadAssessmentsAndRenderCharts === "function") primaryLoad.push(loadAssessmentsAndRenderCharts(patientId));
+  } else if (currentVisibleTab === 'exams') {
+    if (typeof loadClinicalExams === "function") primaryLoad.push(loadClinicalExams(patientId));
+  } else if (currentVisibleTab === 'recall') {
+    if (typeof loadDietaryRecall === "function") primaryLoad.push(loadDietaryRecall(patientId));
+  } else if (currentVisibleTab === 'adherence') {
+    if (typeof loadAdherenceDashboard === "function") primaryLoad.push(loadAdherenceDashboard(patientId));
+  } else if (currentVisibleTab === 'anamnese') {
+    if (typeof loadPatientAnamnese === "function") primaryLoad.push(loadPatientAnamnese(patientId));
+  } else if (currentVisibleTab === 'patientApp') {
+    if (typeof renderPatientAppView === "function") renderPatientAppView(patientId);
+  }
+
+  if (primaryLoad.length > 0) {
+    await Promise.all(primaryLoad);
   }
 
   // ── 3. Sync com a nuvem em background (sem bloquear a UI) ───────────────
@@ -7785,10 +7819,10 @@ async function selectContextualModule(pilarId, moduleId) {
     await switchTab('mentality', false, false);
     if (moduleId === 'goals') {
       const el = document.getElementById('mentalityGoalsCard');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
     } else if (moduleId === 'mindset') {
       const el = document.getElementById('mentalityHabitsCard');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   } else if (pilarId === 2) {
     if (moduleId === 'patientApp') {
@@ -7890,7 +7924,7 @@ async function selectMobilePilarTool(pilarId, toolKey) {
     const cardEl = document.getElementById("mobile-pilares-acessos-card");
     if (cardEl) {
       const offsetTop = cardEl.offsetTop + cardEl.offsetHeight - 20;
-      window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+      window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'auto' });
     }
   }
 
@@ -8230,13 +8264,13 @@ async function selectDisciplineSubView(viewKey) {
 
   if (viewKey === 'heatmap') {
     const el = document.getElementById('disciplineHeatmapGrid');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' });
   } else if (viewKey === 'habits') {
     const el = document.getElementById('disciplineHabitsList');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' });
   } else if (viewKey === 'sos') {
     const el = document.getElementById('tab-discipline');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'end' });
   }
 
   // Sincroniza Contextual Header e Mobile Subnav quando no Pilar 2

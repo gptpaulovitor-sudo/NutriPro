@@ -366,12 +366,11 @@ body {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 60;
-  background: rgba(13, 16, 19, 0.97);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(13, 16, 19, 0.98);
   border-top: 1px solid var(--border);
   box-shadow: 0 -2px 16px rgba(0,0,0,0.6);
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  transform: translateZ(0);
 }
 .mobile-nav-btn {
   display: flex;
@@ -431,13 +430,12 @@ body {
   /* ═══ TOP APP BAR COMPACTA MOBILE ═══ */
   .nax-mobile-top-header {
     height: 50px;
-    background: rgba(8, 9, 10, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(8, 9, 10, 0.98);
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 50;
+    transform: translateZ(0);
   }
 
   /* ═══ PILAR HERO VISUAL MOBILE ═══ */
@@ -538,11 +536,10 @@ body {
     bottom: 0; left: 0; right: 0;
     z-index: 60;
     background: rgba(13, 16, 19, 0.98);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
     border-top: 1px solid var(--border);
     box-shadow: 0 -4px 20px rgba(0,0,0,0.7);
     padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+    transform: translateZ(0);
   }
 
   /* ═══ TABELAS & CONTAINERS RESPONSIVOS ═══ */
@@ -611,13 +608,12 @@ body {
 
 #nax-context-dropdown-menu,
 #mobile-context-dropdown-menu {
-  animation: naxDropdownOpen 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: naxDropdownOpen 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   background: #121518 !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  transform: translateZ(0);
 }
 
 /* Item do Seletor de Módulos */
@@ -813,13 +809,12 @@ body {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  transition: opacity 200ms ease;
+  transition: opacity 150ms ease;
+  transform: translateZ(0);
 }
 
 .nax-bottom-sheet-panel {

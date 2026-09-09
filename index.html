@@ -72,6 +72,34 @@
   <!-- Lucide Icons (Local + CDN fallback) -->
   <script src="lucide.min.js"></script>
   <script>if (typeof lucide === 'undefined') document.write('<script src="https://unpkg.com/lucide@latest"><\\/script>');</script>
+  <!-- Lucide High-Performance Optimizer: evita repetição destrutiva de SVGs e elimina lag de navegação -->
+  <script>
+    (function() {
+      function patchLucide() {
+        if (!window.lucide || window.lucide._optimized) return;
+        const originalCreateIcons = window.lucide.createIcons;
+        window.lucide._origCreateIcons = originalCreateIcons;
+        window.lucide._optimized = true;
+
+        window.lucide.createIcons = function(options) {
+          const root = (options && options.root) || document;
+          if (root && root.querySelectorAll) {
+            const pending = root.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)');
+            if (pending.length === 0) return;
+          }
+          try {
+            originalCreateIcons.call(window.lucide, options);
+          } catch (e) {
+            console.warn('Lucide notice:', e);
+          }
+        };
+      }
+      patchLucide();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', patchLucide);
+      }
+    })();
+  </script>
 
   <!-- Chart.js (Local + CDN fallback) -->
   <script src="chart.min.js"></script>
