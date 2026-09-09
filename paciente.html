@@ -253,7 +253,7 @@
         <div class="text-xs font-black text-white leading-none tracking-tight flex items-center gap-1">
           Nutri<span class="text-[#E50914]">Ax</span> <span class="text-[9px] font-mono font-bold text-zinc-400">PRO</span>
         </div>
-        <div class="text-[9px] font-mono text-zinc-400 leading-none mt-0.5" id="patientHeaderSubname">Naiane Andrade Sousa</div>
+        <div class="text-[9px] font-mono text-zinc-400 leading-none mt-0.5" id="patientHeaderSubname">Carregando...</div>
       </div>
     </div>
     
@@ -344,7 +344,7 @@
           <div>
             <p class="text-[10px] text-zinc-400 font-medium font-mono" id="currentDateDisplay">Hoje, 08 de setembro de 2026</p>
             <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight" id="patientNameDisplay">
-              Naiane Andrade Sousa
+              Paciente
             </h1>
             <p class="text-[10px] text-zinc-400 mt-0.5">Rotina • consistência • hábitos</p>
           </div>
@@ -560,12 +560,17 @@
         </button>
       </div>
 
-      <!-- CICLO SEMANAL DE 7 DIAS (CARROSSEL DE SELEÇÃO) -->
-      <div class="nax-card p-3 space-y-2">
+      <!-- ROTINAS PRESCRITAS · ESCOLHA LIVRE DE TREINO -->
+      <div class="nax-card p-3 space-y-2.5">
         <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-          <span class="flex items-center gap-1.5 font-bold"><i data-lucide="calendar" class="w-3.5 h-3.5 text-[#00C896]"></i> Ciclo Semanal</span>
-          <span class="text-[10px]">Toque para alternar</span>
+          <span class="flex items-center gap-1.5 font-bold text-white"><i data-lucide="dumbbell" class="w-3.5 h-3.5 text-[#E50914]"></i> Rotinas Prescritas · Escolha Livre</span>
+          <span class="text-[10px] text-zinc-400">Toque no treino que fará hoje</span>
         </div>
+        <!-- Seletor Rápido de Pílulas de Treino -->
+        <div id="quickRoutineSelectorPills" class="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          <!-- Inserido dinamicamente via renderQuickRoutinePills() -->
+        </div>
+        <!-- Carrossel Detalhado de Rotinas -->
         <div id="weeklyScheduleCarousel" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           <!-- Renderizado dinamicamente via renderWeeklyCarousel() -->
         </div>
@@ -1143,11 +1148,11 @@
       <!-- PERFIL DO PACIENTE E CONFIGURAÇÕES -->
       <div class="nax-card p-4 space-y-3">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-full bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-lg font-black text-white">
-            NA
+          <div id="patientCardAvatar" class="w-12 h-12 rounded-full bg-[#171B1F] border border-[#272C31] flex items-center justify-center text-lg font-black text-white font-mono">
+            PX
           </div>
           <div>
-            <h4 class="text-sm font-black text-white">Naiane Andrade Sousa</h4>
+            <h4 id="patientCardName" class="text-sm font-black text-white">Paciente</h4>
             <p class="text-[11px] text-zinc-400 font-mono">Paciente NutriAx Pro</p>
           </div>
         </div>
@@ -1685,11 +1690,11 @@
       </div>
 
       <div class="flex items-center gap-3 p-3 rounded-xl bg-[#171B1F] border border-[#272C31]">
-        <div class="w-12 h-12 rounded-full bg-[#08090A] border border-[#272C31] flex items-center justify-center text-xl font-black text-[#E50914]">
-          NA
+        <div id="modalPatientAvatar" class="w-12 h-12 rounded-full bg-[#08090A] border border-[#272C31] flex items-center justify-center text-xl font-black text-[#E50914] font-mono">
+          PX
         </div>
         <div class="min-w-0">
-          <h4 class="text-sm font-black text-white truncate">Naiane Andrade Sousa</h4>
+          <h4 id="modalPatientName" class="text-sm font-black text-white truncate">Paciente</h4>
           <p class="text-[10px] text-[#00C896] font-mono font-bold">Paciente NutriAx Pro</p>
         </div>
       </div>
@@ -2376,9 +2381,11 @@
     }
 
     // Determina o ID do paciente: prioridade => payload > ?id= da URL > activePatientId do LocalStorage > 'paulo-vitor'
+    const _urlParams = new URLSearchParams(window.location.search);
     const _rawCandidateId = (
       (_syncPayload && _syncPayload.patientId) ||
-      new URLSearchParams(window.location.search).get('id') ||
+      _urlParams.get('id') ||
+      _urlParams.get('patient') ||
       localStorage.getItem('NUTRIAX_ACTIVE_PATIENT_ID') ||
       'paulo-vitor'
     );
@@ -2386,6 +2393,57 @@
 
     // Chave de estado (checkboxes, água, sono) — ISOLADA por paciente
     const STORAGE_KEY = `nutriax_patient_discipline_v3_${_urlPatientId}`;
+
+    function getPatientInitials(name) {
+      if (!name || typeof name !== 'string') return 'PX';
+      const clean = name.replace(/\(.*?\)/g, '').trim();
+      const parts = clean.split(/\s+/).filter(Boolean);
+      if (parts.length === 0) return 'PX';
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function updatePatientVisuals() {
+      const currentName = patientState.name || 'Paciente';
+      const initials = getPatientInitials(currentName);
+
+      const heroName = document.getElementById('patientNameDisplay');
+      if (heroName) heroName.textContent = currentName;
+
+      const headerSub = document.getElementById('patientHeaderSubname');
+      if (headerSub) headerSub.textContent = currentName;
+
+      const cardName = document.getElementById('patientCardName');
+      if (cardName) cardName.textContent = currentName;
+      const cardAv = document.getElementById('patientCardAvatar');
+      if (cardAv) cardAv.textContent = initials;
+
+      const modalName = document.getElementById('modalPatientName');
+      if (modalName) modalName.textContent = currentName;
+      const modalAv = document.getElementById('modalPatientAvatar');
+      if (modalAv) modalAv.textContent = initials;
+    }
+
+    function checkIndexedDbPatient(patientId) {
+      if (!patientId || typeof indexedDB === 'undefined') return;
+      try {
+        const req = indexedDB.open('NutriAxProDB');
+        req.onsuccess = (e) => {
+          const idb = e.target.result;
+          if (!idb || !idb.objectStoreNames || !idb.objectStoreNames.contains('patients')) return;
+          const tx = idb.transaction('patients', 'readonly');
+          const store = tx.objectStore('patients');
+          const getReq = store.get(patientId);
+          getReq.onsuccess = () => {
+            const p = getReq.result;
+            if (p && p.name) {
+              patientState.name = p.name;
+              updatePatientVisuals();
+            }
+          };
+        };
+      } catch (_) {}
+    }
 
     function getLocalDateIso(d = new Date()) {
       const date = (d instanceof Date && !isNaN(d)) ? d : new Date(d);
@@ -2467,14 +2525,12 @@
         state.meals.forEach(m => { m.done = false; });
       }
 
-      // Sincroniza dia selecionado da Agenda Semanal com o dia da semana atual
-      const dayOfWeek = new Date().getDay(); // 0 = Dom, 1 = Seg, ..., 6 = Sáb
-      const todayScheduleNum = dayOfWeek === 0 ? 7 : dayOfWeek;
-      if (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.some(d => d.dayNum === todayScheduleNum)) {
-        selectedScheduleDay = todayScheduleNum;
-        const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === todayScheduleNum);
-        if (curDay) {
-          selectedRoutineKey = curDay.routineKey || (curDay.type === 'Off' ? 'OFF' : 'A');
+      // Não fixa o dia da semana: a escolha do treino é livre (paciente pode escolher Treino A hoje, Treino D amanhã)
+      if (!state.selectedRoutineKey && Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0) {
+        const firstRoutine = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey && d.routineKey !== 'OFF') || WEEKLY_SCHEDULE_DATA[0];
+        if (firstRoutine) {
+          selectedRoutineKey = firstRoutine.routineKey || 'A';
+          selectedScheduleDay = firstRoutine.dayNum || 1;
         }
       }
     }
@@ -2487,6 +2543,9 @@
       lastActiveDate: _todayIso,
       streakDays: 1,
       tier: 'Focado 🌱',
+      selectedRoutineKey: 'A',
+      selectedScheduleDay: 1,
+      completedRoutineKey: null,
       waterCurrent: 0,
       waterTarget: 4000,
       workoutDone: false,
@@ -2735,6 +2794,16 @@
               done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : false
             }));
           }
+
+          // Restaura a rotina selecionada livremente pelo paciente (se houver salva)
+          if (parsed.selectedRoutineKey && WORKOUT_DATABASE[parsed.selectedRoutineKey]) {
+            selectedRoutineKey = parsed.selectedRoutineKey;
+            patientState.selectedRoutineKey = parsed.selectedRoutineKey;
+          }
+          if (parsed.selectedScheduleDay) {
+            selectedScheduleDay = parsed.selectedScheduleDay;
+            patientState.selectedScheduleDay = parsed.selectedScheduleDay;
+          }
         } else {
           // Sem estado salvo anterior: inicializa dia zerado
           resetDailyState(patientState, todayIso);
@@ -2746,14 +2815,17 @@
 
       // ── C. Validação final e garantia de identificação correta do paciente ──
       if (dataPayload) {
-        if (dataPayload.patientName && (dataPayload.patientName !== 'Paulo Vitor' || !dataPayload.patientId || dataPayload.patientId.toLowerCase().includes('paulo'))) {
+        if (dataPayload.patientName) {
           patientState.name = dataPayload.patientName;
-        } else if (dataPayload.patientId && dataPayload.patientId !== 'default' && !dataPayload.patientId.toLowerCase().includes('paulo')) {
+        } else if (dataPayload.patientId && dataPayload.patientId !== 'default') {
           patientState.name = dataPayload.patientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
-      } else if (_urlPatientId && _urlPatientId !== 'default' && !_urlPatientId.toLowerCase().includes('paulo')) {
+      } else if (_urlPatientId && _urlPatientId !== 'default' && _urlPatientId !== 'paulo-vitor' && _urlPatientId !== 'paciente-ativo') {
         patientState.name = _urlPatientId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       }
+
+      // Consulta de fallback ao IndexedDB local (Dexie) se necessário
+      checkIndexedDbPatient(_urlPatientId);
 
       // ── D. Normalização de macros completos e consistência dos itens de refeição ──
       if (Array.isArray(patientState.meals)) {
@@ -2787,14 +2859,11 @@
       if (!Array.isArray(patientState.timeline)) patientState.timeline = [];
       if (!patientState.history) patientState.history = {};
 
-      // Sincroniza dia selecionado na agenda com o dia de hoje se ainda no padrão inicial
-      const dayOfWeek = new Date().getDay();
-      const todayScheduleNum = dayOfWeek === 0 ? 7 : dayOfWeek;
-      if (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.some(d => d.dayNum === todayScheduleNum) && selectedScheduleDay === 1 && todayScheduleNum !== 1) {
-        selectedScheduleDay = todayScheduleNum;
-        const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === todayScheduleNum);
+      // Sincroniza dia da agenda correspondente à rotina selecionada livremente pelo paciente
+      if (selectedRoutineKey) {
+        const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey);
         if (curDay) {
-          selectedRoutineKey = curDay.routineKey || (curDay.type === 'Off' ? 'OFF' : 'A');
+          selectedScheduleDay = curDay.dayNum;
         }
       }
 
@@ -2943,6 +3012,8 @@
           });
         }
 
+        patientState.selectedRoutineKey = selectedRoutineKey;
+        patientState.selectedScheduleDay = selectedScheduleDay;
         patientState.itemsChecked = hCheckedItems;
         patientState.itemsTotal = hTotalItems;
         patientState.consumedKcal = Math.round(hConsumedKcal);
@@ -2965,6 +3036,8 @@
           waterCurrent: patientState.waterCurrent || 0,
           waterTarget: patientState.waterTarget || 4000,
           workoutDone: !!patientState.workoutDone,
+          completedRoutineKey: patientState.completedRoutineKey || (patientState.workoutDone ? selectedRoutineKey : null),
+          selectedRoutineKey: selectedRoutineKey,
           cardioDone: !!patientState.cardioDone,
           sleepHours: patientState.sleepHours || 0,
           sleepQuality: patientState.sleepQuality,
@@ -3045,18 +3118,21 @@
     }
 
     function renderAll() {
-      // Nome, Data Dinâmica e Streak
-      document.getElementById('patientNameDisplay').textContent = patientState.name;
+      // Nome, Data Dinâmica e Streak com Identificação Visual Completa
+      updatePatientVisuals();
       updateDateDisplay();
       updateStreakAndTier();
 
-      // Sincroniza rotina ativa com o dia selecionado na Agenda
-      const curDayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
-      if (curDayData) {
-        selectedRoutineKey = curDayData.routineKey || (curDayData.type === 'Off' ? 'OFF' : 'A');
+      // Sincroniza dia da agenda correspondente à rotina selecionada livremente pelo paciente
+      if (selectedRoutineKey) {
+        const curDayData = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey);
+        if (curDayData) {
+          selectedScheduleDay = curDayData.dayNum;
+        }
       }
 
-      // Agenda Semanal e Sinergia
+      // Seletor Rápido de Pílulas, Carrossel de Rotinas e Sinergia
+      renderQuickRoutinePills();
       renderWeeklyCarousel();
       updateSynergyCard();
 
@@ -3662,67 +3738,157 @@
       }
     }
 
-    // 7. AGENDA SEMANAL INTERATIVA
+    // 7. ROTINAS DE TREINO & AGENDA DINÂMICA (ESCOLHA LIVRE)
+    function renderQuickRoutinePills() {
+      const container = document.getElementById('quickRoutineSelectorPills');
+      if (!container) return;
+
+      const availableKeys = Object.keys(WORKOUT_DATABASE);
+      if (availableKeys.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = availableKeys.map(k => {
+        const r = WORKOUT_DATABASE[k] || {};
+        const isSelected = (k === selectedRoutineKey);
+        const badge = r.badge || k;
+        const isCompleted = (patientState.completedRoutineKey === k) || (isSelected && patientState.workoutDone);
+
+        let activeCls = 'bg-[#121518] hover:bg-[#171B1F] text-zinc-400 hover:text-white border-[#272C31]';
+        if (isSelected) {
+          activeCls = 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.5)] font-black scale-105';
+        } else if (isCompleted) {
+          activeCls = 'bg-emerald-950/70 text-emerald-300 border-emerald-700/60 font-bold';
+        }
+
+        const label = r.isOff ? '🛌 Descanso' : (r.isCardio ? '🏃 Cardio Z2' : `Treino ${badge}`);
+
+        return `
+          <button type="button" onclick="selectRoutine('${k}')"
+            class="px-3 py-1.5 rounded-xl text-xs font-mono border whitespace-nowrap flex items-center gap-1.5 transition-all active:scale-95 ${activeCls}">
+            <span>${label}</span>
+            ${isCompleted ? '<span class="text-[9px]">✅</span>' : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
     function renderWeeklyCarousel() {
       const container = document.getElementById('weeklyScheduleCarousel');
       if (!container) return;
 
-      container.innerHTML = WEEKLY_SCHEDULE_DATA.map(d => {
-        const isSelected = d.dayNum === selectedScheduleDay;
-        const colorBorder = isSelected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]' : 'border-zinc-800 bg-black/60 hover:border-zinc-700';
-        const badgeColor = d.type === 'Treino' ? 'bg-blue-950 text-blue-300 border-blue-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-400 border-zinc-800');
+      const sourceList = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0)
+        ? WEEKLY_SCHEDULE_DATA
+        : Object.keys(WORKOUT_DATABASE).map((k, idx) => ({
+            dayNum: idx + 1,
+            dayName: `TREINO ${WORKOUT_DATABASE[k].badge || k}`,
+            type: WORKOUT_DATABASE[k].isOff ? 'Off' : (WORKOUT_DATABASE[k].isCardio ? 'Cardio' : 'Treino'),
+            routineKey: k,
+            title: WORKOUT_DATABASE[k].name || `Treino ${k}`,
+            sub: WORKOUT_DATABASE[k].subtitle || '',
+            synergy: {}
+          }));
+
+      container.innerHTML = sourceList.map(d => {
+        const isSelected = (d.routineKey === selectedRoutineKey) || (!d.routineKey && d.dayNum === selectedScheduleDay);
+        const isCompleted = (patientState.completedRoutineKey === d.routineKey) || (isSelected && patientState.workoutDone);
+
+        const colorBorder = isSelected
+          ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]'
+          : (isCompleted ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600' : 'border-zinc-800 bg-black/60 hover:border-zinc-700');
+
+        const badgeColor = isCompleted
+          ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+          : (isSelected
+              ? 'bg-blue-900 text-blue-200 border-blue-600'
+              : (d.type === 'Treino' ? 'bg-blue-950 text-blue-300 border-blue-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-400 border-zinc-800')));
+
+        const badgeText = isCompleted
+          ? '✅ Feito'
+          : (isSelected ? '🎯 Hoje' : d.type);
+
+        const routineBadge = d.routineKey ? `TREINO ${d.routineKey}` : d.dayName;
 
         return `
-          <div onclick="selectScheduleDay(${d.dayNum})"
-            class="min-w-[135px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
+          <div onclick="selectRoutine('${d.routineKey || 'A'}', ${d.dayNum})"
+            class="min-w-[145px] max-w-[175px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : 'bg-zinc-600'}"></span>
-                ${d.dayName}
+                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
+                ${routineBadge}
               </span>
               <span class="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border ${badgeColor}">
-                ${d.type}
+                ${badgeText}
               </span>
             </div>
             <div>
               <h4 class="text-xs font-black text-white line-clamp-1">${d.title}</h4>
-              <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub}</p>
+              <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub || d.dayName}</p>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    function selectScheduleDay(dayNum) {
-      selectedScheduleDay = dayNum;
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
-      if (dayData) {
-        selectedRoutineKey = dayData.routineKey || (dayData.type === 'Off' ? 'OFF' : 'A');
+    function selectRoutine(key, dayNum) {
+      if (!key) return;
+      selectedRoutineKey = key;
+      patientState.selectedRoutineKey = key;
+
+      if (dayNum) {
+        selectedScheduleDay = dayNum;
+        patientState.selectedScheduleDay = dayNum;
+      } else {
+        const match = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === key);
+        if (match) {
+          selectedScheduleDay = match.dayNum;
+          patientState.selectedScheduleDay = match.dayNum;
+        }
       }
+
+      saveState();
+      renderQuickRoutinePills();
       renderWeeklyCarousel();
       updateSynergyCard();
       renderWorkoutExercises();
+      updateWorkoutVisuals();
 
       // Feedback visual suave no quadro de treino
       const sec = document.getElementById('workoutSectionContainer');
       if (sec) {
         sec.classList.add('ring-2', 'ring-blue-500/80');
-        setTimeout(() => sec.classList.remove('ring-2', 'ring-blue-500/80'), 500);
+        setTimeout(() => sec.classList.remove('ring-2', 'ring-blue-500/80'), 400);
       }
 
       if (window.lucide) window.lucide.createIcons();
     }
 
+    function selectScheduleDay(dayNum) {
+      selectedScheduleDay = dayNum;
+      patientState.selectedScheduleDay = dayNum;
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
+      const rKey = dayData ? (dayData.routineKey || (dayData.type === 'Off' ? 'OFF' : 'A')) : 'A';
+      selectRoutine(rKey, dayNum);
+    }
+
     function updateSynergyCard() {
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) || WEEKLY_SCHEDULE_DATA[0] || {
-        dayName: 'DIA 1',
-        title: 'TREINO',
-        synergy: { carbo: '-', prot: '-', water: '-', focus: '-' }
-      };
+      // Prioriza a rotina selecionada para que a nutrição acompanhe exatamente o treino que o paciente escolheu executar
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey) ||
+                      WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) ||
+                      WEEKLY_SCHEDULE_DATA[0] || {
+                        dayName: 'TREINO',
+                        title: `Treino ${selectedRoutineKey}`,
+                        synergy: { carbo: '-', prot: '-', water: '-', focus: '-' }
+                      };
 
       const syn = dayData.synergy || {};
       const lbl = document.getElementById('synergyDayLabel');
-      if (lbl) lbl.textContent = `${dayData.dayName || 'DIA'} · ${(dayData.title || '').toUpperCase()}`;
+      if (lbl) {
+        const routineObj = WORKOUT_DATABASE[selectedRoutineKey];
+        const rName = routineObj ? (routineObj.name || `Treino ${routineObj.badge || selectedRoutineKey}`) : (dayData.title || `Treino ${selectedRoutineKey}`);
+        lbl.textContent = (rName || '').toUpperCase();
+      }
       const cEl = document.getElementById('synergyCarbo');
       if (cEl) cEl.textContent = syn.carbo || '-';
       const pEl = document.getElementById('synergyProt');
@@ -3731,14 +3897,6 @@
       if (wEl) wEl.textContent = syn.water || '-';
       const fEl = document.getElementById('synergyFocus');
       if (fEl) fEl.textContent = syn.focus || '-';
-    }
-
-    // 8. SELETOR DE ROTINAS (CONTROLADO EXCLUSIVAMENTE PELA AGENDA SEMANAL)
-    function renderQuickRoutinePills() { }
-    function selectRoutine(key) {
-      selectedRoutineKey = key;
-      renderWorkoutExercises();
-      if (window.lucide) window.lucide.createIcons();
     }
 
     // 9. FICHA DE EXERCÍCIOS DETALHADA (ESTILO FIGURA 3)
@@ -4795,6 +4953,7 @@
       patientState.workoutDone = !patientState.workoutDone;
       const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || { badge: selectedRoutineKey || 'A', name: `Treino ${selectedRoutineKey || 'A'}` };
       if (patientState.workoutDone) {
+        patientState.completedRoutineKey = selectedRoutineKey;
         if (routine && routine.exercises) {
           patientState.exerciseChecks = patientState.exerciseChecks || {};
           routine.exercises.forEach(ex => {
@@ -4812,6 +4971,7 @@
           color: 'emerald'
         });
       } else {
+        delete patientState.completedRoutineKey;
         if (routine && routine.exercises) {
           routine.exercises.forEach(ex => {
             if (patientState.exerciseChecks) delete patientState.exerciseChecks[ex.id];
@@ -4828,6 +4988,11 @@
       saveState();
       renderAll();
     }
+
+    function toggleCompleteFullWorkout() {
+      toggleWorkoutCheck();
+    }
+    window.toggleCompleteFullWorkout = toggleCompleteFullWorkout;
 
     function updateSleepData() {
       const val = parseFloat(document.getElementById('sleepHoursInput').value);
@@ -5278,7 +5443,15 @@
         const patientSyncChannel = new BroadcastChannel('nutriax_bidirectional_sync');
         patientSyncChannel.onmessage = (event) => {
           if (!event.data) return;
-          if (event.data.type === 'SYNC_UPDATED' || event.data.type === 'FASTING_PROTOCOL_UPDATED') {
+          if (event.data.type === 'SYNC_UPDATED') {
+            if (event.data.payload) {
+              applyPrescriptionPayload(event.data.payload);
+              if (event.data.payload.patientName) {
+                patientState.name = event.data.payload.patientName;
+              }
+              renderAll();
+            }
+          } else if (event.data.type === 'FASTING_PROTOCOL_UPDATED') {
             if (event.data.payload && event.data.payload.fastingProtocol) {
               patientState.fastingProtocol = event.data.payload.fastingProtocol;
             } else if (event.data.protocol) {
@@ -5301,7 +5474,12 @@
     }
 
     window.addEventListener('storage', (e) => {
-      if (e.key && (e.key.includes('nutriax_fasting_protocol') || e.key.includes('nutriax_sync_active_patient'))) {
+      if (e.key && (e.key === 'nutriax_sync_active_patient' || e.key === 'NUTRIAX_ACTIVE_PATIENT_ID' || e.key.startsWith('nutriax_patient_payload_'))) {
+        try {
+          loadState();
+          renderAll();
+        } catch (_) {}
+      } else if (e.key && e.key.includes('nutriax_fasting_protocol')) {
         const pId = _urlPatientId || 'default';
         const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${pId}`) ||
                       localStorage.getItem(`nutriax_fasting_protocol_${String(pId).toLowerCase().replace(/\s+/g, '-')}`) ||

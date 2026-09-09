@@ -4012,6 +4012,7 @@
               <span>Compartilhar App com Paciente</span>
             </button>
             <a href="paciente.html" target="_blank"
+              onclick="this.href='paciente.html?id=' + encodeURIComponent((typeof activePatientId !== 'undefined' && activePatientId) || localStorage.getItem('NUTRIAX_ACTIVE_PATIENT_ID') || 'default');"
               class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#E50914] hover:bg-[#b80710] text-white flex items-center gap-1.5 transition-all shadow-md shadow-red-950/40">
               <i data-lucide="external-link" class="w-3.5 h-3.5 text-white"></i>
               <span>Abrir App do Paciente</span>
@@ -6632,7 +6633,7 @@
 
       <!-- Footer do Modal -->
       <div class="p-4 bg-black/80 border-t border-zinc-800 flex justify-between items-center">
-        <button onclick="window.open('paciente.html', '_blank')"
+        <button onclick="window.open('paciente.html?id=' + encodeURIComponent((typeof activePatientId !== 'undefined' && activePatientId) || localStorage.getItem('NUTRIAX_ACTIVE_PATIENT_ID') || 'default'), '_blank')"
           class="text-orange-400 hover:text-orange-300 font-bold text-xs flex items-center gap-1.5 underline">
           <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Testar App no Navegador
         </button>
