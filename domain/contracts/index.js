@@ -10,6 +10,7 @@ const AssessmentDTO = require('./AssessmentDTO');
 const NutritionDTO = require('./NutritionDTO');
 const TrainingPrescriptionDTO = require('./TrainingPrescriptionDTO');
 const CardioPrescriptionDTO = require('./CardioPrescriptionDTO');
+const PerformanceContextDTO = require('./PerformanceContextDTO');
 
 const contracts = {
   // Patient
@@ -31,7 +32,11 @@ const contracts = {
 
   // Cardio Prescription
   validateCardioPrescriptionDTO: CardioPrescriptionDTO.validateCardioPrescriptionDTO,
-  createCardioPrescriptionDTO: CardioPrescriptionDTO.createCardioPrescriptionDTO
+  createCardioPrescriptionDTO: CardioPrescriptionDTO.createCardioPrescriptionDTO,
+
+  // Performance Context
+  validatePerformanceContextDTO: PerformanceContextDTO.validatePerformanceContextDTO,
+  createPerformanceContextDTO: PerformanceContextDTO.createPerformanceContextDTO
 };
 
 if (typeof module !== 'undefined' && module.exports) {

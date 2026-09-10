@@ -107,6 +107,27 @@ Este diretório contém a primeira camada formal de **Contratos Canônicos de Do
 
 ---
 
+### 1.6 `PerformanceContextDTO` (`PerformanceContextDTO.js`)
+
+Snapshot imutável e canônico consolidado do Pilar de Performance (13 domínios fundamentais):
+
+| Domínio | Campos Principais | Origem Primária | Transformação / Matemática | Natureza |
+| :--- | :--- | :--- | :--- | :---: |
+| `patient` | `patientId`, `name`, `age`, `sex`, `birthDate`, `weightKg`, `heightCm`, `bmi`, `patientType`, `trainingLevel`, `objective` | `db.patients` | `resolvePatientAgeAndProvenance`, `calculateIMC` | Canônico |
+| `anamnesis` | `workoutType`, `workoutFrequency`, `workoutDuration`, `sleepHours`, `stressLevel`, `neatRoutine`, `hydrationLiters`, etc. | `db.patients` | Normalização integral sem perdas (preserva 18+ campos) | Canônico |
+| `assessment` | `assessmentId`, `date`, `weightKg`, `heightCm`, `bmi`, `bodyFatPercent`, `leanMassKg`, `fatMassKg`, `skinfolds` | `db.assessments` | Snapshot da avaliação mais recente ou `null` | Canônico |
+| `anthropometry` | `weightKg`, `heightCm`, `bmi`, `circumferences`, `skinfolds`, `indices` (`rcq`, `rcEst`, `ffmi`, `conicityIndex`) | `db.assessments` | `calculateAnthropometricIndices`, `classifyRCEst` | Canônico |
+| `bodyComposition`| `bodyFatPercent`, `targetBodyFatPercent`, `leanMassKg`, `fatMassKg`, `boneMassKg`, `protocol` | `db.assessments` | Equações de Siri / Jackson-Pollock ou `null` se ausente | Canônico |
+| `energy` | `tmbKcal`, `getKcal`, `activityFactor`, `caloricTargetKcal`, `caloricTargetSource`, `energyBalanceKcal`, `goalProjection` | `domain/math/nutritionMath.js` | Motor canônico (Katch-McArdle, Mifflin, GET, Alvo Calórico, Balanço) | Canônico |
+| `nutrition` | `current` (`prescribedKcal`, `proteinGPerKg`, `macros`, `meals`, `fasting`), `history` | `db.prescriptions`, `db.fastingProtocols` | Separação explícita entre estado ativo e histórico | Canônico |
+| `training` | `current` (`mainModality`, `workoutType`, `weeklyFrequency`, `activeSplit`, `splitSource`, `routines`, `weeklySchedule`), `history` | `db.performanceMetabolica` | Separação explícita; preserva split sem alterar regras de inferência | Canônico |
+| `cardio` | `current` (`prescribedCardioId`, `weeklyFrequency`, `sessions`, `heartRate`: Tanaka/Karvonen, `restrictions`), `history` | `perfCardioPrescription`, `PERF_CARDIO_DB` | Zonas Tanaka/Karvonen puras | Canônico |
+| `constraints` | `injuries`, `painAreas`, `prohibitedExercises`, `restrictedMovements`, `medicalRestrictions`, `availableEquipment`, etc. | `db.patients` | Arrays estruturados e sem duplicidade; `null`/`[]` explícitos | Canônico |
+| `clinicalFlags` | `isMinor`, `clinicalReviewRequired`, `reasons` | `domain/rules` | Proteção pediátrica e detecção de riscos cardiometabólicos/lesões | Canônico |
+| `provenance` | Metadados de rastreabilidade de cada seção (`source`, `field`, `transform`) | Sistema de Auditoria | Garantia de auditoria forense do snapshot | Canônico |
+
+---
+
 ## 2. Uso dos Adaptadores
 
 ```javascript
@@ -115,16 +136,23 @@ const {
   legacyAssessmentToAssessmentDTO,
   legacyNutritionToNutritionDTO,
   legacyTrainingToTrainingPrescriptionDTO,
-  legacyCardioToCardioPrescriptionDTO
+  legacyCardioToCardioPrescriptionDTO,
+  buildCanonicalPerformanceContext,
+  fetchAndBuildCanonicalPerformanceContext
 } = require('./domain/adapters');
 
-// Conversão pura e sem mutação de dados do paciente do Dexie
-const patientDTO = legacyPatientToPatientDTO(dbPatient);
+// 1. Construção pura a partir de dados em memória (fixtures ou objetos Dexie já lidos)
+const contextDTO = buildCanonicalPerformanceContext({
+  rawPatient: dbPatient,
+  rawAssessment: latestAssessment,
+  rawPrescription: activePrescription,
+  rawPerformance: performanceRecord
+});
 
-// Validação determinística
-const { validatePatientDTO } = require('./domain/contracts');
-const validation = validatePatientDTO(patientDTO);
+// 2. Validação determinística do snapshot de performance
+const { validatePerformanceContextDTO } = require('./domain/contracts');
+const validation = validatePerformanceContextDTO(contextDTO);
 if (!validation.isValid) {
-  console.error('Erros no DTO do paciente:', validation.errors);
+  console.error('Erros no DTO de contexto:', validation.errors);
 }
 ```

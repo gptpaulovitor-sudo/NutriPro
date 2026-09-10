@@ -291,6 +291,13 @@ function legacyCardioToCardioPrescriptionDTO(legacyCardio = {}, options = {}) {
   });
 }
 
+const {
+  buildCanonicalPerformanceContext,
+  fetchAndBuildCanonicalPerformanceContext,
+  calculatePureHeartRateZones,
+  resolvePatientAgeAndProvenance
+} = require('./performanceContextAdapter');
+
 // Suporte a CommonJS e navegador
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -298,7 +305,11 @@ if (typeof module !== 'undefined' && module.exports) {
     legacyAssessmentToAssessmentDTO,
     legacyNutritionToNutritionDTO,
     legacyTrainingToTrainingPrescriptionDTO,
-    legacyCardioToCardioPrescriptionDTO
+    legacyCardioToCardioPrescriptionDTO,
+    buildCanonicalPerformanceContext,
+    fetchAndBuildCanonicalPerformanceContext,
+    calculatePureHeartRateZones,
+    resolvePatientAgeAndProvenance
   };
 }
 
@@ -309,6 +320,11 @@ if (typeof window !== 'undefined') {
     legacyAssessmentToAssessmentDTO,
     legacyNutritionToNutritionDTO,
     legacyTrainingToTrainingPrescriptionDTO,
-    legacyCardioToCardioPrescriptionDTO
+    legacyCardioToCardioPrescriptionDTO,
+    buildCanonicalPerformanceContext,
+    fetchAndBuildCanonicalPerformanceContext,
+    calculatePureHeartRateZones,
+    resolvePatientAgeAndProvenance
   };
 }
+
