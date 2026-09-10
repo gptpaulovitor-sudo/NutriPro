@@ -11015,8 +11015,385 @@ function _perfBuildRawWeeklySchedule(splitKey) {
   const waterPlusStr = `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`;
   const preCarbG = ctx.isCutting ? '50-60g' : ctx.isBulking ? '80-100g' : '60-70g';
 
-  // Se o plano ativo possuir rotinas customizadas ou for divisão de 6 rotinas, gera dinamicamente
-  if (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length >= 6) {
+  // Normalização determinística do split (Seção 13: Bro Split e BroSplit são equivalentes à divisão ABCDE)
+  const normalizedKey = (splitKey === 'BroSplit' || splitKey === 'Bro Split') ? 'ABCDE' : splitKey;
+
+  // 1. UPPER / LOWER (ABCD - 4 Dias · Cutting / Alta Frequência)
+  if (normalizedKey === 'UpperLower') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Upper Força',
+        focus: 'Tensão Mecânica Peitoral & Dorsal', type: 'Treino',
+        carboTip: `${preCarbG} carbo (~1h30 antes · Aveia / Banana)`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Recarga glicêmica pré-treino & pico de tensão miofibrilar'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Lower Força',
+        focus: 'Cadeia Posterior, Agachamento & Stiff', type: 'Treino',
+        carboTip: `${preCarbG} carbo de baixo/médio IG (Batata doce / Arroz)`,
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Reposição de glicogênio para membros inferiores'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Zona 2 Mitocondrial Puro',
+        focus: 'Oxidação Lipídica & Biogênese', type: 'Cardio', cardioId: 'cardio_01',
+        carboTip: '30g carbo leve ou treino em estado estável',
+        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Anti-catabólico)`,
+        waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL + Eletrólitos`,
+        strategyTip: 'Oxidação pura de ácidos graxos sem interferência na via mTOR'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Upper Hipertrofia',
+        focus: 'Volume Metabólico Deltoides & Braços', type: 'Treino',
+        carboTip: `${preCarbG} carbo peri-treino (Frutas + Creatina 5g)`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Pump sarcoplasmático e síntese proteica acelerada'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Lower Hipertrofia',
+        focus: 'Quadríceps, Hack Squat & Glúteos', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré e pós-treino (Arroz / Mandioca)`,
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Recarga glicêmica estruturada para regeneração tecidual'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Circuito Engine Híbrido',
+        focus: 'Variação Biomecânica & Gasto Calórico', type: 'Cardio', cardioId: 'cardio_02',
+        carboTip: 'Carboidratos moderados distribuídos ao longo do dia',
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: `Déficit calórico planejado mantido (${ctx.caloricTarget} kcal)`
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Regeneração Muscular & Supercompensação', type: 'Off',
+        carboTip: 'Carboidratos complexos com fibras e vegetais abundantes',
+        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Recuperação estrutural contínua)`,
+        waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL + Sódio e Magnésio`,
+        strategyTip: 'Supercompensação celular, sono reparador 8h & alívio do SNC'
+      }
+    ];
+  }
+
+  // 2. PHAT (6 Rotinas / 7 Dias · Força Mecânica + Hipertrofia Sarcoplasmática / Bulking)
+  else if (normalizedKey === 'PHAT') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push A (Força)',
+        focus: 'Força Mecânica e Potência (Supino, Militar, Dips)', type: 'Treino',
+        carboTip: '80-100g carbo denso pré-treino (Aveia / Tapioca / Mel)',
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Superávit anabólico peri-treino para força máxima'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força) + Cardio Z2',
+        focus: 'Tração e Força Escapular · Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
+        cardioId: 'cardio_01',
+        hasCardioPost: true,
+        carboTip: '80-100g carbo pré-treino + Creatina 5g',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Legs A (Força)',
+        focus: 'Dominância de Joelho e Potência (Agachamento High Bar)', type: 'Treino',
+        carboTip: '80-100g carbo denso pré-treino (Arroz / Mandioca)',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Recarga glicêmica peri-treino para suporte a membros inferiores'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'D', title: 'Treino D · Push B (Hyp)',
+        focus: 'Hipertrofia e Densidade (Inclinado, Crossover, Lateral)', type: 'Treino',
+        carboTip: '70-80g carbo pré-treino (Arroz / Batata)',
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Volume volumétrico com alto influxo de glicogênio'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'E', title: 'Treino E · Pull B + Cardio Z2',
+        focus: 'Espessura Dorsal + Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
+        cardioId: 'cardio_01',
+        hasCardioPost: true,
+        carboTip: '70-80g carbo peri-treino + hidratação reforçada',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Treino de força seguido de cardio Zona 2 no 5º dia'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: 'F', title: 'Treino F · Legs B (Hyp)',
+        focus: 'Dominância de Quadril e Estabilidade (Stiff, Búlgaro, Hip Thrust)', type: 'Treino',
+        carboTip: '80g carbo denso pré e pós-treino',
+        proteinTip: protStr, waterTip: waterPlusStr,
+        strategyTip: 'Recarga glicêmica pós-treino para cadeia posterior'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Supercompensação e Sono Reparador (8-9h)', type: 'Off',
+        carboTip: 'Carboidratos equilibrados de lenta absorção',
+        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Síntese proteica contínua)`,
+        waterTip: waterStr,
+        strategyTip: 'Supercompensação miofibrilar total com 8-9h de sono'
+      }
+    ];
+  }
+
+  // 3. DUP (Periodização Ondulatória Diária · 3 a 5 Dias)
+  else if (normalizedKey === 'DUP') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Dia Neural (Força)',
+        focus: 'Carga Máxima (3-5 reps / RPE 9)', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré-treino + Creatina 5g`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Restauração de ATP-CP e recrutamento de unidades motoras de alto limiar'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Cardio Zona 2 Puro',
+        focus: 'Base Aeróbia & Depuração', type: 'Cardio', cardioId: 'cardio_01',
+        carboTip: '30-40g carbo leve para recuperação',
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Biogênese mitocondrial sem fadiga neuromuscular'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: 'B', title: 'Treino B · Dia Hipertrófico',
+        focus: 'Tensão Contínua (8-10 reps / RPE 8)', type: 'Treino',
+        carboTip: `${preCarbG} carbo com aminoácidos essenciais`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Estímulo de tensão mecânica na posição de máximo alongamento'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Aeróbico Regenerativo',
+        focus: 'Fluxo Sanguíneo & SNA', type: 'Cardio', cardioId: 'cardio_05',
+        carboTip: 'Carboidratos moderados e hidratação com eletrólitos',
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Depuração de metabólitos e restauração parassimpática'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: 'Treino C · Dia Metabólico',
+        focus: 'Pump & Densidade (12-15 reps / RPE 9)', type: 'Treino',
+        carboTip: `${preCarbG} carbo de rápida digestão`,
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Estresse metabólico e hipertrofia sarcoplasmática acelerada'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'HIIT Norueguês 4x4',
+        focus: 'VO₂ Máx & Potência Cardiovascular', type: 'Cardio', cardioId: 'cardio_03',
+        carboTip: '40g carbo de fácil absorção 1h antes',
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Complacência ventricular e deslocamento do limiar anaeróbio L2'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Regeneração Sistêmica Completa', type: 'Off',
+        carboTip: 'Alimentação equilibrada anti-inflamatória',
+        proteinTip: protStr, waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Sono profundo e consolidação das adaptações neuromusculares'
+      }
+    ];
+  }
+
+  // 4. FULL BODY (3 Dias · Atletas & Alta Frequência)
+  else if (normalizedKey === 'FullBody') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Full Body Força',
+        focus: 'Agachamento, Supino & Barra Fixa', type: 'Treino',
+        carboTip: `${preCarbG} carbo pré-treino`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Recrutamento neural global de cadeia fechada'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Zona 2 Base Aeróbica',
+        focus: 'Biogênese Mitocondrial', type: 'Cardio', cardioId: 'cardio_01',
+        carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Oxidação de gordura e restauração de glicogênio muscular'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: 'B', title: 'Treino B · Full Body Hinge',
+        focus: 'Stiff, Militar & Remada Curvada', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Potência de cadeia posterior e estabilidade de ombros'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Circuito Engine Híbrido',
+        focus: 'Capacidade Cardiovascular 3D', type: 'Cardio', cardioId: 'cardio_02',
+        carboTip: 'Carboidratos moderados distribuídos', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Variação biomecânica sem estresse axial'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: 'Treino C · Full Body Hyp',
+        focus: 'Hack Squat, Puxadas & Isoladores', type: 'Treino',
+        carboTip: `${preCarbG} carbo peri-treino`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Volume sarcoplasmático complementar'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'SIT Anti-Catabólico',
+        focus: 'Sprints Curtos & AMPK', type: 'Cardio', cardioId: 'cardio_04',
+        carboTip: '30g carbo leve pré-sprint', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'EPOC prolongado em tempo total curto (<15 min)'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Repouso & Reparação', type: 'Off',
+        carboTip: 'Alimentação equilibrada com fibras', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Supercompensação total e descanso do SNC'
+      }
+    ];
+  }
+
+  // 5. ABCD (4 Dias Tradicional)
+  else if (normalizedKey === 'ABCD') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Peito & Tríceps',
+        focus: 'Cadeia Anterior Superior & Reto Abdominal', type: 'Treino',
+        carboTip: `${preCarbG} carbo pré-treino`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Foco no peitoral e tríceps com pareamento alongado/encurtado'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Costas & Bíceps',
+        focus: 'Cadeia Posterior Superior & Trapézio', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Puxadas pesadas e densidade dorsal'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 Puro',
+        focus: 'Oxidação Lipídica & Recuperação', type: 'Cardio', cardioId: 'cardio_01',
+        carboTip: 'Carbo moderado 30g', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Recuperação ativa entre treinos de tronco e pernas'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Pernas Completo',
+        focus: 'Quadríceps, Isquiotibiais & Glúteos', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Volume completo de membros inferiores'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Deltoides & Core',
+        focus: 'Ombros 3D, Manguito & Oblíquos', type: 'Treino',
+        carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Isolamento de deltoide medial, posterior e core rotacional'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Circuito Engine Híbrido',
+        focus: 'Capacidade Cardiovascular', type: 'Cardio', cardioId: 'cardio_02',
+        carboTip: 'Carboidratos distribuídos', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Gasto calórico complementar sem impacto axial'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Regeneração Muscular', type: 'Off',
+        carboTip: 'Fibras, vegetais e hidratação', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Recuperação do sistema nervoso autônomo'
+      }
+    ];
+  }
+
+  // 6. ABCDE / Bro Split (5 Dias Isolamento Miofibrilar)
+  else if (normalizedKey === 'ABCDE') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Peitoral',
+        focus: 'Peitoral Superior, Médio e Inferior', type: 'Treino',
+        carboTip: `${preCarbG} carbo pré-treino`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Estímulo de peitoral em todos os ângulos'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Dorsal',
+        focus: 'Latíssimo, Romboides & Lombar', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Tração vertical e horizontal pesadas'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Pernas',
+        focus: 'Agachamento, Hack & Posteriores', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Volume concentrado em membros inferiores'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'D', title: 'Treino D · Ombros & Trapézio',
+        focus: 'Deltoides 3D & Encolhimento', type: 'Treino',
+        carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Isolamento de deltoides nos 3 planos'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'E', title: 'Treino E · Braços (Bíceps/Tríceps)',
+        focus: 'Super-séries de Braços & Core', type: 'Treino',
+        carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Pump máximo e densidade miofibrilar nos braços'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Cardio Zona 2 Mitocondrial',
+        focus: 'Base Aeróbia & Depuração', type: 'Cardio', cardioId: 'cardio_01',
+        carboTip: '30-40g carbo leve', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Sensibilidade à insulina e queima lipídica pura'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Regeneração Muscular', type: 'Off',
+        carboTip: 'Alimentação equilibrada de manutenção', proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Supercompensação e alívio do SNC'
+      }
+    ];
+  }
+
+  // 7. PPL (Push / Pull / Legs — Padrão 3 a 6 Dias)
+  else if (normalizedKey === 'PPL') {
+    return [
+      {
+        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push',
+        focus: 'Peitoral, Deltoides & Tríceps', type: 'Treino',
+        carboTip: `${preCarbG} carbo pré-treino (~1h30 antes)`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Recarga glicêmica peri-treino para alta intensidade'
+      },
+      {
+        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull',
+        focus: 'Costas, Bíceps, Trapézio & Core', type: 'Treino',
+        carboTip: `${preCarbG} carbo pré-treino (Frutas / Aveia)`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Aporte proteico fracionado ao longo do dia'
+      },
+      {
+        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 Mitocondrial',
+        focus: 'Biogênese & Sensibilidade Insulínica', type: 'Cardio', cardioId: 'cardio_01',
+        carboTip: '30-40g carbo de rápida digestão',
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Oxidação de ácidos graxos sem fadiga neuromuscular'
+      },
+      {
+        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs',
+        focus: 'Quadríceps, Isquiotibiais & Panturrilhas', type: 'Treino',
+        carboTip: `${preCarbG} carbo denso pré-agachamento`,
+        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Recarga glicêmica peri-treino para suportar o volume de pernas'
+      },
+      {
+        dayKey: 'd5', dayName: 'Dia 5', routineId: 'A', title: 'Treino A · Push',
+        focus: 'Densidade Peitoral & Ombros', type: 'Treino',
+        carboTip: `${preCarbG} carbo peri-treino`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Síntese proteica mantida com 2.0 g/kg'
+      },
+      {
+        dayKey: 'd6', dayName: 'Dia 6', routineId: 'B', title: 'Treino B · Pull',
+        focus: 'Dorsal, Braquial & Trapézio', type: 'Treino',
+        carboTip: `${preCarbG} carbo com refeição equilibrada`,
+        proteinTip: protStr, waterTip: waterStr,
+        strategyTip: 'Refeição de recarga glicêmica pós-treino'
+      },
+      {
+        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
+        focus: 'Regeneração Muscular & Repouso', type: 'Off',
+        carboTip: 'Carbo complexo com fibras e hortaliças',
+        proteinTip: protStr, waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
+        strategyTip: 'Recuperação neuromuscular completa e hidratação com eletrólitos'
+      }
+    ];
+  }
+
+  // 8. Rotinas customizadas de 6 dias (apenas quando não corresponde a nenhum split canônico conhecido)
+  else if (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length >= 6) {
     const r = perfWorkoutPlan;
     return [
       {
@@ -11078,326 +11455,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
     ];
   }
 
-  // 1. UPPER / LOWER (ABCD - 4 Dias · Cutting / Alta Frequência)
-  if (splitKey === 'UpperLower') {
-    return [
-      {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Upper Força',
-        focus: 'Tensão Mecânica Peitoral & Dorsal', type: 'Treino',
-        carboTip: `${preCarbG} carbo (~1h30 antes · Aveia / Banana)`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Recarga glicêmica pré-treino & pico de tensão miofibrilar'
-      },
-      {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Lower Força',
-        focus: 'Cadeia Posterior, Agachamento & Stiff', type: 'Treino',
-        carboTip: `${preCarbG} carbo de baixo/médio IG (Batata doce / Arroz)`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Reposição de glicogênio para membros inferiores'
-      },
-      {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Zona 2 Mitocondrial Puro',
-        focus: 'Oxidação Lipídica & Biogênese', type: 'Cardio', cardioId: 'cardio_01',
-        carboTip: '30g carbo leve ou treino em estado estável',
-        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Anti-catabólico)`,
-        waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL + Eletrólitos`,
-        strategyTip: 'Oxidação pura de ácidos graxos sem interferência na via mTOR'
-      },
-      {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Upper Hipertrofia',
-        focus: 'Volume Metabólico Deltoides & Braços', type: 'Treino',
-        carboTip: `${preCarbG} carbo peri-treino (Frutas + Creatina 5g)`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Pump sarcoplasmático e síntese proteica acelerada'
-      },
-      {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Lower Hipertrofia',
-        focus: 'Quadríceps, Hack Squat & Glúteos', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso pré e pós-treino (Arroz / Mandioca)`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Recarga glicêmica estruturada para regeneração tecidual'
-      },
-      {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Circuito Engine Híbrido',
-        focus: 'Variação Biomecânica & Gasto Calórico', type: 'Cardio', cardioId: 'cardio_02',
-        carboTip: 'Carboidratos moderados distribuídos ao longo do dia',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: `Déficit calórico planejado mantido (${ctx.caloricTarget} kcal)`
-      },
-      {
-        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Regeneração Muscular & Supercompensação', type: 'Off',
-        carboTip: 'Carboidratos complexos com fibras e vegetais abundantes',
-        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Recuperação estrutural contínua)`,
-        waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL + Sódio e Magnésio`,
-        strategyTip: 'Supercompensação celular, sono reparador 8h & alívio do SNC'
-      }
-    ];
-  }
-
-  // 2. PHAT (6 Rotinas / 7 Dias · Força Mecânica + Hipertrofia Sarcoplasmática / Bulking)
-  else if (splitKey === 'PHAT') {
-    return [
-      {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Push A (Força)',
-        focus: 'Força Mecânica e Potência (Supino, Militar, Dips)', type: 'Treino',
-        carboTip: '80-100g carbo denso pré-treino (Aveia / Tapioca / Mel)',
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Superávit anabólico peri-treino para força máxima'
-      },
-      {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Pull A (Força) + Cardio Z2',
-        focus: 'Tração e Força Escapular · Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
-        cardioId: 'cardio_01',
-        hasCardioPost: true,
-        carboTip: '80-100g carbo pré-treino + Creatina 5g',
-        proteinTip: protStr, waterTip: waterPlusStr,
-        strategyTip: 'Sobrecarga miofibrilar pesada e recarga de creatina-fosfato'
-      },
-      {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Legs A (Força)',
-        focus: 'Dominância de Joelho e Potência (Agachamento High Bar)', type: 'Treino',
-        carboTip: '80-100g carbo denso pré-treino (Arroz / Mandioca)',
-        proteinTip: protStr, waterTip: waterPlusStr,
-        strategyTip: 'Recarga glicêmica peri-treino para suporte a membros inferiores'
-      },
-      {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: 'D', title: 'Treino D · Push B (Hyp)',
-        focus: 'Hipertrofia e Densidade (Inclinado, Crossover, Lateral)', type: 'Treino',
-        carboTip: '70-80g carbo pré-treino (Arroz / Batata)',
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Volume volumétrico com alto influxo de glicogênio'
-      },
-      {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'E', title: 'Treino E · Pull B + Cardio Z2',
-        focus: 'Espessura Dorsal + Cardio Zona 2 (45 min pós-força)', type: 'Treino + Cardio',
-        cardioId: 'cardio_01',
-        hasCardioPost: true,
-        carboTip: '70-80g carbo peri-treino + hidratação reforçada',
-        proteinTip: protStr, waterTip: waterPlusStr,
-        strategyTip: 'Treino de força seguido de cardio Zona 2 no 5º dia'
-      },
-      {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: 'F', title: 'Treino F · Legs B (Hyp)',
-        focus: 'Dominância de Quadril e Estabilidade (Stiff, Búlgaro, Hip Thrust)', type: 'Treino',
-        carboTip: '80g carbo denso pré e pós-treino',
-        proteinTip: protStr, waterTip: waterPlusStr,
-        strategyTip: 'Recarga glicêmica pós-treino para cadeia posterior'
-      },
-      {
-        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Supercompensação e Sono Reparador (8-9h)', type: 'Off',
-        carboTip: 'Carboidratos equilibrados de lenta absorção',
-        proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Síntese proteica contínua)`,
-        waterTip: waterStr,
-        strategyTip: 'Supercompensação miofibrilar total com 8-9h de sono'
-      }
-    ];
-  }
-
-  // 3. DUP (Periodização Ondulatória Diária · 3 a 5 Dias)
-  else if (splitKey === 'DUP') {
-    return [
-      {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Dia Neural (Força)',
-        focus: 'Carga Máxima (3-5 reps / RPE 9)', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso pré-treino + Creatina 5g`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Restauração de ATP-CP e recrutamento de unidades motoras de alto limiar'
-      },
-      {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Cardio Zona 2 Puro',
-        focus: 'Base Aeróbia & Depuração', type: 'Cardio', cardioId: 'cardio_01',
-        carboTip: '30-40g carbo leve para recuperação',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Biogênese mitocondrial sem fadiga neuromuscular'
-      },
-      {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: 'B', title: 'Treino B · Dia Hipertrófico',
-        focus: 'Tensão Contínua (8-10 reps / RPE 8)', type: 'Treino',
-        carboTip: `${preCarbG} carbo com aminoácidos essenciais`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Estímulo de tensão mecânica na posição de máximo alongamento'
-      },
-      {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Aeróbico Regenerativo',
-        focus: 'Fluxo Sanguíneo & SNA', type: 'Cardio', cardioId: 'cardio_05',
-        carboTip: 'Carboidratos moderados e hidratação com eletrólitos',
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Depuração de metabólitos e restauração parassimpática'
-      },
-      {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: 'Treino C · Dia Metabólico',
-        focus: 'Pump & Densidade (12-15 reps / RPE 9)', type: 'Treino',
-        carboTip: `${preCarbG} carbo de rápida digestão`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Estresse metabólico e hipertrofia sarcoplasmática acelerada'
-      },
-      {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'HIIT Norueguês 4x4',
-        focus: 'VO₂ Máx & Potência Cardiovascular', type: 'Cardio', cardioId: 'cardio_03',
-        carboTip: '40g carbo de fácil absorção 1h antes',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Complacência ventricular e deslocamento do limiar anaeróbio L2'
-      },
-      {
-        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Regeneração Sistêmica Completa', type: 'Off',
-        carboTip: 'Alimentação equilibrada anti-inflamatória',
-        proteinTip: protStr, waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Sono profundo e consolidação das adaptações neuromusculares'
-      }
-    ];
-  }
-
-  // 4. FULL BODY (3 Dias · Atletas & Alta Frequência)
-  else if (splitKey === 'FullBody') {
-    return [
-      {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Full Body Força',
-        focus: 'Agachamento, Supino & Barra Fixa', type: 'Treino',
-        carboTip: `${preCarbG} carbo pré-treino`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Recrutamento neural global de cadeia fechada'
-      },
-      {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Zona 2 Base Aeróbica',
-        focus: 'Biogênese Mitocondrial', type: 'Cardio', cardioId: 'cardio_01',
-        carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Oxidação de gordura e restauração de glicogênio muscular'
-      },
-      {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: 'B', title: 'Treino B · Full Body Hinge',
-        focus: 'Stiff, Militar & Remada Curvada', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Potência de cadeia posterior e estabilidade de ombros'
-      },
-      {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Circuito Engine Híbrido',
-        focus: 'Capacidade Cardiovascular 3D', type: 'Cardio', cardioId: 'cardio_02',
-        carboTip: 'Carboidratos moderados distribuídos', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Variação biomecânica sem estresse axial'
-      },
-      {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: 'Treino C · Full Body Hyp',
-        focus: 'Hack Squat, Puxadas & Isoladores', type: 'Treino',
-        carboTip: `${preCarbG} carbo peri-treino`,
-        proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Volume sarcoplasmático complementar'
-      },
-      {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'SIT Anti-Catabólico',
-        focus: 'Sprints Curtos & AMPK', type: 'Cardio', cardioId: 'cardio_04',
-        carboTip: '30g carbo leve pré-sprint', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'EPOC prolongado em tempo total curto (<15 min)'
-      },
-      {
-        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Repouso & Reparação', type: 'Off',
-        carboTip: 'Alimentação equilibrada com fibras', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Supercompensação total e descanso do SNC'
-      }
-    ];
-  }
-
-  // 5. ABCD (4 Dias Tradicional)
-  else if (splitKey === 'ABCD') {
-    return [
-      {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Peito & Tríceps',
-        focus: 'Cadeia Anterior Superior & Reto Abdominal', type: 'Treino',
-        carboTip: `${preCarbG} carbo pré-treino`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Foco no peitoral e tríceps com pareamento alongado/encurtado'
-      },
-      {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Costas & Bíceps',
-        focus: 'Cadeia Posterior Superior & Trapézio', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Puxadas pesadas e densidade dorsal'
-      },
-      {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 Puro',
-        focus: 'Oxidação Lipídica & Recuperação', type: 'Cardio', cardioId: 'cardio_01',
-        carboTip: 'Carbo moderado 30g', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Recuperação ativa entre treinos de tronco e pernas'
-      },
-      {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Pernas Completo',
-        focus: 'Quadríceps, Isquiotibiais & Glúteos', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Volume completo de membros inferiores'
-      },
-      {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Deltoides & Core',
-        focus: 'Ombros 3D, Manguito & Oblíquos', type: 'Treino',
-        carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Isolamento de deltoide medial, posterior e core rotacional'
-      },
-      {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Circuito Engine Híbrido',
-        focus: 'Capacidade Cardiovascular', type: 'Cardio', cardioId: 'cardio_02',
-        carboTip: 'Carboidratos distribuídos', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Gasto calórico complementar sem impacto axial'
-      },
-      {
-        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Regeneração Muscular', type: 'Off',
-        carboTip: 'Fibras, vegetais e hidratação', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Recuperação do sistema nervoso autônomo'
-      }
-    ];
-  }
-
-  // 6. ABCDE (5 Dias Isolamento Miofibrilar)
-  else if (splitKey === 'ABCDE') {
-    return [
-      {
-        dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: 'Treino A · Peitoral',
-        focus: 'Peitoral Superior, Médio e Inferior', type: 'Treino',
-        carboTip: `${preCarbG} carbo pré-treino`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Estímulo de peitoral em todos os ângulos'
-      },
-      {
-        dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Dorsal',
-        focus: 'Latíssimo, Romboides & Lombar', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Tração vertical e horizontal pesadas'
-      },
-      {
-        dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Pernas',
-        focus: 'Agachamento, Hack & Posteriores', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
-        strategyTip: 'Volume concentrado em membros inferiores'
-      },
-      {
-        dayKey: 'd4', dayName: 'Dia 4', routineId: 'D', title: 'Treino D · Ombros & Trapézio',
-        focus: 'Deltoides 3D & Encolhimento', type: 'Treino',
-        carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Isolamento de deltoides nos 3 planos'
-      },
-      {
-        dayKey: 'd5', dayName: 'Dia 5', routineId: 'E', title: 'Treino E · Braços (Bíceps/Tríceps)',
-        focus: 'Super-séries de Braços & Core', type: 'Treino',
-        carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Pump máximo e densidade miofibrilar nos braços'
-      },
-      {
-        dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Cardio Zona 2 Mitocondrial',
-        focus: 'Base Aeróbia & Depuração', type: 'Cardio', cardioId: 'cardio_01',
-        carboTip: '30-40g carbo leve', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Sensibilidade à insulina e queima lipídica pura'
-      },
-      {
-        dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
-        focus: 'Regeneração Muscular', type: 'Off',
-        carboTip: 'Alimentação equilibrada de manutenção', proteinTip: protStr, waterTip: waterStr,
-        strategyTip: 'Supercompensação e alívio do SNC'
-      }
-    ];
-  }
-
-  // 7. PPL (Push / Pull / Legs — Padrão 3 a 6 Dias)
+  // 9. Fallback Padrão PPL (caso splitKey não seja reconhecido)
   else {
     return [
       {
@@ -14714,6 +14772,10 @@ const PERF_SPLIT_PRESETS = {
   ]
 };
 
+// Aliases oficiais canônicos para Bro Split (Seção 13)
+PERF_SPLIT_PRESETS['Bro Split'] = PERF_SPLIT_PRESETS.ABCDE;
+PERF_SPLIT_PRESETS['BroSplit'] = PERF_SPLIT_PRESETS.ABCDE;
+
 let perfActiveSplit = 'PHAT';
 let perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PHAT));
 let perfTargetRoutine = 'A';
@@ -16346,6 +16408,53 @@ if (typeof window !== 'undefined') {
   window.validateCardioPrescriptionAgainstContext = validateCardioPrescriptionAgainstContext;
   window.perfApplyCardioPrescriptionToSchedule = perfApplyCardioPrescriptionToSchedule;
   window.perfGenerateCardioPlan = perfGenerateCardioPlan;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 5 — VALIDAÇÃO CANÔNICA DE SPLIT (DESACOPLAMENTO DETERMINÍSTICO)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Validação Canônica de Split de Treinamento no Runtime.
+ * Reutiliza a implementação pura e oficial de domain/contracts/TrainingPrescriptionDTO.js.
+ * NÃO duplica whitelists nem cria implementações concorrentes (Seção 6).
+ *
+ * @param {*} split
+ * @returns {{ isValid: boolean, error?: string, normalizedSplit?: string }}
+ */
+function validateTrainingSplit(split) {
+  if (typeof NutriDomain !== 'undefined' && typeof NutriDomain.validateTrainingSplit === 'function') {
+    return NutriDomain.validateTrainingSplit(split);
+  }
+  if (typeof NutriDomain !== 'undefined' && typeof NutriDomain.TrainingPrescriptionDTO?.validateTrainingSplit === 'function') {
+    return NutriDomain.TrainingPrescriptionDTO.validateTrainingSplit(split);
+  }
+  if (typeof require !== 'undefined') {
+    try {
+      const contracts = require('./domain/contracts/TrainingPrescriptionDTO');
+      if (contracts && typeof contracts.validateTrainingSplit === 'function') {
+        return contracts.validateTrainingSplit(split);
+      }
+    } catch (_) {}
+  }
+  const VALID = ['PPL', 'UpperLower', 'PHAT', 'DUP', 'FullBody', 'ABCD', 'ABCDE', 'Bro Split', 'BroSplit'];
+  if (split === null || split === undefined || typeof split !== 'string') {
+    return { isValid: false, error: 'Split de treino é obrigatório (recebido null ou undefined).' };
+  }
+  const trimmed = split.trim();
+  if (trimmed === '') {
+    return { isValid: false, error: 'Split de treino não pode ser uma string vazia.' };
+  }
+  const isBro = trimmed.toLowerCase() === 'brosplit' || trimmed.toLowerCase() === 'bro split';
+  const isValid = VALID.includes(trimmed) || isBro;
+  if (!isValid) {
+    return { isValid: false, error: `Split de treino desconhecido: "${trimmed}". Splits reconhecidos: ${VALID.join(', ')}.` };
+  }
+  return { isValid: true, normalizedSplit: isBro ? 'Bro Split' : trimmed };
+}
+
+if (typeof window !== 'undefined') {
+  window.validateTrainingSplit = validateTrainingSplit;
 }
 
 // CAMADA 2 — VALIDAÇÃO ESTRUTURAL DA RESPOSTA DA IA (WHITELIST & TIPAGEM)
@@ -19396,18 +19505,86 @@ async function approveAITraining(patientId, validatedPrescription, contextSnapsh
     }
   }
 
-  // Aplica o plano validado à memória
+  // PASSO 9: Resolução e Validação Estrita do Split Canônico (Fase 5 - Seção 7, 8, 9)
+  // O approval gate NÃO permite inferência cega por routines.length
+  let explicitSplit = null;
+  let splitSource = null;
+
+  if (presc && (presc.split !== undefined && presc.split !== null)) {
+    const valCanonica = validateTrainingSplit(presc.split);
+    if (!valCanonica.isValid) {
+      console.error(`[approveAITraining] Prescrição rejeitada: split "${presc.split}" é inválido:`, valCanonica.error);
+      if (typeof alert === 'function') {
+        alert(`❌ Erro de Validação: Split explícito inválido ("${presc.split}"). A aprovação foi rejeitada.`);
+      }
+      return {
+        status: 'REJECT',
+        errors: [`Split explícito inválido: "${presc.split}". Erro: ${valCanonica.error}`]
+      };
+    }
+    explicitSplit = valCanonica.normalizedSplit || presc.split;
+    splitSource = presc.splitSource || (perfPendingAIValidation?.prescription?.splitSource) || 'AI';
+  } else if (presc && (presc.activeSplit !== undefined && presc.activeSplit !== null)) {
+    // Avaliação de fonte legada documentada somente se o campo canônico presc.split estiver ausente
+    const valLegada = validateTrainingSplit(presc.activeSplit);
+    if (!valLegada.isValid) {
+      console.error(`[approveAITraining] Prescrição rejeitada: activeSplit legado "${presc.activeSplit}" é inválido.`);
+      return {
+        status: 'REJECT',
+        errors: [`Split legado inválido: "${presc.activeSplit}". Erro: ${valLegada.error}`]
+      };
+    }
+    explicitSplit = valLegada.normalizedSplit || presc.activeSplit;
+    splitSource = presc.splitSource || 'HUMAN';
+  }
+
+  // Se nenhum split válido for encontrado: REJECT imediato! Proibida dedução por routines.length
+  if (!explicitSplit) {
+    console.error('[approveAITraining] Prescrição rejeitada: split explícito ausente. Proibida inferência por routines.length.');
+    if (typeof alert === 'function') {
+      alert('❌ Erro: A prescrição não possui um split explícito válido. A quantidade de rotinas não pode determinar o split.');
+    }
+    return {
+      status: 'REJECT',
+      errors: ['Prescrição sem split explícito válido. A quantidade de rotinas não pode determinar o split.']
+    };
+  }
+
+  // Detecção de Conflito IA × HUMANO (Seção 9)
+  const humanActiveSplit = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit) ? perfActiveSplit : null;
+  const isAiPrescription = splitSource === 'AI' || (presc.source === 'AI') || (perfPendingAIValidation?.status === 'PASS' || perfPendingAIValidation?.status === 'WARNING');
+  let hasSplitConflict = false;
+  let splitConflict = null;
+
+  if (isAiPrescription && humanActiveSplit && explicitSplit !== humanActiveSplit) {
+    hasSplitConflict = true;
+    splitConflict = {
+      aiSplit: explicitSplit,
+      humanSplit: humanActiveSplit,
+      resolution: 'HUMAN_APPROVAL_CONFIRMED',
+      timestamp: new Date().toISOString()
+    };
+    console.info(`[approveAITraining] Conflito IA x Humano detectado e registrado: IA declarou "${explicitSplit}", Humano possui "${humanActiveSplit}". Aprovação formal confirma split aprovado "${explicitSplit}".`);
+  }
+
+  // Aplica o plano validado à memória com split explícito
   if (presc && Array.isArray(presc.routines)) {
     perfWorkoutPlan = presc.routines;
-    perfActiveSplit = presc.routines.length >= 5 ? 'PHAT' : (presc.routines.length === 4 ? 'UpperLower' : 'PPL');
-    perfWeeklySchedule = perfBuildWeeklySchedule(perfActiveSplit);
+    perfActiveSplit = explicitSplit;
+    perfWeeklySchedule = perfBuildWeeklySchedule(explicitSplit);
   } else if (Array.isArray(presc)) {
     perfWorkoutPlan = presc;
+    perfActiveSplit = explicitSplit;
+    perfWeeklySchedule = perfBuildWeeklySchedule(explicitSplit);
   }
 
   perfWorkoutMeta = {
-    isAIGenerated: true,
+    isAIGenerated: splitSource === 'AI',
     isClinicallyValidated: true,
+    split: explicitSplit,
+    splitSource: splitSource,
+    hasSplitConflict: hasSplitConflict,
+    splitConflict: splitConflict,
     generatedAt: perfWorkoutMeta?.generatedAt || new Date().toISOString(),
     validatedAt: new Date().toISOString(),
     patientId: pId
@@ -19421,25 +19598,45 @@ async function approveAITraining(patientId, validatedPrescription, contextSnapsh
   updateAITrainingBanner();
   perfRender();
 
-  alert('✅ Prescrição de Treino e Periodização Biomecânica validada e assinada com sucesso!');
-  return { status: 'APPROVED', patientId: pId, validatedAt: perfWorkoutMeta.validatedAt };
+  if (typeof alert === 'function') {
+    alert('✅ Prescrição de Treino e Periodização Biomecânica validada e assinada com sucesso!');
+  }
+  return {
+    status: 'APPROVED',
+    patientId: pId,
+    split: explicitSplit,
+    splitSource: splitSource,
+    hasSplitConflict: hasSplitConflict,
+    splitConflict: splitConflict,
+    validatedAt: perfWorkoutMeta.validatedAt
+  };
 }
 
 async function perfSetSplit(splitKey) {
-  if (!PERF_SPLIT_PRESETS[splitKey]) return;
-  perfActiveSplit = splitKey;
-  perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[splitKey]));
+  const val = validateTrainingSplit(splitKey);
+  if (!val.isValid) {
+    console.error(`[perfSetSplit] Tentativa de selecionar split inválido: "${splitKey}".`, val.error);
+    return;
+  }
+  const canonicalSplit = val.normalizedSplit || splitKey;
+  if (!PERF_SPLIT_PRESETS[canonicalSplit] && !PERF_SPLIT_PRESETS[splitKey]) return;
+
+  const presetKey = PERF_SPLIT_PRESETS[canonicalSplit] ? canonicalSplit : splitKey;
+  perfActiveSplit = canonicalSplit;
+  perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[presetKey]));
   perfTargetRoutine = perfWorkoutPlan[0]?.id || 'A';
-  perfWeeklySchedule = perfBuildWeeklySchedule(splitKey);
+  perfWeeklySchedule = perfBuildWeeklySchedule(canonicalSplit);
   perfWorkoutMeta = {
     isAIGenerated: false,
     isClinicallyValidated: false,
+    split: canonicalSplit,
+    splitSource: 'HUMAN',
     generatedAt: null,
     validatedAt: null
   };
 
   const selectEl = document.getElementById('perf-split-select');
-  if (selectEl) selectEl.value = splitKey;
+  if (selectEl) selectEl.value = canonicalSplit;
 
   await savePerformanceForPatient(activePatientId);
   updateAITrainingBanner();
@@ -19449,7 +19646,7 @@ async function perfSetSplit(splitKey) {
   if (toast) {
     toast.style.display = 'flex';
     toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-      <div>Divisão de Treino alterada para <strong>${selectEl ? selectEl.options[selectEl.selectedIndex].text : splitKey}</strong> (${perfWorkoutPlan.length} rotinas ativas).</div>`;
+      <div>Divisão de Treino alterada para <strong>${selectEl ? selectEl.options[selectEl.selectedIndex]?.text || canonicalSplit : canonicalSplit}</strong> (${perfWorkoutPlan.length} rotinas ativas).</div>`;
     if (window.lucide) window.lucide.createIcons();
     setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
   }
@@ -19875,18 +20072,72 @@ async function handleGenerateAITraining() {
       return;
     }
 
-    // PASSO 2: Recebe PASS ou WARNING — Prepara APENAS para revisão humana (SEM persistir no Dexie)
+    // PASSO 2: Determinação explícita e determinística do split (Fase 5 - Seção 10)
+    // IA retorna prescription -> split explícito?
+    let explicitSplit = null;
+    let splitSource = null;
+
+    if (result.prescription && result.prescription.split) {
+      const valAiSplit = validateTrainingSplit(result.prescription.split);
+      if (valAiSplit.isValid) {
+        explicitSplit = valAiSplit.normalizedSplit || result.prescription.split;
+        splitSource = result.prescription.splitSource || 'AI';
+      } else {
+        console.warn('[handleGenerateAITraining] Split da IA inválido:', result.prescription.split);
+      }
+    }
+
+    if (!explicitSplit) {
+      // Verificar se existe seleção humana explícita prévia no sistema
+      const humanSplit = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit) ? perfActiveSplit : null;
+      if (humanSplit) {
+        const valHumanSplit = validateTrainingSplit(humanSplit);
+        if (valHumanSplit.isValid) {
+          explicitSplit = valHumanSplit.normalizedSplit || humanSplit;
+          splitSource = 'HUMAN';
+        }
+      }
+    }
+
+    if (!explicitSplit) {
+      explicitSplit = 'PPL';
+      splitSource = 'CONFIG';
+    }
+
+    // Registra split e splitSource explícitos no objeto da prescrição
+    result.prescription.split = explicitSplit;
+    result.prescription.splitSource = splitSource;
+
+    // Detecção de conflito IA x Humano (Seção 9)
+    const humanActiveSplit = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit) ? perfActiveSplit : null;
+    let hasSplitConflict = false;
+    let splitConflict = null;
+    if (splitSource === 'AI' && humanActiveSplit && explicitSplit !== humanActiveSplit) {
+      hasSplitConflict = true;
+      splitConflict = {
+        aiSplit: explicitSplit,
+        humanSplit: humanActiveSplit,
+        detectedAt: new Date().toISOString()
+      };
+      console.warn(`[handleGenerateAITraining] Conflito detectado: IA gerou split "${explicitSplit}", mas humano tinha selecionado "${humanActiveSplit}".`);
+    }
+
+    // Prepara APENAS para revisão humana (SEM persistir no Dexie)
     perfPendingAIValidation = {
       patientId: generationPatientId,
       context: result.context,
       prescription: result.prescription,
       warnings: result.warnings,
       status: result.status,
+      split: explicitSplit,
+      splitSource: splitSource,
+      hasSplitConflict,
+      splitConflict,
       generatedAt: new Date().toISOString()
     };
 
-    // Monta o preview na memória para inspeção visual do profissional
-    const chosenSplit = result.prescription.routines.length >= 5 ? 'PHAT' : (result.prescription.routines.length === 4 ? 'UpperLower' : 'PPL');
+    // Monta o preview na memória para inspeção visual do profissional (SEM inferência por routines.length)
+    const chosenSplit = explicitSplit;
     perfActiveSplit = chosenSplit;
     perfWorkoutPlan = result.prescription.routines;
     perfTargetRoutine = perfWorkoutPlan[0]?.id || 'A';

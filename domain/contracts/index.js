@@ -27,6 +27,9 @@ const contracts = {
 
   // Training Prescription
   SPLIT_SOURCES: TrainingPrescriptionDTO.SPLIT_SOURCES,
+  VALID_TRAINING_SPLITS: TrainingPrescriptionDTO.VALID_TRAINING_SPLITS,
+  normalizeTrainingSplit: TrainingPrescriptionDTO.normalizeTrainingSplit,
+  validateTrainingSplit: TrainingPrescriptionDTO.validateTrainingSplit,
   validateTrainingPrescriptionDTO: TrainingPrescriptionDTO.validateTrainingPrescriptionDTO,
   createTrainingPrescriptionDTO: TrainingPrescriptionDTO.createTrainingPrescriptionDTO,
 

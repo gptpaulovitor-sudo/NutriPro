@@ -211,16 +211,30 @@ function legacyTrainingToTrainingPrescriptionDTO(legacyTraining = {}, options = 
     }
   }
 
-  // Dedução ou atribuição formal de split e splitSource
+  // Resolução canônica de split e splitSource
   let split = options.split ?? legacyTraining.split ?? legacyTraining.activeSplit;
   let splitSource = options.splitSource ?? legacyTraining.splitSource;
 
-  if (!split) {
-    // Comportamento transitório do legado mantido exclusivamente como fallback no adaptador
+  if (split) {
+    if (!splitSource) {
+      if (options.split || legacyTraining.split) {
+        splitSource = (legacyTraining.source === 'AI' || legacyTraining.generatedBy === 'Gemini') ? 'AI' : 'HUMAN';
+      } else if (legacyTraining.activeSplit) {
+        splitSource = 'HUMAN';
+      } else {
+        splitSource = 'DETERMINISTIC';
+      }
+    }
+  } else {
+    // ══════════════════════════════════════════════════════════════════════════
+    // COMPATIBILIDADE LEGADA
+    // não representa regra de geração atual
+    // Preservado exclusivamente para leitura de registros históricos antigos
+    // onde o split não era persistido e o runtime legado deduzia por rotinas.
+    // NÃO utilizar em novas prescrições, approval gate ou Gemini.
+    // ══════════════════════════════════════════════════════════════════════════
     split = rawRoutines.length >= 5 ? 'PHAT' : (rawRoutines.length === 4 ? 'UpperLower' : 'PPL');
-    splitSource = splitSource || 'DETERMINISTIC';
-  } else if (!splitSource) {
-    splitSource = (legacyTraining.source === 'AI' || legacyTraining.generatedBy === 'Gemini') ? 'AI' : 'HUMAN';
+    splitSource = 'DETERMINISTIC';
   }
 
   const frequency = options.frequency ?? legacyTraining.frequency ?? rawRoutines.length;

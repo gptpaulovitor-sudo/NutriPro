@@ -8,6 +8,68 @@
 const SPLIT_SOURCES = Object.freeze(['AI', 'HUMAN', 'CONFIG', 'DETERMINISTIC']);
 
 /**
+ * Whitelist canônica e única de divisões de treinamento oficialmente suportadas pelo runtime.
+ * Definida uma única vez no contrato de domínio canônico.
+ */
+const VALID_TRAINING_SPLITS = Object.freeze([
+  'PPL',
+  'UpperLower',
+  'PHAT',
+  'DUP',
+  'FullBody',
+  'ABCD',
+  'ABCDE',
+  'Bro Split',
+  'BroSplit'
+]);
+
+/**
+ * Normaliza o split para sua representação canônica única.
+ * 'BroSplit' é normalizado para 'Bro Split'.
+ * @param {string} split
+ * @returns {string}
+ */
+function normalizeTrainingSplit(split) {
+  if (typeof split !== 'string') return '';
+  const trimmed = split.trim();
+  if (trimmed.toLowerCase() === 'brosplit' || trimmed.toLowerCase() === 'bro split') {
+    return 'Bro Split';
+  }
+  return trimmed;
+}
+
+/**
+ * Validação determinística e pura de split de treinamento.
+ * Responde apenas à pergunta: "Este valor representa um split oficialmente suportado?".
+ * Rejeita null, undefined, '', tipos não-string e splits desconhecidos.
+ * NÃO consulta DOM, Dexie, Firebase, Gemini ou routines[].
+ * 
+ * @param {*} split
+ * @returns {{ isValid: boolean, error?: string, normalizedSplit?: string }}
+ */
+function validateTrainingSplit(split) {
+  if (split === null || split === undefined) {
+    return { isValid: false, error: 'Split de treino é obrigatório (recebido null ou undefined).' };
+  }
+  if (typeof split !== 'string') {
+    return { isValid: false, error: `Split de treino deve ser uma string, recebido tipo "${typeof split}".` };
+  }
+  const trimmed = split.trim();
+  if (trimmed === '') {
+    return { isValid: false, error: 'Split de treino não pode ser uma string vazia.' };
+  }
+  const normalized = normalizeTrainingSplit(trimmed);
+  const isValid = VALID_TRAINING_SPLITS.includes(trimmed) || VALID_TRAINING_SPLITS.includes(normalized);
+  if (!isValid) {
+    return {
+      isValid: false,
+      error: `Split de treino desconhecido: "${trimmed}". Splits reconhecidos: ${VALID_TRAINING_SPLITS.join(', ')}.`
+    };
+  }
+  return { isValid: true, normalizedSplit: normalized };
+}
+
+/**
  * Validação determinística de TrainingPrescriptionDTO
  * @param {Object} prescription
  * @returns {{ isValid: boolean, errors: string[] }}
@@ -24,9 +86,10 @@ function validateTrainingPrescriptionDTO(prescription) {
     errors.push('Campo "patientId" é obrigatório e deve ser uma string não-vazia.');
   }
 
-  // split: obrigatório, string não-vazia
-  if (typeof prescription.split !== 'string' || prescription.split.trim() === '') {
-    errors.push('Campo "split" é obrigatório e deve ser uma string não-vazia (ex: "PPL", "UpperLower", "FullBody", "BroSplit").');
+  // split: obrigatório, validado contra whitelist única canônica
+  const splitRes = validateTrainingSplit(prescription.split);
+  if (!splitRes.isValid) {
+    errors.push(splitRes.error);
   }
 
   // splitSource: obrigatório, enum ('AI' | 'HUMAN' | 'CONFIG' | 'DETERMINISTIC')
@@ -134,9 +197,11 @@ function createTrainingPrescriptionDTO(data = {}) {
       })
     : [];
 
+  const rawSplit = data.split != null ? String(data.split).trim() : '';
+
   const dto = {
     patientId: data.patientId != null ? String(data.patientId).trim() : '',
-    split: data.split != null ? String(data.split).trim() : '',
+    split: rawSplit,
     splitSource: data.splitSource || 'DETERMINISTIC',
     frequency: Number.isInteger(Number(data.frequency)) ? Number(data.frequency) : normalizedRoutines.length,
     routines: normalizedRoutines
@@ -149,6 +214,9 @@ function createTrainingPrescriptionDTO(data = {}) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     SPLIT_SOURCES,
+    VALID_TRAINING_SPLITS,
+    normalizeTrainingSplit,
+    validateTrainingSplit,
     validateTrainingPrescriptionDTO,
     createTrainingPrescriptionDTO
   };
@@ -158,6 +226,9 @@ if (typeof window !== 'undefined') {
   window.NutriDomain = window.NutriDomain || {};
   window.NutriDomain.TrainingPrescriptionDTO = {
     SPLIT_SOURCES,
+    VALID_TRAINING_SPLITS,
+    normalizeTrainingSplit,
+    validateTrainingSplit,
     validateTrainingPrescriptionDTO,
     createTrainingPrescriptionDTO
   };
