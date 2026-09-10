@@ -14021,9 +14021,9 @@ function renderPerfCardioProtocols(targetFocusId = null) {
       isZ2 ? "border-emerald-500/60 bg-emerald-950/60 text-emerald-300" :
         "border-purple-500/60 bg-purple-950/60 text-purple-300";
 
-    // Identifica com precisão cirúrgica em quais dias este cardio está realmente prescrito na agenda semanal
+    // Identifica com precisão cirúrgica em quais dias este cardio está realmente prescrito na agenda semanal (incluindo dias combinados)
     const activePrescribedDays = perfWeeklySchedule
-      .filter(d => d.type === "Cardio" && d.cardioId === c.id)
+      .filter(d => (d.type === "Cardio" || d.type === "Treino + Cardio") && d.cardioId === c.id)
       .map(d => d.dayName || `Dia ${d.dayKey.replace("d", "")}`);
 
     const isPrescribed = activePrescribedDays.length > 0;
