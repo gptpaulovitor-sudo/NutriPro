@@ -641,7 +641,7 @@ test('UI-CARDIO-11: PDF utiliza a prescricao canonica', function() {
   });
 });
 
-test('PREF-DUR-01: Opcao B aplica piso clinico de 45 min para emagrecimento com baixa frequencia', function() {
+test('PREF-DUR-01: Preferencia de duracao de 15 min e respeitada e gera 30 min semanais em 2 sessoes', function() {
   var ctx = makeContext({
     patient: { objective: 'Redução de gordura corporal' },
     trainingProfile: { frequencyWeekly: 6 },
@@ -650,13 +650,13 @@ test('PREF-DUR-01: Opcao B aplica piso clinico de 45 min para emagrecimento com 
   });
 
   var reqs = buildCardioGenerationRequirements(ctx);
-  assert.strictEqual(reqs.volume.targetSessionDurationMinutes, 45, 'Duração de sessão deve adotar piso de 45 min');
-  assert.strictEqual(reqs.volume.targetMinutes, 90, 'Volume total deve ser 90 min (2x 45 min)');
+  assert.strictEqual(reqs.volume.targetSessionDurationMinutes, 15, 'Duração de sessão deve respeitar 15 min');
+  assert.strictEqual(reqs.volume.targetMinutes, 30, 'Volume total deve ser 30 min (2x 15 min)');
   
-  var hasFloorRationale = reqs.volume.drivingFactors.some(function(f) {
-    return f.includes('piso metabólico') || f.includes('ajustada clinicamente para 45 min');
+  var hasDurationRationale = reqs.volume.drivingFactors.some(function(f) {
+    return f.includes('15 min') || f.includes('preferência do paciente');
   });
-  assert.strictEqual(hasFloorRationale, true, 'drivingFactors do volume deve explicitar o piso metabólico');
+  assert.strictEqual(hasDurationRationale, true, 'drivingFactors do volume deve explicitar alinhamento com a preferência');
 });
 
 test('PREF-DUR-02: Preferencia de duracao de 30 min e respeitada', function() {
@@ -671,7 +671,7 @@ test('PREF-DUR-02: Preferencia de duracao de 30 min e respeitada', function() {
   assert.strictEqual(reqs.volume.targetMinutes, 60, 'Volume total deve ser 60 min (2x 30 min)');
 });
 
-test('PREF-DUR-03: Titulo do protocolo nao contem (15 min) em sessao de 45 min', function() {
+test('PREF-DUR-03: Sessoes de 15 min geram duracao de 15 min sincronizada nos cards', function() {
   var ctx = makeContext({
     patient: { objective: 'Redução de gordura corporal' },
     trainingProfile: { frequencyWeekly: 6 },
@@ -681,10 +681,9 @@ test('PREF-DUR-03: Titulo do protocolo nao contem (15 min) em sessao de 45 min',
   var reqs = buildCardioGenerationRequirements(ctx);
   var presc = sandbox.buildCardioWeeklyPrescription(ctx, reqs);
   
+  assert.strictEqual(presc.sessions.length, 2, 'Deve prescrever 2 sessões');
   presc.sessions.forEach(function(s) {
-    if (s.durationMinutes === 45) {
-      assert(!s.protocolTitle.includes('(15 min)'), 'Sessão de 45 min não pode conter "(15 min)" no título: ' + s.protocolTitle);
-    }
+    assert.strictEqual(s.durationMinutes, 15, 'Cada sessão deve ter 15 min');
   });
 });
 

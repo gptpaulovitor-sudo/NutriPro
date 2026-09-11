@@ -17815,7 +17815,7 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
     rationale.push({ factor: 'objective_session_duration', observed: objective, effect: 'standard_aerobic_session_duration', weight: 'moderate' });
   }
 
-  // ── Preferência de Duração do Paciente (Soft Constraint com Piso Clínico para Emagrecimento) ──
+  // ── Preferência de Duração do Paciente (Soft Constraint Fisiologicamente Balizada) ──
   const prefDurMin = (context?.cardioPreferences && context.cardioPreferences.preferredDurationMinutes != null && !isNaN(Number(context.cardioPreferences.preferredDurationMinutes)))
     ? Number(context.cardioPreferences.preferredDurationMinutes)
     : (context?.cardioProfile?.preferredDuration?.target != null && !isNaN(Number(context.cardioProfile.preferredDuration.target)))
@@ -17825,32 +17825,15 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
         : null;
 
   if (prefDurMin != null && prefDurMin > 0) {
-    const isWeightLossObjective = objective.includes('emagrecimento') || objective.includes('gordura') || objective.includes('recomposicao') ||
-      (context?.nutrition?.energyBalanceKcal != null && context.nutrition.energyBalanceKcal < -300);
-    const isLowFrequency = freqTarget <= 2;
-
-    if (isWeightLossObjective && isLowFrequency && prefDurMin < 30) {
-      // Opção B: Piso Clínico Mínimo de Eficácia para Emagrecimento com baixa frequência
-      targetSessionMin = 45;
-      drivingFactors.push(`Duração preferencial (${prefDurMin} min) ajustada clinicamente para 45 min: piso metabólico para emagrecimento com ${freqTarget}x/semana`);
-      rationale.push({
-        factor: 'preferredDurationAdjusted',
-        observed: `${prefDurMin} min (freq ${freqTarget}x)`,
-        effect: 'adjust_duration_to_clinical_floor_45min_emagrecimento',
-        weight: 'high'
-      });
-    } else {
-      // Fora do piso restritivo, adota a preferência do paciente dentro dos limites seguros
-      const clampedMin = Math.min(_CARDIO_RULES.MANDATORY.MAX_SESSION_DURATION_MINUTES, Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, prefDurMin));
-      targetSessionMin = clampedMin;
-      drivingFactors.push(`Duração da sessão adaptada à preferência do paciente: ${clampedMin} min`);
-      rationale.push({
-        factor: 'preferredDuration',
-        observed: `${prefDurMin} min`,
-        effect: `set_session_duration_${clampedMin}min`,
-        weight: 'moderate'
-      });
-    }
+    const clampedMin = Math.min(_CARDIO_RULES.MANDATORY.MAX_SESSION_DURATION_MINUTES, Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, prefDurMin));
+    targetSessionMin = clampedMin;
+    drivingFactors.push(`Duração da sessão alinhada à preferência do paciente: ${clampedMin} min`);
+    rationale.push({
+      factor: 'preferredDuration',
+      observed: `${prefDurMin} min`,
+      effect: `set_session_duration_${clampedMin}min`,
+      weight: 'high'
+    });
   }
 
   const volMultiplier = _CARDIO_RULES.PREFERRED.RECOVERY_MODIFIERS[recovery.modifier]?.volMultiplier || 1.0;
