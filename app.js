@@ -12600,8 +12600,10 @@ function renderPerfPrescribedCardio() {
     const sessions = p.sessions;
     const totalMin = p.totalWeeklyMinutes || sessions.reduce((s, c) => s + (c.durationMinutes || 0), 0);
 
-    const drivingList = (req.frequency?.drivingFactors || []).slice(0, 3).map(f => `<span class="inline-flex items-center gap-1 text-[11px] text-amber-300 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-md">• ${f}</span>`).join(' ');
-    const limitingList = (req.frequency?.limitingFactors || []).slice(0, 2).map(f => `<span class="inline-flex items-center gap-1 text-[11px] text-zinc-400 bg-zinc-900 border border-zinc-700/60 px-2 py-0.5 rounded-md">⚖️ ${f}</span>`).join(' ');
+    const allDriving = [...(req.frequency?.drivingFactors || []), ...(req.volume?.drivingFactors || [])];
+    const allLimiting = [...(req.frequency?.limitingFactors || []), ...(req.volume?.limitingFactors || [])];
+    const drivingList = allDriving.slice(0, 5).map(f => `<span class="inline-flex items-center gap-1 text-[11px] text-amber-300 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-md">• ${f}</span>`).join(' ');
+    const limitingList = allLimiting.slice(0, 3).map(f => `<span class="inline-flex items-center gap-1 text-[11px] text-zinc-400 bg-zinc-900 border border-zinc-700/60 px-2 py-0.5 rounded-md">⚖️ ${f}</span>`).join(' ');
 
     container.innerHTML = `
       <div class="hud-card p-5 space-y-4 border-amber-500/60 bg-gradient-to-br from-amber-950/40 via-black/95 to-zinc-950/95 shadow-[0_0_30px_rgba(245,158,11,0.2)] rounded-2xl">
@@ -12656,7 +12658,7 @@ function renderPerfPrescribedCardio() {
         </div>
 
         <!-- Grid de Sessões Individuais da Semana -->
-        <div class="grid grid-cols-1 ${sessions.length > 1 ? 'md:grid-cols-2' : ''} gap-3">
+        <div class="grid grid-cols-1 ${sessions.length > 1 ? 'lg:grid-cols-2' : ''} gap-4">
           ${sessions.map((s, idx) => {
             const protoObj = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
               ? (PERF_CARDIO_DB.find(p => p.id === s.protocolId) || PERF_CARDIO_DB[0])
@@ -12664,27 +12666,102 @@ function renderPerfPrescribedCardio() {
 
             const isHiit = Boolean(s.isHiit ?? protoObj?.isHiit ?? false);
             const badgeColor = isHiit ? 'border-orange-500/60 bg-orange-950/60 text-orange-300' : 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300';
+            const eqList = Array.isArray(protoObj.equipment) ? protoObj.equipment.join(', ') : (protoObj.equipment || protoObj.hardware || 'Ergômetro');
+            const blocks = Array.isArray(protoObj.blocks) ? protoObj.blocks : [];
+            const restrictions = Array.isArray(protoObj.restrictions) ? protoObj.restrictions : [];
+            const subtitle = protoObj.subtitle || '';
+            const foco = protoObj.foco || '';
+            const calEst = protoObj.calEst || '~300-400 kcal';
+            const dinamica = protoObj.dinamica || s.intensityType || 'Contínua em Estado Estável';
 
             return `
-              <div class="p-4 rounded-xl bg-black/70 border border-zinc-800/90 hover:border-amber-500/50 transition-all space-y-3 shadow-sm">
-                <div class="flex items-center justify-between border-b border-zinc-800 pb-2 flex-wrap gap-1">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full ${isHiit ? 'bg-orange-400' : 'bg-amber-400'}"></span>
-                    <strong class="text-sm font-bold text-white">${s.day} · Sessão #${idx + 1}</strong>
+              <div class="p-4 rounded-xl bg-black/75 border border-zinc-800 hover:border-amber-500/50 transition-all space-y-3.5 shadow-md flex flex-col justify-between">
+                <div class="space-y-3">
+                  <!-- Header da Sessão -->
+                  <div class="flex items-center justify-between border-b border-zinc-800 pb-2.5 flex-wrap gap-1.5">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full ${isHiit ? 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.8)]' : 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]'}"></span>
+                      <strong class="text-sm font-bold text-white tracking-wide">${s.day} · Sessão #${idx + 1}</strong>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${badgeColor}">
+                        ${s.heartRateZone} · ${s.targetBpm}
+                      </span>
+                      <span class="text-[10px] font-mono text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-700/60">
+                        ${protoObj.category || 'Zona 2'}
+                      </span>
+                    </div>
                   </div>
-                  <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${badgeColor}">
-                    ${s.heartRateZone} · ${s.targetBpm}
-                  </span>
+
+                  <!-- Título, Subtítulo & Racional -->
+                  <div>
+                    <h4 class="text-sm font-bold text-amber-300 leading-snug">${s.protocolTitle}</h4>
+                    ${subtitle ? `<p class="text-xs text-amber-400/80 font-medium mt-0.5">${subtitle}</p>` : ''}
+                    <p class="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
+                      <span class="text-amber-500 font-bold">🎯 Match:</span> ${s.rationale}
+                    </p>
+                  </div>
+
+                  <!-- Diretriz & Foco Biomecânico -->
+                  ${foco ? `
+                    <div class="p-2.5 rounded-lg bg-zinc-950/90 border border-amber-500/25 text-xs text-zinc-300 leading-relaxed">
+                      <strong class="text-amber-400 font-bold flex items-center gap-1.5 mb-1">
+                        <i data-lucide="activity" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Diretriz &amp; Foco Biomecânico:</span>
+                      </strong>
+                      <p class="text-[11px] text-zinc-300 leading-normal">${foco}</p>
+                    </div>
+                  ` : ''}
+
+                  <!-- Blocos Estruturados de Execução -->
+                  ${blocks.length > 0 ? `
+                    <div class="space-y-1.5">
+                      <div class="flex items-center justify-between text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                        <span class="flex items-center gap-1.5">
+                          <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
+                          <span>Estrutura de Execução:</span>
+                        </span>
+                        <span class="text-[10px] font-mono font-normal text-zinc-400">${dinamica}</span>
+                      </div>
+                      <div class="space-y-1.5">
+                        ${blocks.map(b => `
+                          <div class="p-2 rounded-lg bg-black/60 border border-zinc-800 text-xs">
+                            <div class="text-[11px] font-bold text-amber-300/90 mb-1">
+                              Bloco ${b.num} — ${b.name}
+                            </div>
+                            <ul class="space-y-1 text-[11px] text-zinc-300">
+                              ${(b.items || []).map(it => `<li class="flex items-start gap-1.5"><span class="text-amber-400 select-none">•</span><span>${it}</span></li>`).join('')}
+                            </ul>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <!-- Orientações Técnicas & Segurança -->
+                  ${restrictions.length > 0 ? `
+                    <div class="p-2.5 rounded-lg bg-black/50 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+                      <strong class="text-zinc-300 font-semibold flex items-center gap-1">
+                        <i data-lucide="shield-alert" class="w-3 h-3 text-amber-400"></i>
+                        <span>Orientações &amp; Recomendações:</span>
+                      </strong>
+                      <ul class="space-y-0.5 pl-1">
+                        ${restrictions.map(r => `<li class="flex items-start gap-1.5 text-[11px] text-zinc-400"><span class="text-zinc-500 select-none">›</span><span>${r}</span></li>`).join('')}
+                      </ul>
+                    </div>
+                  ` : ''}
                 </div>
 
-                <div>
-                  <h4 class="text-xs font-bold text-amber-300">${s.protocolTitle}</h4>
-                  <p class="text-[11px] text-zinc-400 mt-0.5">${s.rationale}</p>
-                </div>
-
-                <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-1 border-t border-zinc-900">
-                  <span>⏱️ Duração: <strong class="text-white">${s.durationMinutes} min</strong></span>
-                  <span class="text-zinc-400">${s.intensity}</span>
+                <!-- Rodapé da Sessão com Métricas e Equipamento -->
+                <div class="pt-2.5 border-t border-zinc-800/80 mt-2 space-y-1.5 text-[11px] font-mono">
+                  <div class="flex items-center justify-between text-zinc-300 flex-wrap gap-1">
+                    <span>⏱️ Duração: <strong class="text-white font-bold text-xs">${s.durationMinutes} min</strong></span>
+                    <span class="text-amber-400 font-semibold">🔥 Queima Est.: <strong>${calEst}</strong></span>
+                  </div>
+                  <div class="flex items-center justify-between text-zinc-400 text-[10px] flex-wrap gap-1 pt-1 border-t border-zinc-900">
+                    <span class="truncate max-w-[260px]" title="${eqList}">⚙️ Equip.: <strong class="text-zinc-300">${eqList}</strong></span>
+                    <span class="text-zinc-400">${s.intensityType || 'Contínuo Z2'}</span>
+                  </div>
                 </div>
               </div>
             `;
@@ -17724,6 +17801,7 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
   const objective = String(context?.patient?.objective || '').toLowerCase();
   const freqTarget = typeof freqResult === 'number' ? freqResult : (freqResult?.target || 2);
   const rationale = [];
+  const drivingFactors = [];
 
   let targetSessionMin = 45;
   if (objective.includes('hipertrofia') || objective.includes('força') || objective.includes('forca')) {
@@ -17735,6 +17813,44 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
   } else {
     targetSessionMin = 45;
     rationale.push({ factor: 'objective_session_duration', observed: objective, effect: 'standard_aerobic_session_duration', weight: 'moderate' });
+  }
+
+  // ── Preferência de Duração do Paciente (Soft Constraint com Piso Clínico para Emagrecimento) ──
+  const prefDurMin = (context?.cardioPreferences && context.cardioPreferences.preferredDurationMinutes != null && !isNaN(Number(context.cardioPreferences.preferredDurationMinutes)))
+    ? Number(context.cardioPreferences.preferredDurationMinutes)
+    : (context?.cardioProfile?.preferredDuration?.target != null && !isNaN(Number(context.cardioProfile.preferredDuration.target)))
+      ? Number(context.cardioProfile.preferredDuration.target)
+      : (typeof context?.cardioProfile?.preferredDuration === 'number' && !isNaN(context.cardioProfile.preferredDuration))
+        ? Number(context.cardioProfile.preferredDuration)
+        : null;
+
+  if (prefDurMin != null && prefDurMin > 0) {
+    const isWeightLossObjective = objective.includes('emagrecimento') || objective.includes('gordura') || objective.includes('recomposicao') ||
+      (context?.nutrition?.energyBalanceKcal != null && context.nutrition.energyBalanceKcal < -300);
+    const isLowFrequency = freqTarget <= 2;
+
+    if (isWeightLossObjective && isLowFrequency && prefDurMin < 30) {
+      // Opção B: Piso Clínico Mínimo de Eficácia para Emagrecimento com baixa frequência
+      targetSessionMin = 45;
+      drivingFactors.push(`Duração preferencial (${prefDurMin} min) ajustada clinicamente para 45 min: piso metabólico para emagrecimento com ${freqTarget}x/semana`);
+      rationale.push({
+        factor: 'preferredDurationAdjusted',
+        observed: `${prefDurMin} min (freq ${freqTarget}x)`,
+        effect: 'adjust_duration_to_clinical_floor_45min_emagrecimento',
+        weight: 'high'
+      });
+    } else {
+      // Fora do piso restritivo, adota a preferência do paciente dentro dos limites seguros
+      const clampedMin = Math.min(_CARDIO_RULES.MANDATORY.MAX_SESSION_DURATION_MINUTES, Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, prefDurMin));
+      targetSessionMin = clampedMin;
+      drivingFactors.push(`Duração da sessão adaptada à preferência do paciente: ${clampedMin} min`);
+      rationale.push({
+        factor: 'preferredDuration',
+        observed: `${prefDurMin} min`,
+        effect: `set_session_duration_${clampedMin}min`,
+        weight: 'moderate'
+      });
+    }
   }
 
   const volMultiplier = _CARDIO_RULES.PREFERRED.RECOVERY_MODIFIERS[recovery.modifier]?.volMultiplier || 1.0;
@@ -17754,6 +17870,7 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
     targetMinutes,
     maxMinutes: Math.max(targetMinutes, maxMinutes),
     targetSessionDurationMinutes: targetSessionMin,
+    drivingFactors,
     rationale,
   };
 }
@@ -18865,7 +18982,9 @@ function buildCardioWeeklyPrescription(context, requirements) {
     ? calculateCardioSessionDurations(context, req.frequency || targetSessionsCount, req.volume || totalWeeklyMinutes, distribution.distributionMode || 'DISTRIBUTED')
     : [];
 
-  const prefDur = Number(cardioProfile?.preferredDuration);
+  const prefDur = typeof cardioProfile?.preferredDuration === 'number'
+    ? cardioProfile.preferredDuration
+    : Number(cardioProfile?.preferredDuration?.target || context?.cardioPreferences?.preferredDurationMinutes || 0);
   if (prefDur > 0 && prefDur * targetSessionsCount === totalWeeklyMinutes) {
     sessionDurations = Array(targetSessionsCount).fill(prefDur);
   }
@@ -19186,11 +19305,19 @@ function buildCardioWeeklyPrescription(context, requirements) {
     if (proto.isHiit) currentHiitCount++;
     if (proto.modalityFamily) usedModalityFamilies.add(proto.modalityFamily);
 
+    // Ajusta o título para não exibir incoerência de tempo se for adaptado
+    let protocolTitle = proto.title || proto.name || 'Protocolo Cardio';
+    if (proto.name && durationMinutes !== 15 && protocolTitle.includes('(15 min)')) {
+      protocolTitle = `${proto.name} (${durationMinutes} min)`;
+    } else if (durationMinutes !== 15 && /\(\d+\s*min\)/i.test(protocolTitle)) {
+      protocolTitle = protocolTitle.replace(/\(\d+\s*min\)/i, `(${durationMinutes} min)`);
+    }
+
     // Constrói a sessão canônica individual
     sessions.push({
       sessionId: `session_${sIdx + 1}`,
       protocolId: proto.id,
-      protocolTitle: proto.title,
+      protocolTitle,
       cardioId: proto.id,
       day: slotDay.dayName,
       dayKey: slotDay.dayKey,
