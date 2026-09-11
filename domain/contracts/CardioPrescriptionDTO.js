@@ -28,6 +28,20 @@ function validateCardioPrescriptionDTO(prescription) {
     return { isValid: false, errors };
   }
 
+  // distributionMode: se informado, deve ser string
+  if (prescription.distributionMode != null && typeof prescription.distributionMode !== 'string') {
+    errors.push('Campo "distributionMode", quando informado, deve ser uma string.');
+  }
+
+  // sessionDurations: se informado, deve ser array de números
+  if (prescription.sessionDurations != null) {
+    if (!Array.isArray(prescription.sessionDurations)) {
+      errors.push('Campo "sessionDurations", quando informado, deve ser um array de números.');
+    } else if (prescription.sessionDurations.some(d => typeof d !== 'number' || isNaN(d) || d <= 0)) {
+      errors.push('Todos os elementos de "sessionDurations" devem ser números positivos.');
+    }
+  }
+
   prescription.sessions.forEach((session, sIdx) => {
     const sLabel = `sessions[${sIdx}]`;
     if (!session || typeof session !== 'object' || Array.isArray(session)) {
@@ -40,7 +54,7 @@ function validateCardioPrescriptionDTO(prescription) {
       errors.push(`${sLabel}: deve possuir "cardioId" (ou "sessionId"/"protocolId") como string não-vazia.`);
     }
 
-    const rawDur = session.durationMinutes;
+    const rawDur = session.durationMinutes != null ? session.durationMinutes : session.duration;
     const numDur = typeof rawDur === 'number' ? rawDur : (typeof rawDur === 'string' ? parseInt(rawDur, 10) : NaN);
     if (!Number.isInteger(numDur) || numDur < 10 || numDur > 300) {
       errors.push(`${sLabel}.durationMinutes: deve ser um número inteiro entre 10 e 300 minutos, recebido "${rawDur}".`);
@@ -77,29 +91,49 @@ function validateCardioPrescriptionDTO(prescription) {
 function createCardioPrescriptionDTO(data = {}) {
   const sessions = Array.isArray(data.sessions)
     ? data.sessions.map((s, idx) => {
-        const rawDur = s.durationMinutes != null ? Number(s.durationMinutes) : 45;
+        const rawDur = s.durationMinutes != null ? Number(s.durationMinutes) : (s.duration != null ? Number(s.duration) : 45);
         const durationMinutes = Number.isInteger(rawDur) && rawDur > 0 ? rawDur : 45;
+        const cardioId = String(s.cardioId || s.sessionId || s.protocolId || `cardio_${idx + 1}`).trim();
+        const protocolId = String(s.protocolId || s.cardioId || s.sessionId || `cardio_${idx + 1}`).trim();
 
         return {
-          cardioId: String(s.cardioId || s.sessionId || s.protocolId || `cardio_${idx + 1}`).trim(),
+          cardioId,
+          protocolId,
           day: s.day != null ? String(s.day).trim() : null,
+          dayKey: s.dayKey != null ? String(s.dayKey).trim() : (s.day ? String(s.day).trim().toLowerCase().replace(/\s+/g, '_') : null),
           type: s.type != null ? String(s.type).trim() : null,
           durationMinutes,
           intensity: s.intensity != null ? String(s.intensity).trim() : null,
           modality: s.modality != null ? String(s.modality).trim() : (s.protocolTitle != null ? String(s.protocolTitle).trim() : null),
           heartRateZone: s.heartRateZone != null ? String(s.heartRateZone).trim() : null,
-          targetBpm: s.targetBpm != null ? String(s.targetBpm).trim() : null
+          targetBpm: s.targetBpm != null ? String(s.targetBpm).trim() : null,
+          components: Array.isArray(s.components) ? s.components : null,
+          isLegacy: Boolean(s.isLegacy)
         };
       })
     : [];
 
-  const totalWeeklyMinutes = sessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+  const totalWeeklyMinutes = data.totalWeeklyMinutes != null && !isNaN(Number(data.totalWeeklyMinutes))
+    ? Number(data.totalWeeklyMinutes)
+    : sessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+
+  const sessionDurations = Array.isArray(data.sessionDurations)
+    ? data.sessionDurations.map(d => Number(d))
+    : sessions.map(s => s.durationMinutes);
+
+  const distributionMode = data.distributionMode != null ? String(data.distributionMode).trim() : 'DISTRIBUTED';
+  const freq = data.frequencyWeekly != null ? Number(data.frequencyWeekly) : (data.weeklyFrequency != null ? Number(data.weeklyFrequency) : sessions.length);
 
   const dto = {
     patientId: data.patientId != null ? String(data.patientId).trim() : '',
-    weeklyFrequency: sessions.length,
+    weeklyFrequency: freq,
+    frequencyWeekly: freq,
     totalWeeklyMinutes,
-    sessions
+    distributionMode,
+    sessionDurations,
+    sessions,
+    isLegacy: Boolean(data.isLegacy),
+    legacyPrescribedCardioId: data.legacyPrescribedCardioId != null ? String(data.legacyPrescribedCardioId).trim() : null
   };
 
   return Object.freeze(dto);

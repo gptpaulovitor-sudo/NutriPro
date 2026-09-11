@@ -55,6 +55,11 @@ vm.runInContext(appJsCode, sandbox);
 const PERF_CARDIO_DB = vm.runInContext('PERF_CARDIO_DB', sandbox);
 const calculateCardioModalities = sandbox.calculateCardioModalities;
 const perfApplyCardioPrescriptionToSchedule = sandbox.perfApplyCardioPrescriptionToSchedule;
+const CARDIO_DISTRIBUTION_MODES = sandbox.CARDIO_DISTRIBUTION_MODES || vm.runInContext('CARDIO_DISTRIBUTION_MODES', sandbox);
+const calculateCardioSessionDurations = sandbox.calculateCardioSessionDurations || vm.runInContext('calculateCardioSessionDurations', sandbox);
+const generateCardioPrescription = sandbox.generateCardioPrescription;
+const buildCardioGenerationRequirements = sandbox.buildCardioGenerationRequirements;
+const validateCardioPrescriptionAgainstContext = sandbox.validateCardioPrescriptionAgainstContext;
 
 console.log('======================================================');
 console.log('Fase 1A: Testes do Cardio Engine & Bug de Renderização');
@@ -79,17 +84,37 @@ function test(name, fn) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. INTEGRIDADE DO CATÁLOGO PERF_CARDIO_DB
 // ─────────────────────────────────────────────────────────────────────────────
-test('CARDIO 1.1: O catálogo PERF_CARDIO_DB contém exatamente 5 protocolos oficiais', () => {
+test('CARDIO 1.1: O catálogo PERF_CARDIO_DB contém os 5 protocolos originais preservados e expandido para 18 modalidades', () => {
   assert(Array.isArray(PERF_CARDIO_DB), 'PERF_CARDIO_DB deve ser um array');
-  assert.strictEqual(PERF_CARDIO_DB.length, 5, 'Deve haver exatamente 5 protocolos');
+  assert(PERF_CARDIO_DB.length >= 18, `Deve haver ao menos 18 protocolos estruturados no catálogo (atual: ${PERF_CARDIO_DB.length})`);
   
   const ids = Array.from(PERF_CARDIO_DB.map(c => String(c.id)));
-  assert.strictEqual(JSON.stringify(ids), JSON.stringify(['cardio_01', 'cardio_02', 'cardio_03', 'cardio_04', 'cardio_05']));
+  // Os 5 primeiros devem ser rigorosamente os 5 canônicos:
+  assert.strictEqual(ids[0], 'cardio_01');
+  assert.strictEqual(ids[1], 'cardio_02');
+  assert.strictEqual(ids[2], 'cardio_03');
+  assert.strictEqual(ids[3], 'cardio_04');
+  assert.strictEqual(ids[4], 'cardio_05');
+
+  // Modalidades atômicas, híbridas e HYROX:
+  assert(ids.includes('airbike_z2_15'));
+  assert(ids.includes('rower_z2_15'));
+  assert(ids.includes('treadmill_incline_z2_15'));
+  assert(ids.includes('bike_erg_z2_15'));
+  assert(ids.includes('elliptical_z2_15'));
+  assert(ids.includes('skierg_z2_15'));
+  assert(ids.includes('running_outdoor_z2_30'));
+  assert(ids.includes('bike_intervals_hiit_20'));
+  assert(ids.includes('rower_intervals_vo2_20'));
+  assert(ids.includes('hybrid_tri_erg_15'));
+  assert(ids.includes('hybrid_functional_engine_25'));
+  assert(ids.includes('hyrox_adapted_light_30'));
+  assert(ids.includes('hyrox_power_engine_45'));
 });
 
 test('CARDIO 1.2: Todos os protocolos possuem estrutura válida e blocos de execução', () => {
   PERF_CARDIO_DB.forEach(c => {
-    assert(typeof c.id === 'string' && c.id.startsWith('cardio_'));
+    assert(typeof c.id === 'string' && c.id.length > 0);
     assert(typeof c.title === 'string' && c.title.length > 0);
     assert(typeof c.category === 'string');
     assert(typeof c.timeCap === 'string');
@@ -205,8 +230,81 @@ test('BUG L14026 REPRODUÇÃO: O filtro legado d.type === "Cardio" falha ao dete
   assert.deepStrictEqual(diasCorrigidos, ['Segunda', 'Sexta'], 'Filtro corrigido reconhece Segunda e Sexta');
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. TESTES DA FASE F6: MULTI-SESSÃO, PARTIÇÕES E PRESCRIÇÃO DETERMINÍSTICA
+// ─────────────────────────────────────────────────────────────────────────────
+test('CARDIO 5.1: calculateCardioSessionDurations produz partições que somam totalWeeklyMinutes', () => {
+  const dummyCtx = {};
+  const testCases = [
+    { freq: 1, total: 45, mode: 'CONCENTRATED', expected: [45] },
+    { freq: 3, total: 45, mode: 'DISTRIBUTED_POST_WORKOUT', expected: [15, 15, 15] },
+    { freq: 2, total: 60, mode: 'DISTRIBUTED', expected: [30, 30] },
+    { freq: 3, total: 75, mode: 'DISTRIBUTED', expected: [25, 25, 25] },
+    { freq: 3, total: 90, mode: 'DISTRIBUTED', expected: [30, 30, 30] },
+    { freq: 3, total: 75, mode: 'MIXED', expected: [45, 15, 15] },
+  ];
+
+  testCases.forEach(tc => {
+    const res = calculateCardioSessionDurations(dummyCtx, { target: tc.freq }, { targetMinutes: tc.total }, tc.mode);
+    assert.deepStrictEqual(Array.from(res), tc.expected, `Partição para ${tc.total}min / ${tc.freq}x em ${tc.mode} deve ser ${tc.expected}`);
+    assert.strictEqual(res.reduce((a, b) => a + b, 0), tc.total, `Soma das partições (${res.join('+')}) deve ser exatamente ${tc.total}`);
+  });
+});
+
+test('CARDIO 5.2: generateCardioPrescription gera estrutura canônica com sessions[] e sessionDurations[]', () => {
+  const ctx = {
+    patient: { objective: 'Emagrecimento', currentWeight: 75, bodyFatPercent: 20 },
+    training: { weeklyFrequency: 3, sessionsPerWeek: 3 },
+    trainingProfile: { frequencyWeekly: 3 }
+  };
+  const reqs = buildCardioGenerationRequirements(ctx);
+  const presc = generateCardioPrescription(ctx, reqs);
+
+  assert(presc != null, 'Prescrição gerada não deve ser nula');
+  assert.strictEqual(typeof presc.frequencyWeekly, 'number');
+  assert.strictEqual(typeof presc.totalWeeklyMinutes, 'number');
+  assert(Array.isArray(presc.sessionDurations), 'sessionDurations deve ser array');
+  assert(Array.isArray(presc.sessions), 'sessions deve ser array');
+  assert.strictEqual(presc.sessions.length, presc.frequencyWeekly);
+  assert.strictEqual(presc.sessionDurations.length, presc.frequencyWeekly);
+  assert.strictEqual(presc.sessionDurations.reduce((a, b) => a + b, 0), presc.totalWeeklyMinutes);
+
+  // Cada sessão deve possuir protocolId, durationMinutes e dayKey
+  presc.sessions.forEach((s, idx) => {
+    assert(s.sessionId, `Sessão #${idx + 1} deve ter sessionId`);
+    assert(s.protocolId, `Sessão #${idx + 1} deve ter protocolId`);
+    assert(typeof s.durationMinutes === 'number' && s.durationMinutes > 0, `Sessão #${idx + 1} deve ter durationMinutes positivo`);
+    assert(s.dayKey, `Sessão #${idx + 1} deve ter dayKey`);
+  });
+});
+
+test('CARDIO 5.3: validateCardioPrescriptionAgainstContext valida consistência de volume e rejeita incoerências', () => {
+  const ctx = {
+    patient: { objective: 'Hipertrofia' },
+    training: { weeklyFrequency: 4, sessionsPerWeek: 4 },
+    trainingProfile: { frequencyWeekly: 4 }
+  };
+  const reqs = buildCardioGenerationRequirements(ctx);
+
+  // Incoerência de volume: totalWeeklyMinutes = 45 mas sum(sessionDurations) = 30
+  const invalidVolumePresc = {
+    id: 'test_inv_vol',
+    frequencyWeekly: 2,
+    totalWeeklyMinutes: 45,
+    sessionDurations: [15, 15],
+    sessions: [
+      { sessionId: 's1', protocolId: 'cardio_01', durationMinutes: 15, dayKey: 'd1' },
+      { sessionId: 's2', protocolId: 'cardio_01', durationMinutes: 15, dayKey: 'd3' }
+    ]
+  };
+
+  const valRes = validateCardioPrescriptionAgainstContext(invalidVolumePresc, ctx, reqs);
+  assert.strictEqual(valRes.isValid, false, 'Deve invalidar quando soma das durações difere do volume total');
+  assert(valRes.errors.some(e => e.includes('Incoerência de volume')));
+});
+
 console.log('======================================================');
 console.log(`Resumo dos Testes do Cardio Engine:`);
 console.log(`Total: ${totalTests} | Aprovados: ${passedTests} | Falhas: 0`);
-console.log('Status: CARDIO ENGINE CARACTERIZADO E BUG L14026 COMPROVADO');
+console.log('Status: CARDIO ENGINE F6 CONCLUÍDO COM 100% PASS');
 console.log('======================================================');

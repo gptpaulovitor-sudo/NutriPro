@@ -275,33 +275,64 @@ function legacyCardioToCardioPrescriptionDTO(legacyCardio = {}, options = {}) {
   const patientId = options.patientId ?? legacyCardio.patientId ?? '';
 
   let rawSessions = [];
+  let isLegacySingle = false;
+
   if (Array.isArray(legacyCardio.sessions)) {
     rawSessions = legacyCardio.sessions;
   } else if (legacyCardio.cardioPrescription && Array.isArray(legacyCardio.cardioPrescription.sessions)) {
     rawSessions = legacyCardio.cardioPrescription.sessions;
-  } else if (legacyCardio.prescribedCardioId) {
-    // Caso de sessão única legada
+  } else if (legacyCardio.prescribedCardioId || legacyCardio.perfPrescribedCardioId) {
+    // Caso de sessão única legada (compatibilidade histórica)
+    isLegacySingle = true;
+    const pId = legacyCardio.prescribedCardioId || legacyCardio.perfPrescribedCardioId;
+    const dur = legacyCardio.durationMinutes != null 
+      ? Number(legacyCardio.durationMinutes) 
+      : (legacyCardio.duration != null ? Number(legacyCardio.duration) : 45);
     rawSessions = [{
-      protocolId: legacyCardio.prescribedCardioId,
-      durationMinutes: 45,
-      day: 'Dia 2'
+      protocolId: pId,
+      cardioId: pId,
+      durationMinutes: dur,
+      day: legacyCardio.day || 'Dia 2',
+      dayKey: legacyCardio.dayKey || 'day_2',
+      isLegacy: true
     }];
   }
 
   const normalizedSessions = rawSessions.map((s, idx) => ({
     cardioId: s.cardioId || s.sessionId || s.protocolId || `cardio_${idx + 1}`,
+    protocolId: s.protocolId || s.cardioId || s.sessionId || `cardio_${idx + 1}`,
     day: s.day || null,
+    dayKey: s.dayKey || (s.day ? String(s.day).trim().toLowerCase().replace(/\s+/g, '_') : null),
     type: s.type || (s.protocolId === 'cardio_03' || s.protocolId === 'cardio_04' ? 'HIIT' : 'Moderado Contínuo'),
-    durationMinutes: s.durationMinutes != null ? Number(s.durationMinutes) : 45,
+    durationMinutes: s.durationMinutes != null ? Number(s.durationMinutes) : (s.duration != null ? Number(s.duration) : 45),
     intensity: s.intensity || null,
     modality: s.modality || s.protocolTitle || null,
     heartRateZone: s.heartRateZone || null,
-    targetBpm: s.targetBpm || null
+    targetBpm: s.targetBpm || null,
+    components: Array.isArray(s.components) ? s.components : null,
+    isLegacy: Boolean(s.isLegacy || isLegacySingle)
   }));
+
+  const totalWeeklyMinutes = legacyCardio.totalWeeklyMinutes != null
+    ? Number(legacyCardio.totalWeeklyMinutes)
+    : normalizedSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+
+  const sessionDurations = Array.isArray(legacyCardio.sessionDurations)
+    ? legacyCardio.sessionDurations.map(d => Number(d))
+    : normalizedSessions.map(s => s.durationMinutes);
+
+  const distributionMode = legacyCardio.distributionMode || (isLegacySingle ? 'CONCENTRATED' : 'DISTRIBUTED');
 
   return createCardioPrescriptionDTO({
     patientId,
-    sessions: normalizedSessions
+    frequencyWeekly: normalizedSessions.length,
+    weeklyFrequency: normalizedSessions.length,
+    totalWeeklyMinutes,
+    distributionMode,
+    sessionDurations,
+    sessions: normalizedSessions,
+    isLegacy: Boolean(isLegacySingle || legacyCardio.isLegacy),
+    legacyPrescribedCardioId: legacyCardio.prescribedCardioId || legacyCardio.perfPrescribedCardioId || null
   });
 }
 

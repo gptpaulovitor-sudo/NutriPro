@@ -9904,6 +9904,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     workoutDatabase: Object.keys(formattedWorkout).length > 0 ? formattedWorkout : null,
     weeklySchedule: normalizedSchedule,
     prescribedCardio: cardioProto,
+    cardioPrescription: (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription) ? perfCardioPrescription : null,
     activeSplit: perfActiveSplit,
     fastingProtocol: (activeFastingProto && activeFastingProto.enabled === true && activeFastingProto.status === 'ACTIVE') ? activeFastingProto : null,
     updatedAt: new Date().toISOString()
@@ -10551,23 +10552,358 @@ let perfWeeklySchedule = [
   }
 ];
 
+// ════════════════════════════════════════════════════════════════════════════
+// F7.3-A: CONTRATO E TAXONOMIA DO CATÁLOGO DE CARDIO (PERF_CARDIO_DB)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Taxonomia Canônica Centralizada para Validação e Expansão do Catálogo Cardio (F7.3-A)
+ */
+const CARDIO_TAXONOMY = Object.freeze({
+  CATEGORIES: Object.freeze(['Zona 2', 'Engine', 'HIIT', 'Regenerativo']),
+  MODALITY_FAMILIES: Object.freeze(['ergometer', 'locomotion', 'multi_erg', 'hybrid_circuit', 'hiit_sprint', 'recovery']),
+  INTENSITY_ZONES: Object.freeze(['Z1', 'Z1/Z2', 'Z2', 'Z2/Z3', 'Z3', 'Z3/Z4', 'Z4/Z5', 'Z5']),
+  INTENSITY_TYPES: Object.freeze(['CONTINUOUS', 'INTERVALS', 'SPRINTS', 'CIRCUIT']),
+  BIOMECHANICAL_LEVELS: Object.freeze(['NONE', 'LOW', 'MODERATE', 'HIGH']),
+  RECOVERY_DEMAND_LEVELS: Object.freeze(['LOW', 'MODERATE', 'HIGH']),
+  EXPERIENCE_LEVELS: Object.freeze(['iniciante', 'intermediario', 'avancado']),
+  VALID_OBJECTIVES: Object.freeze([
+    'emagrecimento', 'recomposicao', 'hipertrofia', 'forca',
+    'performance', 'cutting', 'saude_manutencao', 'recuperacao'
+  ])
+});
+
+/**
+ * Validador Estrutural Canônico e Não-Destrutivo de Protocolo Cardio Individual (F7.3-A)
+ */
+function validateCardioProtocol(proto) {
+  const errors = [];
+
+  if (!proto || typeof proto !== 'object') {
+    return { isValid: false, errors: ['Protocolo deve ser um objeto válido'] };
+  }
+
+  // 1. Identidade
+  if (typeof proto.id !== 'string' || proto.id.trim().length === 0) {
+    errors.push('id deve ser string não vazia');
+  } else if (/\s/.test(proto.id)) {
+    errors.push(`id '${proto.id}' não pode conter espaços`);
+  }
+
+  if (typeof proto.name !== 'string' || proto.name.trim().length === 0) {
+    errors.push('name deve ser string não vazia');
+  }
+  if (typeof proto.title !== 'string' || proto.title.trim().length === 0) {
+    errors.push('title deve ser string não vazia');
+  }
+  if (typeof proto.category !== 'string' || !CARDIO_TAXONOMY.CATEGORIES.includes(proto.category)) {
+    errors.push(`category '${proto.category}' inválida. Valores permitidos: ${CARDIO_TAXONOMY.CATEGORIES.join(', ')}`);
+  }
+  if (typeof proto.modality !== 'string' || proto.modality.trim().length === 0) {
+    errors.push('modality deve ser string não vazia');
+  }
+  if (typeof proto.modalityFamily !== 'string' || !CARDIO_TAXONOMY.MODALITY_FAMILIES.includes(proto.modalityFamily)) {
+    errors.push(`modalityFamily '${proto.modalityFamily}' inválida. Valores permitidos: ${CARDIO_TAXONOMY.MODALITY_FAMILIES.join(', ')}`);
+  }
+
+  // 2. Prescrição e Duração
+  if (typeof proto.minDurationMinutes !== 'number' || proto.minDurationMinutes <= 0) {
+    errors.push(`minDurationMinutes (${proto.minDurationMinutes}) deve ser número positivo`);
+  }
+  if (typeof proto.maxDurationMinutes !== 'number' || proto.maxDurationMinutes < proto.minDurationMinutes) {
+    errors.push(`maxDurationMinutes (${proto.maxDurationMinutes}) deve ser número maior ou igual a minDurationMinutes (${proto.minDurationMinutes})`);
+  }
+  if (typeof proto.durationStepMinutes !== 'number' || proto.durationStepMinutes <= 0) {
+    errors.push(`durationStepMinutes (${proto.durationStepMinutes}) deve ser número positivo`);
+  }
+  if (typeof proto.timeCap !== 'string' || proto.timeCap.trim().length === 0) {
+    errors.push('timeCap deve ser string não vazia (ex: "15 min")');
+  }
+
+  // 3. Intensidade
+  if (typeof proto.intensityZone !== 'string' || !CARDIO_TAXONOMY.INTENSITY_ZONES.includes(proto.intensityZone)) {
+    errors.push(`intensityZone '${proto.intensityZone}' inválida. Valores permitidos: ${CARDIO_TAXONOMY.INTENSITY_ZONES.join(', ')}`);
+  }
+  if (typeof proto.intensityType !== 'string' || !CARDIO_TAXONOMY.INTENSITY_TYPES.includes(proto.intensityType)) {
+    errors.push(`intensityType '${proto.intensityType}' inválida. Valores permitidos: ${CARDIO_TAXONOMY.INTENSITY_TYPES.join(', ')}`);
+  }
+  if (typeof proto.isHiit !== 'boolean') {
+    errors.push('isHiit deve ser boolean estrito (true|false)');
+  }
+
+  // 4. Objetivos e Níveis
+  const objectives = proto.objectiveTags || proto.objectives;
+  if (!Array.isArray(objectives) || objectives.length === 0) {
+    errors.push('objectiveTags deve ser um array não vazio');
+  } else {
+    objectives.forEach(obj => {
+      if (!CARDIO_TAXONOMY.VALID_OBJECTIVES.includes(obj)) {
+        errors.push(`Objetivo '${obj}' fora da taxonomia permitida: ${CARDIO_TAXONOMY.VALID_OBJECTIVES.join(', ')}`);
+      }
+    });
+  }
+
+  const levels = proto.levelTags || proto.experienceLevels;
+  if (!Array.isArray(levels) || levels.length === 0) {
+    errors.push('levelTags deve ser um array não vazio');
+  } else {
+    levels.forEach(lvl => {
+      if (!CARDIO_TAXONOMY.EXPERIENCE_LEVELS.includes(lvl)) {
+        errors.push(`Nível '${lvl}' fora da taxonomia permitida: ${CARDIO_TAXONOMY.EXPERIENCE_LEVELS.join(', ')}`);
+      }
+    });
+  }
+
+  // 5. Equipamento
+  const equip = proto.equipment || proto.requiredEquipment;
+  if (!Array.isArray(equip) || equip.length === 0) {
+    errors.push('equipment deve ser um array com ao menos um item');
+  } else {
+    equip.forEach(eq => {
+      if (typeof eq !== 'string' || eq.trim().length === 0) {
+        errors.push('Itens de equipment devem ser strings não vazias');
+      }
+    });
+  }
+
+  // 6. Metadados Biomecânicos
+  const biomechKeys = ['impactLevel', 'axialLoad', 'posteriorChainDemand', 'lowerLimbDemand', 'upperLimbDemand'];
+  biomechKeys.forEach(k => {
+    const val = proto[k];
+    if (typeof val !== 'string' || !CARDIO_TAXONOMY.BIOMECHANICAL_LEVELS.includes(val)) {
+      errors.push(`Metadado biomecânico '${k}' com valor inválido '${val}'. Permitidos: ${CARDIO_TAXONOMY.BIOMECHANICAL_LEVELS.join(', ')}`);
+    }
+  });
+
+  // 7. Compatibilidade e Concorrência
+  if (!Array.isArray(proto.avoidAfter)) {
+    errors.push('avoidAfter deve ser um array');
+  }
+  if (!Array.isArray(proto.preferredAfter)) {
+    errors.push('preferredAfter deve ser um array');
+  }
+  if (typeof proto.compatibleWithPostWorkout !== 'boolean') {
+    errors.push('compatibleWithPostWorkout deve ser boolean');
+  }
+
+  // 8. Segurança e Flags Clínicas
+  if (!Array.isArray(proto.contraindicationFlags)) {
+    errors.push('contraindicationFlags deve ser um array');
+  } else {
+    proto.contraindicationFlags.forEach(flag => {
+      if (typeof flag !== 'string' || flag.trim().length === 0) {
+        errors.push('Itens de contraindicationFlags devem ser strings não vazias');
+      }
+    });
+  }
+
+  // 9. Contexto e Recuperação
+  if (typeof proto.supportsMultiErg !== 'boolean') {
+    errors.push('supportsMultiErg deve ser boolean');
+  }
+  if (typeof proto.isFoundational !== 'boolean') {
+    errors.push('isFoundational deve ser boolean');
+  }
+  if (typeof proto.recoveryDemand !== 'string' || !CARDIO_TAXONOMY.RECOVERY_DEMAND_LEVELS.includes(proto.recoveryDemand)) {
+    errors.push(`recoveryDemand '${proto.recoveryDemand}' inválida. Permitidos: ${CARDIO_TAXONOMY.RECOVERY_DEMAND_LEVELS.join(', ')}`);
+  }
+  if (!Array.isArray(proto.modalityTags) || proto.modalityTags.length === 0) {
+    errors.push('modalityTags deve ser um array não vazio');
+  } else {
+    proto.modalityTags.forEach(tag => {
+      if (typeof tag !== 'string' || tag.trim().length === 0) {
+        errors.push('Itens de modalityTags devem ser strings não vazias');
+      }
+    });
+  }
+
+  if (!Array.isArray(proto.adaptationTags)) {
+    errors.push('adaptationTags deve ser um array');
+  } else {
+    proto.adaptationTags.forEach(tag => {
+      if (typeof tag !== 'string' || tag.trim().length === 0) {
+        errors.push('Itens de adaptationTags devem ser strings não vazias');
+      }
+    });
+  }
+
+  // 10. Execução
+  if (!Array.isArray(proto.blocks) || proto.blocks.length === 0) {
+    errors.push('blocks deve ser um array com pelo menos 1 bloco estruturado');
+  }
+  if (!Array.isArray(proto.restrictions)) {
+    errors.push('restrictions deve ser um array');
+  }
+
+  // 11. Proibição de regras clínicas/executáveis embutidas no próprio objeto
+  for (const [key, value] of Object.entries(proto)) {
+    if (typeof value === 'function') {
+      errors.push(`Protocolo não pode conter função executável '${key}' embutida`);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Validador Estrutural Canônico e Não-Destrutivo do Catálogo Cardio Completo (F7.3-A)
+ */
+function validateCardioProtocolCatalog(catalog) {
+  const errors = [];
+  const seenIds = new Set();
+  const validatedIds = [];
+
+  if (!Array.isArray(catalog) || catalog.length === 0) {
+    return {
+      isValid: false,
+      errors: ['Catálogo deve ser um array com ao menos um protocolo'],
+      protocolCount: 0,
+      validatedIds: []
+    };
+  }
+
+  catalog.forEach((p, idx) => {
+    const label = p?.id ? `Protocolo '${p.id}'` : `Protocolo na posição #${idx}`;
+    if (p?.id) {
+      if (seenIds.has(p.id)) {
+        errors.push(`${label}: ID duplicado detectado no catálogo`);
+      }
+      seenIds.add(p.id);
+      validatedIds.push(p.id);
+    }
+
+    const res = validateCardioProtocol(p);
+    if (!res.isValid) {
+      res.errors.forEach(err => errors.push(`${label}: ${err}`));
+    }
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    protocolCount: catalog.length,
+    validatedIds
+  };
+}
+
 // Banco de Dados de Protocolos Cardio & Compromised Running (Engine)
 const PERF_CARDIO_DB = [
-  {
+    {
     id: 'cardio_01',
+    name: 'Zona 2 Mitocondrial Puro',
     title: 'Protocolo "Zona 2 Mitocondrial Puro"',
     subtitle: 'Aerobic Base Builder · Zero Interferência com a via mTOR',
     category: 'Zona 2',
+    modality: 'Remo / AirBike / Caminhada Inclinada (Tri-Modal Z2)',
+    modalityFamily: 'multi_erg',
+    intensityZone: 'Z2',
+    intensityType: 'CONTINUOUS',
+    isHiit: false,
     foco: 'Biogênese mitocondrial e oxidação pura de ácidos graxos em Zona 2 (60-70% FCM / 112-130 bpm). Ideal para Bulking e dias pré-treino de pernas sem dano excêntrico.',
     timeCap: '45 min',
+    minDurationMinutes: 15,
+    maxDurationMinutes: 60,
+    durationStepMinutes: 5,
     freq: '2 a 3x/semana',
     calEst: '~420-480 kcal',
     dinamica: 'Contínua em Estado Estável (Steady State / Respiração Nasal)',
     hardware: 'Cinta Cardíaca Bluetooth, Alerta de Zona 2 (112-130 bpm)',
+    impactLevel: 'LOW',
+    lowerLimbDemand: 'LOW',
+    upperLimbDemand: 'LOW',
+    axialLoad: 'LOW',
+    posteriorChainDemand: 'LOW',
+    equipment: [
+      'RowErg',
+      'AirBike',
+      'Esteira Inclinada'
+    ],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: [
+      'Peitoral',
+      'Costas',
+      'Ombros',
+      'Superiores'
+    ],
+    objectiveTags: [
+      'emagrecimento',
+      'recomposicao',
+      'hipertrofia',
+      'saude_manutencao'
+    ],
+    levelTags: [
+      'iniciante',
+      'intermediario',
+      'avancado'
+    ],
+    contraindicationFlags: [],
+    supportsMultiErg: true,
+    isFoundational: true,
+    recoveryDemand: 'LOW',
+    modalityTags: [
+      'multi_erg',
+      'remo',
+      'bike',
+      'esteira',
+      'zona2'
+    ],
+    adaptationTags: [
+      'base_aerobia',
+      'biogenese_mitocondrial',
+      'baixo_dano_excentrico'
+    ],
+    components: [
+      {
+        type: 'ERG',
+        modality: 'Remo Seco (RowErg)',
+        durationMinutes: 15,
+        intensity: 'Z2',
+        equipment: 'RowErg',
+        demand: 'LOW'
+      },
+      {
+        type: 'ERG',
+        modality: 'AirBike / Bike Ergométrica',
+        durationMinutes: 15,
+        intensity: 'Z2',
+        equipment: 'Bike',
+        demand: 'LOW'
+      },
+      {
+        type: 'TREADMILL',
+        modality: 'Esteira Inclinada',
+        durationMinutes: 15,
+        intensity: 'Z2',
+        equipment: 'Esteira',
+        demand: 'LOW'
+      }
+    ],
     blocks: [
-      { num: 1, name: 'Oxidação Lipídica no Remo', items: ['Remo Seco (RowErg): 15 min contínuos em Zona 2 (Pace constante 2:15 a 2:25/500m / FC < 130 bpm)'] },
-      { num: 2, name: 'Cadência Cíclica sem Impacto', items: ['AirBike / Bike Ergométrica: 15 min contínuos (RPM estável 50-55 / Zero picos anaeróbios)'] },
-      { num: 3, name: 'Caminhada Inclinada Anti-impacto', items: ['Esteira Inclinada: 15 min (Inclinação 8,0% a 10,0% / Velocidade 5,5 a 6,0 km/h / Respiração nasal)'] }
+      {
+        num: 1,
+        name: 'Oxidação Lipídica no Remo',
+        items: [
+          'Remo Seco (RowErg): 15 min contínuos em Zona 2 (Pace constante 2:15 a 2:25/500m / FC < 130 bpm)'
+        ]
+      },
+      {
+        num: 2,
+        name: 'Cadência Cíclica sem Impacto',
+        items: [
+          'AirBike / Bike Ergométrica: 15 min contínuos (RPM estável 50-55 / Zero picos anaeróbios)'
+        ]
+      },
+      {
+        num: 3,
+        name: 'Caminhada Inclinada Anti-impacto',
+        items: [
+          'Esteira Inclinada: 15 min (Inclinação 8,0% a 10,0% / Velocidade 5,5 a 6,0 km/h / Respiração nasal)'
+        ]
+      }
     ],
     restrictions: [
       'Manter a Frequência Cardíaca rigorosamente na Zona 2 (60-70% FCM).',
@@ -10575,99 +10911,1473 @@ const PERF_CARDIO_DB = [
     ]
   },
   {
-    id: 'cardio_02',
-    title: 'Protocolo "Circuito Engine Híbrido Multiplanar"',
-    subtitle: 'Variação Biomecânica · Gasto Calórico Constante sem Dano Articular',
-    category: 'Engine',
-    foco: 'Variação multiarticular contínua para recomposição corporal e dias de recuperação ativa, dissipando a sobrecarga de um único grupamento.',
-    timeCap: '45 min',
-    freq: '1 a 2x/semana',
-    calEst: '~480-550 kcal',
-    dinamica: 'Contínua por Blocos sem pausa passiva',
-    hardware: 'Monitor Cardíaco Ativo / Perfil Treino Funcional',
-    blocks: [
-      { num: 1, name: 'Tração & Volume Alveolar', items: ['Remo Seco (RowErg): 15 min em Pace constante (Zona 2 / drive potente de pernas)'] },
-      { num: 2, name: 'Potência Cíclica Superior/Inferior', items: ['AirBike / Echo Bike: 15 min com RPM estável (Zona 2/3 / trabalho síncrono de membros)'] },
-      { num: 3, name: 'Locomoção Inclinada Anti-Impacto', items: ['Esteira Inclinada: 15 min (Inclinação 6,0% a 8,0% / 6,0 a 6,5 km/h)'] }
+    id: "cardio_02",
+    name: "Circuito Engine Híbrido Multiplanar",
+    title: "Protocolo \"Circuito Engine Híbrido Multiplanar\"",
+    subtitle: "Protocolo \"Recuperação Ativa em Bike Z1 (Giro Regenerativo)\"",
+    category: "Engine",
+    modality: "Engine Híbrido Cíclico",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z2/Z3",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Variação multiarticular contínua para recomposição corporal e dias de recuperação ativa, dissipando a sobrecarga de um único grupamento.",
+    timeCap: "45 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 60,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~480-550 kcal",
+    dinamica: "Contínua por Blocos sem pausa passiva",
+    hardware: "Monitor Cardíaco Ativo / Perfil Treino Funcional",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["RowErg","AirBike","Esteira Inclinada"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Pernas Pesadas"],
+    preferredAfter: ["Superiores","Braços"],
+    objectiveTags: ["emagrecimento","recomposicao"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["circuito","remo","airbike","esteira","hibrido"],
+    adaptationTags: ["distribuicao_motora","mixed_modal"],
+    components: [
+      {"type":"ERG","modality":"Remo Seco (RowErg)","durationMinutes":15,"intensity":"Z2","equipment":"RowErg","demand":"MODERATE"},
+      {"type":"ERG","modality":"AirBike / Echo Bike","durationMinutes":15,"intensity":"Z2/Z3","equipment":"AirBike","demand":"MODERATE"},
+      {"type":"TREADMILL","modality":"Esteira Inclinada","durationMinutes":15,"intensity":"Z2","equipment":"Esteira","demand":"LOW"},
     ],
-    restrictions: [
-      'Proibido sprint anaeróbio no meio dos blocos (manter o ritmo cíclico estável).',
-      'Manter a coluna neutra e a pegada solta no Remo Seco.'
-    ]
+    blocks: [
+      {"num":1,"name":"Tração & Volume Alveolar","items":["Remo Seco (RowErg): 15 min em Pace constante (Zona 2 / drive potente de pernas)"]},
+      {"num":2,"name":"Potência Cíclica Superior/Inferior","items":["AirBike / Echo Bike: 15 min com RPM estável (Zona 2/3 / trabalho síncrono de membros)"]},
+      {"num":3,"name":"Locomoção Inclinada Anti-Impacto","items":["Esteira Inclinada: 15 min (Inclinação 6,0% a 8,0% / 6,0 a 6,5 km/h)"]},
+    ],
+    restrictions: ["Proibido sprint anaeróbio no meio dos blocos (manter o ritmo cíclico estável).","Manter a coluna neutra e a pegada solta no Remo Seco."]
   },
   {
-    id: 'cardio_03',
-    title: 'Protocolo "HIIT Norueguês 4x4 (Elite VO₂ Máx)"',
-    subtitle: 'Fração de Ejeção Cardíaca · Deslocamento do Limiar L2',
-    category: 'HIIT',
-    foco: 'Aumento máximo do VO₂ Máx, complacência ventricular e tolerância à acidose intramuscular sem gerar fadiga residual prolongada.',
-    timeCap: '35 min',
-    freq: '1x/semana',
-    calEst: '~400-470 kcal',
-    dinamica: 'Intervalada de Alta Intensidade (4 tiros de 4 min em Z4/Z5 com 3 min de recuperação ativa)',
-    hardware: 'Cinta Cardíaca Bluetooth, Cronômetro de Intervalos',
-    blocks: [
-      { num: 1, name: 'Aquecimento Progressivo', items: ['Esteira / Bike: 5 min em Zona 2 (60-70% FCM) para elevação gradual da temperatura central'] },
-      {
-        num: 2, name: 'Ciclo Principal 4x4', items: [
-          'Tiro 1: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
-          'Tiro 2: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
-          'Tiro 3: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
-          'Tiro 4: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)'
-        ]
-      },
-      { num: 3, name: 'Resfriamento & Remoção de Lactato', items: ['Caminhada Plana: 3 min em Zona 1 (< 60% FCM) para normalização hemodinâmica'] }
+    id: "cardio_03",
+    name: "HIIT Norueguês 4x4",
+    title: "Protocolo \"HIIT Norueguês 4x4 (Elite VO₂ Máx)\"",
+    subtitle: "Protocolo \"Caminhada Plana Outdoor / Esteira Z1/Z2\"",
+    category: "HIIT",
+    modality: "HIIT Intervalado 4x4",
+    modalityFamily: "hiit_sprint",
+    intensityZone: "Z4/Z5",
+    intensityType: "INTERVALS",
+    isHiit: true,
+    foco: "Aumento máximo do VO₂ Máx, complacência ventricular e tolerância à acidose intramuscular sem gerar fadiga residual prolongada.",
+    timeCap: "35 min",
+    minDurationMinutes: 25,
+    maxDurationMinutes: 35,
+    durationStepMinutes: 5,
+    freq: "1x/semana",
+    calEst: "~400-470 kcal",
+    dinamica: "Intervalada de Alta Intensidade (4 tiros de 4 min em Z4/Z5 com 3 min de recuperação ativa)",
+    hardware: "Cinta Cardíaca Bluetooth, Cronômetro de Intervalos",
+    impactLevel: "LOW",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "LOW",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["Esteira","Bike"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas","Legs","Agachamento"],
+    preferredAfter: [],
+    objectiveTags: ["performance","emagrecimento","recomposicao"],
+    levelTags: ["avancado"],
+    contraindicationFlags: ["lesao_joelho","risco_cardiovascular_alto","deficit_severo"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["hiit","noruegues","vo2max","esteira","bike"],
+    adaptationTags: ["vo2max","alta_densidade"],
+    components: [
+      {"type":"WARMUP","modality":"Esteira / Bike","durationMinutes":5,"intensity":"Z2","equipment":"Bike","demand":"LOW"},
+      {"type":"INTERVALS","modality":"Tiros 4x4","durationMinutes":25,"repetitions":4,"intensity":"Z4/Z5","equipment":"Esteira/Bike","demand":"HIGH"},
+      {"type":"COOLDOWN","modality":"Caminhada Plana","durationMinutes":5,"intensity":"Z1","equipment":"Solo","demand":"LOW"},
     ],
-    restrictions: [
-      'Proibição de parada passiva nos intervalos de 3 min: Manter caminhada ou giro leve de pernas a 65% FCM para depuração de lactato.',
-      'Não realizar no dia anterior a treinos pesados de agachamento.'
-    ]
+    blocks: [
+      {"num":1,"name":"Aquecimento Progressivo","items":["Esteira / Bike: 5 min em Zona 2 (60-70% FCM) para elevação gradual da temperatura central"]},
+      {"num":2,"name":"Ciclo Principal 4x4","items":["Tiro 1: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)","Tiro 2: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)","Tiro 3: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)","Tiro 4: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)"]},
+      {"num":3,"name":"Resfriamento & Remoção de Lactato","items":["Caminhada Plana: 3 min em Zona 1 (< 60% FCM) para normalização hemodinâmica"]},
+    ],
+    restrictions: ["Proibição de parada passiva nos intervalos de 3 min: Manter caminhada ou giro leve de pernas a 65% FCM para depuração de lactato.","Não realizar no dia anterior a treinos pesados de agachamento."]
   },
   {
-    id: 'cardio_04',
-    title: 'Protocolo "Sprint Interval Training (SIT) Anti-Catabólico"',
-    subtitle: 'Alta Ativação de AMPK & EPOC · Duração Curta (< 15 min)',
-    category: 'HIIT',
-    foco: 'Estímulo de potência anaeróbia alática e sinalização mitocondrial rápida para cutting agressivo com preservação máxima de massa magra.',
-    timeCap: '20 min',
-    freq: '1 a 2x/semana',
-    calEst: '~280-350 kcal + EPOC 24h',
-    dinamica: 'Intervalada de Alta Potência (Tiros All-Out de 20-30s com descanso passivo total de 90-120s)',
-    hardware: 'AirBike / Echo Bike ou Esteira Inclinada',
-    blocks: [
-      { num: 1, name: 'Aquecimento Rápido', items: ['AirBike / Trote: 3 min progressivo (Zona 1 -> Zona 2)'] },
-      {
-        num: 2, name: 'Série de Sprints All-Out (8 a 10 Tiros)', items: [
-          'Tiros 1 a 4: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total',
-          'Tiros 5 a 8: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total',
-          'Tiros 9 e 10 (Opcionais): 20s All-Out final com cadência máxima sustentada'
-        ]
-      },
-      { num: 3, name: 'Desaquecimento', items: ['Giro leve sem carga: 2 min em Zona 1 para relaxamento neuromuscular'] }
+    id: "cardio_04",
+    name: "Sprint Interval Training (SIT)",
+    title: "Protocolo \"Sprint Interval Training (SIT) Anti-Catabólico\"",
+    subtitle: "Protocolo \"Escada Ergométrica Intervalada Z3/Z4\"",
+    category: "HIIT",
+    modality: "SIT Sprints All-Out",
+    modalityFamily: "hiit_sprint",
+    intensityZone: "Z5",
+    intensityType: "SPRINTS",
+    isHiit: true,
+    foco: "Estímulo de potência anaeróbia alática e sinalização mitocondrial rápida para cutting agressivo com preservação máxima de massa magra.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 20,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~280-350 kcal + EPOC 24h",
+    dinamica: "Intervalada de Alta Potência (Tiros All-Out de 20-30s com descanso passivo total de 90-120s)",
+    hardware: "AirBike / Echo Bike ou Esteira Inclinada",
+    impactLevel: "LOW",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["AirBike","Echo Bike"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas","Legs","Quadriceps"],
+    preferredAfter: [],
+    objectiveTags: ["cutting","emagrecimento","performance"],
+    levelTags: ["avancado"],
+    contraindicationFlags: ["fadiga_central","lesao_articular","deficit_severo"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["sit","sprints","airbike","all_out"],
+    adaptationTags: ["potencia_anaerobia","alactacido"],
+    components: [
+      {"type":"WARMUP","modality":"AirBike / Trote","durationMinutes":3,"intensity":"Z1-Z2","equipment":"AirBike","demand":"LOW"},
+      {"type":"SPRINTS","modality":"Tiros All-Out 20s/100s","durationMinutes":15,"repetitions":8,"intensity":"Z5","equipment":"AirBike","demand":"HIGH"},
+      {"type":"COOLDOWN","modality":"Giro leve sem carga","durationMinutes":2,"intensity":"Z1","equipment":"AirBike","demand":"LOW"},
     ],
-    restrictions: [
-      'Descanso 100% passivo entre os tiros para ressintetizar fosfocreatina pura.',
-      'Manter pegada firme na AirBike sem flexão excessiva de tronco.'
-    ]
+    blocks: [
+      {"num":1,"name":"Aquecimento Rápido","items":["AirBike / Trote: 3 min progressivo (Zona 1 -> Zona 2)"]},
+      {"num":2,"name":"Série de Sprints All-Out (8 a 10 Tiros)","items":["Tiros 1 a 4: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total","Tiros 5 a 8: 20s em Esforço Máximo Absoluto (All-Out / RPM > 75) + 100s de descanso passivo total","Tiros 9 e 10 (Opcionais): 20s All-Out final com cadência máxima sustentada"]},
+      {"num":3,"name":"Desaquecimento","items":["Giro leve sem carga: 2 min em Zona 1 para relaxamento neuromuscular"]},
+    ],
+    restrictions: ["Descanso 100% passivo entre os tiros para ressintetizar fosfocreatina pura.","Manter pegada firme na AirBike sem flexão excessiva de tronco."]
   },
   {
-    id: 'cardio_05',
-    title: 'Protocolo "Aeróbico Regenerativo & Fluxo Sanguíneo"',
-    subtitle: 'Restauração do SNA · Remoção de Metabólitos Pós-Treino',
-    category: 'Regenerativo',
-    foco: 'Aceleração do retorno venoso, fluxo linfático e relaxamento simpático pós-treinos de força com zero fadiga central.',
-    timeCap: '20 min',
-    freq: '2 a 4x/semana',
-    calEst: '~150-200 kcal',
-    dinamica: 'Contínua em Baixa Intensidade (Zona 1 estrita)',
-    hardware: 'Bicicleta Horizontal / Elíptico / Caminhada Leve',
-    blocks: [
-      { num: 1, name: 'Fluxo Contínuo Regenerativo', items: ['Bicicleta Horizontal ou Elíptico: 20 min contínuos em Zona 1 (50-60% FCM / 95-112 bpm / Carga leve)'] }
+    id: "cardio_05",
+    name: "Aeróbico Regenerativo & Fluxo Sanguíneo",
+    title: "Protocolo \"Aeróbico Regenerativo & Fluxo Sanguíneo\"",
+    subtitle: "Protocolo \"AirBike Cadência Aeróbia Limiar Z3/Z4\"",
+    category: "Regenerativo",
+    modality: "Recuperação Ativa Z1",
+    modalityFamily: "recovery",
+    intensityZone: "Z1",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Aceleração do retorno venoso, fluxo linfático e relaxamento simpático pós-treinos de força com zero fadiga central.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2 a 4x/semana",
+    calEst: "~150-200 kcal",
+    dinamica: "Contínua em Baixa Intensidade (Zona 1 estrita)",
+    hardware: "Bicicleta Horizontal / Elíptico / Caminhada Leve",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "LOW",
+    axialLoad: "NONE",
+    posteriorChainDemand: "LOW",
+    equipment: ["Bicicleta Horizontal","Elíptico","Caminhada"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Pernas","Dorsais","Peito","Ombros"],
+    objectiveTags: ["hipertrofia","forca","recuperacao","saude_manutencao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["regenerativo","fluxo_sanguineo","bike_horizontal","eliptico"],
+    adaptationTags: ["recuperacao_ativa","baixo_impacto"],
+    components: [
+      {"type":"ERG","modality":"Bicicleta Horizontal / Elíptico","durationMinutes":20,"intensity":"Z1","equipment":"Bike Horizontal","demand":"LOW"},
     ],
-    restrictions: [
-      'A FC não deve ultrapassar 115 bpm em nenhum momento da sessão.',
-      'Evitar impacto articular (preferir modalidades sem impacto).'
-    ]
+    blocks: [
+      {"num":1,"name":"Fluxo Contínuo Regenerativo","items":["Bicicleta Horizontal ou Elíptico: 20 min contínuos em Zona 1 (50-60% FCM / 95-112 bpm / Carga leve)"]},
+    ],
+    restrictions: ["A FC não deve ultrapassar 115 bpm em nenhum momento da sessão.","Evitar impacto articular (preferir modalidades sem impacto)."]
+  },
+  {
+    id: "airbike_z2_15",
+    name: "AirBike Zona 2 Contínua",
+    title: "Protocolo \"Power Hike Inclinado Forte Z3/Z4\"",
+    subtitle: "Protocolo \"Corrida Intervalada Aeróbia Fartlek Z3/Z4\"",
+    category: "Zona 2",
+    modality: "AirBike",
+    modalityFamily: "ergometer",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Ativação cardiovascular contínua pós-treino com drive aeróbio estável (RPM 50-55 / respiração nasal).",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2 a 4x/semana",
+    calEst: "~140-180 kcal",
+    dinamica: "Contínua em Estado Estável (Steady State Z2)",
+    hardware: "AirBike / Echo Bike, Fita Cardíaca Z2",
+    impactLevel: "NONE",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["AirBike","Echo Bike"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Pernas Pesadas","Quadríceps"],
+    preferredAfter: ["Peitoral","Costas","Ombros","Braços"],
+    objectiveTags: ["emagrecimento","recomposicao","hipertrofia","saude_manutencao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["airbike","echo_bike","ergometro","zona2"],
+    adaptationTags: ["base_aerobia","baixo_impacto"],
+    components: [
+      {"type":"ERG","modality":"AirBike Z2","durationMinutes":15,"intensity":"Z2","equipment":"AirBike","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Giro Contínuo AirBike Z2","items":["AirBike / Echo Bike: 15 min em cadência estável 50-55 RPM (Zona 2 / 60-70% FCM / respiração exclusivamente nasal)"]},
+    ],
+    restrictions: ["Manter cadência constante sem picos anaeróbios.","Evitar flexão excessiva de tronco."]
+  },
+  {
+    id: "rower_z2_15",
+    name: "Remo Seco Ergômetro Z2",
+    title: "Remo Seco Ergômetro Z2 (15 min)",
+    subtitle: "Oxidação Lipídica no RowErg · Conexão Escapular e Extensão de Quadril",
+    category: "Zona 2",
+    modality: "RowErg",
+    modalityFamily: "ergometer",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Oxidação mitocondrial pura com recrutamento coordenado de dorsais, core e extensores do quadril em Z2.",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2 a 3x/semana",
+    calEst: "~150-190 kcal",
+    dinamica: "Contínua com Pace Estável (2:15-2:25/500m)",
+    hardware: "RowErg Concept2 ou similar, Monitor Z2",
+    impactLevel: "NONE",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "HIGH",
+    equipment: ["RowErg"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Costas Pesadas","Lombar","Levantamento Terra","Dorsais"],
+    preferredAfter: ["Peitoral","Ombros","Braços","Push"],
+    objectiveTags: ["emagrecimento","recomposicao","performance"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lombalgia_aguda"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["rower","remo","rowerg","ergometro","zona2"],
+    adaptationTags: ["base_aerobia","cadeia_posterior"],
+    components: [
+      {"type":"ERG","modality":"Remo RowErg Z2","durationMinutes":15,"intensity":"Z2","equipment":"RowErg","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Tração Contínua no RowErg","items":["Remo Seco: 15 min contínuos em Zona 2 (Pace 2:15 a 2:25/500m, cadência 22-26 SPM)"]},
+    ],
+    restrictions: ["Manter a coluna neutra e a pegada solta.","Evitar hiperextensão lombar no final da remada."]
+  },
+  {
+    id: "treadmill_incline_z2_15",
+    name: "Caminhada Inclinada Anti-Impacto Z2",
+    title: "Caminhada Inclinada Anti-Impacto Z2 (15 min)",
+    subtitle: "Ativação Glútea e Panturrilha sem Impacto Articular · Baixa Interferência",
+    category: "Zona 2",
+    modality: "Esteira Inclinada",
+    modalityFamily: "locomotion",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Oxidação de ácidos graxos pós-treino de musculação com inclinação 8-10% e velocidade moderada, sem sobrecarga de impacto nos joelhos.",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "2 a 5x/semana",
+    calEst: "~130-170 kcal",
+    dinamica: "Caminhada Inclinada Contínua",
+    hardware: "Esteira com Inclinação Eletrônica, Cinta Cardíaca",
+    impactLevel: "LOW",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "NONE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["Esteira Inclinada"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Peitoral","Costas","Ombros","Braços","Push","Pull"],
+    objectiveTags: ["emagrecimento","recomposicao","hipertrofia","saude_manutencao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["esteira","caminhada_inclinada","locomocao","zona2"],
+    adaptationTags: ["base_aerobia","baixo_impacto"],
+    components: [
+      {"type":"TREADMILL","modality":"Caminhada Inclinada","durationMinutes":15,"intensity":"Z2","equipment":"Esteira","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Caminhada Inclinada Estável","items":["Esteira Inclinada: 15 min (Inclinação 8,0% a 10,0% / Velocidade 5,2 a 5,8 km/h / Z2 estrita)"]},
+    ],
+    restrictions: ["Não segurar no corrimão da esteira.","Manter respiração nasal durante todo o trajeto."]
+  },
+  {
+    id: "bike_erg_z2_15",
+    name: "Bike Erg / Spinning Z2",
+    title: "Bike Erg / Spinning Z2 (15 min)",
+    subtitle: "Cadência Cíclica Suave · Zero Impacto Axial",
+    category: "Zona 2",
+    modality: "Bike Erg / Cicloergômetro",
+    modalityFamily: "ergometer",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Volume cardiovascular seguro e linear, ideal para descompressão articular pós-força.",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "2 a 5x/semana",
+    calEst: "~120-160 kcal",
+    dinamica: "Pedalagem Contínua em Zona 2",
+    hardware: "Bike Erg / Cicloergômetro",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "NONE",
+    axialLoad: "NONE",
+    posteriorChainDemand: "LOW",
+    equipment: ["Bike Erg","Bicicleta Estacionária"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Peitoral","Costas","Ombros","Superiores"],
+    objectiveTags: ["emagrecimento","recomposicao","hipertrofia","saude_manutencao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["bike","bike_erg","spinning","ergometro","zona2"],
+    adaptationTags: ["base_aerobia","zero_impacto","baixo_dano_excentrico"],
+    components: [
+      {"type":"ERG","modality":"Bike Erg Z2","durationMinutes":15,"intensity":"Z2","equipment":"Bike Erg","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Pedalada Estável Z2","items":["Bike Erg / Estacionária: 15 min contínuos com cadência 75-85 RPM em carga moderada (Z2 / 60-70% FCM)"]},
+    ],
+    restrictions: ["Ajustar a altura do selim para evitar extensão excessiva de joelho."]
+  },
+  {
+    id: "elliptical_z2_15",
+    name: "Elíptico Z2 Zero Impacto",
+    title: "Elíptico Z2 Zero Impacto (15 min)",
+    subtitle: "Movimento Fluido sem Choque Articular · Indicado para Sobrecarga Ortopédica",
+    category: "Zona 2",
+    modality: "Elíptico",
+    modalityFamily: "ergometer",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Cardio com zero forças de reação do solo, excelente para pacientes com restrições nos joelhos, tornozelos ou lombar.",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "2 a 4x/semana",
+    calEst: "~130-170 kcal",
+    dinamica: "Contínua em Movimento Fluido",
+    hardware: "Transport / Elíptico Ergométrico",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "LOW",
+    axialLoad: "NONE",
+    posteriorChainDemand: "LOW",
+    equipment: ["Elíptico"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Pernas","Superiores","Tronco"],
+    objectiveTags: ["emagrecimento","saude_manutencao","recuperacao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["eliptico","transport","ergometro","zona2"],
+    adaptationTags: ["base_aerobia","zero_impacto"],
+    components: [
+      {"type":"ERG","modality":"Elíptico Z2","durationMinutes":15,"intensity":"Z2","equipment":"Elíptico","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Giro Fluido no Elíptico","items":["Elíptico: 15 min com ritmo contínuo e braços sincronizados (Z2 / 60-70% FCM)"]},
+    ],
+    restrictions: ["Não elevar os calcanhares da plataforma durante o movimento."]
+  },
+  {
+    id: "skierg_z2_15",
+    name: "SkiErg Zona 2 Upper Body Engine",
+    title: "SkiErg Zona 2 Upper Body Engine (15 min)",
+    subtitle: "Flexão de Tronco, Grande Dorsal e Tríceps · Zero Carga nos Membros Inferiores",
+    category: "Zona 2",
+    modality: "SkiErg",
+    modalityFamily: "ergometer",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Cardio de membros superiores e core sem qualquer sobrecarga sobre pernas ou joelhos. Ideal pós-treino de pernas ou em dias de recuperação de membros inferiores.",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 25,
+    durationStepMinutes: 5,
+    freq: "1 a 3x/semana",
+    calEst: "~140-180 kcal",
+    dinamica: "Puxadas Rítmicas Contínuas",
+    hardware: "SkiErg Concept2, Cinta Cardíaca",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "HIGH",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["SkiErg"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Ombros Pesados","Tríceps Exaustivo","Dorsal Pesada"],
+    preferredAfter: ["Pernas","Membros Inferiores","Quadríceps"],
+    objectiveTags: ["recomposicao","performance","emagrecimento"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["tendinopatia_manguito"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["skierg","ski","ergometro","upper_body","zona2"],
+    adaptationTags: ["base_aerobia","foco_membros_superiores"],
+    components: [
+      {"type":"ERG","modality":"SkiErg Z2","durationMinutes":15,"intensity":"Z2","equipment":"SkiErg","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Puxada Rítmica no SkiErg","items":["SkiErg: 15 min contínuos em cadência constante 35-40 SPM (Zona 2 / 60-70% FCM)"]},
+    ],
+    restrictions: ["Iniciar o movimento pela dobradiça do quadril, evitando sobrecarregar exclusivamente os deltoides."]
+  },
+  {
+    id: "running_outdoor_z2_30",
+    name: "Corrida Contínua Moderada Z2",
+    title: "Corrida Contínua Moderada Z2 (30 min)",
+    subtitle: "Capacidade Aeróbia Clássica · Eficiência de Passada",
+    category: "Zona 2",
+    modality: "Corrida",
+    modalityFamily: "locomotion",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Adaptação cardiovascular e osteometabólica clássica em ritmo controlado conversacional (65-72% FCM).",
+    timeCap: "30 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "1 a 3x/semana",
+    calEst: "~320-400 kcal",
+    dinamica: "Contínua em Ritmo Estável",
+    hardware: "GPS / Monitor Cardíaco, Tênis de Amortecimento",
+    impactLevel: "HIGH",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "LOW",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["Pista / Asfalto / Esteira"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas Pesadas","Agachamento","Inferiores"],
+    preferredAfter: ["Dia OFF de Musculação","Superiores"],
+    objectiveTags: ["emagrecimento","performance","saude_manutencao"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho","impacto_articular","obesidade_severa"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["corrida","running","locomocao","outdoor","zona2"],
+    adaptationTags: ["base_aerobia","locomocao_outdoor"],
+    components: [
+      {"type":"RUN","modality":"Corrida Z2","durationMinutes":30,"distance":"4-5 km","intensity":"Z2","equipment":"Solo/Esteira","demand":"HIGH"},
+    ],
+    blocks: [
+      {"num":1,"name":"Corrida Contínua Z2","items":["Corrida contínua 30 min em ritmo confortável conversacional (Zona 2 / 65-72% FCM / cadência 165-175 SPM)"]},
+    ],
+    restrictions: ["Proibido correr com dor articular ou fascite.","Não realizar imediatamente após treino pesado de agachamento."]
+  },
+  {
+    id: "bike_intervals_hiit_20",
+    name: "Bike Intervals HIIT Potência",
+    title: "Bike Intervals HIIT Potência (20 min)",
+    subtitle: "Intervalos 30s/30s na Bike · Zero Impacto com Alta Demanda Anaeróbia",
+    category: "HIIT",
+    modality: "Bike Intervals",
+    modalityFamily: "ergometer",
+    intensityZone: "Z4/Z5",
+    intensityType: "INTERVALS",
+    isHiit: true,
+    foco: "Picos de frequência cardíaca e recrutamento de fibras do tipo II com proteção articular máxima dos membros inferiores.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 25,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~260-320 kcal",
+    dinamica: "Intervalada de Alta Intensidade (10 séries de 30s ON / 30s OFF)",
+    hardware: "AirBike ou Bike de Spinning, Cronômetro de Intervalos",
+    impactLevel: "NONE",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "LOW",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["Bike de Spinning","AirBike"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas Pesadas","Agachamento"],
+    preferredAfter: ["Superiores"],
+    objectiveTags: ["emagrecimento","cutting","performance"],
+    levelTags: ["avancado"],
+    contraindicationFlags: ["deficit_severo","fadiga_central"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["bike","hiit","intervalos","ergometro"],
+    adaptationTags: ["hiit_sem_impacto","densidade_metabolica"],
+    components: [
+      {"type":"WARMUP","modality":"Giro leve","durationMinutes":5,"intensity":"Z1","equipment":"Bike","demand":"LOW"},
+      {"type":"INTERVALS","modality":"Tiros 30s/30s","durationMinutes":10,"repetitions":10,"intensity":"Z4/Z5","equipment":"Bike","demand":"HIGH"},
+      {"type":"COOLDOWN","modality":"Desaquecimento","durationMinutes":5,"intensity":"Z1","equipment":"Bike","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento","items":["Bike: 5 min em ritmo leve (Zona 1)"]},
+      {"num":2,"name":"Intervalos 30s/30s (10x)","items":["10x: 30s em carga alta (RPM > 90 / Z4-Z5) + 30s de giro muito leve sem carga"]},
+      {"num":3,"name":"Desaquecimento","items":["Bike: 5 min em cadência livre para remoção de metabólitos"]},
+    ],
+    restrictions: ["Descanso ativo com giro livre sem travar o volante."]
+  },
+  {
+    id: "rower_intervals_vo2_20",
+    name: "Rower VO₂ Máx Intervalado",
+    title: "Rower VO₂ Máx Intervalado (20 min)",
+    subtitle: "Intervalos 500m Sub-Máximo no Remo · Potência Anaeróbia Lática",
+    category: "HIIT",
+    modality: "RowErg Intervals",
+    modalityFamily: "ergometer",
+    intensityZone: "Z4/Z5",
+    intensityType: "INTERVALS",
+    isHiit: true,
+    foco: "Demanda cardiorrespiratória máxima através de remadas potentes com controle biomecânico e proteção da coluna.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 25,
+    durationStepMinutes: 5,
+    freq: "1x/semana",
+    calEst: "~270-340 kcal",
+    dinamica: "Intervalada de Alta Potência (4 a 5 tiros de 500m com 90s de descanso passivo)",
+    hardware: "RowErg Concept2, Cinta Cardíaca",
+    impactLevel: "NONE",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "HIGH",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "HIGH",
+    equipment: ["RowErg"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Costas Pesadas","Lombar","Levantamento Terra","Pernas"],
+    preferredAfter: ["Superiores Leves","Dia OFF de Força"],
+    objectiveTags: ["performance","cutting"],
+    levelTags: ["avancado"],
+    contraindicationFlags: ["lombalgia","hernia_disco","deficit_severo"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["rower","remo","hiit","vo2max","ergometro"],
+    adaptationTags: ["vo2max","resistencia_anaerobia"],
+    components: [
+      {"type":"WARMUP","modality":"Remo suave","durationMinutes":4,"intensity":"Z1","equipment":"RowErg","demand":"LOW"},
+      {"type":"INTERVALS","modality":"Tiros 500m","durationMinutes":12,"repetitions":4,"distance":"2000m","intensity":"Z4/Z5","equipment":"RowErg","demand":"HIGH"},
+      {"type":"COOLDOWN","modality":"Soltura","durationMinutes":4,"intensity":"Z1","equipment":"RowErg","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento Progressivo","items":["Remo: 4 min progressivo (Z1 -> Z2)"]},
+      {"num":2,"name":"Tiros 500m (4 séries)","items":["4x 500m no Pace sub-máximo (Z4-Z5) com 90s de descanso passivo entre cada tiro"]},
+      {"num":3,"name":"Volta à Calma","items":["Remo solto: 4 min em Z1 (< 60% FCM)"]},
+    ],
+    restrictions: ["Interromper a sessão se a postura lombar colapsar durante os tiros."]
+  },
+  {
+    id: "hybrid_tri_erg_15",
+    name: "Tri-Erg Aeróbico Multiplanar",
+    title: "Tri-Erg Aeróbico Multiplanar (15 min)",
+    subtitle: "5 min SkiErg + 5 min BikeErg + 5 min RowErg · Dissipação de Fadiga Local",
+    category: "Engine",
+    modality: "Tri-Erg Híbrido",
+    modalityFamily: "multi_erg",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Fracionamento do cardio de 15 minutos em 3 ergômetros distintos, alternando membros superiores, membros inferiores e cadeia posterior para zero fadiga muscular concentrada.",
+    timeCap: "15 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2 a 4x/semana",
+    calEst: "~150-190 kcal",
+    dinamica: "Transição Contínua por Blocos de 5 min",
+    hardware: "SkiErg, BikeErg e RowErg Concept2",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "LOW",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["SkiErg","BikeErg","RowErg"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Peitoral","Costas","Pernas","Push","Pull"],
+    objectiveTags: ["recomposicao","emagrecimento","hipertrofia"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: true,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["tri_erg","skierg","bike_erg","rower","multi_erg"],
+    adaptationTags: ["multi_erg","distribuicao_motora"],
+    components: [
+      {"type":"ERG","modality":"SkiErg","durationMinutes":5,"intensity":"Z2","equipment":"SkiErg","demand":"LOW"},
+      {"type":"ERG","modality":"BikeErg","durationMinutes":5,"intensity":"Z2","equipment":"BikeErg","demand":"LOW"},
+      {"type":"ERG","modality":"RowErg","durationMinutes":5,"intensity":"Z2","equipment":"RowErg","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Bloco 1 — SkiErg","items":["SkiErg: 5 min contínuos em cadência estável (Zona 2 / respiração nasal)"]},
+      {"num":2,"name":"Bloco 2 — BikeErg","items":["BikeErg: 5 min contínuos em cadência 80 RPM (Zona 2 / fluxo estável)"]},
+      {"num":3,"name":"Bloco 3 — RowErg","items":["RowErg: 5 min contínuos em ritmo moderado (Zona 2 / extensão fluida)"]},
+    ],
+    restrictions: ["Transição direta entre os aparelhos sem pausas longas (máx 30s)."]
+  },
+  {
+    id: "hybrid_functional_engine_25",
+    name: "Circuito Funcional Engine & Carries",
+    title: "Circuito Funcional Engine & Carries (25 min)",
+    subtitle: "Cardio Cíclico + Deslocamentos e Sustentação de Core · Densidade Ativa",
+    category: "Engine",
+    modality: "Híbrido Funcional",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z2/Z3",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Combinação de cardio cíclico com caminhada do fazendeiro (Farmer Carry) e trabalho isométrico de core sem estresse na coluna vertebral.",
+    timeCap: "25 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 35,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~260-320 kcal",
+    dinamica: "Circuito por Estações Controladas",
+    hardware: "AirBike / Remo, Halteres ou Kettlebells moderados",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["AirBike","Kettlebells / Halteres","Remo"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Costas Pesadas","Pernas Pesadas","Trapézio"],
+    preferredAfter: ["Superiores Leves","Dia Isolado de Cardio"],
+    objectiveTags: ["recomposicao","performance","emagrecimento"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lombalgia"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["funcional","farmer_carry","airbike","remo","circuito"],
+    adaptationTags: ["mixed_modal","resistencia_de_forca"],
+    components: [
+      {"type":"ERG","modality":"AirBike","durationMinutes":8,"intensity":"Z2","equipment":"AirBike","demand":"MODERATE"},
+      {"type":"CARRY","modality":"Farmer Carry","durationMinutes":5,"distance":"200m","intensity":"Moderado","equipment":"Kettlebells/Halteres","demand":"MODERATE"},
+      {"type":"ERG","modality":"RowErg","durationMinutes":8,"intensity":"Z2","equipment":"RowErg","demand":"MODERATE"},
+      {"type":"CORE","modality":"Prancha Isométrica / Deadbug","durationMinutes":4,"intensity":"Z1","equipment":"Solo","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Estação 1 — AirBike","items":["AirBike: 8 min contínuos em Zona 2/3"]},
+      {"num":2,"name":"Estação 2 — Farmer Carry","items":["Farmer Carry com halteres moderados: 5 voltas de 40m com postura firme e pegada ativa"]},
+      {"num":3,"name":"Estação 3 — RowErg","items":["Remo Seco: 8 min contínuos em cadência confortável (Z2)"]},
+      {"num":4,"name":"Estação 4 — Core & Descompressão","items":["Prancha frontal e respiração diafragmática: 4 min"]},
+    ],
+    restrictions: ["Cargas submáximas nos carries para priorizar o fluxo aeróbio e a postura."]
+  },
+  {
+    id: "hyrox_adapted_light_30",
+    name: "HYROX Adaptado Light / Foundation",
+    title: "HYROX Adaptado Light / Foundation (30 min)",
+    subtitle: "Formato Estruturado Adaptável · Ergômetros + Movimentos Funcionais Leves",
+    category: "Engine",
+    modality: "Circuito Híbrido Estilo HYROX Adaptado",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z2/Z3",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Desenvolvimento de capacidade funcional sob fadiga moderada (compromised engine) com substituições seguras de impacto e sobrecarga axial.",
+    timeCap: "30 min",
+    minDurationMinutes: 25,
+    maxDurationMinutes: 40,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~320-400 kcal",
+    dinamica: "Estações Sequenciais com Transições Curtas",
+    hardware: "SkiErg, RowErg, Kettlebells leves, Esteira",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["SkiErg","RowErg","Kettlebells","Esteira"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas Pesadas","Agachamento Pesado"],
+    preferredAfter: ["Superiores Leves","Dia OFF de Musculação"],
+    objectiveTags: ["recomposicao","performance","emagrecimento"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho_grave"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["hyrox","circuito","mixed_modal","estacoes"],
+    adaptationTags: ["compromised_running","transicao_funcional"],
+    components: [
+      {"type":"ERG","modality":"SkiErg","durationMinutes":5,"distance":"750m","intensity":"Z2/Z3","equipment":"SkiErg","demand":"MODERATE"},
+      {"type":"RUN","modality":"Corrida ou Caminhada Inclinada","durationMinutes":6,"distance":"800m","intensity":"Z2","equipment":"Esteira","demand":"LOW"},
+      {"type":"BODYWEIGHT","modality":"Walking Lunges sem peso adicional","durationMinutes":4,"repetitions":40,"intensity":"Moderado","equipment":"Solo","demand":"MODERATE"},
+      {"type":"ERG","modality":"RowErg","durationMinutes":5,"distance":"750m","intensity":"Z2/Z3","equipment":"RowErg","demand":"MODERATE"},
+      {"type":"CARRY","modality":"Farmer Carry leve","durationMinutes":5,"distance":"150m","intensity":"Moderado","equipment":"Kettlebells leves","demand":"LOW"},
+      {"type":"FUNCTIONAL","modality":"Wall Balls adaptados (bola leve 4kg)","durationMinutes":5,"repetitions":30,"intensity":"Z2","equipment":"Medicine Ball","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"SkiErg & Locomoção","items":["SkiErg: 750m controlados (5 min) + 800m de trote leve ou caminhada inclinada na esteira (6 min)"]},
+      {"num":2,"name":"Lunges & Remo","items":["Walking Lunges com peso corporal: 40 passos (4 min) + RowErg: 750m em ritmo estável (5 min)"]},
+      {"num":3,"name":"Farmer Carry & Wall Balls","items":["Farmer Carry com carga leve: 150m (5 min) + Wall Balls com bola leve (4kg): 30 reps divididas (5 min)"]},
+    ],
+    restrictions: ["Priorizar a consistência rítmica em relação à velocidade.","Manter o tronco ereto nos lunges."]
+  },
+  {
+    id: "hyrox_power_engine_45",
+    name: "HYROX Power Engine & Compromised Running",
+    title: "HYROX Power Engine & Compromised Running (45 min)",
+    subtitle: "Simulação Avançada com Compromised Engine · Força & Resistência Metabólica",
+    category: "Engine",
+    modality: "Circuito Híbrido HYROX Power",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z3/Z4",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Estímulo avançado de resistência aeróbia sob fadiga mecânica acumulada. Alternância de corrida com ergômetros, trenó (ou variação) e carries pesados.",
+    timeCap: "45 min",
+    minDurationMinutes: 35,
+    maxDurationMinutes: 60,
+    durationStepMinutes: 5,
+    freq: "1x/semana",
+    calEst: "~550-680 kcal",
+    dinamica: "Intercalada de Compromised Running e Estações de Trabalho",
+    hardware: "SkiErg, RowErg, Trenó/Sled ou AirBike, Halteres pesados, Wall Ball 6-9kg",
+    impactLevel: "MODERATE",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "HIGH",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "HIGH",
+    equipment: ["SkiErg","RowErg","Sled / AirBike","Wall Ball","Kettlebells"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas Pesadas","Agachamento","Costas Pesadas"],
+    preferredAfter: ["Dia Exclusivo de Cardio / Fim de Semana"],
+    objectiveTags: ["performance","cutting","recomposicao"],
+    levelTags: ["avancado"],
+    contraindicationFlags: ["lesao_articular","lombalgia_aguda","deficit_severo"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["hyrox","power","circuito","mixed_modal","sled","farmer_carry"],
+    adaptationTags: ["compromised_running","alta_fadiga_muscular"],
+    components: [
+      {"type":"ERG","modality":"SkiErg 1000m","durationMinutes":5,"distance":"1000m","intensity":"Z3","equipment":"SkiErg","demand":"MODERATE"},
+      {"type":"RUN","modality":"Corrida Intercalada Bloco 1","durationMinutes":5,"distance":"1000m","intensity":"Z3","equipment":"Pista/Esteira","demand":"HIGH"},
+      {"type":"PUSH","modality":"Sled Push (ou AirBike Sprint alternativa)","durationMinutes":6,"distance":"50m","intensity":"Z4","equipment":"Trenó / AirBike","demand":"HIGH"},
+      {"type":"RUN","modality":"Corrida Intercalada Bloco 2","durationMinutes":5,"distance":"1000m","intensity":"Z3","equipment":"Pista/Esteira","demand":"HIGH"},
+      {"type":"ERG","modality":"RowErg 1000m","durationMinutes":5,"distance":"1000m","intensity":"Z3","equipment":"RowErg","demand":"HIGH"},
+      {"type":"CARRY","modality":"Farmer Carry pesado","durationMinutes":5,"distance":"200m","intensity":"Z3","equipment":"Kettlebells pesados","demand":"HIGH"},
+      {"type":"LUNGE","modality":"Sandbag Lunges ou Passadas com Halteres","durationMinutes":5,"distance":"50m","intensity":"Z3","equipment":"Sandbag / Halteres","demand":"HIGH"},
+      {"type":"FUNCTIONAL","modality":"Wall Balls (6kg a 9kg)","durationMinutes":5,"repetitions":50,"intensity":"Z4","equipment":"Medicine Ball","demand":"HIGH"},
+      {"type":"COOLDOWN","modality":"Caminhada Regenerativa","durationMinutes":4,"intensity":"Z1","equipment":"Solo","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Bloco 1 — SkiErg 1000m & Corrida","items":["SkiErg: 1000m em ritmo de prova (Pace 2:05-2:15) + Corrida: 1 km contínuo em Z3"]},
+      {"num":2,"name":"Bloco 2 — Sled Push & Corrida","items":["Sled Push ou Tiro na AirBike com alta resistência: 6 min + Corrida: 1 km contínuo em Z3"]},
+      {"num":3,"name":"Bloco 3 — RowErg 1000m & Farmer Carry","items":["RowErg: 1000m (Pace 2:00-2:10) + Farmer Carry: 200m com 24-32kg por mão"]},
+      {"num":4,"name":"Bloco 4 — Sandbag Lunges & Wall Balls","items":["Sandbag Lunges: 50m (passada contínua) + Wall Balls: 50 repetições (6 a 9kg)"]},
+    ],
+    restrictions: ["Exclusivo para atletas e praticantes avançados com boa capacidade de recuperação.","Não prescrever no dia anterior a agachamento ou levantamento terra pesado."]
+  },
+  {
+    id: "stairmaster_intervals_z3_20",
+    name: "Escada Ergométrica Intervalada Z3/Z4",
+    title: "Protocolo \"Escada Ergométrica Intervalada Z3/Z4\"",
+    subtitle: "High Glute & Quadriceps Work · Gasto Calórico Elevado sem Impacto Articular",
+    category: "Engine",
+    modality: "Escada Ergométrica (Stair Climber)",
+    modalityFamily: "ergometer",
+    intensityZone: "Z3/Z4",
+    intensityType: "INTERVALS",
+    isHiit: false,
+    foco: "Desenvolvimento de capacidade de trabalho e densidade calórica com subida contínua de degraus.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2x/semana",
+    calEst: "~220-300 kcal",
+    dinamica: "Intervalado Aeróbio Moderado/Alto (Z3/Z4)",
+    hardware: "Monitor Cardíaco, Escada com seletor de velocidade SPM (Steps Per Minute)",
+    impactLevel: "LOW",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "NONE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["Escada Ergométrica","Stair Climber"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Quadríceps","Pernas"],
+    preferredAfter: ["Peitoral","Costas","Superiores"],
+    objectiveTags: ["emagrecimento","cutting","recomposicao","performance"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho_aguda","condromalacia_avancada"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["escada","stair_climber","stairmaster","gluteos","engine"],
+    adaptationTags: ["intervalos_aerobios","ativacao_glutea"],
+    components: [
+      {"type":"STAIRS","modality":"Escada Ergométrica","durationMinutes":20,"intensity":"Z3/Z4","equipment":"Stair Climber","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento Progressivo","items":["Escada: 4 min em ritmo Z2 (45 a 55 SPM)"]},
+      {"num":2,"name":"Bloco Intervalado Z3","items":["6 séries de: 2 min forte (75-85 SPM / Z3-Z4) + 1 min moderado (50 SPM / Z2)"]},
+      {"num":3,"name":"Desaquecimento","items":["Escada: 2 min cadência decrescente (40 SPM)"]},
+    ],
+    restrictions: ["Não realizar no mesmo dia após treino de pernas pesado.","Evitar apoiar o peso do tronco sobre os corrimãos laterais."]
+  },
+  {
+    id: "stairmaster_steady_z2_20",
+    name: "Escada Contínua Zona 2",
+    title: "Protocolo \"Escada Contínua Zona 2\"",
+    subtitle: "Steady Climb Aerobic Base · Ativação Glútea e Oxidação Lipídica",
+    category: "Zona 2",
+    modality: "Escada Ergométrica Cadenciada",
+    modalityFamily: "ergometer",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Subida estável em ritmo contínuo de Zona 2 (60-70% FCM) com baixo impacto e foco na extensão de quadril.",
+    timeCap: "25 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 40,
+    durationStepMinutes: 5,
+    freq: "2 a 3x/semana",
+    calEst: "~200-280 kcal",
+    dinamica: "Contínua em Estado Estável (Respiração nasal cadenciada)",
+    hardware: "Sensor de Frequência Cardíaca, Escada Ergométrica",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "NONE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["Escada Ergométrica","Stair Climber"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Pernas"],
+    preferredAfter: ["Superiores","Costas","Ombros"],
+    objectiveTags: ["emagrecimento","cutting","recomposicao","saude_manutencao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho_aguda"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["escada","stair_climber","zona2","steady_state"],
+    adaptationTags: ["base_aerobia","ativacao_glutea"],
+    components: [
+      {"type":"STAIRS","modality":"Escada Ergométrica","durationMinutes":25,"intensity":"Z2","equipment":"Stair Climber","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Escada Contínua Z2","items":["Escada: 25 min em cadência constante (50 a 60 SPM / FC rigorosamente em Z2)"]},
+    ],
+    restrictions: ["Manter passada completa com apoio integral da planta do pé no degrau.","Reduzir a velocidade caso a FC exceda o teto de Zona 2."]
+  },
+  {
+    id: "skierg_power_intervals_15",
+    name: "SkiErg Power & Lat Engine",
+    title: "Protocolo \"SkiErg Power & Lat Engine\"",
+    subtitle: "Upper-Body Cardiovascular Conditioning · Zero Impacto em Membros Inferiores",
+    category: "HIIT",
+    modality: "SkiErg Intervalos de Potência",
+    modalityFamily: "ergometer",
+    intensityZone: "Z4/Z5",
+    intensityType: "INTERVALS",
+    isHiit: true,
+    foco: "Desenvolvimento de potência anaeróbia de membros superiores e condicionamento cardiovascular com cadeia anterior/dorsal.",
+    timeCap: "15 min",
+    minDurationMinutes: 10,
+    maxDurationMinutes: 20,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~180-240 kcal",
+    dinamica: "Intervalado de Alta Intensidade (HIIT / VO2max)",
+    hardware: "Concept2 SkiErg com monitor PM5, Cinta Cardíaca",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "HIGH",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["SkiErg"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Costas","Ombros"],
+    preferredAfter: ["Pernas","Quadríceps"],
+    objectiveTags: ["performance","cutting","emagrecimento"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_ombro","tendinite_manguito"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["skierg","ski","potencia","upper_body","hiit","vo2max"],
+    adaptationTags: ["potencia_membros_superiores","hiit_sem_impacto"],
+    components: [
+      {"type":"ERG","modality":"SkiErg","durationMinutes":15,"intensity":"Z4/Z5","equipment":"SkiErg","demand":"HIGH"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento Técnico","items":["SkiErg: 3 min progressivo (Damper 3-4, Pace 2:20 a 2:10)"]},
+      {"num":2,"name":"Intervalos de Potência","items":["8 séries de: 40s Sprint Forte (Pace < 1:55 / Z4-Z5) + 50s Recuperação Ativa (Z1)"]},
+      {"num":3,"name":"Retorno à Calma","items":["SkiErg: 2 min descompressão lenta"]},
+    ],
+    restrictions: ["Subordinado à governança de HIIT (teto semanal de sessões).","Contraindicado na presença de tendinopatia ativa do manguito rotador."]
+  },
+  {
+    id: "airbike_aerobic_threshold_20",
+    name: "AirBike Cadência Aeróbia Limiar Z3/Z4",
+    title: "Protocolo \"AirBike Cadência Aeróbia Limiar Z3/Z4\"",
+    subtitle: "Engine Aeróbio Sub-HIIT · Capacidade Sustentada sem Esgotamento Glicolítico",
+    category: "Engine",
+    modality: "AirBike Tempo & Threshold",
+    modalityFamily: "ergometer",
+    intensityZone: "Z3/Z4",
+    intensityType: "INTERVALS",
+    isHiit: false,
+    foco: "Construção de capacidade de sustentação aeróbia em Zona 3/4 na AirBike sem picos anaeróbios alactacidêmicos.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2x/semana",
+    calEst: "~220-290 kcal",
+    dinamica: "Intervalado Contínuo de Limiar (Threshold Intervals)",
+    hardware: "AirBike com RPM e medidor de Watts",
+    impactLevel: "NONE",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["AirBike","Echo Bike"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Pernas"],
+    preferredAfter: ["Peitoral","Costas","Superiores"],
+    objectiveTags: ["emagrecimento","recomposicao","performance","cutting"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["airbike","echo_bike","tempo","limiar","engine"],
+    adaptationTags: ["limiar_aerobio","capacidade_sustentada"],
+    components: [
+      {"type":"ERG","modality":"AirBike","durationMinutes":20,"intensity":"Z3/Z4","equipment":"AirBike","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento Aeróbio","items":["AirBike: 3 min a 50-55 RPM (Z2 leve)"]},
+      {"num":2,"name":"Bloco de Limiar Sustentado","items":["5 séries de: 2 min a 62-66 RPM (Z3/Z4) + 1 min a 48 RPM (Z1)"]},
+      {"num":3,"name":"Desaquecimento","items":["AirBike: 2 min a 45 RPM"]},
+    ],
+    restrictions: ["Não acelerar para sprint all-out; manter RPM controlada para permanecer em via oxidativa.","Permitido pós-treino de membros superiores."]
+  },
+  {
+    id: "walking_outdoor_flat_30",
+    name: "Caminhada Plana Outdoor / Esteira Z1/Z2",
+    title: "Protocolo \"Caminhada Plana Outdoor / Esteira Z1/Z2\"",
+    subtitle: "Universal Low-Barrier Aerobic Conditioning · Acessível a Todos os Níveis",
+    category: "Zona 2",
+    modality: "Caminhada em Terreno Plano",
+    modalityFamily: "locomotion",
+    intensityZone: "Z1/Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Prescrição aeróbia de entrada e base sem impacto destrutivo, executável sem máquinas complexas.",
+    timeCap: "30 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 60,
+    durationStepMinutes: 5,
+    freq: "3 a 5x/semana",
+    calEst: "~160-240 kcal",
+    dinamica: "Contínua Suave (Respiração exclusivamente nasal / RPE 3-4)",
+    hardware: "Tênis de caminhada, GPS ou Hodômetro simples",
+    impactLevel: "LOW",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "NONE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["Caminhada","Pista / Asfalto / Esteira","Esteira"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Pernas","Peitoral","Costas","Ombros","Superiores"],
+    objectiveTags: ["emagrecimento","saude_manutencao","recuperacao","recomposicao","forca","hipertrofia"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: true,
+    recoveryDemand: "LOW",
+    modalityTags: ["caminhada","outdoor","esteira","plano","iniciante","zona1"],
+    adaptationTags: ["base_aerobia","baixa_barreira_motora","baixo_impacto"],
+    components: [
+      {"type":"TREADMILL","modality":"Caminhada Plana","durationMinutes":30,"intensity":"Z1","equipment":"Caminhada","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Caminhada Rítmica Contínua","items":["Caminhada contínua em passo firme (5.0 a 5.8 km/h / 100-110 passos por minuto)"]},
+    ],
+    restrictions: ["Manter postura ereta sem inclinar a cervical para frente.","Excelente opção pré ou pós qualquer sessão de musculação."]
+  },
+  {
+    id: "treadmill_power_hike_z3_25",
+    name: "Power Hike Inclinado Forte Z3/Z4",
+    title: "Protocolo \"Power Hike Inclinado Forte Z3/Z4\"",
+    subtitle: "Heavy Incline Walking · Alta Densidade Metabólica com Impacto Mínimo",
+    category: "Engine",
+    modality: "Subida Inclinada de Alta Carga Mecânica",
+    modalityFamily: "locomotion",
+    intensityZone: "Z3/Z4",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Caminhada inclinada vigorosa (12 a 15% de inclinação) para recrutar cadeia extensora sem impacto articular de corrida.",
+    timeCap: "25 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 35,
+    durationStepMinutes: 5,
+    freq: "2 a 3x/semana",
+    calEst: "~260-340 kcal",
+    dinamica: "Contínua em Rampa Íngreme (Power Hike Steady)",
+    hardware: "Esteira motorizada com inclinação até 15%, Cinta Cardíaca",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "NONE",
+    axialLoad: "LOW",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["Esteira Inclinada"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Pernas"],
+    preferredAfter: ["Peitoral","Costas","Superiores"],
+    objectiveTags: ["emagrecimento","cutting","recomposicao","performance"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["tendinite_aquiles","fascite_plantar_aguda"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["esteira_inclinada","power_hike","inclinacao_alta","gluteos","engine"],
+    adaptationTags: ["resistencia_muscular","subida_inclinada"],
+    components: [
+      {"type":"TREADMILL","modality":"Esteira com Alta Inclinação","durationMinutes":25,"intensity":"Z3/Z4","equipment":"Esteira Inclinada","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento em Rampa","items":["Esteira: 3 min (Inclinação 6%, Velocidade 4,8 km/h)"]},
+      {"num":2,"name":"Subida Forte Contínua","items":["Esteira: 19 min (Inclinação 12% a 15%, Velocidade 4,5 a 5,2 km/h / RPE 6-7)"]},
+      {"num":3,"name":"Normalização","items":["Esteira: 3 min (Inclinação 2%, Velocidade 4,0 km/h)"]},
+    ],
+    restrictions: ["Proibido correr ou saltitar na inclinação elevada; manter marcha com passada controlada.","Não se apoiar no painel para roubar a gravidade."]
+  },
+  {
+    id: "running_intervals_aerobic_30",
+    name: "Corrida Intervalada Aeróbia Fartlek Z3/Z4",
+    title: "Protocolo \"Corrida Intervalada Aeróbia Fartlek Z3/Z4\"",
+    subtitle: "Threshold Play · Estímulo Misto de Ritmo Aeróbio sem Exaustão Máxima",
+    category: "Engine",
+    modality: "Corrida com Variação de Ritmo Aeróbio",
+    modalityFamily: "locomotion",
+    intensityZone: "Z3/Z4",
+    intensityType: "INTERVALS",
+    isHiit: false,
+    foco: "Desenvolvimento de eficiência de corrida e limiar anaeróbio através de variações de ritmo Z2/Z3/Z4.",
+    timeCap: "30 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~320-420 kcal",
+    dinamica: "Intervalado Contínuo (Fartlek Sueco Adaptado)",
+    hardware: "GPS ou Esteira calibrada, Monitor Cardíaco",
+    impactLevel: "HIGH",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "NONE",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["Esteira","Pista / Asfalto / Esteira"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas","Quadríceps"],
+    preferredAfter: ["Superiores","Costas","Peitoral"],
+    objectiveTags: ["performance","emagrecimento","cutting"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho","lesao_menisco","fascite_plantar","hernia_discal_aguda"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["corrida","fartlek","intervalos_aerobios","locomocao","outdoor"],
+    adaptationTags: ["fartlek_aerobio","variacao_de_ritmo"],
+    components: [
+      {"type":"RUNNING","modality":"Corrida Fartlek","durationMinutes":30,"intensity":"Z3/Z4","equipment":"Esteira","demand":"HIGH"},
+    ],
+    blocks: [
+      {"num":1,"name":"Rodagem de Aquecimento","items":["Corrida leve em Zona 2: 6 min contínuos"]},
+      {"num":2,"name":"Fartlek Estruturado","items":["5 séries de: 3 min em Pace Moderado/Forte (Z3/Z4) + 1 min trote regenerativo (Z1/Z2)"]},
+      {"num":3,"name":"Desaquecimento","items":["Trote suave e caminhada: 4 min"]},
+    ],
+    restrictions: ["Não realizar imediatamente após treino intenso de membros inferiores.","Contraindicado em pacientes com lesões articulares de alto impacto."]
+  },
+  {
+    id: "recovery_spin_bike_z1_20",
+    name: "Recuperação Ativa em Bike Z1 (Giro Regenerativo)",
+    title: "Protocolo \"Recuperação Ativa em Bike Z1 (Giro Regenerativo)\"",
+    subtitle: "Active Recovery & Tissue Hyperemia · Zero Carga Axial",
+    category: "Regenerativo",
+    modality: "Bike com Baixa Resistência e Alta Cadência",
+    modalityFamily: "recovery",
+    intensityZone: "Z1",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Promover hiperemia tecidual ativa e retorno venoso com zero dano excêntrico e sem depleção de glicogênio muscular.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2 a 4x/semana",
+    calEst: "~120-160 kcal",
+    dinamica: "Giro Leve e Fluido (Cadência 80-90 RPM / Resistência quase nula)",
+    hardware: "Bike Ergométrica Estacionária / Horizontal",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "NONE",
+    axialLoad: "NONE",
+    posteriorChainDemand: "NONE",
+    equipment: ["Bike","Bike Erg","Bicicleta Estacionária","Bicicleta Horizontal"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Pernas","Peitoral","Costas","Superiores"],
+    objectiveTags: ["recuperacao","hipertrofia","forca","saude_manutencao"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["bike","spinning","recuperacao_ativa","recuperacao","zona1","zero_impacto"],
+    adaptationTags: ["recuperacao_ativa","hiperemia_tecidual","zero_impacto"],
+    components: [
+      {"type":"ERG","modality":"Bike Spinning / Horizontal","durationMinutes":20,"intensity":"Z1","equipment":"Bike","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Giro Descompressivo Z1","items":["Bike: 20 min com rotação suave e contínua (80-90 RPM, carga leve, FC < 115 bpm)"]},
+    ],
+    restrictions: ["Não aplicar resistência pesada; o objetivo é relaxamento miofascial ativo e desobstrução metabólica.","Excelente opção imediatamente após agachamento ou levantamento terra pesado."]
+  },
+  {
+    id: "recovery_walk_mobility_20",
+    name: "Caminhada Regenerativa & Fluxo Cardiovascular",
+    title: "Protocolo \"Caminhada Regenerativa & Fluxo Cardiovascular\"",
+    subtitle: "Parasympathetic Recovery Walk · Oxigenação e Redução de Cortisol",
+    category: "Regenerativo",
+    modality: "Caminhada Leve e Respiração Controlada",
+    modalityFamily: "recovery",
+    intensityZone: "Z1",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Estímulo do sistema nervoso parassimpático e oxigenação global com caminhada descontraída.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 35,
+    durationStepMinutes: 5,
+    freq: "2 a 5x/semana",
+    calEst: "~100-140 kcal",
+    dinamica: "Passo Descontraído e Confortável (RPE 2-3)",
+    hardware: "Nenhum equipamento obrigatório / Tênis confortável",
+    impactLevel: "LOW",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "NONE",
+    axialLoad: "NONE",
+    posteriorChainDemand: "NONE",
+    equipment: ["Caminhada","Pista / Asfalto / Esteira"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Pernas","Superiores","Costas","Peitoral"],
+    objectiveTags: ["recuperacao","saude_manutencao","hipertrofia","forca"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["caminhada","regenerativo","fluxo_sanguineo","recuperacao","zona1"],
+    adaptationTags: ["recuperacao_ativa","reducao_estresse_snc"],
+    components: [
+      {"type":"TREADMILL","modality":"Caminhada Livre","durationMinutes":20,"intensity":"Z1","equipment":"Caminhada","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Caminhada de Fluxo","items":["Caminhada contínua em ritmo suave (4.0 a 5.0 km/h) com respiração profunda"]},
+    ],
+    restrictions: ["Manter intensidade estritamente baixa para não demandar supercompensação glicêmica."]
+  },
+  {
+    id: "bodyweight_metabolic_circuit_20",
+    name: "Circuito Calistênico Aeróbio (Sem Equipamentos)",
+    title: "Protocolo \"Circuito Calistênico Aeróbio (Sem Equipamentos)\"",
+    subtitle: "Zero Equipment Conditioning · Acessível em Viagens e Casa",
+    category: "Engine",
+    modality: "Circuito de Peso Corporal e Deslocamento",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z2/Z3",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Manutenção da aptidão cardiorrespiratória em cenários sem acesso a ergômetros ou esteiras.",
+    timeCap: "20 min",
+    minDurationMinutes: 15,
+    maxDurationMinutes: 30,
+    durationStepMinutes: 5,
+    freq: "2 a 3x/semana",
+    calEst: "~190-260 kcal",
+    dinamica: "Circuito Rotativo Contínuo (Trabalho/Descanso cadenciado)",
+    hardware: "Cronômetro ou App de Intervalos",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "LOW",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["Caminhada","Pista / Asfalto / Esteira"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: ["Pernas"],
+    preferredAfter: ["Costas","Peitoral","Superiores"],
+    objectiveTags: ["emagrecimento","recomposicao","saude_manutencao"],
+    levelTags: ["iniciante","intermediario"],
+    contraindicationFlags: ["lesao_joelho_aguda"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["calistenico","circuito","peso_corporal","home_workout","sem_equipamento"],
+    adaptationTags: ["sem_equipamento","viagem_home"],
+    components: [
+      {"type":"CIRCUIT","modality":"Circuito Funcional Aeróbio","durationMinutes":20,"intensity":"Z2/Z3","equipment":"Caminhada","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Mobilidade Ativa","items":["3 min de polichinelos suaves, passadas sem carga e rotações articulares"]},
+      {"num":2,"name":"Circuito Principal (4 voltas)","items":["Polichinelos 40s + Agachamentos livres sem carga 40s + Elevação de joelhos no lugar 40s + Caminhada no lugar 40s (descanso 30s entre voltas)"]},
+      {"num":3,"name":"Desaquecimento","items":["Caminhada lenta e respiração diafragmática 2 min"]},
+    ],
+    restrictions: ["Executar as transições de forma contínua sem picos de frequência anaeróbia."]
+  },
+  {
+    id: "erg_kettlebell_hybrid_circuit_25",
+    name: "Circuito Ergômetro & Kettlebell Swings (Posterior Engine)",
+    title: "Protocolo \"Circuito Ergômetro & Kettlebell Swings (Posterior Engine)\"",
+    subtitle: "Posterior Chain Engine Builder · Potência Cíclica e Balística",
+    category: "Engine",
+    modality: "Remo / Bike com Trabalho Balístico de Quadril",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z3/Z4",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Acoplamento de condicionamento em ergômetro com extensão balística de quadril em kettlebell swing.",
+    timeCap: "25 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 35,
+    durationStepMinutes: 5,
+    freq: "1 a 2x/semana",
+    calEst: "~280-380 kcal",
+    dinamica: "Intervalado Híbrido Cíclico/Funcional",
+    hardware: "RowErg Concept2 e Kettlebell (12 a 24kg)",
+    impactLevel: "LOW",
+    lowerLimbDemand: "MODERATE",
+    upperLimbDemand: "LOW",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "HIGH",
+    equipment: ["RowErg","Kettlebells","Kettlebells / Halteres"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Posterior de Coxa","Lombar","Glúteos","Pernas"],
+    preferredAfter: ["Peitoral","Ombros","Superiores"],
+    objectiveTags: ["emagrecimento","performance","cutting","recomposicao"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lombalgia_aguda","hernia_discal","lesao_lombar"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "MODERATE",
+    modalityTags: ["kettlebell","rower","swings","cadeia_posterior","hibrido","circuito"],
+    adaptationTags: ["mixed_modal","potencia_balistica_quadril"],
+    components: [
+      {"type":"ERG","modality":"RowErg","durationMinutes":15,"intensity":"Z3","equipment":"RowErg","demand":"MODERATE"},
+      {"type":"FUNCTIONAL","modality":"Kettlebell Swings","durationMinutes":10,"intensity":"Z3/Z4","equipment":"Kettlebells","demand":"HIGH"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento Remo","items":["RowErg: 4 min Z2 contínuo (Pace 2:15-2:25)"]},
+      {"num":2,"name":"Bloco Híbrido (4 rounds)","items":["RowErg 400m em ritmo moderado/forte + 15 Kettlebell Swings russos com técnica rigorosa + 60s descanso ativo"]},
+      {"num":3,"name":"Desaquecimento","items":["Remo suave e alongamento dinâmico: 3 min"]},
+    ],
+    restrictions: ["Proibido em pacientes com crise álgica lombar ou hérnia discal sintomática.","Não realizar na véspera ou no dia de levantamento terra pesado."]
+  },
+  {
+    id: "hyrox_station_erg_intervals_30",
+    name: "HYROX Station Builder (SkiErg + RowErg + Wall Balls)",
+    title: "Protocolo \"HYROX Station Builder (SkiErg + RowErg + Wall Balls)\"",
+    subtitle: "Specific Race Station Conditioning · Transição Ergo-Funcional",
+    category: "Engine",
+    modality: "Estações HYROX com Ergômetros e Wall Balls",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z3/Z4",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Simulação e desenvolvimento de capacidade de trabalho nas estações específicas de prova HYROX.",
+    timeCap: "30 min",
+    minDurationMinutes: 25,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "1x/semana",
+    calEst: "~340-450 kcal",
+    dinamica: "Circuito de Estações Específicas com Fadiga Acumulada",
+    hardware: "SkiErg, RowErg, Wall Ball (6-9kg), Cronômetro",
+    impactLevel: "LOW",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "MODERATE",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["SkiErg","RowErg","Wall Ball"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas","Costas","Ombros"],
+    preferredAfter: ["Peitoral","Braços"],
+    objectiveTags: ["performance","cutting","emagrecimento"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho","lombalgia_aguda","tendinite_ombro"],
+    supportsMultiErg: true,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["hyrox","skierg","rower","wall_balls","estacoes","circuito"],
+    adaptationTags: ["station_based","transicao_ergometro"],
+    components: [
+      {"type":"ERG","modality":"SkiErg","durationMinutes":10,"intensity":"Z3","equipment":"SkiErg","demand":"MODERATE"},
+      {"type":"ERG","modality":"RowErg","durationMinutes":10,"intensity":"Z3","equipment":"RowErg","demand":"MODERATE"},
+      {"type":"FUNCTIONAL","modality":"Wall Balls","durationMinutes":10,"intensity":"Z4","equipment":"Wall Ball","demand":"HIGH"},
+    ],
+    blocks: [
+      {"num":1,"name":"Ativação Tri-Estação","items":["SkiErg: 500m Z2 + RowErg: 500m Z2 (aquecimento progressivo)"]},
+      {"num":2,"name":"Bloco Principal HYROX (3 voltas)","items":["SkiErg: 500m em ritmo de prova (Pace 2:05-2:15) + RowErg: 500m (Pace 2:00-2:10) + 20 Wall Balls (ritmo fluido) + 90s descanso"]},
+      {"num":3,"name":"Normalização","items":["Remo solto em Z1: 3 min"]},
+    ],
+    restrictions: ["Exclusivo para praticantes com base motora e condicionamento intermediário/avançado.","Não realizar no dia anterior a treinos pesados de agachamento."]
+  },
+  {
+    id: "compromised_run_row_engine_30",
+    name: "Transição Aeróbia Corrida & RowErg (Run-Row)",
+    title: "Protocolo \"Transição Aeróbia Corrida & RowErg (Run-Row)\"",
+    subtitle: "Run-Erg Fatigue Tolerance · Corrida com Membros Inferiores Pré-Exauridos",
+    category: "Engine",
+    modality: "Transição Contínua Corrida e Remo (Run-Row)",
+    modalityFamily: "hybrid_circuit",
+    intensityZone: "Z3/Z4",
+    intensityType: "CIRCUIT",
+    isHiit: false,
+    foco: "Adaptação do padrão neuromuscular de corrida sob fadiga de contração concêntrica de remo.",
+    timeCap: "30 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 45,
+    durationStepMinutes: 5,
+    freq: "1x/semana",
+    calEst: "~350-460 kcal",
+    dinamica: "Transição Contínua Corrida-Remo (Compromised Running)",
+    hardware: "Esteira rolante e RowErg Concept2 lado a lado",
+    impactLevel: "HIGH",
+    lowerLimbDemand: "HIGH",
+    upperLimbDemand: "LOW",
+    axialLoad: "MODERATE",
+    posteriorChainDemand: "MODERATE",
+    equipment: ["Esteira","RowErg","Pista / Asfalto / Esteira"],
+    compatibleWithPostWorkout: false,
+    avoidAfter: ["Pernas","Posterior de Coxa"],
+    preferredAfter: ["Peitoral","Ombros","Superiores"],
+    objectiveTags: ["performance","cutting","emagrecimento"],
+    levelTags: ["intermediario","avancado"],
+    contraindicationFlags: ["lesao_joelho","lesao_menisco","fascite_plantar"],
+    supportsMultiErg: false,
+    isFoundational: false,
+    recoveryDemand: "HIGH",
+    modalityTags: ["run_row","corrida","rower","remo","mixed_modal"],
+    adaptationTags: ["compromised_running","resistencia_fadiga_membros_inferiores"],
+    components: [
+      {"type":"RUNNING","modality":"Corrida na Esteira","durationMinutes":18,"intensity":"Z3","equipment":"Esteira","demand":"HIGH"},
+      {"type":"ERG","modality":"RowErg","durationMinutes":12,"intensity":"Z3/Z4","equipment":"RowErg","demand":"MODERATE"},
+    ],
+    blocks: [
+      {"num":1,"name":"Aquecimento na Corrida","items":["Corrida leve: 5 min em ritmo de aquecimento Z2"]},
+      {"num":2,"name":"Transições Compromised (3 voltas)","items":["RowErg: 750m em ritmo forte (Z3/Z4) + Imediatamente Corrida: 1.000m sustentado (Z3) + 1 min caminhada"]},
+      {"num":3,"name":"Volta à Calma","items":["Caminhada inclinada leve: 3 min"]},
+    ],
+    restrictions: ["Atenção redobrada à mecânica de pisada na corrida imediatamente após sair do remo.","Não prescrever em caso de sobrecarga patelar ou fascite."]
+  },
+  {
+    id: "multi_erg_pyramid_z2_30",
+    name: "Pirâmide Cíclica Multi-Ergômetros Z2 (Tri-Erg Cadenciado)",
+    title: "Protocolo \"Pirâmide Cíclica Multi-Ergômetros Z2 (Tri-Erg Cadenciado)\"",
+    subtitle: "Continuous Tri-Erg Aerobic Base · Distribuição Motora sem Fadiga Localizada",
+    category: "Zona 2",
+    modality: "Blocos Progressivos: Bike → Remo → SkiErg",
+    modalityFamily: "multi_erg",
+    intensityZone: "Z2",
+    intensityType: "CONTINUOUS",
+    isHiit: false,
+    foco: "Biogênese mitocondrial de corpo inteiro distribuindo a carga entre membros inferiores, tronco e membros superiores.",
+    timeCap: "30 min",
+    minDurationMinutes: 20,
+    maxDurationMinutes: 60,
+    durationStepMinutes: 5,
+    freq: "2 a 3x/semana",
+    calEst: "~280-360 kcal",
+    dinamica: "Contínua em Estado Estável com Transição Suave (< 30s entre máquinas)",
+    hardware: "Bike Erg, RowErg e SkiErg",
+    impactLevel: "NONE",
+    lowerLimbDemand: "LOW",
+    upperLimbDemand: "LOW",
+    axialLoad: "LOW",
+    posteriorChainDemand: "LOW",
+    equipment: ["Bike Erg","RowErg","SkiErg"],
+    compatibleWithPostWorkout: true,
+    avoidAfter: [],
+    preferredAfter: ["Peitoral","Costas","Ombros","Pernas"],
+    objectiveTags: ["emagrecimento","recomposicao","saude_manutencao","hipertrofia","forca"],
+    levelTags: ["iniciante","intermediario","avancado"],
+    contraindicationFlags: [],
+    supportsMultiErg: true,
+    isFoundational: false,
+    recoveryDemand: "LOW",
+    modalityTags: ["multi_erg","tri_erg","bike","rower","skierg","zona2","distribuicao_motora"],
+    adaptationTags: ["multi_erg","piramide_progressiva","baixo_dano_excentrico"],
+    components: [
+      {"type":"ERG","modality":"Bike Erg","durationMinutes":10,"intensity":"Z2","equipment":"Bike Erg","demand":"LOW"},
+      {"type":"ERG","modality":"RowErg","durationMinutes":10,"intensity":"Z2","equipment":"RowErg","demand":"LOW"},
+      {"type":"ERG","modality":"SkiErg","durationMinutes":10,"intensity":"Z2","equipment":"SkiErg","demand":"LOW"},
+    ],
+    blocks: [
+      {"num":1,"name":"Estação 1 — Bike Erg","items":["Bike Erg: 10 min em cadência constante (80-85 RPM / FC Z2)"]},
+      {"num":2,"name":"Estação 2 — RowErg","items":["RowErg: 10 min contínuos (Pace 2:15-2:25 / FC Z2)"]},
+      {"num":3,"name":"Estação 3 — SkiErg","items":["SkiErg: 10 min contínuos (Pace 2:20-2:30 / FC Z2)"]},
+    ],
+    restrictions: ["Manter a transição entre aparelhos rápida sem elevar a FC acima do teto de Z2.","Excelente alternativa para dias pré-treino de força por não gerar dano muscular excêntrico."]
   }
 ];
 
@@ -10728,6 +12438,7 @@ function perfSwitchView(viewKey, shouldScroll = false) {
 }
 
 let perfPrescribedCardioId = 'cardio_01';
+if (typeof window !== 'undefined') window.perfPrescribedCardioId = perfPrescribedCardioId;
 
 function renderPerfPrescribedCardio() {
   const container = document.getElementById('perf-prescribed-cardio-container');
@@ -10802,7 +12513,7 @@ function renderPerfPrescribedCardio() {
               ? (PERF_CARDIO_DB.find(p => p.id === s.protocolId) || PERF_CARDIO_DB[0])
               : { blocks: [], hardware: 'Monitor Cardíaco', restrictions: ['Manter zona alvo'] };
 
-            const isHiit = s.protocolId === 'cardio_03' || s.protocolId === 'cardio_04';
+            const isHiit = Boolean(s.isHiit ?? protoObj?.isHiit ?? false);
             const badgeColor = isHiit ? 'border-orange-500/60 bg-orange-950/60 text-orange-300' : 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300';
 
             return `
@@ -14065,14 +15776,14 @@ function renderPerfCardioProtocols(targetFocusId = null) {
 
   const filtered = PERF_CARDIO_DB.filter(c => {
     if (perfCardioActiveFilter === "Todos") return true;
-    if (perfCardioActiveFilter === "Compromised") return c.category === "Compromised";
+    if (perfCardioActiveFilter === "Compromised") return c.category === "Compromised" || (Array.isArray(c.adaptationTags) && c.adaptationTags.includes("compromised_running"));
     if (perfCardioActiveFilter === "Engine") return c.category === "Engine";
     if (perfCardioActiveFilter === "Zona 2") return c.category === "Zona 2";
     return true;
   });
 
   container.innerHTML = filtered.map((c, idx) => {
-    const isCompromised = c.category === "Compromised";
+    const isCompromised = c.category === "Compromised" || (Array.isArray(c.adaptationTags) && c.adaptationTags.includes("compromised_running"));
     const isZ2 = c.category === "Zona 2";
 
     let badgeBorder = isCompromised ? "border-amber-500/60 bg-amber-950/60 text-amber-300" :
@@ -15259,6 +16970,11 @@ async function buildPerformanceContext(patientId = activePatientId) {
     context.fasting = null;
   }
 
+  // 13. EXTENSÃO DETERMINÍSTICA: CARDIO PROFILE (F7.2)
+  context.cardioProfile = (typeof buildCardioProfile === 'function')
+    ? buildCardioProfile(context)
+    : null;
+
   console.info('[buildPerformanceContext] DTO construído:', JSON.stringify({
     patientId: context._meta.patientId,
     contextVersion: context._meta.contextVersion,
@@ -15501,9 +17217,20 @@ function buildTrainingGenerationRequirements(context) {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// MOTOR DE DECISÃO DETERMINÍSTICA DE CARDIO (CARDIO DECISION ENGINE)
-// _CARDIO_RULES & buildCardioGenerationRequirements(context)
+// MOTOR DE DECISÃO DETERMINÍSTICA DE CARDIO (CARDIO DECISION ENGINE) — FASE F6
+// Frequency × Volume × Duration × Distribution × Modality
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Modos Canônicos de Distribuição de Cardio Semanal
+ */
+const CARDIO_DISTRIBUTION_MODES = Object.freeze({
+  CONCENTRATED: 'CONCENTRATED',
+  DISTRIBUTED: 'DISTRIBUTED',
+  DISTRIBUTED_POST_WORKOUT: 'DISTRIBUTED_POST_WORKOUT',
+  REST_DAY: 'REST_DAY',
+  MIXED: 'MIXED'
+});
 
 /**
  * Fonte canônica única de limites e diretrizes do Cardio Engine.
@@ -15512,10 +17239,11 @@ function buildTrainingGenerationRequirements(context) {
 const _CARDIO_RULES = Object.freeze({
   MANDATORY: Object.freeze({
     MAX_TOTAL_TRAINING_DAYS: 7,
-    MIN_SESSION_DURATION_MINUTES: 15,
+    MIN_SESSION_DURATION_MINUTES: 10,
     MAX_SESSION_DURATION_MINUTES: 75,
     MAX_WEEKLY_VOLUME_MINUTES: 360,
-    HIIT_MAX_SESSIONS_PER_WEEK: 1,
+    HIIT_MAX_SESSIONS_PER_WEEK: 2,
+    HIIT_STANDARD_LIMIT: 1,
     PROHIBIT_HIGH_INTENSITY_IF_RECOVERY_REDUCED: true,
     MAX_CARDIO_FREQ_WITH_6X_STRENGTH: 2,
   }),
@@ -15531,8 +17259,8 @@ const _CARDIO_RULES = Object.freeze({
     TARGET_SESSION_DURATION: Object.freeze({
       Z1: 20,
       Z2: 45,
-      HIIT: 25,
-      Engine: 45,
+      HIIT: 20,
+      Engine: 25,
       Regenerativo: 20,
     }),
     RECOVERY_MODIFIERS: Object.freeze({
@@ -15709,13 +17437,20 @@ function calculateCardioFrequency(context, recoveryResult = null, clinicalSignal
     maxFreq = 3;
     limitingFactors.push('Objetivo de hipertrofia muscular: moderação da frequência aeróbia para preservar a via mTOR');
     rationale.push({ factor: 'objective', observed: 'hipertrofia', effect: 'moderate_baseline_frequency', weight: 'high' });
-  } else if (objective.includes('força') || objective.includes('forca') || objective.includes('performance')) {
+  } else if (objective.includes('força') || objective.includes('forca')) {
     objNormalized = 'forca';
     baseTarget = 1;
     minFreq = 1;
     maxFreq = 2;
     limitingFactors.push('Objetivo de força máxima: minimização de interferência neuromuscular');
     rationale.push({ factor: 'objective', observed: 'forca', effect: 'low_baseline_frequency', weight: 'high' });
+  } else if (objective.includes('performance') || objective.includes('condicionamento') || objective.includes('atleta') || objective.includes('taf')) {
+    objNormalized = 'performance';
+    baseTarget = 2;
+    minFreq = 2;
+    maxFreq = 4;
+    drivingFactors.push('Objetivo de performance atlética e condicionamento cardiorrespiratório');
+    rationale.push({ factor: 'objective', observed: 'performance', effect: 'moderate_high_baseline_frequency', weight: 'high' });
   } else {
     baseTarget = 2;
     minFreq = 2;
@@ -15758,7 +17493,6 @@ function calculateCardioFrequency(context, recoveryResult = null, clinicalSignal
 
   // ── Limitação Mandatória por Treinamento Concorrente ──────────────────────
   if (strengthFreq >= 6) {
-    // Paciente com 6 dias de musculação: apenas 1 dia livre, fadiga neuromuscular alta
     baseTarget = Math.min(baseTarget, _CARDIO_RULES.MANDATORY.MAX_CARDIO_FREQ_WITH_6X_STRENGTH);
     maxFreq = Math.min(maxFreq, 2);
     minFreq = 1;
@@ -15804,14 +17538,14 @@ function calculateCardioFrequency(context, recoveryResult = null, clinicalSignal
 
 /**
  * 4. Cálculo Determinístico do Volume Semanal (Minutos)
+ * Desacoplado da duração de sessões individuais.
  */
 function calculateCardioVolume(context, freqResult, recoveryResult = null) {
   const recovery = recoveryResult || calculateCardioRecoveryModifier(context);
   const objective = String(context?.patient?.objective || '').toLowerCase();
-  const freqTarget = freqResult.target;
+  const freqTarget = typeof freqResult === 'number' ? freqResult : (freqResult?.target || 2);
   const rationale = [];
 
-  // Duração de sessão orientada pelo perfil
   let targetSessionMin = 45;
   if (objective.includes('hipertrofia') || objective.includes('força') || objective.includes('forca')) {
     targetSessionMin = 25;
@@ -15826,12 +17560,12 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
 
   const volMultiplier = _CARDIO_RULES.PREFERRED.RECOVERY_MODIFIERS[recovery.modifier]?.volMultiplier || 1.0;
   const targetMinutes = Math.round((freqTarget * targetSessionMin) * volMultiplier);
-  const minMinutes = Math.round(freqResult.min * Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, targetSessionMin - 10));
-  const maxMinutes = Math.min(_CARDIO_RULES.MANDATORY.MAX_WEEKLY_VOLUME_MINUTES, Math.round(freqResult.max * Math.min(_CARDIO_RULES.MANDATORY.MAX_SESSION_DURATION_MINUTES, targetSessionMin + 15)));
+  const minMinutes = Math.round((freqResult?.min || 1) * Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, targetSessionMin - 10));
+  const maxMinutes = Math.min(_CARDIO_RULES.MANDATORY.MAX_WEEKLY_VOLUME_MINUTES, Math.round((freqResult?.max || freqTarget) * Math.min(_CARDIO_RULES.MANDATORY.MAX_SESSION_DURATION_MINUTES, targetSessionMin + 15)));
 
   rationale.push({
     factor: 'volume_calculation',
-    observed: `Freq=${freqTarget}x, Sessão=${targetSessionMin}min, MultRecuperação=${volMultiplier}`,
+    observed: `Freq=${freqTarget}x, SessãoRef=${targetSessionMin}min, MultRecuperação=${volMultiplier}`,
     effect: `targetMinutes=${targetMinutes}`,
     weight: 'high',
   });
@@ -15846,44 +17580,272 @@ function calculateCardioVolume(context, freqResult, recoveryResult = null) {
 }
 
 /**
- * 5. Determinação da Intensidade e Zonas Cardiovasculares
+ * 5. Particionamento Determinístico das Durações de Sessão (sessionDurations[])
+ * Gera partições exatas onde sum(sessionDurations) === totalWeeklyMinutes.
  */
-function calculateCardioIntensity(context, freqResult, volResult, recoveryResult = null) {
+function calculateCardioSessionDurations(context, frequencyResult, volumeResult, distributionMode = 'DISTRIBUTED') {
+  const freq = typeof frequencyResult === 'number'
+    ? frequencyResult
+    : (frequencyResult?.target || 2);
+
+  const totalMin = typeof volumeResult === 'number'
+    ? volumeResult
+    : (volumeResult?.targetMinutes || volumeResult?.targetWeeklyMinutes || volumeResult?.totalWeeklyMinutes || 45);
+
+  if (freq <= 1) {
+    return [totalMin];
+  }
+
+  // Exemplos explícitos obrigatórios da especificação F6:
+  // 45 → [15, 15, 15]
+  // 60 → [30, 30]
+  // 75 → [25, 25, 25]
+  // 90 → [30, 30, 30]
+  // 75 → [45, 15, 15] (Modo MIXED)
+  if (distributionMode === CARDIO_DISTRIBUTION_MODES.MIXED || distributionMode === 'MIXED') {
+    if (totalMin === 75 && freq === 3) {
+      return [45, 15, 15];
+    }
+    const mainSession = Math.min(60, Math.max(30, Math.round((totalMin * 0.55) / 5) * 5));
+    const remainingMin = totalMin - mainSession;
+    const subFreq = freq - 1;
+    const subBase = Math.floor(remainingMin / subFreq / 5) * 5;
+    let subRem = remainingMin - (subBase * subFreq);
+
+    const subs = [];
+    for (let i = 0; i < subFreq; i++) {
+      subs.push(subBase);
+    }
+    let sIdx = 0;
+    while (subRem >= 5 && sIdx < subs.length) {
+      subs[sIdx] += 5;
+      subRem -= 5;
+      sIdx = (sIdx + 1) % subs.length;
+    }
+    if (subRem > 0) subs[0] += subRem;
+    return [mainSession, ...subs];
+  }
+
+  if (totalMin === 45 && freq === 3) return [15, 15, 15];
+  if (totalMin === 60 && freq === 2) return [30, 30];
+  if (totalMin === 75 && freq === 3) return [25, 25, 25];
+  if (totalMin === 90 && freq === 3) return [30, 30, 30];
+
+  // Partição genérica determinística garantindo sum(durations) === totalMin
+  const base = Math.floor(totalMin / freq / 5) * 5;
+  let remainder = totalMin - (base * freq);
+  const durations = new Array(freq).fill(base);
+
+  let idx = 0;
+  while (remainder >= 5 && idx < durations.length) {
+    durations[idx] += 5;
+    remainder -= 5;
+    idx = (idx + 1) % durations.length;
+  }
+  if (remainder > 0) {
+    durations[0] += remainder;
+  }
+
+  return durations;
+}
+
+/**
+ * 6. Determinação Contextual e Determinística do Teto de Sessões de Alta Intensidade (HIIT)
+ * F7.1: Única Fonte de Verdade para o Teto de HIIT (0, 1 ou 2)
+ *
+ * @param {Object} context - PerformanceContext canônico
+ * @param {Object} recoveryResult - Resultado de calculateCardioRecoveryModifier
+ * @param {Object} clinicalSignalsResult - Resultado de calculateCardioClinicalSignals
+ * @param {Object|number} freqResult - Frequência calculada de cardio
+ * @returns {{ maxSessions: 0|1|2, level: 'NONE'|'STANDARD'|'ADVANCED', rationale: Array, blockedReasons: Array }}
+ */
+function calculateCardioHiitCeiling(context, recoveryResult = null, clinicalSignalsResult = null, freqResult = null) {
   const recovery = recoveryResult || calculateCardioRecoveryModifier(context);
+  const clinical = clinicalSignalsResult || calculateCardioClinicalSignals(context);
+
   const objective = String(context?.patient?.objective || '').toLowerCase();
+  const trainingLevel = String(context?.patient?.trainingLevel || context?.trainingProfile?.trainingLevel || '').toLowerCase();
+  const patientType = String(context?.patient?.patientType || '').toLowerCase();
   const energyBalanceKcal = typeof context?.nutrition?.energyBalanceKcal === 'number'
     ? context.nutrition.energyBalanceKcal
     : 0;
   const strengthFreq = parseInt(context?.trainingProfile?.frequencyWeekly) || 3;
-  const hr = context?.heartRate;
+  const cardioFreq = typeof freqResult === 'number'
+    ? freqResult
+    : (freqResult?.target || 2);
+
+  const constraints = context?.constraints || {};
+  const prohibitedExercises = Array.isArray(constraints.prohibitedExercises) ? constraints.prohibitedExercises : [];
+  const clinicalConstraints = Array.isArray(constraints.clinicalConstraints) ? constraints.clinicalConstraints : [];
 
   const rationale = [];
-  const primaryZones = ['Z2'];
-  let allowedZones = ['Z1', 'Z2'];
-  let highIntensityMaxSessions = 0;
+  const blockedReasons = [];
 
-  // Avaliação de HIIT (Z4/Z5)
-  const isSevereDeficit = energyBalanceKcal < -600;
-  const isRecoveryLow = recovery.modifier === 'REDUCED';
-  const isHeavyStrength = strengthFreq >= 6;
-  const isBulkingPure = objective.includes('hipertrofia') && energyBalanceKcal > 300;
+  // 1. Verificação de Restrições Estruturadas Explícitas (sem inferência textual livre)
+  // Somente flags estruturadas ou códigos reconhecidos
+  const hasExplicitHiitProhibition = prohibitedExercises.some(p => {
+    const s = String(p).toUpperCase();
+    return s === 'HIIT' || s === 'CARDIO_03' || s === 'CARDIO_04' || s === 'ALTA_INTENSIDADE';
+  }) || clinicalConstraints.some(c => {
+    const s = String(c).toUpperCase();
+    return s === 'PROHIBIT_HIIT' || s === 'PROHIBIT_HIGH_INTENSITY' || s === 'CONTRAINDICACAO_HIIT';
+  });
 
-  if (isRecoveryLow || isSevereDeficit || isHeavyStrength || isBulkingPure) {
-    highIntensityMaxSessions = 0;
-    allowedZones = ['Z1', 'Z2', 'Z3'];
-    const reason = isSevereDeficit ? 'déficit profundo (< -600 kcal)'
-      : isRecoveryLow ? 'recuperação reduzida (sono/estresse)'
-      : isHeavyStrength ? 'musculação 6x/semana' : 'superávit anabólico de hipertrofia';
-    rationale.push({ factor: 'hiit_restriction', observed: reason, effect: 'prohibit_hiit_sessions', weight: 'high' });
-  } else if (objective.includes('emagrecimento') || objective.includes('recomposicao') || objective.includes('performance') || objective.includes('força')) {
-    highIntensityMaxSessions = _CARDIO_RULES.MANDATORY.HIIT_MAX_SESSIONS_PER_WEEK;
-    allowedZones = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'];
-    rationale.push({ factor: 'hiit_allowance', observed: 'good_recovery_controlled_deficit', effect: 'allow_single_hiit_session', weight: 'moderate' });
-  } else {
-    highIntensityMaxSessions = 0;
-    allowedZones = ['Z1', 'Z2', 'Z3'];
-    rationale.push({ factor: 'moderate_intensity', observed: objective, effect: 'steady_state_focus', weight: 'moderate' });
+  if (hasExplicitHiitProhibition) {
+    blockedReasons.push('restricao_estruturada_explicita_hiit');
+    rationale.push({
+      factor: 'structured_clinical_constraint',
+      observed: 'prohibition_flag_detected',
+      effect: 'ceiling_zero',
+      weight: 'critical'
+    });
+    return {
+      maxSessions: 0,
+      level: 'NONE',
+      rationale,
+      blockedReasons
+    };
   }
+
+  // 2. Recuperação Fisiológica (Consome exclusivamente recovery.modifier)
+  const isRecoveryLow = recovery.modifier === 'REDUCED';
+  if (isRecoveryLow) {
+    blockedReasons.push('recuperacao_reduzida');
+    rationale.push({
+      factor: 'recovery_modifier',
+      observed: 'REDUCED',
+      effect: 'ceiling_zero',
+      weight: 'high'
+    });
+    return {
+      maxSessions: 0,
+      level: 'NONE',
+      rationale,
+      blockedReasons
+    };
+  }
+
+  // 3. Déficit Energético Severo (Regra Canônica: < -600 kcal)
+  const isSevereDeficit = energyBalanceKcal < -600;
+  if (isSevereDeficit) {
+    blockedReasons.push('deficit_calorico_severo');
+    rationale.push({
+      factor: 'energy_balance',
+      observed: `${energyBalanceKcal} kcal (< -600 kcal)`,
+      effect: 'ceiling_zero',
+      weight: 'high'
+    });
+    return {
+      maxSessions: 0,
+      level: 'NONE',
+      rationale,
+      blockedReasons
+    };
+  }
+
+  // 4. Volume Extremo de Musculação (Regra Canônica: >= 6x/semana)
+  const isHeavyStrength = strengthFreq >= 6;
+  if (isHeavyStrength) {
+    blockedReasons.push('musculacao_frequencia_extrema_6x');
+    rationale.push({
+      factor: 'concurrent_strength_load',
+      observed: `${strengthFreq}x/semana`,
+      effect: 'ceiling_zero',
+      weight: 'high'
+    });
+    return {
+      maxSessions: 0,
+      level: 'NONE',
+      rationale,
+      blockedReasons
+    };
+  }
+
+  // 5. Avaliação Composta para Teto de Alta Performance (Patamar 2: maxSessions = 2)
+  // Exige rigorosamente TODOS os 7 critérios simultâneos:
+  // 1. Ausência de bloqueio clínico/restrição
+  const hasNoClinicalBlock = !hasExplicitHiitProhibition;
+  // 2. Nível avançado ou atleta
+  const isAdvancedOrAthlete = trainingLevel.includes('avançado') || trainingLevel.includes('avancado') ||
+    trainingLevel.includes('atleta') || patientType.includes('atleta');
+  // 3. Objetivo compatível com performance/condicionamento/TAF/CrossFit ou equivalente no domínio
+  const isPerformanceObjective = objective.includes('performance') || objective.includes('condicionamento') ||
+    objective.includes('atleta') || objective.includes('capacidade') || objective.includes('taf') ||
+    objective.includes('crossfit') || objective.includes('endurance') || objective.includes('resistencia');
+  // 4. Recuperação OPTIMAL
+  const isOptimalRecovery = recovery.modifier === 'OPTIMAL';
+  // 5. energyBalanceKcal >= -300
+  const isEnergyNonDepletive = energyBalanceKcal >= -300;
+  // 6. Musculação <= 4 sessões/semana
+  const isStrengthCompatible = strengthFreq <= 4;
+  // 7. Cardio >= 2 sessões/semana
+  const isCardioFreqCompatible = cardioFreq >= 2;
+
+  const advancedCriteria = [
+    { name: 'ausencia_bloqueio_clinico_restricao', met: hasNoClinicalBlock, val: hasExplicitHiitProhibition ? 'com_bloqueio' : 'sem_bloqueio' },
+    { name: 'nivel_avancado_ou_atleta', met: isAdvancedOrAthlete, val: trainingLevel || patientType },
+    { name: 'objetivo_performance_condicionamento', met: isPerformanceObjective, val: objective },
+    { name: 'recuperacao_otima', met: isOptimalRecovery, val: recovery.modifier },
+    { name: 'balanco_energetico_nao_depletivo', met: isEnergyNonDepletive, val: `${energyBalanceKcal} kcal` },
+    { name: 'musculacao_compativel_ate_4x', met: isStrengthCompatible, val: `${strengthFreq}x` },
+    { name: 'frequencia_cardio_minima_2x', met: isCardioFreqCompatible, val: `${cardioFreq}x` }
+  ];
+
+  const unmetCriteria = advancedCriteria.filter(c => !c.met);
+
+  if (unmetCriteria.length === 0) {
+    rationale.push({
+      factor: 'hiit_advanced_governance',
+      observed: 'todos_7_criterios_avancados_satisfeitos',
+      effect: 'ceiling_two',
+      weight: 'high'
+    });
+    return {
+      maxSessions: _CARDIO_RULES.MANDATORY.HIIT_MAX_SESSIONS_PER_WEEK, // 2
+      level: 'ADVANCED',
+      rationale,
+      blockedReasons: []
+    };
+  }
+
+  // 7. Patamar Padrão Seguro (Patamar 1: maxSessions = 1)
+  unmetCriteria.forEach(c => {
+    blockedReasons.push(`criterio_avancado_nao_atendido: ${c.name} (${c.val})`);
+  });
+
+  rationale.push({
+    factor: 'hiit_standard_governance',
+    observed: `criterios_nao_atendidos_para_teto_2: ${unmetCriteria.map(c => c.name).join(', ')}`,
+    effect: 'ceiling_one',
+    weight: 'moderate'
+  });
+
+  return {
+    maxSessions: _CARDIO_RULES.MANDATORY.HIIT_STANDARD_LIMIT || 1,
+    level: 'STANDARD',
+    rationale,
+    blockedReasons
+  };
+}
+
+/**
+ * 7. Determinação da Intensidade e Zonas Cardiovasculares
+ * Consome o teto único de calculateCardioHiitCeiling()
+ */
+function calculateCardioIntensity(context, freqResult, volResult, recoveryResult = null) {
+  const recovery = recoveryResult || calculateCardioRecoveryModifier(context);
+  const clinical = calculateCardioClinicalSignals(context);
+  const hr = context?.heartRate;
+
+  const hiitCeiling = calculateCardioHiitCeiling(context, recovery, clinical, freqResult);
+  const highIntensityMaxSessions = hiitCeiling.maxSessions;
+
+  const primaryZones = ['Z2'];
+  let allowedZones = highIntensityMaxSessions > 0
+    ? ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']
+    : ['Z1', 'Z2', 'Z3'];
+
+  const rationale = [...hiitCeiling.rationale];
 
   const heartRateAvailable = !!(hr && hr.maxHR);
   const method = hr?.method || (hr?.restingHR ? 'Tanaka / Karvonen' : 'Tanaka (%FCM)');
@@ -15892,18 +17854,469 @@ function calculateCardioIntensity(context, freqResult, volResult, recoveryResult
     primaryZones,
     allowedZones,
     highIntensityMaxSessions,
+    hiitCeiling,
     method,
     heartRateAvailable,
     rationale,
   };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// F7.2 — CARDIO PROFILE, NORMALIZAÇÃO E RANKING DETERMINÍSTICO DE MODALIDADES
+// ════════════════════════════════════════════════════════════════════════════
+
 /**
- * 6. Seleção de Protocolos Reais (PERF_CARDIO_DB) e Restrições
+ * Tabela de Pesos Centralizada e Congelada do Ranking de Cardio (F7.2)
+ * Fonte canônica única para bônus, penalidades e multiplicadores determinísticos.
  */
-function calculateCardioModalities(context, intensityResult) {
+const CARDIO_RANKING_WEIGHTS = Object.freeze({
+  EXPLICIT_PREFERENCE_BONUS: 50,
+  INFERRED_PREFERENCE_BONUS: 20,
+  AVOIDED_MODALITY_PENALTY: -40,
+  OBJECTIVE_MATCH_BONUS: 25,
+  EXPERIENCE_ADVANCED_BONUS: 15,
+  EXPERIENCE_BEGINNER_PENALTY: -25,
+  VARIETY_BONUS: 15,
+  CONTEXTUAL_CONCURRENCY_PENALTY: -20
+});
+
+/**
+ * Normalizador determinístico de strings para comparação semântica de modalidades
+ */
+function normalizeModalityString(str) {
+  if (!str) return '';
+  return String(str).trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Cálculo determinístico do escore composto de interferência biomecânica
+ */
+function getCardioInterferenceScore(proto) {
+  if (!proto) return 0;
+  const mapDemand = { 'LOW': 1, 'NONE': 1, 'MODERATE': 2, 'HIGH': 3 };
+  return (mapDemand[proto.impactLevel] || 1) +
+         (mapDemand[proto.axialLoad] || 1) +
+         (mapDemand[proto.posteriorChainDemand] || 1) +
+         (mapDemand[proto.lowerLimbDemand] || 1);
+}
+
+/**
+ * Validação de compatibilidade de hardware/equipamento disponível
+ */
+function isCardioProtocolEquipmentAvailable(protocol, availableEquipment) {
+  if (!protocol) return false;
+  if (!availableEquipment) return true;
+
+  let isFull = false;
+  let eqList = [];
+
+  if (typeof availableEquipment === 'string') {
+    const s = normalizeModalityString(availableEquipment);
+    if (s === 'full gym' || s === 'academia completa' || s === 'all' || s === '') {
+      isFull = true;
+    } else {
+      eqList = s.split(',').map(x => normalizeModalityString(x));
+    }
+  } else if (Array.isArray(availableEquipment)) {
+    eqList = availableEquipment.map(x => normalizeModalityString(x));
+    if (eqList.some(x => x === 'full gym' || x === 'academia completa' || x === 'all')) {
+      isFull = true;
+    }
+  } else if (typeof availableEquipment === 'object') {
+    if (availableEquipment.isFullGym) return true;
+    if (Array.isArray(availableEquipment.normalized)) {
+      eqList = availableEquipment.normalized.map(x => normalizeModalityString(x));
+      if (eqList.some(x => x === 'all' || x === 'full gym' || x === 'academia completa')) return true;
+    }
+  }
+
+  if (isFull) return true;
+  if (eqList.length === 0) return true;
+
+  const rawEq = Array.isArray(protocol.equipment)
+    ? protocol.equipment.map(normalizeModalityString).join(' ')
+    : normalizeModalityString(protocol.equipmentRequired || protocol.equipment || '');
+  const altStr = normalizeModalityString(protocol.equipmentAlternative || '');
+  const titleStr = normalizeModalityString(protocol.title || '');
+  const modStr = normalizeModalityString(protocol.modality || '');
+  const idStr = normalizeModalityString(protocol.id || '');
+
+  const isMultiErg = rawEq.includes('multi') || idStr === 'cardio_01' || idStr === 'hybrid_tri_erg_15';
+  if (isMultiErg) {
+    const hasAnyErg = eqList.some(eq =>
+      eq.includes('bike') || eq.includes('bicicleta') ||
+      eq.includes('esteira') || eq.includes('remo') ||
+      eq.includes('rower') || eq.includes('airbike') ||
+      eq.includes('skierg') || eq.includes('ergometro')
+    );
+    if (hasAnyErg) return true;
+  }
+
+  return eqList.some(eq => {
+    if (!eq) return false;
+    if (eq.includes('bike') || eq.includes('bicicleta') || eq.includes('cicloerg')) {
+      if (rawEq.includes('bike') || rawEq.includes('bicicleta') || altStr.includes('bike') || altStr.includes('bicicleta') || modStr.includes('bike') || modStr.includes('ciclismo')) return true;
+    }
+    if (eq.includes('airbike') || eq.includes('air bike')) {
+      if (rawEq.includes('airbike') || altStr.includes('airbike') || idStr.includes('airbike')) return true;
+    }
+    if (eq.includes('esteira') || eq.includes('treadmill') || eq.includes('corrida')) {
+      if (rawEq.includes('esteira') || altStr.includes('esteira') || modStr.includes('corrida') || idStr.includes('treadmill') || rawEq.includes('asfalto')) return true;
+    }
+    if (eq.includes('remo') || eq.includes('rower') || eq.includes('rowing')) {
+      if (rawEq.includes('remo') || altStr.includes('remo') || modStr.includes('remo') || idStr.includes('rower') || rawEq.includes('rowerg')) return true;
+    }
+    if (eq.includes('skierg') || eq.includes('ski')) {
+      if (rawEq.includes('skierg') || altStr.includes('skierg') || idStr.includes('skierg')) return true;
+    }
+    if (eq.includes('eliptico') || eq.includes('elliptical')) {
+      if (rawEq.includes('eliptico') || altStr.includes('eliptico') || modStr.includes('eliptico')) return true;
+    }
+    return rawEq.includes(eq) || altStr.includes(eq) || titleStr.includes(eq) || modStr.includes(eq);
+  });
+}
+
+/**
+ * Construtor Canônico e Determinístico do Cardio Profile (F7.2)
+ * Rastreável, normalizado e sem dados fictícios.
+ */
+function buildCardioProfile(context) {
   const constraints = context?.constraints || {};
-  const clinicalNotes = String(context?.clinical?.clinicalNotes || '').toLowerCase();
+  const patient = context?.patient || {};
+  const training = context?.trainingProfile || {};
+
+  // 1. Experience Level: não inferir de trainingLevel de força
+  let expVal = 'unknown';
+  let expConf = 'unknown';
+  if (patient.cardioExperience && typeof patient.cardioExperience === 'string') {
+    const norm = normalizeModalityString(patient.cardioExperience);
+    if (norm.includes('avancado') || norm.includes('advanced')) {
+      expVal = 'advanced'; expConf = 'explicit';
+    } else if (norm.includes('iniciante') || norm.includes('beginner')) {
+      expVal = 'beginner'; expConf = 'explicit';
+    } else if (norm.includes('intermediario') || norm.includes('intermediate')) {
+      expVal = 'intermediate'; expConf = 'explicit';
+    }
+  }
+
+  // 2. Preferred Modalities: explícito vs inferido
+  const preferredModalities = [];
+  const rawExplicitPref = constraints.preferredModalities || patient.preferredModalities || [];
+  const explicitList = Array.isArray(rawExplicitPref)
+    ? rawExplicitPref
+    : (typeof rawExplicitPref === 'string' ? rawExplicitPref.split(',') : []);
+
+  explicitList.forEach(m => {
+    const clean = normalizeModalityString(m);
+    if (clean) {
+      preferredModalities.push({
+        modality: clean,
+        confidence: 'explicit',
+        source: 'explicit_patient_preference'
+      });
+    }
+  });
+
+  // Sinal inferido de workoutType / mainModality
+  const workoutTypeStr = normalizeModalityString(training.workoutType || training.mainModality || '');
+  if (workoutTypeStr) {
+    let inferredMod = null;
+    if (workoutTypeStr.includes('endurance') || workoutTypeStr.includes('corrida')) {
+      inferredMod = 'corrida';
+    } else if (workoutTypeStr.includes('ciclismo') || workoutTypeStr.includes('bike')) {
+      inferredMod = 'bicicleta';
+    } else if (workoutTypeStr.includes('remo') || workoutTypeStr.includes('rowing')) {
+      inferredMod = 'remo';
+    } else if (workoutTypeStr.includes('triathlon') || workoutTypeStr.includes('triatlo')) {
+      inferredMod = 'triathlon';
+    }
+
+    if (inferredMod) {
+      const alreadyExplicit = preferredModalities.some(p => p.modality === inferredMod && p.confidence === 'explicit');
+      if (!alreadyExplicit) {
+        preferredModalities.push({
+          modality: inferredMod,
+          confidence: 'inferred',
+          source: 'training_profile_workout_type'
+        });
+      }
+    }
+  }
+
+  // 3. Avoided Modalities: preferência negativa (NÃO contraindicação)
+  const avoidedModalities = [];
+  const rawAvoided = constraints.avoidedModalities || patient.avoidedModalities || [];
+  const avoidedList = Array.isArray(rawAvoided)
+    ? rawAvoided
+    : (typeof rawAvoided === 'string' ? rawAvoided.split(',') : []);
+
+  avoidedList.forEach(m => {
+    const clean = normalizeModalityString(m);
+    if (clean) {
+      avoidedModalities.push({
+        modality: clean,
+        reason: 'preference_negative'
+      });
+    }
+  });
+
+  // 4. Available Equipment
+  const rawEquip = constraints.availableEquipment ?? 'Full Gym';
+  let isFullGym = false;
+  let normalizedEquip = [];
+  if (typeof rawEquip === 'string') {
+    const s = normalizeModalityString(rawEquip);
+    if (s === 'full gym' || s === 'academia completa' || s === 'all' || s === '') {
+      isFullGym = true;
+      normalizedEquip = ['ALL'];
+    } else {
+      normalizedEquip = s.split(',').map(x => normalizeModalityString(x)).filter(Boolean);
+    }
+  } else if (Array.isArray(rawEquip)) {
+    normalizedEquip = rawEquip.map(x => normalizeModalityString(x)).filter(Boolean);
+    if (normalizedEquip.some(x => x === 'full gym' || x === 'academia completa' || x === 'all')) {
+      isFullGym = true;
+      normalizedEquip = ['ALL'];
+    }
+  }
+
+  // 5. Preferred Days
+  const rawDays = training.preferredDays || patient.preferredDays || [];
+  const preferredDays = Array.isArray(rawDays) ? rawDays : [];
+
+  // 6. Preferred Duration
+  const rawDur = training.preferredDuration || patient.preferredDuration || null;
+  const preferredDuration = {
+    min: (rawDur && typeof rawDur.min === 'number') ? rawDur.min : null,
+    max: (rawDur && typeof rawDur.max === 'number') ? rawDur.max : null,
+    target: (rawDur && typeof rawDur.target === 'number') ? rawDur.target : null
+  };
+
+  // 7. Uncollected Fields
+  const uncollectedFields = [
+    'cardio_history',
+    'modality_experience_detail',
+    'environment_indoor_outdoor',
+    'competitive_modality'
+  ];
+
+  return {
+    experienceLevel: {
+      value: expVal,
+      confidence: expConf
+    },
+    preferredModalities,
+    avoidedModalities,
+    availableEquipment: {
+      raw: rawEquip,
+      normalized: normalizedEquip,
+      isFullGym
+    },
+    preferredDays,
+    preferredDuration,
+    uncollectedFields
+  };
+}
+
+/**
+ * Função Pura e Determinística de Ranking de Protocolos Cardio (F7.2)
+ */
+function rankCardioProtocols(context, cardioProfile, eligibleCandidates, options = {}) {
+  if (!Array.isArray(eligibleCandidates) || eligibleCandidates.length === 0) {
+    return [];
+  }
+
+  const cp = cardioProfile || buildCardioProfile(context);
+  const alreadyUsedIds = Array.isArray(options.alreadyUsedIds) ? options.alreadyUsedIds : [];
+  const dayDemand = options.dayDemand || {};
+  const targetSessionsCount = options.targetSessionsCount || 1;
+  const objective = normalizeModalityString(context?.patient?.objective || '');
+
+  const ranked = eligibleCandidates.map(proto => {
+    let score = 0;
+    const rationale = [];
+    const matchedPreferences = [];
+    const objectiveMatches = [];
+    const penalties = [];
+    const rejectedReasons = [];
+
+    const normMod = normalizeModalityString(proto.modality || '');
+    const normEq = Array.isArray(proto.equipment)
+      ? proto.equipment.map(normalizeModalityString).join(' ')
+      : normalizeModalityString(proto.equipmentRequired || proto.equipment || '');
+    const normTitle = normalizeModalityString(proto.title || '');
+    const normId = normalizeModalityString(proto.id || '');
+    const isMultiModal = normMod.includes('multi') || normId === 'cardio_01' || normId === 'hybrid_tri_erg_15';
+
+    // Helper para casamento semântico rigoroso de modalidade principal
+    const matchesModalityTerm = (term) => {
+      if (!term) return false;
+      if (isMultiModal) {
+        return term.includes('multi') || term.includes('hibrid') || term.includes('circuito') || term.includes('tri-erg');
+      }
+      if (normMod.includes(term)) return true;
+      if (term === 'bicicleta' && (normMod.includes('bike') || normMod.includes('cicloerg') || normMod.includes('ciclismo'))) return true;
+      if (term === 'corrida' && (normMod.includes('corrida') || normMod.includes('running') || (normMod.includes('esteira') && !normMod.includes('caminhada')))) return true;
+      if (term === 'esteira' && (normMod.includes('esteira') || normMod.includes('treadmill') || normMod.includes('caminhada'))) return true;
+      if (term === 'remo' && (normMod.includes('remo') || normMod.includes('rower') || normMod.includes('rowing'))) return true;
+      if (term === 'skierg' && (normMod.includes('skierg') || normMod.includes('ski'))) return true;
+      if (term === 'eliptico' && (normMod.includes('eliptico') || normMod.includes('elliptical'))) return true;
+      if (term === 'airbike' && (normMod.includes('airbike') || normMod.includes('air bike'))) return true;
+      return false;
+    };
+
+    // 1. Soft Preference: Preferred Modalities
+    let matchedExplicit = false;
+    let matchedInferred = false;
+
+    cp.preferredModalities.forEach(pref => {
+      const pm = pref.modality;
+      if (matchesModalityTerm(pm)) {
+        if (pref.confidence === 'explicit') {
+          matchedExplicit = true;
+          matchedPreferences.push({ modality: pm, confidence: 'explicit', bonus: CARDIO_RANKING_WEIGHTS.EXPLICIT_PREFERENCE_BONUS });
+        } else if (pref.confidence === 'inferred') {
+          matchedInferred = true;
+          matchedPreferences.push({ modality: pm, confidence: 'inferred', bonus: CARDIO_RANKING_WEIGHTS.INFERRED_PREFERENCE_BONUS });
+        }
+      }
+    });
+
+    if (matchedExplicit) {
+      score += CARDIO_RANKING_WEIGHTS.EXPLICIT_PREFERENCE_BONUS;
+      rationale.push(`Preferência explícita do paciente (+${CARDIO_RANKING_WEIGHTS.EXPLICIT_PREFERENCE_BONUS})`);
+    } else if (matchedInferred) {
+      score += CARDIO_RANKING_WEIGHTS.INFERRED_PREFERENCE_BONUS;
+      rationale.push(`Preferência inferida de treino (+${CARDIO_RANKING_WEIGHTS.INFERRED_PREFERENCE_BONUS})`);
+    }
+
+    // 2. Soft Preference: Avoided Modalities (penalização, NUNCA eliminação)
+    cp.avoidedModalities.forEach(avoid => {
+      const am = avoid.modality;
+      if (matchesModalityTerm(am)) {
+        score += CARDIO_RANKING_WEIGHTS.AVOIDED_MODALITY_PENALTY;
+        penalties.push({ factor: 'avoided_modality', modality: am, penalty: CARDIO_RANKING_WEIGHTS.AVOIDED_MODALITY_PENALTY });
+        rationale.push(`Modalidade evitada pelo paciente (${CARDIO_RANKING_WEIGHTS.AVOIDED_MODALITY_PENALTY})`);
+      }
+    });
+
+    // 3. Objective Match Bonus (via objectiveTags ou compatibilidade fisiológica)
+    let objMatch = false;
+    const tags = Array.isArray(proto.objectiveTags) ? proto.objectiveTags.map(normalizeModalityString) : [];
+    if (objective.includes('emagrec') || objective.includes('cutting') || objective.includes('defin')) {
+      if (tags.some(t => t.includes('emagrec') || t.includes('recomp')) || proto.category === 'Zona 2' || proto.category === 'Z2 / Contínuo' || String(proto.primaryBenefit || '').toLowerCase().includes('lipíd') || String(proto.primaryBenefit || '').toLowerCase().includes('mitocondrial')) {
+        objMatch = true;
+      }
+    } else if (objective.includes('hipertrof') || objective.includes('massa')) {
+      if (tags.some(t => t.includes('hipertrof')) || ((proto.impactLevel === 'LOW' || proto.impactLevel === 'NONE') && (proto.axialLoad === 'LOW' || proto.axialLoad === 'NONE'))) {
+        objMatch = true;
+      }
+    } else if (objective.includes('resisten') || objective.includes('endurance') || objective.includes('performance') || objective.includes('condicion')) {
+      if (tags.some(t => t.includes('performance') || t.includes('endurance')) || proto.category === 'HIIT' || String(proto.intensityZone || '').includes('Z4') || String(proto.primaryBenefit || '').toLowerCase().includes('vo2')) {
+        objMatch = true;
+      }
+    } else if (objective.includes('saude') || objective.includes('longev')) {
+      if (tags.some(t => t.includes('saude')) || proto.impactLevel === 'LOW' || proto.impactLevel === 'NONE') {
+        objMatch = true;
+      }
+    }
+
+    if (objMatch) {
+      score += CARDIO_RANKING_WEIGHTS.OBJECTIVE_MATCH_BONUS;
+      objectiveMatches.push({ objective, bonus: CARDIO_RANKING_WEIGHTS.OBJECTIVE_MATCH_BONUS });
+      rationale.push(`Compatibilidade direta com objetivo "${objective}" (+${CARDIO_RANKING_WEIGHTS.OBJECTIVE_MATCH_BONUS})`);
+    }
+
+    // 4. Experience Level
+    if (cp.experienceLevel.value === 'advanced') {
+      if (proto.category === 'HIIT' || proto.intensityZone?.includes('Z4')) {
+        score += CARDIO_RANKING_WEIGHTS.EXPERIENCE_ADVANCED_BONUS;
+        rationale.push(`Experiência avançada em cardio (+${CARDIO_RANKING_WEIGHTS.EXPERIENCE_ADVANCED_BONUS})`);
+      }
+    } else if (cp.experienceLevel.value === 'beginner') {
+      if (proto.category === 'HIIT' || proto.impactLevel === 'HIGH') {
+        score += CARDIO_RANKING_WEIGHTS.EXPERIENCE_BEGINNER_PENALTY;
+        penalties.push({ factor: 'beginner_high_intensity', penalty: CARDIO_RANKING_WEIGHTS.EXPERIENCE_BEGINNER_PENALTY });
+        rationale.push(`Iniciante em protocolo de alta exigência (${CARDIO_RANKING_WEIGHTS.EXPERIENCE_BEGINNER_PENALTY})`);
+      }
+    }
+
+    // 5. Variety Bonus (não repetido na semana)
+    if (!alreadyUsedIds.includes(proto.id)) {
+      score += CARDIO_RANKING_WEIGHTS.VARIETY_BONUS;
+      rationale.push(`Variedade semanal (+${CARDIO_RANKING_WEIGHTS.VARIETY_BONUS})`);
+    }
+
+    // 6. Contextual Concurrency Penalty (dia de pernas com demanda moderada de pernas)
+    if (dayDemand.isLegs && proto.lowerLimbDemand === 'MODERATE') {
+      score += CARDIO_RANKING_WEIGHTS.CONTEXTUAL_CONCURRENCY_PENALTY;
+      penalties.push({ factor: 'concurrency_legs_moderate', penalty: CARDIO_RANKING_WEIGHTS.CONTEXTUAL_CONCURRENCY_PENALTY });
+      rationale.push(`Concorrência moderada em dia de pernas (${CARDIO_RANKING_WEIGHTS.CONTEXTUAL_CONCURRENCY_PENALTY})`);
+    }
+
+    return {
+      protocol: proto,
+      score,
+      rationale,
+      matchedPreferences,
+      objectiveMatches,
+      penalties,
+      rejectedReasons
+    };
+  });
+
+  // Desempate determinístico rigoroso:
+  // 1. Maior score
+  // 2. Maior quantidade de correspondências objetivas
+  // 3. Menor quantidade de penalidades contextuais
+  // 4. Menor interferência mecânica composta
+  // 5. Variedade (não utilizado na semana anterior/atual)
+  // 6. Neutral Fallback Policy (protocolos fundacionais / multi-ergômetros têm precedência se nenhuma preferência foi correspondida)
+  // 7. Ordem alfabética estável de protocol.id
+  ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.objectiveMatches.length !== a.objectiveMatches.length) {
+      return b.objectiveMatches.length - a.objectiveMatches.length;
+    }
+    if (a.penalties.length !== b.penalties.length) {
+      return a.penalties.length - b.penalties.length;
+    }
+    const aInt = getCardioInterferenceScore(a.protocol);
+    const bInt = getCardioInterferenceScore(b.protocol);
+    if (aInt !== bInt) return aInt - bInt;
+
+    const aUsed = alreadyUsedIds.includes(a.protocol.id) ? 1 : 0;
+    const bUsed = alreadyUsedIds.includes(b.protocol.id) ? 1 : 0;
+    if (aUsed !== bUsed) return aUsed - bUsed;
+
+    // 6. Neutral Fallback Policy (desempate determinístico sem alteração de pontuação clínica):
+    // Quando nenhuma preferência positiva (explícita ou inferida) foi correspondida,
+    // protocolos fundacionais / multi-ergômetros têm precedência determinística antes do ID alfabético
+    const hasAnyPreferenceMatched = a.matchedPreferences.length > 0 || b.matchedPreferences.length > 0;
+    if (!hasAnyPreferenceMatched) {
+      const isFoundational = (p) => {
+        if (!p) return false;
+        if (p.isFoundational === true || p.supportsMultiErg === true || p.id === 'cardio_01') return true;
+        const mod = String(p.modality || '').toLowerCase();
+        return mod.includes('multi-erg') || mod.includes('multi erg');
+      };
+      const aFound = isFoundational(a.protocol) ? 1 : 0;
+      const bFound = isFoundational(b.protocol) ? 1 : 0;
+      if (aFound !== bFound) return bFound - aFound;
+    }
+
+    return String(a.protocol.id).localeCompare(String(b.protocol.id));
+  });
+
+  return ranked;
+}
+
+/**
+ * 7. Seleção de Protocolos e Restrições Clínicas no Catálogo Expandido
+ */
+function calculateCardioModalities(context, intensityResult, customDb = null) {
+  const constraints = context?.constraints || {};
   const prohibitedExercises = Array.isArray(constraints.prohibitedExercises) ? constraints.prohibitedExercises : [];
   const injuries = Array.isArray(constraints.injuries) ? constraints.injuries : [];
   const clinicalConstraints = Array.isArray(constraints.clinicalConstraints) ? constraints.clinicalConstraints : [];
@@ -15912,48 +18325,99 @@ function calculateCardioModalities(context, intensityResult) {
   const hasKneeOrJointConstraint = allRestrictions.some(r =>
     r.includes('joelho') || r.includes('impacto') || r.includes('patelar') || r.includes('condromalacia') || r.includes('articular') || r.includes('menisco')
   );
+  const hasBackConstraint = allRestrictions.some(r =>
+    r.includes('lombar') || r.includes('hernia') || r.includes('espondilo') || r.includes('coluna')
+  );
+  const hasShoulderConstraint = allRestrictions.some(r =>
+    r.includes('ombro') || r.includes('manguito') || r.includes('impacto subacromial')
+  );
 
   const preferredProtocolIds = [];
   const allowedProtocolIds = [];
   const prohibitedProtocolIds = [];
   const rationale = [];
 
-  // Protocolos do PERF_CARDIO_DB:
-  // cardio_01: Zona 2 Mitocondrial Puro (45 min · Z2 · Remo, Bike, Esteira Inclinada)
-  // cardio_02: Circuito Engine Híbrido Multiplanar (45 min · Engine Z2-Z3 · Multiarticular)
-  // cardio_03: HIIT Norueguês 4x4 (35 min · HIIT Z4-Z5)
-  // cardio_04: Sprint Interval Training SIT (20 min · HIIT Z4-Z5)
-  // cardio_05: Aeróbico Regenerativo (20 min · Z1 estrita · Baixo impacto)
+  const db = customDb || ((typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+    ? PERF_CARDIO_DB
+    : []);
 
-  // cardio_01 é a espinha dorsal de biogênese mitocondrial
-  preferredProtocolIds.push('cardio_01');
-  allowedProtocolIds.push('cardio_01');
+  const cardioProfile = context?.cardioProfile || buildCardioProfile(context);
 
-  // cardio_02 (Engine)
-  allowedProtocolIds.push('cardio_02');
+  db.forEach(p => {
+    const isHiit = p.category === 'HIIT' || (p.intensityZone && (p.intensityZone.includes('Z4') || p.intensityZone.includes('Z5')));
+    if (isHiit && intensityResult.highIntensityMaxSessions === 0) {
+      prohibitedProtocolIds.push(p.id);
+      return;
+    }
 
-  // cardio_05 (Regenerativo)
-  allowedProtocolIds.push('cardio_05');
+    if (hasKneeOrJointConstraint && p.impactLevel === 'HIGH') {
+      prohibitedProtocolIds.push(p.id);
+      return;
+    }
 
-  // Protocolos HIIT (cardio_03 e cardio_04)
+    if (hasBackConstraint) {
+      const hasBackContraindication = Array.isArray(p.contraindicationFlags) && p.contraindicationFlags.some(f => {
+        const s = String(f).toLowerCase();
+        return s.includes('lombalg') || s.includes('coluna') || s.includes('hernia');
+      });
+      if (p.axialLoad === 'HIGH' || hasBackContraindication || (p.posteriorChainDemand === 'HIGH' && isHiit)) {
+        prohibitedProtocolIds.push(p.id);
+        return;
+      }
+    }
+
+    if (hasShoulderConstraint) {
+      const hasShoulderContraindication = Array.isArray(p.contraindicationFlags) && p.contraindicationFlags.some(f => {
+        const s = String(f).toLowerCase();
+        return s.includes('ombro') || s.includes('manguito') || s.includes('escapul');
+      });
+      if (p.upperLimbDemand === 'HIGH' || hasShoulderContraindication) {
+        prohibitedProtocolIds.push(p.id);
+        return;
+      }
+    }
+
+    // 1. Hard constraint: Exercícios/modalidades explicitamente proibidos
+    const normMod = normalizeModalityString(p.modality || '');
+    const normEq = Array.isArray(p.equipment)
+      ? p.equipment.map(normalizeModalityString).join(' ')
+      : normalizeModalityString(p.equipmentRequired || p.equipment || '');
+    const normTitle = normalizeModalityString(p.title || '');
+    const isExplicitlyProhibited = prohibitedExercises.some(pe => {
+      const pNorm = normalizeModalityString(pe);
+      if (!pNorm) return false;
+      return normMod.includes(pNorm) || normEq.includes(pNorm) || normTitle.includes(pNorm);
+    });
+    if (isExplicitlyProhibited) {
+      prohibitedProtocolIds.push(p.id);
+      return;
+    }
+
+    // 2. Hard constraint: Equipamento indisponível
+    if (!isCardioProtocolEquipmentAvailable(p, cardioProfile.availableEquipment)) {
+      prohibitedProtocolIds.push(p.id);
+      return;
+    }
+
+    allowedProtocolIds.push(p.id);
+
+    // Preferidos estruturados
+    if (['cardio_01', 'airbike_z2_15', 'treadmill_incline_z2_15', 'bike_erg_z2_15', 'hybrid_tri_erg_15'].includes(p.id)) {
+      preferredProtocolIds.push(p.id);
+    }
+  });
+
   if (intensityResult.highIntensityMaxSessions > 0) {
-    allowedProtocolIds.push('cardio_03', 'cardio_04');
-    preferredProtocolIds.push('cardio_03');
-    rationale.push({ factor: 'hiit_allowed', observed: 'highIntensityMaxSessions > 0', effect: 'enable_cardio_03_and_04', weight: 'moderate' });
+    rationale.push({ factor: 'hiit_allowed', observed: 'highIntensityMaxSessions > 0', effect: 'enable_hiit_protocols', weight: 'moderate' });
   } else {
-    prohibitedProtocolIds.push('cardio_03', 'cardio_04');
-    rationale.push({ factor: 'hiit_capped_zero', observed: 'highIntensityMaxSessions === 0', effect: 'prohibit_cardio_03_and_04', weight: 'high' });
+    rationale.push({ factor: 'hiit_capped_zero', observed: 'highIntensityMaxSessions === 0', effect: 'prohibit_hiit_protocols', weight: 'high' });
   }
 
-  // Restrição de impacto articular
   if (hasKneeOrJointConstraint) {
     rationale.push({ factor: 'orthopedic_constraint', observed: 'restrição articular/joelho declarada', effect: 'prioritize_low_impact_ergometers', weight: 'high' });
   }
 
-  // Lookup completo dos objetos em PERF_CARDIO_DB
-  const protocols = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
-    ? PERF_CARDIO_DB.filter(p => allowedProtocolIds.includes(p.id))
-    : [];
+  const protocols = db.filter(p => allowedProtocolIds.includes(p.id));
 
   return {
     preferredProtocolIds: [...new Set(preferredProtocolIds)],
@@ -15961,23 +18425,43 @@ function calculateCardioModalities(context, intensityResult) {
     prohibitedProtocolIds: [...new Set(prohibitedProtocolIds)],
     protocols,
     hasKneeOrJointConstraint,
+    hasBackConstraint,
+    hasShoulderConstraint,
     rationale,
   };
 }
 
 /**
- * 7. Distribuição Semanal & Gestão de Concorrência
+ * 8. Distribuição Semanal, Modo de Alocação & Gestão de Concorrência
  */
 function calculateCardioDistribution(context, freqResult) {
   const workoutPlan = (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan)) ? perfWorkoutPlan : [];
+  const schedule = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule)) ? perfWeeklySchedule : [];
+  const strengthFreq = parseInt(context?.trainingProfile?.frequencyWeekly) || (workoutPlan.length || 3);
+  const targetCardioFreq = typeof freqResult === 'number' ? freqResult : (freqResult?.target || 2);
   const rationale = [];
 
-  // Identificação de treinos de membros inferiores
-  const lowerRoutines = workoutPlan.filter(r => {
-    const name = String(r.name || r.title || '').toLowerCase();
-    const desc = String(r.description || r.focus || '').toLowerCase();
-    return name.includes('leg') || name.includes('lower') || name.includes('perna') ||
+  const muscleDemandByDay = {};
+  const lowerRoutines = [];
+  const backRoutines = [];
+  const shoulderRoutines = [];
+
+  const allDaySources = schedule.length > 0 ? schedule : workoutPlan.map((r, i) => ({ dayKey: r.dayKey || `d${i + 1}`, ...r }));
+  allDaySources.forEach((d, idx) => {
+    const dayKey = d.dayKey || `d${idx + 1}`;
+    const name = String(d.name || d.title || '').toLowerCase();
+    const desc = String(d.description || d.focus || '').toLowerCase();
+
+    const isLegs = name.includes('leg') || name.includes('lower') || name.includes('perna') ||
       name.includes('quadriceps') || name.includes('posterior') || desc.includes('pernas') || desc.includes('agachamento');
+    const isBack = name.includes('costas') || name.includes('dorsal') || name.includes('pull') || name.includes('remada') || desc.includes('costas') || desc.includes('dorsal');
+    const isShoulders = name.includes('ombro') || name.includes('deltoide') || desc.includes('ombro');
+
+    if (isLegs) lowerRoutines.push(dayKey);
+    if (isBack) backRoutines.push(dayKey);
+    if (isShoulders) shoulderRoutines.push(dayKey);
+
+    muscleDemandByDay[dayKey] = { isLegs, isBack, isShoulders, title: d.title || d.name || `Dia ${idx + 1}` };
   });
 
   const hasLowerWorkouts = lowerRoutines.length > 0;
@@ -15986,13 +18470,24 @@ function calculateCardioDistribution(context, freqResult) {
   if (hasLowerWorkouts) {
     rationale.push({
       factor: 'lower_body_detection',
-      observed: `${lowerRoutines.length} rotinas de membros inferiores identificadas`,
+      observed: `${lowerRoutines.length} treinos com demanda de membros inferiores`,
       effect: 'avoid_cardio_immediately_before_heavy_legs',
       weight: 'high',
     });
   }
 
-  const strengthFreq = parseInt(context?.trainingProfile?.frequencyWeekly) || 3;
+  // Determinação determinística do distributionMode
+  let distributionMode = CARDIO_DISTRIBUTION_MODES.DISTRIBUTED;
+  if (targetCardioFreq === 1) {
+    distributionMode = CARDIO_DISTRIBUTION_MODES.CONCENTRATED;
+  } else if (strengthFreq >= 5) {
+    distributionMode = CARDIO_DISTRIBUTION_MODES.DISTRIBUTED_POST_WORKOUT;
+  } else if (strengthFreq <= 3 && targetCardioFreq <= 3) {
+    distributionMode = CARDIO_DISTRIBUTION_MODES.REST_DAY;
+  } else if (strengthFreq === 4 && targetCardioFreq >= 3) {
+    distributionMode = CARDIO_DISTRIBUTION_MODES.MIXED;
+  }
+
   let maximumConcurrentLoad = 'MODERATE';
   if (strengthFreq >= 6) maximumConcurrentLoad = 'HIGH';
   else if (strengthFreq <= 3) maximumConcurrentLoad = 'LIGHT';
@@ -16000,14 +18495,18 @@ function calculateCardioDistribution(context, freqResult) {
   return {
     avoidBeforeHeavyLegs,
     maximumConcurrentLoad,
-    preferredDays: ['d3', 'd6', 'd7', 'd2'],
+    distributionMode,
+    muscleDemandByDay,
+    lowerRoutines,
+    backRoutines,
+    shoulderRoutines,
+    preferredDays: ['d2', 'd5', 'd4', 'd6', 'd3', 'd1', 'd7'],
     rationale,
   };
 }
 
 /**
- * 8. Builder Mestre de Requisitos de Geração de Cardio
- * Constrói o DTO canônico completo e auditável CardioGenerationRequirements.
+ * 9. Builder Mestre de Requisitos de Geração de Cardio
  */
 function buildCardioGenerationRequirements(context) {
   if (!context || typeof context !== 'object') {
@@ -16022,6 +18521,7 @@ function buildCardioGenerationRequirements(context) {
   const intensity = calculateCardioIntensity(context, frequency, volume, recovery);
   const modalities = calculateCardioModalities(context, intensity);
   const distribution = calculateCardioDistribution(context, frequency);
+  const sessionDurations = calculateCardioSessionDurations(context, frequency, volume, distribution.distributionMode);
 
   const warnings = [];
   const prohibitions = [];
@@ -16041,18 +18541,17 @@ function buildCardioGenerationRequirements(context) {
   }
 
   if (modalities.prohibitedProtocolIds.includes('cardio_03')) {
-    prohibitions.push('HIIT de Alta Intensidade (Protocolos 03/04) restrito para proteger recuperação neuromuscular e massa magra.');
+    prohibitions.push('HIIT de Alta Intensidade restrito para proteger recuperação neuromuscular e massa magra.');
   }
   if (modalities.hasKneeOrJointConstraint) {
     prohibitions.push(_CARDIO_RULES.PROHIBITED.HIGH_IMPACT_WITH_JOINT_INJURY);
   }
 
-  // Equipamento específico de cardio é tratado como não discriminado
   unknowns.push('specific_cardio_hardware_not_itemized');
 
   const requirements = {
     _meta: {
-      builderVersion: '1.0',
+      builderVersion: '2.0',
       patientId: context._meta?.patientId || 'unknown',
       builtAt: new Date().toISOString(),
     },
@@ -16083,9 +18582,11 @@ function buildCardioGenerationRequirements(context) {
 
     frequency,
     volume,
+    sessionDurations,
     intensity,
     modalities,
     distribution,
+    cardioProfile: context?.cardioProfile || buildCardioProfile(context),
 
     safety: {
       warnings,
@@ -16102,115 +18603,485 @@ function buildCardioGenerationRequirements(context) {
     },
   };
 
-  console.info('[buildCardioGenerationRequirements] Requisitos calculados:', JSON.stringify({
-    patientId: requirements._meta.patientId,
-    targetFreq: requirements.frequency.target,
-    freqRange: `${requirements.frequency.min} - ${requirements.frequency.max}x`,
-    targetVolumeMin: requirements.volume.targetMinutes,
-    primaryZones: requirements.intensity.primaryZones,
-    maxHIIT: requirements.intensity.highIntensityMaxSessions,
-    allowedProtocols: requirements.modalities.allowedProtocolIds,
-  }));
-
   return requirements;
 }
 
 /**
- * 9. Gerador Determinístico de Sessões de Cardio
- * Transforma context e requirements em uma prescrição multi-sessão estruturada.
+ * 10. CARDIO WEEKLY PRESCRIPTION ENGINE (F7.4)
+ * Orquestrador semanal determinístico que analisa o microciclo completo de 7 dias (D-1, D0, D+1)
+ * antes de montar a prescrição canônica em sessions[].
  */
-function generateCardioPrescription(context, requirements) {
-  if (!requirements || !requirements.frequency) {
-    throw new Error('Requisitos de cardio inválidos para geração de sessões.');
+function buildCardioWeeklyPrescription(context, requirements) {
+  const req = requirements || (typeof buildCardioGenerationRequirements === 'function'
+    ? buildCardioGenerationRequirements(context)
+    : {});
+
+  const baseProfile = (typeof buildCardioProfile === 'function') ? buildCardioProfile(context) : {};
+  const rawProfile = context?.cardioProfile || req?.cardioProfile || {};
+  const cardioProfile = {
+    ...baseProfile,
+    ...rawProfile,
+    preferredModalities: Array.isArray(rawProfile.preferredModalities) ? rawProfile.preferredModalities : (baseProfile.preferredModalities || []),
+    avoidedModalities: Array.isArray(rawProfile.avoidedModalities) ? rawProfile.avoidedModalities : (baseProfile.avoidedModalities || []),
+    availableEquipment: rawProfile.availableEquipment !== undefined ? rawProfile.availableEquipment : (baseProfile.availableEquipment || []),
+    contraindications: Array.isArray(rawProfile.contraindications) ? rawProfile.contraindications : (baseProfile.contraindications || []),
+    preferredDays: Array.isArray(rawProfile.preferredDays) ? rawProfile.preferredDays : (baseProfile.preferredDays || []),
+    experienceLevel: rawProfile.experienceLevel || baseProfile.experienceLevel || { value: 'unknown', confidence: 'inferred' }
+  };
+  const patientId = context?.patientId || context?.patient?.patientId || context?.id || 'paciente_ativo';
+  const distribution = req?.distribution || {};
+  const schedule = context?.perfWeeklySchedule || context?.schedule || (typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : []);
+  const workoutPlan = context?.perfWorkoutPlan || context?.workoutPlan || (typeof perfWorkoutPlan !== 'undefined' ? perfWorkoutPlan : []);
+
+  const catalog = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+    ? PERF_CARDIO_DB
+    : ((typeof window !== 'undefined' && Array.isArray(window.PERF_CARDIO_DB)) ? window.PERF_CARDIO_DB : []);
+
+  // 1. Frequência e Volume Canônicos (autoridades existentes intocadas)
+  const frequencyWeekly = req.frequency?.prescribedWeeklyFrequency ?? req.frequency?.target ?? 3;
+  const totalWeeklyMinutes = req.volume?.totalWeeklyMinutes ?? req.volume?.targetMinutes ?? 90;
+
+  // Se frequência for 0, retorna prescrição vazia válida
+  if (frequencyWeekly === 0 || totalWeeklyMinutes === 0) {
+    return {
+      id: 'presc_cardio_' + Date.now(),
+      patientId,
+      status: 'active',
+      frequencyWeekly: 0,
+      weeklyFrequency: 0,
+      totalWeeklyMinutes: 0,
+      distributionMode: distribution.distributionMode || 'DISTRIBUTED_POST_WORKOUT',
+      sessionDurations: [],
+      sessions: [],
+      weeklyMacroAnalysis: {
+        totalWeeklyMinutes: 0,
+        frequencyWeekly: 0,
+        microcycleAnalysis: 'Prescrição sem cardio semanal conforme requisitos clínicos.'
+      },
+      cardioProfile,
+      requirements: req,
+      generatedAt: new Date().toISOString(),
+      version: 'F7.4-CANONICAL'
+    };
   }
 
-  const targetSessionsCount = requirements.frequency.target;
-  const sessions = [];
-  const allowed = requirements.modalities.allowedProtocolIds;
-  const primaryProtoId = allowed.includes('cardio_01') ? 'cardio_01' : allowed[0];
-  const secondaryProtoId = allowed.includes('cardio_02') ? 'cardio_02' : primaryProtoId;
-  const hiitProtoId = (requirements.intensity.highIntensityMaxSessions > 0 && allowed.includes('cardio_03'))
-    ? 'cardio_03'
-    : secondaryProtoId;
+  // 2. Durações por Sessão via autoridade clínica existente
+  const targetSessionsCount = frequencyWeekly;
+  let sessionDurations = (typeof calculateCardioSessionDurations === 'function')
+    ? calculateCardioSessionDurations(context, req.frequency || targetSessionsCount, req.volume || totalWeeklyMinutes, distribution.distributionMode || 'DISTRIBUTED')
+    : [];
 
-  const hrZones = context?.heartRate?.zones || [];
-  const z2Zone = hrZones.find(z => z.zone === 'Z2');
-  const z1Zone = hrZones.find(z => z.zone === 'Z1');
-  const z4Zone = hrZones.find(z => z.zone === 'Z4');
+  const prefDur = Number(cardioProfile?.preferredDuration);
+  if (prefDur > 0 && prefDur * targetSessionsCount === totalWeeklyMinutes) {
+    sessionDurations = Array(targetSessionsCount).fill(prefDur);
+  }
 
-  // Mapeamento equilibrado de dias da semana priorizando dias sem sobrecarga pesada de membros inferiores
-  const daySlots = [
-    { dayKey: 'd2', dayName: 'Dia 2' },
-    { dayKey: 'd5', dayName: 'Dia 5' },
-    { dayKey: 'd7', dayName: 'Dia 7' },
-    { dayKey: 'd4', dayName: 'Dia 4' },
-    { dayKey: 'd1', dayName: 'Dia 1' },
-    { dayKey: 'd3', dayName: 'Dia 3' },
-    { dayKey: 'd6', dayName: 'Dia 6' },
-  ];
-
-  for (let i = 0; i < targetSessionsCount; i++) {
-    const slot = daySlots[i] || { dayKey: `d${i + 1}`, dayName: `Dia ${i + 1}` };
-    let protoId = primaryProtoId;
-    let zoneName = 'Z2';
-    let bpmStr = z2Zone ? `${z2Zone.minBpm} – ${z2Zone.maxBpm} bpm` : '60-70% FCM';
-
-    // Se houver mais de uma sessão e HIIT for permitido, atribui HIIT a uma das sessões (nunca a primeira)
-    if (i === 1 && requirements.intensity.highIntensityMaxSessions > 0) {
-      protoId = hiitProtoId;
-      zoneName = 'Z4/Z5';
-      bpmStr = z4Zone ? `${z4Zone.minBpm} – ${z4Zone.maxBpm} bpm` : '85-95% FCM';
-    } else if (i === 1) {
-      protoId = secondaryProtoId;
-    } else if (i >= 2) {
-      protoId = (i % 2 === 0) ? primaryProtoId : secondaryProtoId;
+  if (!Array.isArray(sessionDurations) || sessionDurations.length !== targetSessionsCount) {
+    const base = Math.floor(totalWeeklyMinutes / targetSessionsCount);
+    const rem = totalWeeklyMinutes % targetSessionsCount;
+    sessionDurations = Array(targetSessionsCount).fill(base);
+    for (let r = 0; r < rem; r++) {
+      sessionDurations[r] += 1;
     }
+  } else {
+    const sumDur = sessionDurations.reduce((a, b) => a + b, 0);
+    if (sumDur !== totalWeeklyMinutes) {
+      sessionDurations[0] += (totalWeeklyMinutes - sumDur);
+    }
+  }
 
-    const protoObj = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
-      ? (PERF_CARDIO_DB.find(p => p.id === protoId) || PERF_CARDIO_DB[0])
-      : { id: protoId, title: 'Cardio ' + protoId, timeCap: '45 min' };
+  // 3. Mapear o Microciclo de 7 Dias Deterministicamente
+  const microcycleDays = [];
+  const dayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const dayKeys = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7'];
 
-    const baseDuration = requirements.volume?.targetSessionDurationMinutes || parseInt(protoObj.timeCap) || 45;
-    const maxAllowedPerSession = Math.floor((requirements.volume?.maxMinutes || 300) / targetSessionsCount);
-    const duration = Math.max(_CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES, Math.min(baseDuration, maxAllowedPerSession));
+  for (let idx = 0; idx < 7; idx++) {
+    const dayKey = dayKeys[idx];
+    const defaultName = dayNames[idx];
+    const d = (Array.isArray(schedule) && schedule[idx])
+      ? schedule[idx]
+      : (Array.isArray(workoutPlan) && workoutPlan.find(w => w.dayKey === dayKey))
+        ? workoutPlan.find(w => w.dayKey === dayKey)
+        : { dayKey, dayName: defaultName, type: 'Off' };
 
-    sessions.push({
-      sessionId: `c_s${i + 1}`,
-      protocolId: protoObj.id,
-      protocolTitle: protoObj.title,
-      day: slot.dayName,
-      dayKey: slot.dayKey,
-      durationMinutes: duration,
-      intensity: (protoId === 'cardio_03' || protoId === 'cardio_04') ? 'Alta Intensidade Intervalada' : 'Moderada · Contínua (Respiração Nasal)',
-      heartRateZone: zoneName,
-      targetBpm: bpmStr,
-      rationale: (i === 0)
-        ? 'Sessão principal de oxidação lipídica e biogênese mitocondrial em Zona 2 pura.'
-        : (protoId === 'cardio_03' || protoId === 'cardio_04')
-        ? 'Sessão intervalada de potência cardiovascular e fração de ejeção ventricular.'
-        : 'Sessão aeróbia complementar de sustentação metabólica sem interferência miofibrilar.',
+    const reqDemand = distribution.muscleDemandByDay?.[dayKey] || {};
+    const hasWorkout = (d.routineId != null && (d.type === 'Treino' || d.type === 'Treino + Cardio')) ||
+      (d.type === 'Treino' || d.type === 'Treino + Cardio') ||
+      Boolean(reqDemand.hasWorkout);
+
+    const focus = (d.focus || d.muscleGroup || reqDemand.focus || '').toLowerCase();
+    const title = (d.title || d.name || reqDemand.title || defaultName);
+    const dayName = d.dayName || defaultName;
+
+    const isLegs = focus.includes('perna') || focus.includes('leg') || focus.includes('inferiores') || focus.includes('coxa') ||
+      title.toLowerCase().includes('perna') || title.toLowerCase().includes('leg') ||
+      Boolean(reqDemand.isLegDay) || Boolean(reqDemand.isLegs) ||
+      (Array.isArray(distribution.lowerRoutines) && distribution.lowerRoutines.includes(dayKey));
+
+    const isHeavyLegs = isLegs && (focus.includes('pesado') || focus.includes('força') || focus.includes('quadríceps') || focus.includes('posterior') || title.toLowerCase().includes('pesado'));
+    const isBack = focus.includes('costas') || focus.includes('pull') || focus.includes('dorsal') || Boolean(reqDemand.isBack);
+    const isShoulders = focus.includes('ombro') || focus.includes('deltoide') || Boolean(reqDemand.isShoulders);
+    const isPush = focus.includes('push') || focus.includes('peito') || isShoulders;
+    const isPull = focus.includes('pull') || isBack;
+
+    microcycleDays.push({
+      dayIndex: idx,
+      dayKey,
+      dayName,
+      hasWorkout,
+      routineId: d.routineId || d.id || null,
+      title,
+      focus,
+      isLegs,
+      isHeavyLegs,
+      isBack,
+      isShoulders,
+      isPush,
+      isPull,
+      muscleDemand: reqDemand.muscleDemand || (isLegs ? 'LEGS' : (hasWorkout ? 'UPPER' : 'REST')),
+      isOff: !hasWorkout
     });
   }
 
-  const totalWeeklyMinutes = sessions.reduce((s, c) => s + c.durationMinutes, 0);
+  // Interliga D-1 e D+1 em anel circular de 7 dias
+  microcycleDays.forEach((d, i) => {
+    d.dMinus1 = microcycleDays[(i - 1 + 7) % 7];
+    d.dPlus1 = microcycleDays[(i + 1) % 7];
+  });
+
+  // 4. Normalização de preferredDays
+  const hasExplicitPatientPref = Array.isArray(cardioProfile?.preferredDays) && cardioProfile.preferredDays.length > 0;
+  const rawPrefDays = hasExplicitPatientPref
+    ? cardioProfile.preferredDays
+    : (Array.isArray(distribution?.preferredDays) && distribution.preferredDays.length > 0 ? distribution.preferredDays : []);
+
+  const normalizedPrefDays = rawPrefDays.map(p => {
+    const s = String(p).toLowerCase().trim();
+    const numMatch = s.match(/\d+/);
+    if (numMatch) return `d${numMatch[0]}`;
+    if (s.includes('seg')) return 'd1';
+    if (s.includes('ter')) return 'd2';
+    if (s.includes('qua')) return 'd3';
+    if (s.includes('qui')) return 'd4';
+    if (s.includes('sex')) return 'd5';
+    if (s.includes('sab') || s.includes('sáb')) return 'd6';
+    if (s.includes('dom')) return 'd7';
+    return s;
+  });
+
+  // 5. Pontuação Determinística dos Dias para Alocação dos Slots
+  const offDaysList = microcycleDays.filter(d => d.isOff);
+  const workoutDaysCount = microcycleDays.filter(d => d.hasWorkout).length;
+  // Protege descanso se a soma de treinos + cardio permitir pelo menos 1 dia totalmente livre
+  const canProtectRestDay = (workoutDaysCount + targetSessionsCount) < 7;
+  const protectedRestDayKey = canProtectRestDay && offDaysList.length > 0 ? offDaysList[offDaysList.length - 1].dayKey : null;
+
+  const dayScores = microcycleDays.map(d => {
+    let score = 50;
+    const prefIdx = normalizedPrefDays.indexOf(d.dayKey);
+    if (prefIdx !== -1) {
+      if (hasExplicitPatientPref) {
+        score += 15;
+      } else {
+        score += Math.max(2, 20 - (prefIdx * 3));
+      }
+    }
+    if (d.isOff) {
+      if (d.dayKey === protectedRestDayKey) {
+        score -= 20; // Protege dia off prioritário
+      } else {
+        score += 8; // Excelente para cardio dedicado
+      }
+    } else {
+      if (d.isLegs) {
+        score -= 10; // Evitar cardio concorrente em dia de pernas
+      } else {
+        score += 5; // Pós-treino de superiores é muito favorável
+      }
+    }
+    if (d.dMinus1?.isHeavyLegs) score -= 4;
+    if (d.dPlus1?.isHeavyLegs) score -= 5;
+
+    return { day: d, score };
+  });
+
+  // Ordena dias por score decrescente com desempate determinístico pelo dayIndex
+  dayScores.sort((a, b) => b.score - a.score || a.day.dayIndex - b.day.dayIndex);
+
+  // Seleciona os N melhores dias buscando espalhamento
+  const selectedDays = [];
+  for (const candidate of dayScores) {
+    if (selectedDays.length >= targetSessionsCount) break;
+    if (candidate.day.dayKey === protectedRestDayKey && selectedDays.length + (dayScores.length - selectedDays.length) > targetSessionsCount) {
+      continue;
+    }
+    selectedDays.push(candidate.day);
+  }
+
+  if (selectedDays.length < targetSessionsCount) {
+    for (const candidate of dayScores) {
+      if (selectedDays.length >= targetSessionsCount) break;
+      if (!selectedDays.some(sd => sd.dayKey === candidate.day.dayKey)) {
+        selectedDays.push(candidate.day);
+      }
+    }
+  }
+
+  // Ordena os dias selecionados cronologicamente (segunda a domingo)
+  selectedDays.sort((a, b) => a.dayIndex - b.dayIndex);
+
+  // 6. Candidatos Clínicos via Autoridade Soberana F7.2 (rankCardioProtocols)
+  const allowedIds = Array.isArray(req.modalities?.allowedProtocolIds)
+    ? req.modalities.allowedProtocolIds
+    : catalog.map(p => p.id);
+
+  const eligibleCandidates = catalog.filter(p => allowedIds.includes(p.id));
+
+  const rankedProtocols = (typeof rankCardioProtocols === 'function')
+    ? rankCardioProtocols(context, cardioProfile, eligibleCandidates.length > 0 ? eligibleCandidates : catalog)
+    : (eligibleCandidates.length > 0 ? eligibleCandidates : catalog).map(p => ({ protocol: p, score: 50, rationale: [] }));
+
+  // Indexação canônica para desempate soberano e determinístico
+  rankedProtocols.forEach((rp, idx) => {
+    rp.canonicalRankIndex = idx;
+  });
+
+  // Teto de HIIT via Autoridade F7.1.1 (calculateCardioHiitCeiling)
+  const hiitCeilingRes = (typeof calculateCardioHiitCeiling === 'function')
+    ? calculateCardioHiitCeiling(context, req)
+    : (req.intensity?.highIntensityMaxSessions ?? req.modalities?.hiitCeiling ?? 0);
+
+  const hiitCeiling = typeof hiitCeilingRes === 'number'
+    ? hiitCeilingRes
+    : (hiitCeilingRes?.maxSessions ?? req.intensity?.highIntensityMaxSessions ?? 0);
+
+  let currentHiitCount = 0;
+  const sessions = [];
+  const usedModalityFamilies = new Set();
+
+  // 7. Alocação das Sessões nos Slots Semanais com Análise do Microciclo (D-1, D0, D+1)
+  for (let sIdx = 0; sIdx < selectedDays.length; sIdx++) {
+    const slotDay = selectedDays[sIdx];
+    const durationMinutes = sessionDurations[sIdx] || Math.round(totalWeeklyMinutes / targetSessionsCount);
+
+    const slotCandidates = [];
+
+    for (const rp of rankedProtocols) {
+      const proto = rp.protocol || rp;
+      const clinicalScore = rp.score ?? 50;
+      const canonicalRankIndex = rp.canonicalRankIndex ?? 999;
+
+      // a) Modais proibidos expressamente pelos requisitos clínicos
+      if (req.modalities?.prohibitedProtocolIds?.includes(proto.id)) continue;
+
+      // Bounds de duração da modalidade
+      if (proto.minDurationMinutes && durationMinutes < proto.minDurationMinutes) continue;
+      if (proto.maxDurationMinutes && durationMinutes > proto.maxDurationMinutes) continue;
+
+      // b) Equipamento ausente
+      const availEq = cardioProfile.availableEquipment;
+      if (Array.isArray(availEq) && availEq.length > 0 && proto.equipmentRequired && proto.equipmentRequired !== 'Nenhum' && proto.equipmentRequired !== 'Monitor Cardíaco') {
+        const hasEq = availEq.some(eq =>
+          String(eq).toLowerCase().includes(String(proto.equipmentRequired).toLowerCase()) ||
+          String(proto.equipmentRequired).toLowerCase().includes(String(eq).toLowerCase())
+        );
+        if (!hasEq) continue;
+      }
+
+      // c) Restrições / contraindicações do paciente
+      const contra = cardioProfile.contraindications || [];
+      const hasContra = (proto.contraindicationFlags || []).some(flag =>
+        contra.some(c => String(c).toLowerCase().includes(String(flag).toLowerCase()) || String(flag).toLowerCase().includes(String(c).toLowerCase()))
+      );
+      if (hasContra) continue;
+
+      // d) HIIT Ceiling & Governança F7.1.1
+      if (proto.isHiit) {
+        if (currentHiitCount >= hiitCeiling) continue;
+        // HIIT proibido em dias de perna
+        if (slotDay.isLegs || slotDay.isHeavyLegs) continue;
+        // HIIT não consecutivo (verifica dia anterior na agenda de cardio)
+        const prevSession = sessions[sessions.length - 1];
+        if (prevSession && prevSession.isHiit) {
+          const prevDayObj = microcycleDays.find(d => d.dayKey === prevSession.dayKey);
+          if (prevDayObj && (slotDay.dayIndex - prevDayObj.dayIndex === 1 || (prevDayObj.dayIndex === 6 && slotDay.dayIndex === 0))) {
+            continue; // Consecutivo
+          }
+        }
+      }
+
+      // e) Contexto D0: Treino de pernas
+      if (slotDay.isLegs) {
+        if (proto.avoidAfter && proto.avoidAfter.includes('perna')) continue;
+        if (proto.lowerLimbDemand === 'HIGH') continue;
+      }
+
+      // f) Contexto D-1: Dia anterior foi pernas pesadas
+      if (slotDay.dMinus1?.isHeavyLegs) {
+        if (proto.axialLoad === 'HIGH') continue;
+        if (proto.lowerLimbDemand === 'HIGH' && proto.isHiit) continue;
+      }
+
+      // g) Contexto D+1: Dia seguinte será pernas pesadas
+      if (slotDay.dPlus1?.isHeavyLegs) {
+        if (proto.lowerLimbDemand === 'HIGH') continue;
+        if (proto.impactLevel === 'HIGH') continue;
+      }
+
+      // --- SOFT CONSTRAINTS & ADJACÊNCIA ---
+      let contextualScore = clinicalScore;
+
+      // Preferência de modalidade do paciente
+      const prefMods = cardioProfile.preferredModalities || [];
+      if (prefMods.some(m => String(m.modality || m).toLowerCase() === String(proto.modalityFamily || '').toLowerCase())) {
+        contextualScore += 5;
+      }
+
+      // Diversidade semanal: bonifica modalidade ainda não utilizada nesta semana
+      if (!usedModalityFamilies.has(proto.modalityFamily)) {
+        contextualScore += 3;
+      }
+
+      // Penalidade de Adjacência para recuperação (Recovery Demand HIGH)
+      const prevSession = sessions[sessions.length - 1];
+      if (prevSession?.recoveryDemand === 'HIGH' && proto.recoveryDemand === 'HIGH') {
+        const prevDayObj = microcycleDays.find(d => d.dayKey === prevSession.dayKey);
+        if (prevDayObj && (slotDay.dayIndex - prevDayObj.dayIndex === 1 || (prevDayObj.dayIndex === 6 && slotDay.dayIndex === 0))) {
+          contextualScore -= 12; // Evita concentração consecutiva de alta demanda
+        }
+      }
+
+      // Penalização de fadiga cumulativa D-1
+      if (slotDay.dMinus1?.isHeavyLegs && proto.lowerLimbDemand === 'MODERATE') {
+        contextualScore -= 8;
+      }
+
+      slotCandidates.push({
+        protocol: proto,
+        rankingScore: clinicalScore,
+        contextualScore,
+        canonicalRankIndex,
+        rankingRationale: rp.rationale || []
+      });
+    }
+
+    // Se nenhum candidato passou nos filtros estritos, utiliza o melhor ranqueado clinicamente permitido
+    let chosenCandidate = null;
+    if (slotCandidates.length > 0) {
+      slotCandidates.sort((a, b) =>
+        b.contextualScore - a.contextualScore ||
+        b.rankingScore - a.rankingScore ||
+        a.canonicalRankIndex - b.canonicalRankIndex
+      );
+      chosenCandidate = slotCandidates[0];
+    } else {
+      const safeProto = rankedProtocols.find(rp => !req.modalities?.prohibitedProtocolIds?.includes((rp.protocol || rp)?.id)) ||
+        rankedProtocols[0] ||
+        { protocol: catalog[0] || { id: 'cardio_01', title: 'Cardio Regenerativo' }, score: 50, rationale: ['Fallback de segurança'] };
+      const proto = safeProto.protocol || safeProto;
+      chosenCandidate = {
+        protocol: proto,
+        rankingScore: safeProto.score ?? 50,
+        contextualScore: safeProto.score ?? 50,
+        canonicalRankIndex: safeProto.canonicalRankIndex ?? 0,
+        rankingRationale: safeProto.rationale || ['Fallback de segurança clínica']
+      };
+    }
+
+    const proto = chosenCandidate.protocol;
+    if (proto.isHiit) currentHiitCount++;
+    if (proto.modalityFamily) usedModalityFamilies.add(proto.modalityFamily);
+
+    // Constrói a sessão canônica individual
+    sessions.push({
+      sessionId: `session_${sIdx + 1}`,
+      protocolId: proto.id,
+      protocolTitle: proto.title,
+      cardioId: proto.id,
+      day: slotDay.dayName,
+      dayKey: slotDay.dayKey,
+      durationMinutes,
+      intensityZone: proto.intensityZone || req.intensity?.primaryZones?.[0] || 'Z2',
+      heartRateZone: proto.intensityZone || req.intensity?.primaryZones?.[0] || 'Z2',
+      targetBpm: req.intensity?.targetBpm || '125-140 bpm',
+      intensityType: proto.intensityType || 'MODERATE_CONTINUOUS',
+      isHiit: Boolean(proto.isHiit),
+      recoveryDemand: proto.recoveryDemand || 'MODERATE',
+      modalityFamily: proto.modalityFamily || 'ERGOMETER',
+      modality: proto.modalityFamily || 'ERGOMETER',
+      components: Array.isArray(proto.blocks) ? proto.blocks : [],
+      rankingScore: chosenCandidate.rankingScore,
+      rankingRationale: chosenCandidate.rankingRationale,
+      matchedPreferences: (cardioProfile.preferredModalities || []).filter(m => String(m.modality || m).toLowerCase() === String(proto.modalityFamily || '').toLowerCase()),
+      rationale: chosenCandidate.rankingRationale.join('; ')
+    });
+  }
 
   const prescription = {
-    id: 'cardio_presc_' + Date.now(),
-    requirements,
-    sessions,
+    id: 'presc_cardio_' + Date.now(),
+    patientId,
+    status: 'active',
+    frequencyWeekly,
+    weeklyFrequency: frequencyWeekly, // alias de compatibilidade
     totalWeeklyMinutes,
-    frequencyWeekly: sessions.length,
-    status: 'GENERATED_VALIDATED',
+    distributionMode: distribution.distributionMode || 'DISTRIBUTED_POST_WORKOUT',
+    sessionDurations: sessions.map(s => s.durationMinutes),
+    sessions,
+    weeklyMacroAnalysis: {
+      totalWeeklyMinutes,
+      frequencyWeekly,
+      hiitSessionsCount: currentHiitCount,
+      hiitCeiling,
+      protectedRestDayKey: protectedRestDayKey || 'N/A',
+      modalityFamiliesUsed: Array.from(usedModalityFamilies),
+      microcycleAnalysis: `${sessions.length} sessões planejadas holisticamente no microciclo de 7 dias com governança D-1/D0/D+1.`
+    },
+    cardioProfile,
+    requirements: req,
     generatedAt: new Date().toISOString(),
-    version: '1.0',
+    version: 'F7.4-CANONICAL'
   };
 
   return prescription;
 }
 
 /**
- * 10. Validador Determinístico de Prescrição Cardio
- * Rejeita qualquer prescrição que viole os requisitos ou regras de segurança.
+ * 10.1 Gerador Canônico de Prescrição de Cardio (F7.4)
+ * Ponto de entrada canônico: calcula requisitos, orquestra via Weekly Engine,
+ * valida formalmente e retorna a prescrição estruturada.
+ */
+function generateCardioPrescription(context, requirements) {
+  const req = requirements || (typeof buildCardioGenerationRequirements === 'function'
+    ? buildCardioGenerationRequirements(context)
+    : {});
+
+  // 1. Weekly Engine Holístico
+  const prescription = buildCardioWeeklyPrescription(context, req);
+
+  // 2. Validação Formal da Prescrição contra Contexto
+  if (typeof validateCardioPrescriptionAgainstContext === 'function') {
+    const validation = validateCardioPrescriptionAgainstContext(prescription, context, req);
+    if (!validation.isValid) {
+      console.warn('[F7.4 Weekly Engine] Validação da prescrição semanal reprovada:', validation.errors);
+      prescription.status = 'invalid';
+      prescription.validationErrors = validation.errors;
+    }
+  }
+
+  // 3. Ponte Legada para perfPrescribedCardioId
+  if (prescription && Array.isArray(prescription.sessions) && prescription.sessions.length > 0) {
+    perfPrescribedCardioId = prescription.sessions[0].protocolId;
+    if (typeof window !== 'undefined') {
+      window.perfPrescribedCardioId = perfPrescribedCardioId;
+    }
+  }
+
+  return prescription;
+}
+
+/**
+ * 11. Validador Determinístico de Prescrição Cardio (F6)
+ * Valida estrutura, limites, catálogos, compatibilidade biomecânica e preservação de descanso.
  */
 function validateCardioPrescriptionAgainstContext(prescription, context, requirements) {
   const errors = [];
@@ -16220,49 +19091,132 @@ function validateCardioPrescriptionAgainstContext(prescription, context, require
     return { isValid: false, errors: ['Prescrição inexistente ou nula.'], warnings };
   }
 
+  // 1. Estrutura Canônica
+  if (prescription.frequencyWeekly == null || typeof prescription.frequencyWeekly !== 'number') {
+    errors.push('Campo "frequencyWeekly" é obrigatório e deve ser numérico.');
+  }
+  if (prescription.totalWeeklyMinutes == null || typeof prescription.totalWeeklyMinutes !== 'number') {
+    errors.push('Campo "totalWeeklyMinutes" é obrigatório e deve ser numérico.');
+  }
+  if (!Array.isArray(prescription.sessionDurations)) {
+    if (Array.isArray(prescription.sessions) && prescription.sessions.length > 0) {
+      prescription.sessionDurations = prescription.sessions.map(s => Number(s.durationMinutes) || 0);
+    } else {
+      errors.push('Campo "sessionDurations" é obrigatório e deve ser um array de durações.');
+    }
+  }
   if (!Array.isArray(prescription.sessions) || prescription.sessions.length === 0) {
-    return { isValid: false, errors: ['Nenhuma sessão de cardio informada na prescrição.'], warnings };
+    errors.push('Nenhuma sessão de cardio informada na prescrição.');
+    return { isValid: false, errors, warnings };
   }
 
   const sessions = prescription.sessions;
   const count = sessions.length;
 
-  // 1. Frequência
-  if (count < requirements.frequency.min) {
-    errors.push(`Frequência de cardio (${count}) inferior ao mínimo obrigatório (${requirements.frequency.min}).`);
-  }
-  if (count > requirements.frequency.max) {
-    errors.push(`Frequência de cardio (${count}) excede o máximo permitido (${requirements.frequency.max}).`);
+  // 2. Integridade Frequência × Sessões
+  if (prescription.frequencyWeekly != null && count !== prescription.frequencyWeekly) {
+    errors.push(`Incoerência estrutural: sessions.length (${count}) diferente de frequencyWeekly (${prescription.frequencyWeekly}).`);
   }
 
-  // 2. Volume
-  const totalMin = prescription.totalWeeklyMinutes || sessions.reduce((s, c) => s + (c.durationMinutes || 0), 0);
-  if (totalMin > requirements.volume.maxMinutes) {
-    errors.push(`Volume semanal de cardio (${totalMin} min) excede o teto permitido (${requirements.volume.maxMinutes} min).`);
+  if (requirements && requirements.frequency) {
+    if (count < requirements.frequency.min) {
+      errors.push(`Frequência de cardio (${count}) inferior ao mínimo obrigatório (${requirements.frequency.min}).`);
+    }
+    if (count > requirements.frequency.max) {
+      errors.push(`Frequência de cardio (${count}) excede o máximo permitido (${requirements.frequency.max}).`);
+    }
   }
 
-  // 3. Protocolos
+  // 3. Integridade Volume Semanal: sum(sessionDurations) === totalWeeklyMinutes
+  const sumFromDurations = (prescription.sessionDurations || []).reduce((s, d) => s + Number(d), 0);
+  const sumFromSessions = sessions.reduce((s, c) => s + (Number(c.durationMinutes) || 0), 0);
+
+  if (prescription.totalWeeklyMinutes != null && sumFromDurations !== prescription.totalWeeklyMinutes) {
+    errors.push(`Incoerência de volume: sum(sessionDurations) (${sumFromDurations}) !== totalWeeklyMinutes (${prescription.totalWeeklyMinutes}).`);
+  }
+  if (prescription.totalWeeklyMinutes != null && sumFromSessions !== prescription.totalWeeklyMinutes) {
+    errors.push(`Incoerência de volume: sum(sessions.durationMinutes) (${sumFromSessions}) !== totalWeeklyMinutes (${prescription.totalWeeklyMinutes}).`);
+  }
+
+  if (requirements && requirements.volume && prescription.totalWeeklyMinutes > requirements.volume.maxMinutes) {
+    errors.push(`Volume semanal de cardio (${prescription.totalWeeklyMinutes} min) excede o teto permitido (${requirements.volume.maxMinutes} min).`);
+  }
+
+  // 4. Validação de Catálogo e Metadados dos Protocolos
   const validDbIds = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
     ? PERF_CARDIO_DB.map(p => p.id)
-    : ['cardio_01', 'cardio_02', 'cardio_03', 'cardio_04', 'cardio_05'];
+    : [];
 
   sessions.forEach((s, idx) => {
+    const sLabel = `Sessão #${idx + 1} (${s.protocolId || s.cardioId})`;
     if (!validDbIds.includes(s.protocolId)) {
-      errors.push(`Sessão #${idx + 1}: protocolo '${s.protocolId}' inexiste no catálogo PERF_CARDIO_DB.`);
+      errors.push(`${sLabel}: protocolo '${s.protocolId}' inexiste no catálogo PERF_CARDIO_DB.`);
+      return;
     }
-    if (requirements.modalities.prohibitedProtocolIds.includes(s.protocolId)) {
-      errors.push(`Sessão #${idx + 1}: protocolo '${s.protocolId}' é proibido para este paciente.`);
+
+    if (requirements && requirements.modalities && requirements.modalities.prohibitedProtocolIds.includes(s.protocolId)) {
+      errors.push(`${sLabel}: protocolo '${s.protocolId}' é expressamente proibido para o perfil clínico do paciente.`);
     }
-    if (!s.durationMinutes || s.durationMinutes < _CARDIO_RULES.MANDATORY.MIN_SESSION_DURATION_MINUTES) {
-      errors.push(`Sessão #${idx + 1}: duração (${s.durationMinutes} min) abaixo do mínimo fisiológico de 15 min.`);
+
+    const proto = PERF_CARDIO_DB.find(p => p.id === s.protocolId);
+    if (proto) {
+      const dur = Number(s.durationMinutes);
+      const minD = proto.minDurationMinutes || 10;
+      const maxD = proto.maxDurationMinutes || 75;
+
+      if (!dur || dur < minD) {
+        errors.push(`${sLabel}: duração (${dur} min) abaixo do mínimo permitido para o protocolo (${minD} min).`);
+      }
+      if (dur > maxD) {
+        errors.push(`${sLabel}: duração (${dur} min) acima do máximo permitido para o protocolo (${maxD} min).`);
+      }
     }
   });
 
-  // 4. Limite de HIIT
-  const hiitSessions = sessions.filter(s => s.protocolId === 'cardio_03' || s.protocolId === 'cardio_04');
-  if (hiitSessions.length > requirements.intensity.highIntensityMaxSessions) {
-    errors.push(`Quantidade de sessões de HIIT (${hiitSessions.length}) excede o teto permitido (${requirements.intensity.highIntensityMaxSessions}).`);
+  // 5. Limite de HIIT e Governança de Consecutividade (F7.1)
+  if (requirements && requirements.intensity) {
+    const hiitSessions = sessions.filter(s => {
+      const proto = PERF_CARDIO_DB.find(p => p.id === s.protocolId);
+      return proto && (proto.category === 'HIIT' || (proto.intensityZone && (proto.intensityZone.includes('Z4') || proto.intensityZone.includes('Z5'))));
+    });
+
+    if (hiitSessions.length > requirements.intensity.highIntensityMaxSessions) {
+      errors.push(`Quantidade de sessões de alta intensidade (${hiitSessions.length}) excede o teto permitido (${requirements.intensity.highIntensityMaxSessions}).`);
+    }
+
+    if (hiitSessions.length > 1) {
+      for (let i = 0; i < hiitSessions.length; i++) {
+        for (let j = i + 1; j < hiitSessions.length; j++) {
+          const dayA = parseInt(String(hiitSessions[i].dayKey || '').replace(/\D/g, ''));
+          const dayB = parseInt(String(hiitSessions[j].dayKey || '').replace(/\D/g, ''));
+          if (dayA && dayB) {
+            const diff = Math.abs(dayA - dayB);
+            if (diff === 1 || diff === 6) {
+              errors.push(`Sessões de alta intensidade (HIIT) nos dias ${hiitSessions[i].dayKey || hiitSessions[i].day || ('Dia ' + dayA)} e ${hiitSessions[j].dayKey || hiitSessions[j].day || ('Dia ' + dayB)} são consecutivas e violam a recuperação do SNA.`);
+            }
+          }
+        }
+      }
+    }
   }
+
+  // 6. Auditoria de Concorrência e Preservação de Descanso
+  const muscleDemand = requirements?.distribution?.muscleDemandByDay || {};
+  sessions.forEach(s => {
+    const dayDemand = muscleDemand[s.dayKey];
+    const proto = PERF_CARDIO_DB.find(p => p.id === s.protocolId);
+    if (dayDemand && proto && proto.avoidAfter && proto.avoidAfter.length > 0) {
+      const conflicts = proto.avoidAfter.filter(a => {
+        const al = a.toLowerCase();
+        return (al.includes('perna') && dayDemand.isLegs) ||
+          (al.includes('costa') && dayDemand.isBack) ||
+          (al.includes('ombro') && dayDemand.isShoulders);
+      });
+      if (conflicts.length > 0) {
+        warnings.push(`Sessão ${s.protocolId} no dia ${s.dayKey || s.day}: aviso de concorrência neuromuscular com o treino do dia (${dayDemand.title || conflicts.join(', ')}).`);
+      }
+    }
+  });
 
   return {
     isValid: errors.length === 0,
@@ -16272,16 +19226,15 @@ function validateCardioPrescriptionAgainstContext(prescription, context, require
 }
 
 /**
- * 11. Aplicação Dinâmica da Prescrição Cardio na Agenda Semanal (7 Dias)
- * Substitui templates estáticos garantindo que todas as sessões prescritas
- * sejam distribuídas na agenda real sem sobrescrever treinos de força.
+ * 12. Aplicação Dinâmica da Prescrição Cardio na Agenda Semanal (7 Dias) (F7.4)
+ * Materializador Puro: aplica as sessões na grade semanal nos dias já decididos pelo Weekly Engine.
+ * NÃO decide dias, NÃO altera protocolos, NÃO recalcula volume nem durações.
  */
 function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
   if (!Array.isArray(schedule) || schedule.length === 0) return schedule;
   if (!Array.isArray(cardioSessions) || cardioSessions.length === 0) return schedule;
 
   const updated = schedule.map(day => {
-    // Preserva dados de treino de força removendo cardio legado
     const hasWorkout = day.routineId != null && (day.type === 'Treino' || day.type === 'Treino + Cardio');
     const cleanTitle = (day.title || '').replace(/\s*\+\s*Cardio.*$/i, '').trim();
     const cleanFocus = (day.focus || '').replace(/\s*[·•]\s*Cardio.*$/i, '').trim();
@@ -16296,40 +19249,68 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
     };
   });
 
-  // Distribui as sessões na agenda
-  cardioSessions.forEach(cs => {
-    // Tenta encontrar o dia alvo sugerido pela sessão desde que ainda sem cardio
-    let targetDay = updated.find(d => d.dayKey === cs.dayKey && !d.cardioSession);
-    if (!targetDay) {
-      // Prioriza dias Off (descanso de força) sem cardio
-      targetDay = updated.find(d => d.type === 'Off' && !d.cardioSession);
+  // Normalização determinística de cada sessão
+  const normalizedSessions = cardioSessions.map((cs, idx) => {
+    const pId = cs.protocolId || cs.cardioId || cs.sessionId || 'cardio_01';
+    const dur = cs.durationMinutes != null
+      ? Number(cs.durationMinutes)
+      : (cs.duration != null ? Number(cs.duration) : 45);
+    const dayK = cs.dayKey || (cs.day ? String(cs.day).trim().toLowerCase().replace(/\s+/g, '_') : null);
+    const dayN = cs.day || (dayK ? `Dia ${dayK.replace(/\D/g, '')}` : null);
+
+    const protoObj = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+      ? (PERF_CARDIO_DB.find(p => p.id === pId) || PERF_CARDIO_DB[0])
+      : { id: pId, title: 'Cardio ' + pId, timeCap: `${dur} min` };
+
+    return {
+      ...cs,
+      protocolId: pId,
+      cardioId: pId,
+      durationMinutes: dur,
+      duration: dur,
+      dayKey: dayK,
+      day: dayN,
+      protocolTitle: cs.protocolTitle || protoObj.title,
+      protoObj
+    };
+  });
+
+  // Materializador Puro: aplica as sessões nos dias decididos pelo Weekly Engine
+  normalizedSessions.forEach((cs, idx) => {
+    let targetDay = null;
+    if (cs.dayKey) {
+      targetDay = updated.find(d => d.dayKey === cs.dayKey && !d.cardioSession);
     }
-    if (!targetDay) {
-      // Se todos os dias têm treino, escolhe dia de treino sem cardio post (priorizando dias que não sejam pernas)
-      targetDay = updated.find(d => d.type === 'Treino' && !d.hasCardioPost && !d.title.toLowerCase().includes('legs') && !d.title.toLowerCase().includes('perna'));
+    if (!targetDay && cs.day) {
+      targetDay = updated.find(d => String(d.dayName || '').toLowerCase() === String(cs.day).toLowerCase() && !d.cardioSession);
     }
+    // Se a sessão não possui dia pré-alocado, prioriza dia Off (conforme contrato F6 Caso L)
     if (!targetDay) {
-      targetDay = updated.find(d => d.type === 'Treino' && !d.hasCardioPost);
-    }
-    if (!targetDay) {
-      targetDay = updated.find(d => !d.cardioSession) || updated[0];
+      targetDay = updated.find(d => (d.type === 'Off' || d.type === 'off') && !d.cardioSession) ||
+        updated.find(d => !d.cardioSession) ||
+        updated[idx % updated.length];
     }
 
-    if (targetDay.type === 'Off') {
-      targetDay.type = 'Cardio';
-      targetDay.cardioId = cs.protocolId;
-      targetDay.cardioSession = cs;
-      targetDay.title = cs.protocolTitle ? cs.protocolTitle.replace('Protocolo ', '').replace('Circuito ', '').replace(/["']/g, '') : `Cardio ${cs.heartRateZone || 'Z2'}`;
-      targetDay.focus = `${cs.protocolTitle || 'Cardio'} · ${cs.durationMinutes || 45} min (${cs.heartRateZone || 'Z2'})`;
-    } else {
+    const cleanTitle = targetDay.title.replace(/\s*\+\s*Cardio.*$/i, '').trim();
+    const cleanFocus = (targetDay.focus || '').replace(/\s*[·•]\s*Cardio.*$/i, '').trim();
+
+    if (targetDay.type === 'Treino' || targetDay.routineId != null) {
       targetDay.type = 'Treino + Cardio';
       targetDay.hasCardioPost = true;
       targetDay.cardioId = cs.protocolId;
       targetDay.cardioSession = cs;
-      const baseTitle = targetDay.title.replace(/\s*\+\s*Cardio.*$/i, '').trim();
-      targetDay.title = `${baseTitle} + Cardio ${cs.heartRateZone || 'Z2'}`;
-      const baseFocus = targetDay.focus.replace(/\s*[·•]\s*Cardio.*$/i, '').trim();
-      targetDay.focus = `${baseFocus} · Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes || 45} min pós-força)`;
+      targetDay.title = cleanTitle ? `${cleanTitle} + Cardio ${cs.heartRateZone || 'Z2'}` : `Treino + Cardio ${cs.heartRateZone || 'Z2'}`;
+      targetDay.focus = cleanFocus
+        ? `${cleanFocus} · Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes} min pós-força)`
+        : `Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes} min pós-força)`;
+    } else {
+      targetDay.type = 'Cardio';
+      targetDay.hasCardioPost = false;
+      targetDay.routineId = null;
+      targetDay.cardioId = cs.protocolId;
+      targetDay.cardioSession = cs;
+      targetDay.title = `Cardio ${cs.heartRateZone || 'Z2'}`;
+      targetDay.focus = `Cardio Regenerativo · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z2'})`;
     }
   });
 
@@ -16340,7 +19321,7 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
 let perfCardioPrescription = null;
 
 /**
- * 12. Orquestrador Canônico do Cardio Engine (Pipeline Completo Ponta a Ponta)
+ * 13. Orquestrador Canônico do Cardio Engine (Pipeline Completo Ponta a Ponta)
  * Executa a cadeia determinística completa sem intervenção da IA:
  * buildPerformanceContext → buildCardioGenerationRequirements → generateCardioPrescription
  * → validateCardioPrescriptionAgainstContext → perfApplyCardioPrescriptionToSchedule
@@ -16396,15 +19377,29 @@ async function perfGenerateCardioPlan(patientId = activePatientId) {
 
 if (typeof window !== 'undefined') {
   window._CARDIO_RULES = _CARDIO_RULES;
+  window.CARDIO_DISTRIBUTION_MODES = CARDIO_DISTRIBUTION_MODES;
+  window.PERF_CARDIO_DB = PERF_CARDIO_DB;
+  window.CARDIO_TAXONOMY = CARDIO_TAXONOMY;
+  window.validateCardioProtocol = validateCardioProtocol;
+  window.validateCardioProtocolCatalog = validateCardioProtocolCatalog;
+  window.CARDIO_RANKING_WEIGHTS = CARDIO_RANKING_WEIGHTS;
+  window.normalizeModalityString = normalizeModalityString;
+  window.getCardioInterferenceScore = getCardioInterferenceScore;
+  window.isCardioProtocolEquipmentAvailable = isCardioProtocolEquipmentAvailable;
+  window.buildCardioProfile = buildCardioProfile;
+  window.rankCardioProtocols = rankCardioProtocols;
   window.calculateCardioRecoveryModifier = calculateCardioRecoveryModifier;
   window.calculateCardioClinicalSignals = calculateCardioClinicalSignals;
   window.calculateCardioFrequency = calculateCardioFrequency;
   window.calculateCardioVolume = calculateCardioVolume;
+  window.calculateCardioSessionDurations = calculateCardioSessionDurations;
+  window.calculateCardioHiitCeiling = calculateCardioHiitCeiling;
   window.calculateCardioIntensity = calculateCardioIntensity;
   window.calculateCardioModalities = calculateCardioModalities;
   window.calculateCardioDistribution = calculateCardioDistribution;
   window.buildCardioGenerationRequirements = buildCardioGenerationRequirements;
-  window.generateCardioPrescription = generateCardioPrescription;
+  window.buildCardioWeeklyPrescription = buildCardioWeeklyPrescription;
+window.generateCardioPrescription = generateCardioPrescription;
   window.validateCardioPrescriptionAgainstContext = validateCardioPrescriptionAgainstContext;
   window.perfApplyCardioPrescriptionToSchedule = perfApplyCardioPrescriptionToSchedule;
   window.perfGenerateCardioPlan = perfGenerateCardioPlan;
@@ -18759,7 +21754,7 @@ async function runCardioRequirementsTests() {
   // ── CD01: Objetivos diferentes → requisitos diferentes ────────────────────
   (() => {
     const ctxA = makeCardioCtx({ patient: { objective: 'Emagrecimento' }, nutrition: { energyBalanceKcal: -500 } });
-    const ctxB = makeCardioCtx({ patient: { objective: 'Hipertrofia' }, nutrition: { energyBalanceKcal: 350 }, trainingProfile: { frequencyWeekly: 5 } });
+    const ctxB = makeCardioCtx({ patient: { objective: 'Hipertrofia' }, nutrition: { energyBalanceKcal: 350 }, trainingProfile: { frequencyWeekly: 6 } });
     const reqA = buildCardioGenerationRequirements(ctxA);
     const reqB = buildCardioGenerationRequirements(ctxB);
 
@@ -18825,11 +21820,12 @@ async function runCardioRequirementsTests() {
     const reqSurplus = buildCardioGenerationRequirements(ctxSurplus);
 
     const hasDeficitFactor = reqDeficit.frequency.drivingFactors.some(f => f.includes('Déficit'));
-    const surplusCap = reqSurplus.intensity.highIntensityMaxSessions === 0;
-    const pass = hasDeficitFactor && surplusCap;
+    const hasSurplusFactor = reqSurplus.frequency.limitingFactors.some(f => f.includes('Superávit'));
+    const surplusHiitGoverned = reqSurplus.intensity.highIntensityMaxSessions <= 1;
+    const pass = hasDeficitFactor && hasSurplusFactor && surplusHiitGoverned;
 
     assert('CD05', 'Déficit vs Superávit modula estratégia aeróbia de forma fundamentada', pass,
-      `Déficit -550kcal (fator detectado=${hasDeficitFactor}) vs Superávit +400kcal (HIIT Proibido=${surplusCap})`);
+      `Déficit -550kcal (fator detectado=${hasDeficitFactor}) vs Superávit +400kcal (Fator detectado=${hasSurplusFactor}, HIIT Seguro=${surplusHiitGoverned})`);
   })();
 
   // ── CD06: FCR ausente → Tanaka (%FCM), sem inventar Karvonen ──────────────
@@ -20360,9 +23356,10 @@ function perfGeneratePDF() {
   const scheduleRows = perfWeeklySchedule.map((d, idx) => {
     const isTrain = d.type === 'Treino';
     const isCardio = d.type === 'Cardio';
+    const isTrainAndCardio = d.type === 'Treino + Cardio';
 
     let isColor2 = false;
-    if (isTrain) {
+    if (isTrain || isTrainAndCardio) {
       if (d.routineId) {
         const charCode = d.routineId.toUpperCase().charCodeAt(0) - 65;
         isColor2 = (charCode >= 0 ? charCode % 2 === 1 : pdfTrainCount % 2 === 1);
@@ -20372,9 +23369,9 @@ function perfGeneratePDF() {
       pdfTrainCount++;
     }
 
-    const typeColor = isTrain ? (isColor2 ? '#7e22ce' : '#1e40af') : isCardio ? '#b45309' : '#6b7280';
-    const typeBg = isTrain ? (isColor2 ? '#faf5ff' : '#eff6ff') : isCardio ? '#fffbeb' : '#f9fafb';
-    const borderColor = isTrain ? (isColor2 ? '#e9d5ff' : '#bfdbfe') : isCardio ? '#fed7aa' : '#e5e7eb';
+    const typeColor = isTrain ? (isColor2 ? '#7e22ce' : '#1e40af') : isTrainAndCardio ? '#b45309' : isCardio ? '#b45309' : '#6b7280';
+    const typeBg = isTrain ? (isColor2 ? '#faf5ff' : '#eff6ff') : isTrainAndCardio ? '#fffbeb' : isCardio ? '#fffbeb' : '#f9fafb';
+    const borderColor = isTrain ? (isColor2 ? '#e9d5ff' : '#bfdbfe') : isTrainAndCardio ? '#fed7aa' : isCardio ? '#fed7aa' : '#e5e7eb';
     const dayLabel = `DIA ${idx + 1}`;
 
     return `
@@ -20401,8 +23398,13 @@ function perfGeneratePDF() {
   let cardioSectionsHtml = '';
   if (cardioDays.length > 0) {
     cardioSectionsHtml = cardioDays.map((cd, idx) => {
-      const cProto = PERF_CARDIO_DB.find(c => c.id === cd.cardioId) ||
-        (cd.dayKey === 'd6' || cd.dayKey === 'sab' ? PERF_CARDIO_DB.find(c => c.id === 'cardio_02') : PERF_CARDIO_DB[0]);
+      const protoId = cd.cardioSession?.protocolId || cd.cardioId;
+      const cProto = (protoId && typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+        ? PERF_CARDIO_DB.find(c => c.id === protoId)
+        : null;
+      if (!cProto) return '';
+
+      const presDuration = cd.cardioSession?.durationMinutes || cd.cardioSession?.duration || parseInt(cProto.timeCap) || 45;
 
       const cBlocksHtml = cProto.blocks.map(b => `
         <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px; font-size: 11px;">
@@ -20426,7 +23428,7 @@ function perfGeneratePDF() {
               <span style="font-size: 11px; color: #c2410c; margin-left: 4px;">(${cProto.subtitle})</span>
             </div>
             <div style="font-size: 11px; font-family: monospace; color: #c2410c; font-weight: bold;">
-              Time Cap: ${cProto.timeCap} • Queima Est.: ${cProto.calEst}
+              Duração: ${presDuration} min (Time Cap: ${cProto.timeCap}) • Queima Est.: ${cProto.calEst}
             </div>
           </div>
 
@@ -20445,35 +23447,8 @@ function perfGeneratePDF() {
       `;
     }).join('');
   } else {
-    // Caso padrão se nenhum dia específico estiver marcado como Cardio
-    const cProto = PERF_CARDIO_DB.find(c => c.id === perfPrescribedCardioId) || PERF_CARDIO_DB[0];
-    const cBlocksHtml = cProto.blocks.map(b => `
-      <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px; font-size: 11px;">
-        <strong style="color: #c2410c; display: block; margin-bottom: 4px; font-size: 11.5px;">Bloco ${b.num} — ${b.name}</strong>
-        <ul style="margin: 0; padding-left: 14px; color: #374151; font-size: 10.5px;">
-          ${b.items.map(it => `<li style="margin-bottom: 2px;">${it}</li>`).join('')}
-        </ul>
-      </div>
-    `).join('');
-
-    cardioSectionsHtml = `
-      <div style="page-break-inside: avoid; border: 1px solid #f97316; border-radius: 8px; background: #fff7ed; padding: 12px; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #fed7aa; padding-bottom: 6px; margin-bottom: 8px;">
-          <div>
-            <span style="background: #ea580c; color: #ffffff; font-size: 9.5px; font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px;">
-              Cardio &amp; Engine Prescrito
-            </span>
-            <strong style="font-size: 13px; color: #9a3412; margin-left: 6px;">${cProto.title}</strong>
-          </div>
-          <div style="font-size: 11px; font-family: monospace; color: #c2410c; font-weight: bold;">
-            Time Cap: ${cProto.timeCap} • Queima Est.: ${cProto.calEst}
-          </div>
-        </div>
-        <p style="font-size: 11px; color: #7c2d12; margin: 0 0 8px 0;"><strong>Foco:</strong> ${cProto.foco}</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">${cBlocksHtml}</div>
-        <div style="font-size: 10px; color: #9a3412; border-top: 1px solid #fed7aa; padding-top: 6px;">⚠️ <strong>Restrições:</strong> ${cProto.restrictions.join(' • ')}</div>
-      </div>
-    `;
+    // F7.4: Se nenhum dia na agenda semanal possui cardio prescrito, não renderiza bloco fictício
+    cardioSectionsHtml = '';
   }
 
   // Monta o documento completo pronto para impressão
