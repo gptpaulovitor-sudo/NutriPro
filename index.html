@@ -2006,6 +2006,166 @@
                   class="w-full p-2.5 bg-zinc-950 border border-zinc-700 rounded-xl font-bold text-white">
               </div>
             </div>
+
+            <!-- Preferências Cardiovasculares (F7 — Soft Constraints para o Cardio Weekly Engine) -->
+            <div id="anamneseCardioPreferencesSection" class="mt-4 pt-4 border-t border-zinc-800 space-y-4">
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="heart-pulse" class="w-3.5 h-3.5 text-red-400"></i>
+                <span class="font-black text-zinc-200 text-[11px] uppercase tracking-widest">Preferências Cardiovasculares</span>
+                <span class="ml-1 text-[9px] text-zinc-500 font-normal">(soft constraints — o engine clínico prevalece)</span>
+              </div>
+
+              <!-- Modalidades Preferidas -->
+              <div>
+                <label class="block font-bold text-zinc-400 mb-1.5 text-[10px] uppercase tracking-wider">Modalidades Preferidas</label>
+                <div id="anamneseCardioModalitiesContainer" class="flex flex-wrap gap-1.5">
+                  <button type="button" data-modality="esteira"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    🏃 Esteira / Caminhada
+                  </button>
+                  <button type="button" data-modality="bicicleta"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    🚴 Bicicleta Ergométrica
+                  </button>
+                  <button type="button" data-modality="remo"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    🚣 Remo / RowErg
+                  </button>
+                  <button type="button" data-modality="airbike"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    💨 AirBike
+                  </button>
+                  <button type="button" data-modality="skierg"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    🎿 SkiErg
+                  </button>
+                  <button type="button" data-modality="escada"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    🪜 Escada / StairMaster
+                  </button>
+                  <button type="button" data-modality="corrida"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    🏅 Corrida (Rua / Pista)
+                  </button>
+                  <button type="button" data-modality="eliptico"
+                    onclick="_toggleCardioModality(this)" class="cardio-modality-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    ⭕ Elíptico
+                  </button>
+                </div>
+              </div>
+
+              <!-- Frequência, Duração e Intensidade -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label class="block font-bold text-zinc-400 mb-1 text-[10px] uppercase tracking-wider">Frequência Preferencial</label>
+                  <select id="anamneseCardioPreferredFrequency" onchange="_scheduleAnamneseSave()"
+                    class="w-full p-2.5 border border-zinc-700 rounded-xl font-bold bg-zinc-950 text-white text-xs focus:ring-2 focus:ring-red-600 outline-none">
+                    <option value="">Automática (Clínica)</option>
+                    <option value="1">1x / semana</option>
+                    <option value="2">2x / semana</option>
+                    <option value="3">3x / semana</option>
+                    <option value="4">4x / semana</option>
+                    <option value="5">5x / semana</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-bold text-zinc-400 mb-1 text-[10px] uppercase tracking-wider">Duração Preferencial</label>
+                  <select id="anamneseCardioPreferredDuration" onchange="_scheduleAnamneseSave()"
+                    class="w-full p-2.5 border border-zinc-700 rounded-xl font-bold bg-zinc-950 text-white text-xs focus:ring-2 focus:ring-red-600 outline-none">
+                    <option value="">Automática (Clínica)</option>
+                    <option value="15">15 min</option>
+                    <option value="20">20 min</option>
+                    <option value="25">25 min</option>
+                    <option value="30">30 min</option>
+                    <option value="40">40 min</option>
+                    <option value="45">45 min</option>
+                    <option value="60">60 min</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-bold text-zinc-400 mb-1 text-[10px] uppercase tracking-wider">Intensidade Preferida</label>
+                  <select id="anamneseCardioPreferredIntensity" onchange="_scheduleAnamneseSave()"
+                    class="w-full p-2.5 border border-zinc-700 rounded-xl font-bold bg-zinc-950 text-white text-xs focus:ring-2 focus:ring-red-600 outline-none">
+                    <option value="">Automática (Fisiológica)</option>
+                    <option value="LIGHT">Leve Regenerativa (Zona 1)</option>
+                    <option value="MODERATE">Moderada Contínua (Zona 2)</option>
+                    <option value="HIIT">Intervalada / HIIT (Zona 4/5)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Dias Preferenciais -->
+              <div>
+                <label class="block font-bold text-zinc-400 mb-1.5 text-[10px] uppercase tracking-wider">Dias Preferenciais</label>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" data-daykey="d1"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    SEG
+                  </button>
+                  <button type="button" data-daykey="d2"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    TER
+                  </button>
+                  <button type="button" data-daykey="d3"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    QUA
+                  </button>
+                  <button type="button" data-daykey="d4"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    QUI
+                  </button>
+                  <button type="button" data-daykey="d5"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    SEX
+                  </button>
+                  <button type="button" data-daykey="d6"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    SÁB
+                  </button>
+                  <button type="button" data-daykey="d7"
+                    onclick="_toggleCardioDay(this)" class="cardio-day-badge w-9 h-9 rounded-lg text-[10px] font-black border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-red-500 hover:text-red-400 transition-colors">
+                    DOM
+                  </button>
+                </div>
+              </div>
+
+              <!-- Equipamentos Disponíveis -->
+              <div>
+                <label class="block font-bold text-zinc-400 mb-1.5 text-[10px] uppercase tracking-wider">Equipamentos Disponíveis</label>
+                <div id="anamneseCardioEquipmentContainer" class="flex flex-wrap gap-1.5">
+                  <button type="button" data-equipment="Esteira"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    🏃 Esteira
+                  </button>
+                  <button type="button" data-equipment="Bicicleta Ergométrica"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    🚴 Bicicleta Ergométrica
+                  </button>
+                  <button type="button" data-equipment="RowErg"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    🚣 RowErg Concept2
+                  </button>
+                  <button type="button" data-equipment="AirBike"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    💨 AirBike
+                  </button>
+                  <button type="button" data-equipment="SkiErg"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    🎿 SkiErg
+                  </button>
+                  <button type="button" data-equipment="StairMaster"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    🪜 Escada / StairMaster
+                  </button>
+                  <button type="button" data-equipment="Full Gym"
+                    onclick="_toggleCardioEquipment(this)" class="cardio-equip-badge px-2.5 py-1 rounded-lg text-[10px] font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors">
+                    🏋️ Academia Completa (Full Gym)
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- /Preferências Cardiovasculares -->
+
           </div>
 
           <!-- 4. Sono, Estresse & Recuperação -->

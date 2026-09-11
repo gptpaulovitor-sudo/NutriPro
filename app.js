@@ -3834,6 +3834,153 @@ async function _flushAnamneseSave() {
   }
 }
 
+
+// -- Preferencias Cardiovasculares - Toggle helpers --
+/** Ativa/desativa badge de modalidade preferida. Dispara save. */
+function _toggleCardioModality(btn) {
+  if (!btn) return;
+  var active = btn.classList.toggle('cardio-badge-active');
+  if (active) {
+    btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+    btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+  } else {
+    btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+    btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+  }
+  _scheduleAnamneseSave();
+}
+
+/** Ativa/desativa badge de dia preferencial. Dispara save. */
+function _toggleCardioDay(btn) {
+  if (!btn) return;
+  var active = btn.classList.toggle('cardio-badge-active');
+  if (active) {
+    btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+    btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+  } else {
+    btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+    btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+  }
+  _scheduleAnamneseSave();
+}
+
+/** Ativa/desativa badge de equipamento disponivel. Dispara save. */
+function _toggleCardioEquipment(btn) {
+  if (!btn) return;
+  var active = btn.classList.toggle('cardio-badge-active');
+  if (active) {
+    btn.classList.add('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
+    btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+  } else {
+    btn.classList.remove('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
+    btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+  }
+  _scheduleAnamneseSave();
+}
+
+/**
+ * Le o objeto cardioPreferences atual do formulario de anamnese.
+ * @returns {Object} cardioPreferences com todos os campos canonicos.
+ */
+function _readCardioPreferences() {
+  var preferredModalities = [];
+  document.querySelectorAll('.cardio-modality-badge.cardio-badge-active').forEach(function(btn) {
+    var m = btn.getAttribute('data-modality');
+    if (m) preferredModalities.push(m);
+  });
+
+  var freqEl = document.getElementById('anamneseCardioPreferredFrequency');
+  var freqVal = freqEl ? freqEl.value : '';
+  var preferredFrequency = freqVal ? parseInt(freqVal, 10) : null;
+
+  var durEl = document.getElementById('anamneseCardioPreferredDuration');
+  var durVal = durEl ? durEl.value : '';
+  var preferredDurationMinutes = durVal ? parseInt(durVal, 10) : null;
+
+  var intEl = document.getElementById('anamneseCardioPreferredIntensity');
+  var preferredIntensity = (intEl && intEl.value) ? intEl.value : null;
+
+  var preferredDays = [];
+  document.querySelectorAll('.cardio-day-badge.cardio-badge-active').forEach(function(btn) {
+    var d = btn.getAttribute('data-daykey');
+    if (d) preferredDays.push(d);
+  });
+
+  var availableEquipment = [];
+  document.querySelectorAll('.cardio-equip-badge.cardio-badge-active').forEach(function(btn) {
+    var eq = btn.getAttribute('data-equipment');
+    if (eq) availableEquipment.push(eq);
+  });
+
+  return {
+    preferredModalities: preferredModalities,
+    preferredFrequency: preferredFrequency,
+    preferredDurationMinutes: preferredDurationMinutes,
+    preferredIntensity: preferredIntensity,
+    preferredDays: preferredDays,
+    availableEquipment: availableEquipment
+  };
+}
+
+/**
+ * Restaura o estado dos badges/selects de cardioPreferences a partir de um objeto salvo.
+ * Compativel com pacientes legados (objeto nulo ou incompleto => reseta para defaults neutros).
+ * @param {Object|null} prefs
+ */
+function _restoreCardioPreferencesToForm(prefs) {
+  var p = prefs || {};
+
+  document.querySelectorAll('.cardio-modality-badge').forEach(function(btn) {
+    var m = btn.getAttribute('data-modality');
+    var active = Array.isArray(p.preferredModalities) && p.preferredModalities.includes(m);
+    btn.classList.toggle('cardio-badge-active', active);
+    if (active) {
+      btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+      btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+    } else {
+      btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+      btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+    }
+  });
+
+  var freqEl = document.getElementById('anamneseCardioPreferredFrequency');
+  if (freqEl) freqEl.value = (p.preferredFrequency != null) ? String(p.preferredFrequency) : '';
+
+  var durEl = document.getElementById('anamneseCardioPreferredDuration');
+  if (durEl) durEl.value = (p.preferredDurationMinutes != null) ? String(p.preferredDurationMinutes) : '';
+
+  var intEl = document.getElementById('anamneseCardioPreferredIntensity');
+  if (intEl) intEl.value = p.preferredIntensity || '';
+
+  document.querySelectorAll('.cardio-day-badge').forEach(function(btn) {
+    var d = btn.getAttribute('data-daykey');
+    var active = Array.isArray(p.preferredDays) && p.preferredDays.includes(d);
+    btn.classList.toggle('cardio-badge-active', active);
+    if (active) {
+      btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+      btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+    } else {
+      btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+      btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+    }
+  });
+
+  document.querySelectorAll('.cardio-equip-badge').forEach(function(btn) {
+    var eq = btn.getAttribute('data-equipment');
+    var active = Array.isArray(p.availableEquipment) && p.availableEquipment.includes(eq);
+    btn.classList.toggle('cardio-badge-active', active);
+    if (active) {
+      btn.classList.add('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
+      btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+    } else {
+      btn.classList.remove('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
+      btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
+    }
+  });
+}
+// -- /Preferencias Cardiovasculares - Toggle helpers --
+
+
 // Helper para selecionar valores em <select> com correspondência robusta
 function setSelectValue(id, val, fallback) {
   const el = document.getElementById(id);
@@ -3992,6 +4139,11 @@ async function loadPatientAnamnese(patientId) {
       p.workoutFrequency || "5x/semana",
       p.workoutIntensity || "Moderada",
       p.sleepHours || 7.5);
+
+    // ─── Seção 3.b: Preferências Cardiovasculares (F7) ───────────────────────────────
+    if (typeof _restoreCardioPreferencesToForm === 'function') {
+      _restoreCardioPreferencesToForm(p.cardioPreferences || null);
+    }
 
   } finally {
     // Sempre libera o guard
@@ -4165,6 +4317,11 @@ async function autoSaveAnamnese(shouldSyncCloud = false) {
   const workoutIntensity = (isSedentaryNow ? "Leve" : (intEl?.value || p.workoutIntensity || "Moderada"));
   const workoutTime = (isSedentaryNow ? "" : (timeEl?.value ?? p.workoutTime ?? ""));
 
+  // ─── Preferências Cardiovasculares (F7) ──────────────────────────────────────
+  const cardioPreferences = (typeof _readCardioPreferences === 'function')
+    ? _readCardioPreferences()
+    : (p.cardioPreferences || { preferredModalities: [], preferredFrequency: null, preferredDurationMinutes: null, preferredIntensity: null, preferredDays: [], availableEquipment: [] });
+
   const sleepHours = parseFloat(_getField("anamneseSleepHours")) || p.sleepHours || 7.5;
   const sleepQuality = _getField("anamneseSleepQuality") || p.sleepQuality || "Boa";
   const stressLevel = _getField("anamneseStressLevel") || p.stressLevel || "Moderado";
@@ -4190,7 +4347,8 @@ async function autoSaveAnamnese(shouldSyncCloud = false) {
     mainModality: workoutType, workoutType,
     workoutFrequency, workoutDuration, workoutIntensity, workoutTime,
     sleepHours, sleepQuality, stressLevel,
-    activityFactor: fa
+    activityFactor: fa,
+    cardioPreferences
   });
 
   await db.patients.put(p);
@@ -4226,7 +4384,8 @@ function attachAnamneseTriggers() {
     "anamneseCookingAvailability", "anamneseMealPreparer", "anamneseBowelHabit",
     "anamneseNeatRoutine", "anamneseWorkoutFrequency",
     "anamneseWorkoutDuration", "anamneseWorkoutIntensity",
-    "anamneseSleepHours", "anamneseSleepQuality", "anamneseStressLevel"
+    "anamneseSleepHours", "anamneseSleepQuality", "anamneseStressLevel",
+    "anamneseCardioPreferredFrequency", "anamneseCardioPreferredDuration", "anamneseCardioPreferredIntensity"
   ];
 
   const textInputs = [
@@ -12483,7 +12642,7 @@ function renderPerfPrescribedCardio() {
           </div>
 
           <div class="flex items-center gap-2">
-            <button onclick="perfGenerateCardioPlan()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 text-black hover:bg-amber-400 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.4)]" title="Recalcular requisitos e sessões do Cardio Engine">
+            <button id="btn-optimize-cardio" onclick="perfGenerateCardioPlan()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 text-black hover:bg-amber-400 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.4)]" title="Recalcular requisitos e sessões do Cardio Engine">
               <i data-lucide="zap" class="w-3.5 h-3.5"></i>
               <span>⚡ Otimizar Cardio</span>
             </button>
@@ -16971,6 +17130,20 @@ async function buildPerformanceContext(patientId = activePatientId) {
   }
 
   // 13. EXTENSÃO DETERMINÍSTICA: CARDIO PROFILE (F7.2)
+  // 13.a Preferências Cardiovasculares do Paciente (F7 — Soft Constraints)
+  const _cpPrefs = p.cardioPreferences;
+  context.cardioPreferences = (_cpPrefs && typeof _cpPrefs === 'object') ? {
+    preferredModalities: Array.isArray(_cpPrefs.preferredModalities) ? _cpPrefs.preferredModalities : [],
+    preferredFrequency: (_cpPrefs.preferredFrequency != null && !isNaN(Number(_cpPrefs.preferredFrequency))) ? Number(_cpPrefs.preferredFrequency) : null,
+    preferredDurationMinutes: (_cpPrefs.preferredDurationMinutes != null && !isNaN(Number(_cpPrefs.preferredDurationMinutes))) ? Number(_cpPrefs.preferredDurationMinutes) : null,
+    preferredIntensity: (typeof _cpPrefs.preferredIntensity === 'string' && _cpPrefs.preferredIntensity) ? _cpPrefs.preferredIntensity : null,
+    preferredDays: Array.isArray(_cpPrefs.preferredDays) ? _cpPrefs.preferredDays : [],
+    availableEquipment: Array.isArray(_cpPrefs.availableEquipment) ? _cpPrefs.availableEquipment : []
+  } : {
+    preferredModalities: [], preferredFrequency: null, preferredDurationMinutes: null,
+    preferredIntensity: null, preferredDays: [], availableEquipment: []
+  };
+
   context.cardioProfile = (typeof buildCardioProfile === 'function')
     ? buildCardioProfile(context)
     : null;
@@ -17523,7 +17696,23 @@ function calculateCardioFrequency(context, recoveryResult = null, clinicalSignal
   // Validação matemática de integridade
   minFreq = Math.max(1, minFreq);
   maxFreq = Math.min(6, Math.max(minFreq, maxFreq));
-  const target = Math.min(maxFreq, Math.max(minFreq, baseTarget));
+  let target = Math.min(maxFreq, Math.max(minFreq, baseTarget));
+
+  // ── Preferência de Frequência do Paciente (Soft Constraint dentro dos Limites Clínicos) ──
+  const prefFreq = (context?.cardioPreferences && context.cardioPreferences.preferredFrequency != null && !isNaN(Number(context.cardioPreferences.preferredFrequency)))
+    ? Number(context.cardioPreferences.preferredFrequency)
+    : (context?.cardioProfile && context.cardioProfile.preferredFrequency != null && !isNaN(Number(context.cardioProfile.preferredFrequency)))
+      ? Number(context.cardioProfile.preferredFrequency)
+      : null;
+
+  if (prefFreq != null && prefFreq > 0) {
+    const clampedPref = Math.min(maxFreq, Math.max(minFreq, Math.round(prefFreq)));
+    if (clampedPref !== target) {
+      drivingFactors.push(`Preferência de frequência semanal do paciente (${prefFreq}x) ajustada clinicamente para ${clampedPref}x (faixa clínica: ${minFreq}x a ${maxFreq}x)`);
+      rationale.push({ factor: 'preferredFrequency', observed: prefFreq, effect: `adjust_frequency_to_clamped_preference_${clampedPref}`, weight: 'moderate' });
+      target = clampedPref;
+    }
+  }
 
   return {
     min: minFreq,
@@ -18001,8 +18190,12 @@ function buildCardioProfile(context) {
   }
 
   // 2. Preferred Modalities: explícito vs inferido
+  // F7 — cardioPreferences tem prioridade máxima como explícito do paciente
+  const _contextCardioPrefs = context ? context.cardioPreferences : null;
   const preferredModalities = [];
-  const rawExplicitPref = constraints.preferredModalities || patient.preferredModalities || [];
+  const rawExplicitPref = (_contextCardioPrefs && Array.isArray(_contextCardioPrefs.preferredModalities) && _contextCardioPrefs.preferredModalities.length > 0)
+    ? _contextCardioPrefs.preferredModalities
+    : (constraints.preferredModalities || patient.preferredModalities || []);
   const explicitList = Array.isArray(rawExplicitPref)
     ? rawExplicitPref
     : (typeof rawExplicitPref === 'string' ? rawExplicitPref.split(',') : []);
@@ -18061,8 +18254,11 @@ function buildCardioProfile(context) {
     }
   });
 
-  // 4. Available Equipment
-  const rawEquip = constraints.availableEquipment ?? 'Full Gym';
+  // 4. Available Equipment (F7 cardioPreferences tem prioridade se lista explicitada)
+  const _cpEquip = (_contextCardioPrefs && Array.isArray(_contextCardioPrefs.availableEquipment) && _contextCardioPrefs.availableEquipment.length > 0)
+    ? _contextCardioPrefs.availableEquipment
+    : null;
+  const rawEquip = _cpEquip !== null ? _cpEquip : (constraints.availableEquipment ?? 'Full Gym');
   let isFullGym = false;
   let normalizedEquip = [];
   if (typeof rawEquip === 'string') {
@@ -18081,12 +18277,17 @@ function buildCardioProfile(context) {
     }
   }
 
-  // 5. Preferred Days
-  const rawDays = training.preferredDays || patient.preferredDays || [];
+  // 5. Preferred Days (F7 cardioPreferences tem prioridade)
+  const rawDays = (_contextCardioPrefs && Array.isArray(_contextCardioPrefs.preferredDays) && _contextCardioPrefs.preferredDays.length > 0)
+    ? _contextCardioPrefs.preferredDays
+    : (training.preferredDays || patient.preferredDays || []);
   const preferredDays = Array.isArray(rawDays) ? rawDays : [];
 
-  // 6. Preferred Duration
-  const rawDur = training.preferredDuration || patient.preferredDuration || null;
+  // 6. Preferred Duration (F7 cardioPreferences tem prioridade)
+  const _cpDurMin = (_contextCardioPrefs && _contextCardioPrefs.preferredDurationMinutes != null) ? _contextCardioPrefs.preferredDurationMinutes : null;
+  const rawDur = _cpDurMin != null
+    ? { target: _cpDurMin, min: null, max: null }
+    : (training.preferredDuration || patient.preferredDuration || null);
   const preferredDuration = {
     min: (rawDur && typeof rawDur.min === 'number') ? rawDur.min : null,
     max: (rawDur && typeof rawDur.max === 'number') ? rawDur.max : null,
@@ -18115,6 +18316,9 @@ function buildCardioProfile(context) {
     },
     preferredDays,
     preferredDuration,
+    // F7 — Soft Constraints adicionais das Preferências Cardiovasculares
+    preferredFrequency: (_contextCardioPrefs && _contextCardioPrefs.preferredFrequency != null) ? _contextCardioPrefs.preferredFrequency : null,
+    preferredIntensity: (_contextCardioPrefs && _contextCardioPrefs.preferredIntensity) ? _contextCardioPrefs.preferredIntensity : null,
     uncollectedFields
   };
 }
@@ -19319,6 +19523,29 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
 
 // Global de Prescrição Cardio Ativa
 let perfCardioPrescription = null;
+let _isGeneratingCardioPlan = false;
+if (typeof window !== 'undefined') {
+  try {
+    Object.defineProperty(window, 'perfCardioPrescription', {
+      get() { return perfCardioPrescription; },
+      set(v) { perfCardioPrescription = v; },
+      configurable: true,
+      enumerable: true
+    });
+  } catch (_) {
+    window.perfCardioPrescription = perfCardioPrescription;
+  }
+  try {
+    Object.defineProperty(window, 'perfWeeklySchedule', {
+      get() { return perfWeeklySchedule; },
+      set(v) { perfWeeklySchedule = v; },
+      configurable: true,
+      enumerable: true
+    });
+  } catch (_) {
+    window.perfWeeklySchedule = perfWeeklySchedule;
+  }
+}
 
 /**
  * 13. Orquestrador Canônico do Cardio Engine (Pipeline Completo Ponta a Ponta)
@@ -19328,8 +19555,17 @@ let perfCardioPrescription = null;
  * → savePerformanceForPatient → renderPerfPrescribedCardio & renderPerfWeeklySchedule
  */
 async function perfGenerateCardioPlan(patientId = activePatientId) {
+  if (_isGeneratingCardioPlan) {
+    console.warn('[perfGenerateCardioPlan] Execução concorrente bloqueada (proteção contra duplo clique ativa).');
+    return { status: 'BUSY', message: 'Geração de cardio já em andamento.' };
+  }
+  _isGeneratingCardioPlan = true;
+
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
-  if (!pId) return { status: 'ERROR', message: 'Nenhum paciente selecionado.' };
+  if (!pId) {
+    _isGeneratingCardioPlan = false;
+    return { status: 'ERROR', message: 'Nenhum paciente selecionado.' };
+  }
 
   try {
     // 1. Contexto Canônico Real
@@ -19372,6 +19608,8 @@ async function perfGenerateCardioPlan(patientId = activePatientId) {
   } catch (err) {
     console.error('[perfGenerateCardioPlan] Erro no fluxo do Cardio Engine:', err);
     return { status: 'ERROR', message: err.message };
+  } finally {
+    _isGeneratingCardioPlan = false;
   }
 }
 
@@ -19403,6 +19641,7 @@ window.generateCardioPrescription = generateCardioPrescription;
   window.validateCardioPrescriptionAgainstContext = validateCardioPrescriptionAgainstContext;
   window.perfApplyCardioPrescriptionToSchedule = perfApplyCardioPrescriptionToSchedule;
   window.perfGenerateCardioPlan = perfGenerateCardioPlan;
+  window._isGeneratingCardioPlan = () => _isGeneratingCardioPlan;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
