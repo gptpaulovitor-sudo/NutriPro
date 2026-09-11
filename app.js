@@ -3441,7 +3441,16 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
 
     if (result.status === "success" && result.data) {
       const cloudData = result.data;
-      if (cloudData.patient) await db.patients.put(cloudData.patient);
+      if (cloudData.patient) {
+        const currentLocal = await db.patients.get(patientId);
+        if (currentLocal && currentLocal.cardioPreferences && !cloudData.patient.cardioPreferences) {
+          cloudData.patient.cardioPreferences = currentLocal.cardioPreferences;
+        }
+        await db.patients.put(cloudData.patient);
+        if (typeof _restoreCardioPreferencesToForm === 'function' && currentVisibleTab === 'anamnese') {
+          _restoreCardioPreferencesToForm(cloudData.patient.cardioPreferences || currentLocal?.cardioPreferences || null);
+        }
+      }
 
       if (cloudData.exams && Array.isArray(cloudData.exams) && cloudData.exams.length > 0) {
         await db.clinicalExams.where("patientId").equals(patientId).delete();
@@ -3839,42 +3848,21 @@ async function _flushAnamneseSave() {
 /** Ativa/desativa badge de modalidade preferida. Dispara save. */
 function _toggleCardioModality(btn) {
   if (!btn) return;
-  var active = btn.classList.toggle('cardio-badge-active');
-  if (active) {
-    btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
-    btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-  } else {
-    btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
-    btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-  }
+  btn.classList.toggle('cardio-badge-active');
   _scheduleAnamneseSave();
 }
 
 /** Ativa/desativa badge de dia preferencial. Dispara save. */
 function _toggleCardioDay(btn) {
   if (!btn) return;
-  var active = btn.classList.toggle('cardio-badge-active');
-  if (active) {
-    btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
-    btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-  } else {
-    btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
-    btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-  }
+  btn.classList.toggle('cardio-badge-active');
   _scheduleAnamneseSave();
 }
 
 /** Ativa/desativa badge de equipamento disponivel. Dispara save. */
 function _toggleCardioEquipment(btn) {
   if (!btn) return;
-  var active = btn.classList.toggle('cardio-badge-active');
-  if (active) {
-    btn.classList.add('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
-    btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-  } else {
-    btn.classList.remove('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
-    btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-  }
+  btn.classList.toggle('cardio-badge-active');
   _scheduleAnamneseSave();
 }
 
@@ -3934,13 +3922,6 @@ function _restoreCardioPreferencesToForm(prefs) {
     var m = btn.getAttribute('data-modality');
     var active = Array.isArray(p.preferredModalities) && p.preferredModalities.includes(m);
     btn.classList.toggle('cardio-badge-active', active);
-    if (active) {
-      btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
-      btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-    } else {
-      btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
-      btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-    }
   });
 
   var freqEl = document.getElementById('anamneseCardioPreferredFrequency');
@@ -3956,29 +3937,23 @@ function _restoreCardioPreferencesToForm(prefs) {
     var d = btn.getAttribute('data-daykey');
     var active = Array.isArray(p.preferredDays) && p.preferredDays.includes(d);
     btn.classList.toggle('cardio-badge-active', active);
-    if (active) {
-      btn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
-      btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-    } else {
-      btn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
-      btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-    }
   });
 
   document.querySelectorAll('.cardio-equip-badge').forEach(function(btn) {
     var eq = btn.getAttribute('data-equipment');
     var active = Array.isArray(p.availableEquipment) && p.availableEquipment.includes(eq);
     btn.classList.toggle('cardio-badge-active', active);
-    if (active) {
-      btn.classList.add('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
-      btn.classList.remove('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-    } else {
-      btn.classList.remove('border-amber-500', 'text-amber-400', 'bg-amber-950/30');
-      btn.classList.add('border-zinc-700', 'text-zinc-400', 'bg-zinc-900');
-    }
   });
 }
-// -- /Preferencias Cardiovasculares - Toggle helpers --
+
+if (typeof window !== 'undefined') {
+  window._toggleCardioModality = _toggleCardioModality;
+  window._toggleCardioDay = _toggleCardioDay;
+  window._toggleCardioEquipment = _toggleCardioEquipment;
+  window._readCardioPreferences = _readCardioPreferences;
+  window._restoreCardioPreferencesToForm = _restoreCardioPreferencesToForm;
+}
+
 
 
 // Helper para selecionar valores em <select> com correspondência robusta
@@ -4287,8 +4262,21 @@ function calculateSuggestedFA(autoSync = true) {
 async function autoSaveAnamnese(shouldSyncCloud = false) {
   if (_isLoadingAnamnese) return; // Bloqueia save durante load
 
-  const p = await db.patients.get(activePatientId);
-  if (!p) return;
+  let p = await db.patients.get(activePatientId);
+  if (!p) {
+    const pName = document.getElementById("headerPatientName")?.innerText?.trim() || activePatientId;
+    p = {
+      id: activePatientId,
+      name: pName,
+      age: 30,
+      gender: "Masculino",
+      height: 1.75,
+      currentWeight: 70,
+      usualWeight: 70,
+      targetWeight: 70,
+      createdAt: new Date().toISOString()
+    };
+  }
 
   // Lê todos os campos do formulário com valores seguros (não usa || para strings)
   const usualW = parseFloat(_getField("anamneseUsualWeight")) || p.usualWeight || p.currentWeight || 70.0;
@@ -8378,6 +8366,8 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
       if (typeof loadFoods === 'function') await loadFoods();
     } else if (tabName === 'fasting') {
       if (typeof renderFastingNutritionistModule === 'function') await renderFastingNutritionistModule(activePatientId);
+    } else if (tabName === 'anamnese') {
+      if (typeof loadPatientAnamnese === 'function') await loadPatientAnamnese(activePatientId);
     }
   } catch (err) {
     console.error("Erro ao carregar dados do módulo " + tabName, err);
