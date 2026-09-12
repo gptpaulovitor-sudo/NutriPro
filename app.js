@@ -3447,9 +3447,6 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
           cloudData.patient.cardioPreferences = currentLocal.cardioPreferences;
         }
         await db.patients.put(cloudData.patient);
-        if (typeof _restoreCardioPreferencesToForm === 'function' && currentVisibleTab === 'anamnese') {
-          _restoreCardioPreferencesToForm(cloudData.patient.cardioPreferences || currentLocal?.cardioPreferences || null);
-        }
       }
 
       if (cloudData.exams && Array.isArray(cloudData.exams) && cloudData.exams.length > 0) {
@@ -3501,6 +3498,11 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
       if (typeof loadAdherenceDashboard === "function") await loadAdherenceDashboard(patientId);
       if (typeof loadPerformanceForPatient === "function") await loadPerformanceForPatient(patientId);
       if (typeof renderPatientAppView === "function") renderPatientAppView(patientId);
+
+      const tabAnamnese = document.getElementById('tab-anamnese');
+      if (tabAnamnese && !tabAnamnese.classList.contains('hidden') && tabAnamnese.style.display !== 'none') {
+        if (typeof loadPatientAnamnese === "function") await loadPatientAnamnese(patientId);
+      }
 
       if (statusEl) statusEl.innerHTML = `<span class='text-emerald-600 font-bold'>✅ Paciente <strong>${patientId}</strong> importado do Drive e ativo no seletor!</span>`;
       if (showAlert) alert(`✅ Ficha completa de "${patientId}" restaurada do Google Drive e definida como paciente ativo!`);
