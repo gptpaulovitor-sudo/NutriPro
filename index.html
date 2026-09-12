@@ -2,18 +2,30 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/pro/">
   <title>Redirecionando para NutriAx Pro...</title>
   <script>
-    // Preserva parâmetros de query e hash durante o redirecionamento para /pro/
-    const target = '/pro/' + window.location.search + window.location.hash;
+    // Redirecionamento agnóstico: suporta GitHub Pages (/NutriPro/pro/) e domínio raiz (/pro/)
+    const isNutriPro = window.location.pathname.includes('/NutriPro');
+    let target = '/pro/' + window.location.search + window.location.hash;
+    if (isNutriPro) {
+      target = '/NutriPro/pro/' + window.location.search + window.location.hash;
+    }
     window.location.replace(target);
   </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0; url=/pro/">
+  </noscript>
 </head>
 <body style="background:#08090A;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
   <div style="text-align:center;">
     <p style="font-size:1.1rem;font-weight:600;">Redirecionando para o ambiente clínico...</p>
-    <p><a href="/pro/" style="color:#E50914;text-decoration:none;font-weight:bold;">Clique aqui se não for redirecionado automaticamente</a></p>
+    <p><a id="fallbackLink" href="/pro/" style="color:#E50914;text-decoration:none;font-weight:bold;">Clique aqui se não for redirecionado automaticamente</a></p>
   </div>
+  <script>
+    if (window.location.pathname.includes('/NutriPro')) {
+      const link = document.getElementById('fallbackLink');
+      if (link) link.href = '/NutriPro/pro/';
+    }
+  </script>
 </body>
 </html>
