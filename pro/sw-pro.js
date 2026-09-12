@@ -6,26 +6,26 @@
 const CACHE_NAME = 'nutriax-pro-v2.0.0';
 
 const PRECACHE_ASSETS = [
-  '/pro/',
-  '/pro/index.html',
-  '/pro/manifest.json',
-  '/pro/icons/icon-192.png',
-  '/pro/icons/icon-512.png',
-  '/pro/icons/icon.svg',
-  '/pro/icons/apple-touch-icon.png',
-  '/pro/icons/favicon.png',
-  '/app.js',
-  '/styles.css',
-  '/db.js',
-  '/math.js',
-  '/foodsData.js',
-  '/firebase-service.js',
-  '/fasting-module.js',
-  '/domain/contracts/TrainingPrescriptionDTO.js',
-  '/lucide.min.js',
-  '/chart.min.js',
-  '/logo.png',
-  '/nutritionist.jpg'
+  './',
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon.svg',
+  './icons/apple-touch-icon.png',
+  './icons/favicon.png',
+  '../app.js',
+  '../styles.css',
+  '../db.js',
+  '../math.js',
+  '../foodsData.js',
+  '../firebase-service.js',
+  '../fasting-module.js',
+  '../domain/contracts/TrainingPrescriptionDTO.js',
+  '../lucide.min.js',
+  '../chart.min.js',
+  '../logo.png',
+  '../nutritionist.jpg'
 ];
 
 // 1. Instalação: Pré-cache restrito aos recursos do NutriAx Pro
@@ -102,7 +102,7 @@ self.addEventListener('fetch', (event) => {
         .catch(async () => {
           const cached = await caches.match(event.request);
           if (cached) return cached;
-          return (await caches.match('/pro/')) || (await caches.match('/pro/index.html'));
+          return (await caches.match('./')) || (await caches.match('./index.html')) || (await caches.match('/pro/')) || (await caches.match('/pro/index.html'));
         })
     );
     return;

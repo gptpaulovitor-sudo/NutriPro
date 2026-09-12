@@ -6,23 +6,23 @@
 const CACHE_NAME = 'nutriax-disciplina-v1.0.0';
 
 const PRECACHE_ASSETS = [
-  '/disciplina/',
-  '/disciplina/index.html',
-  '/disciplina/manifest.json',
-  '/disciplina/icons/icon-192.png',
-  '/disciplina/icons/icon-512.png',
-  '/disciplina/icons/icon.svg',
-  '/disciplina/icons/apple-touch-icon.png',
-  '/disciplina/icons/favicon.png',
-  '/firebase-service.js',
-  '/fasting-module.js',
-  '/assets/patient/discipline-hero.jpg',
-  '/assets/patient/training-hero.jpg',
-  '/assets/patient/nutrition-hero.jpg',
-  '/assets/patient/fasting-hero.jpg',
-  '/assets/patient/hydration-hero.jpg',
-  '/assets/patient/sleep-hero.jpg',
-  '/assets/patient/evolution-hero.jpg'
+  './',
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon.svg',
+  './icons/apple-touch-icon.png',
+  './icons/favicon.png',
+  '../firebase-service.js',
+  '../fasting-module.js',
+  '../assets/patient/discipline-hero.jpg',
+  '../assets/patient/training-hero.jpg',
+  '../assets/patient/nutrition-hero.jpg',
+  '../assets/patient/fasting-hero.jpg',
+  '../assets/patient/hydration-hero.jpg',
+  '../assets/patient/sleep-hero.jpg',
+  '../assets/patient/evolution-hero.jpg'
 ];
 
 // 1. Instalação: Pré-cache restrito aos recursos do Disciplina
@@ -99,7 +99,7 @@ self.addEventListener('fetch', (event) => {
         .catch(async () => {
           const cached = await caches.match(event.request);
           if (cached) return cached;
-          return (await caches.match('/disciplina/')) || (await caches.match('/disciplina/index.html'));
+          return (await caches.match('./')) || (await caches.match('/disciplina/')) || (await caches.match('/disciplina/index.html'));
         })
     );
     return;

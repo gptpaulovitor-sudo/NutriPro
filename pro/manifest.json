@@ -1,13 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
-  "id": "/nutriax-pro",
+  "id": "nutriax-pro",
   "name": "NutriAx Pro — Sistema Clínico de Alta Performance",
   "short_name": "NutriAx Pro",
   "description": "Plataforma clínica avançada de nutrição, avaliação corporal, prescrição e biomecânica.",
   "lang": "pt-BR",
   "dir": "ltr",
-  "start_url": "/pro/",
-  "scope": "/pro/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
@@ -45,28 +45,28 @@
       "name": "Prescrição de Dieta",
       "short_name": "Dieta",
       "description": "Elaborar e ajustar plano alimentar",
-      "url": "/pro/?tab=prescription",
+      "url": "./?tab=prescription",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Prescrição de Treino",
       "short_name": "Treino",
       "description": "Biomecânica e prescrição de musculação",
-      "url": "/pro/?tab=performance",
+      "url": "./?tab=performance",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Dashboard & Radar",
       "short_name": "Dashboard",
       "description": "Resumo clínico e metas do paciente",
-      "url": "/pro/?tab=dashboard",
+      "url": "./?tab=dashboard",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Base de Alimentos",
       "short_name": "Tabela TACO",
       "description": "Catálogo TACO, TBCA e Rótulos",
-      "url": "/pro/?tab=foods",
+      "url": "./?tab=foods",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ],

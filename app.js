@@ -24268,8 +24268,8 @@ function initNutriAxPWA() {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const reg of registrations) {
-          const isRootScope = reg.scope === window.location.origin + '/' || reg.scope.endsWith(':8080/');
-          const isLegacyScript = reg.active && reg.active.scriptURL && reg.active.scriptURL.endsWith('/sw.js');
+          const isRootScope = reg.scope === window.location.origin + '/' || reg.scope.endsWith(':8080/') || reg.scope.endsWith('/NutriPro/');
+          const isLegacyScript = reg.active && reg.active.scriptURL && (reg.active.scriptURL.endsWith('/sw.js') || reg.active.scriptURL.endsWith('/NutriPro/sw.js'));
           if (isRootScope && isLegacyScript) {
             console.log('[NutriAx Pro PWA] Desregistrando Service Worker legado da raiz:', reg.scope);
             await reg.unregister();
@@ -24279,8 +24279,11 @@ function initNutriAxPWA() {
         console.warn('[NutriAx Pro PWA] Aviso ao verificar registros legados:', cleanErr);
       }
 
-      // 1.2. Registro exclusivo de /pro/sw-pro.js
-      navigator.serviceWorker.register('/pro/sw-pro.js', { scope: '/pro/' })
+      // 1.2. Registro exclusivo de sw-pro.js de forma agnóstica ao ambiente
+      const proBasePath = window.location.pathname.replace(/\/pro(\/.*)?$/, '/pro/');
+      const swProScript = proBasePath + 'sw-pro.js';
+      const swProScope = proBasePath;
+      navigator.serviceWorker.register(swProScript, { scope: swProScope })
         .then((registration) => {
           console.log('[NutriAx Pro PWA] Service Worker Pro registrado. Escopo:', registration.scope);
 

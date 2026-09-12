@@ -18,7 +18,7 @@ describe('Fase 9 — Separação PWA Real entre NutriAx Pro e Disciplina', () =>
     const manifestPath = path.join(proDir, 'manifest.json');
     assert.ok(fs.existsSync(manifestPath), 'pro/manifest.json deve existir');
     const content = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    assert.strictEqual(content.id, '/nutriax-pro');
+    assert.strictEqual(content.id, 'nutriax-pro');
     assert.ok(content.name.includes('NutriAx Pro'));
   });
 
@@ -27,41 +27,43 @@ describe('Fase 9 — Separação PWA Real entre NutriAx Pro e Disciplina', () =>
     const manifestPath = path.join(discDir, 'manifest.json');
     assert.ok(fs.existsSync(manifestPath), 'disciplina/manifest.json deve existir');
     const content = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    assert.strictEqual(content.id, '/nutriax-disciplina');
+    assert.strictEqual(content.id, 'nutriax-disciplina');
     assert.ok(content.name.includes('Disciplina'));
   });
 
-  // 3. start_url Pro = /pro/
-  test('3. start_url do Pro é estritamente /pro/', () => {
+  // 3. start_url Pro = ./
+  test('3. start_url do Pro é agnóstico e restrito ao diretório pro', () => {
     const content = JSON.parse(fs.readFileSync(path.join(proDir, 'manifest.json'), 'utf8'));
-    assert.strictEqual(content.start_url, '/pro/');
+    assert.ok(['./', './index.html'].includes(content.start_url));
   });
 
-  // 4. start_url Disciplina = /disciplina/
-  test('4. start_url do Disciplina é estritamente /disciplina/', () => {
+  // 4. start_url Disciplina = ./
+  test('4. start_url do Disciplina é agnóstico e restrito ao diretório disciplina', () => {
     const content = JSON.parse(fs.readFileSync(path.join(discDir, 'manifest.json'), 'utf8'));
-    assert.strictEqual(content.start_url, '/disciplina/');
+    assert.ok(['./', './index.html'].includes(content.start_url));
   });
 
-  // 5. scope Pro = /pro/
-  test('5. scope do Pro é estritamente /pro/', () => {
+  // 5. scope Pro = ./
+  test('5. scope do Pro é agnóstico e restrito ao diretório pro', () => {
     const content = JSON.parse(fs.readFileSync(path.join(proDir, 'manifest.json'), 'utf8'));
-    assert.strictEqual(content.scope, '/pro/');
+    assert.strictEqual(content.scope, './');
   });
 
-  // 6. scope Disciplina = /disciplina/
-  test('6. scope do Disciplina é estritamente /disciplina/', () => {
+  // 6. scope Disciplina = ./
+  test('6. scope do Disciplina é agnóstico e restrito ao diretório disciplina', () => {
     const content = JSON.parse(fs.readFileSync(path.join(discDir, 'manifest.json'), 'utf8'));
-    assert.strictEqual(content.scope, '/disciplina/');
+    assert.strictEqual(content.scope, './');
   });
 
   // 7. escopos não sobrepostos
   test('7. Escopos de Pro e Disciplina são completamente disjuntos', () => {
     const proManifest = JSON.parse(fs.readFileSync(path.join(proDir, 'manifest.json'), 'utf8'));
     const discManifest = JSON.parse(fs.readFileSync(path.join(discDir, 'manifest.json'), 'utf8'));
-    assert.notStrictEqual(proManifest.scope, discManifest.scope);
-    assert.ok(!proManifest.scope.startsWith(discManifest.scope));
-    assert.ok(!discManifest.scope.startsWith(proManifest.scope));
+    const proResolved = path.resolve(proDir, proManifest.scope);
+    const discResolved = path.resolve(discDir, discManifest.scope);
+    assert.notStrictEqual(proResolved, discResolved);
+    assert.ok(!proResolved.startsWith(discResolved));
+    assert.ok(!discResolved.startsWith(proResolved));
   });
 
   // 8. sw-pro.js existe
@@ -78,18 +80,18 @@ describe('Fase 9 — Separação PWA Real entre NutriAx Pro e Disciplina', () =>
     assert.ok(fs.statSync(swPath).size > 200);
   });
 
-  // 10. registro Pro aponta para sw-pro.js com scope /pro/
-  test('10. app.js registra exclusivamente /pro/sw-pro.js com scope /pro/', () => {
+  // 10. registro Pro aponta para sw-pro.js com scope agnóstico
+  test('10. app.js registra exclusivamente sw-pro.js com scope agnóstico ao ambiente', () => {
     const appJs = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
-    assert.ok(appJs.includes("navigator.serviceWorker.register('/pro/sw-pro.js'"));
-    assert.ok(appJs.includes("scope: '/pro/'"));
+    assert.ok(appJs.includes('sw-pro.js'));
+    assert.ok(appJs.includes('swProScope'));
   });
 
-  // 11. registro Disciplina aponta para sw-paciente.js com scope /disciplina/
-  test('11. disciplina/index.html registra exclusivamente /disciplina/sw-paciente.js com scope /disciplina/', () => {
+  // 11. registro Disciplina aponta para sw-paciente.js com scope agnóstico
+  test('11. disciplina/index.html registra exclusivamente sw-paciente.js com scope agnóstico ao ambiente', () => {
     const discHtml = fs.readFileSync(path.join(discDir, 'index.html'), 'utf8');
-    assert.ok(discHtml.includes("navigator.serviceWorker.register('/disciplina/sw-paciente.js'"));
-    assert.ok(discHtml.includes("scope: '/disciplina/'"));
+    assert.ok(discHtml.includes('sw-paciente.js'));
+    assert.ok(discHtml.includes('swDiscScope'));
   });
 
   // 12. cache Pro usa nutriax-pro-
@@ -151,16 +153,16 @@ describe('Fase 9 — Separação PWA Real entre NutriAx Pro e Disciplina', () =>
     assert.ok(!swDisc.includes("caches.delete") || swDisc.includes("startsWith('nutriax-disciplina-')"));
   });
 
-  // 20, 21, 22. Nenhum manifest utiliza scope "./", "./index.html" ou "./paciente.html"
-  test('20-22. Nenhum dos dois manifests utiliza escopos relativos ou baseados em arquivo', () => {
+  // 20, 21, 22. Nenhum manifest utiliza escopo baseado em arquivo
+  test('20-22. Nenhum dos dois manifests utiliza escopos baseados em arquivo', () => {
     const proManifest = JSON.parse(fs.readFileSync(path.join(proDir, 'manifest.json'), 'utf8'));
     const discManifest = JSON.parse(fs.readFileSync(path.join(discDir, 'manifest.json'), 'utf8'));
-    const invalidScopes = ['./', './index.html', './paciente.html', 'index.html', 'paciente.html'];
+    const invalidScopes = ['./index.html', './paciente.html', 'index.html', 'paciente.html'];
 
     assert.ok(!invalidScopes.includes(proManifest.scope));
     assert.ok(!invalidScopes.includes(discManifest.scope));
-    assert.strictEqual(proManifest.scope, '/pro/');
-    assert.strictEqual(discManifest.scope, '/disciplina/');
+    assert.strictEqual(proManifest.scope, './');
+    assert.strictEqual(discManifest.scope, './');
   });
 
   // 23. Ícones são fisicamente independentes

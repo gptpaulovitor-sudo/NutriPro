@@ -6292,8 +6292,8 @@
           try {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (const reg of registrations) {
-              const isRootScope = reg.scope === window.location.origin + '/' || reg.scope.endsWith(':8080/');
-              const isLegacyScript = reg.active && reg.active.scriptURL && reg.active.scriptURL.endsWith('/sw.js');
+              const isRootScope = reg.scope === window.location.origin + '/' || reg.scope.endsWith(':8080/') || reg.scope.endsWith('/NutriPro/');
+              const isLegacyScript = reg.active && reg.active.scriptURL && (reg.active.scriptURL.endsWith('/sw.js') || reg.active.scriptURL.endsWith('/NutriPro/sw.js'));
               if (isRootScope && isLegacyScript) {
                 console.log('[Disciplina PWA] Desregistrando Service Worker legado da raiz:', reg.scope);
                 await reg.unregister();
@@ -6303,8 +6303,11 @@
             console.warn('[Disciplina PWA] Aviso ao verificar registros legados:', cleanErr);
           }
 
-          // 2. Registro exclusivo do SW Disciplina
-          navigator.serviceWorker.register('/disciplina/sw-paciente.js', { scope: '/disciplina/' })
+          // 2. Registro exclusivo do SW Disciplina de forma agnóstica ao ambiente
+          const discBasePath = window.location.pathname.replace(/\/disciplina(\/.*)?$/, '/disciplina/');
+          const swDiscScript = discBasePath + 'sw-paciente.js';
+          const swDiscScope = discBasePath;
+          navigator.serviceWorker.register(swDiscScript, { scope: swDiscScope })
             .then((registration) => {
               console.log('[Disciplina PWA] Service Worker registrado. Escopo:', registration.scope);
               registration.onupdatefound = () => {
