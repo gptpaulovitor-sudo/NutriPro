@@ -16,25 +16,25 @@
   "categories": ["medical", "health", "fitness", "productivity", "lifestyle"],
   "icons": [
     {
-      "src": "/pro/icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pro/icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pro/icons/icon.svg",
+      "src": "icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable any"
     },
     {
-      "src": "/pro/icons/apple-touch-icon.png",
+      "src": "icons/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
@@ -46,28 +46,28 @@
       "short_name": "Dieta",
       "description": "Elaborar e ajustar plano alimentar",
       "url": "/pro/?tab=prescription",
-      "icons": [{ "src": "/pro/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Prescrição de Treino",
       "short_name": "Treino",
       "description": "Biomecânica e prescrição de musculação",
       "url": "/pro/?tab=performance",
-      "icons": [{ "src": "/pro/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Dashboard & Radar",
       "short_name": "Dashboard",
       "description": "Resumo clínico e metas do paciente",
       "url": "/pro/?tab=dashboard",
-      "icons": [{ "src": "/pro/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Base de Alimentos",
       "short_name": "Tabela TACO",
       "description": "Catálogo TACO, TBCA e Rótulos",
       "url": "/pro/?tab=foods",
-      "icons": [{ "src": "/pro/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "prefer_related_applications": false

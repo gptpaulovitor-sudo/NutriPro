@@ -10320,14 +10320,13 @@ async function openPatientShareModal() {
 
   const payload = syncActivePatientToPatientApp(pId);
 
-  // Determina URL pública ou local
-  let patientUrl = 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
+  // Determina URL pública ou local para o Disciplina (/disciplina/)
+  let patientUrl = 'https://gptpaulovitor-sudo.github.io/NutriPro/disciplina/';
   if (window.location.protocol === 'file:') {
-    patientUrl = 'paciente.html';
+    patientUrl = '../disciplina/index.html';
   } else if (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.')) {
     const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    patientUrl = `${origin}${path}paciente.html`;
+    patientUrl = `${origin}/disciplina/`;
   }
 
   let fullShareUrl = patientUrl;
@@ -10626,7 +10625,7 @@ function copyPatientShareLink() {
 
 function sendPatientWhatsAppMessage() {
   const input = document.getElementById('patientShareLinkInput');
-  const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
+  const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/disciplina/';
   const pId = activePatientId;
   if (!pId) { alert("Selecione um paciente antes de enviar WhatsApp."); return; }
   const savedEmail = (activePatientData && activePatientData.email) || localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
@@ -24262,29 +24261,50 @@ let isAppInstalled = false;
 function initNutriAxPWA() {
   console.log("[NutriAx PWA] Inicializando motor Mobile PWA...");
 
-  // 1. Registro do Service Worker
+  // 1. Registro do Service Worker Exclusivo Pro (/pro/sw-pro.js com scope /pro/)
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then((registration) => {
-          console.log('[NutriAx PWA] Service Worker registrado com sucesso. Escopo:', registration.scope);
+    const registerProSw = async () => {
+      // 1.1. Limpeza/Desregistro proativo de qualquer SW legado da raiz
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          const isRootScope = reg.scope === window.location.origin + '/' || reg.scope.endsWith(':8080/');
+          const isLegacyScript = reg.active && reg.active.scriptURL && reg.active.scriptURL.endsWith('/sw.js');
+          if (isRootScope && isLegacyScript) {
+            console.log('[NutriAx Pro PWA] Desregistrando Service Worker legado da raiz:', reg.scope);
+            await reg.unregister();
+          }
+        }
+      } catch (cleanErr) {
+        console.warn('[NutriAx Pro PWA] Aviso ao verificar registros legados:', cleanErr);
+      }
 
-          // Verifica se há atualização do Service Worker
+      // 1.2. Registro exclusivo de /pro/sw-pro.js
+      navigator.serviceWorker.register('/pro/sw-pro.js', { scope: '/pro/' })
+        .then((registration) => {
+          console.log('[NutriAx Pro PWA] Service Worker Pro registrado. Escopo:', registration.scope);
+
           registration.onupdatefound = () => {
             const installingWorker = registration.installing;
             if (installingWorker) {
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[NutriAx PWA] Nova versão disponível. O cache será renovado.');
+                  console.log('[NutriAx Pro PWA] Nova versão Pro disponível. O cache será renovado.');
                 }
               };
             }
           };
         })
         .catch((error) => {
-          console.warn('[NutriAx PWA] Falha ao registrar Service Worker:', error);
+          console.warn('[NutriAx Pro PWA] Falha ao registrar Service Worker Pro:', error);
         });
-    });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', registerProSw);
+    } else {
+      registerProSw();
+    }
   }
 
   // 2. Captura do Evento Nativo de Instalação (beforeinstallprompt) no Android / Chrome

@@ -27,25 +27,30 @@ def get_local_ip():
     return ip
 
 def print_banner(ip, port):
-    url_local = f"http://localhost:{port}"
-    url_network = f"http://{ip}:{port}"
+    url_local_pro = f"http://localhost:{port}/pro/"
+    url_local_disc = f"http://localhost:{port}/disciplina/"
+    url_net_pro = f"http://{ip}:{port}/pro/"
+    url_net_disc = f"http://{ip}:{port}/disciplina/"
     
-    print("=" * 65)
-    print("       NUTRIAX PRO — SERVIDOR MOBILE & PWA LOCAL")
-    print("=" * 65)
+    print("=" * 68)
+    print("       NUTRIAX PRO & DISCIPLINA — SERVIDOR PWA INDEPENDENTE")
+    print("=" * 68)
     print("")
-    print(f"  [PC / Computador]:  {url_local}")
-    print(f"  [CELULAR NO WI-FI]: {url_network}")
+    print("  [AMBIENTE PROFISSIONAL — NutriAx Pro]:")
+    print(f"    Local:   {url_local_pro}")
+    print(f"    Wi-Fi:   {url_net_pro}")
     print("")
-    print("-" * 65)
-    print("  COMO INSTALAR NO SEU CELULAR:")
-    print(f"  1. Conecte seu celular no MESMO Wi-Fi deste computador.")
-    print(f"  2. Abra o Chrome (Android) ou Safari (iPhone).")
-    print(f"  3. Acesse o endereço: {url_network}")
-    print(f"  4. Toque em 'Instalar App' ou 'Adicionar a Tela de Inicio'.")
-    print("-" * 65)
+    print("  [AMBIENTE DO PACIENTE — Disciplina]:")
+    print(f"    Local:   {url_local_disc}")
+    print(f"    Wi-Fi:   {url_net_disc}")
+    print("")
+    print("-" * 68)
+    print("  INSTALAÇÃO PWA INDEPENDENTE:")
+    print(f"  • Nutricionista: Acesse {url_net_pro} e clique em 'Instalar'.")
+    print(f"  • Paciente:      Acesse {url_net_disc} e clique em 'Instalar'.")
+    print("-" * 68)
     print("  Pressione Ctrl+C para encerrar o servidor.")
-    print("=" * 65)
+    print("=" * 68)
     print("")
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
@@ -59,9 +64,9 @@ def run():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     ip = get_local_ip()
     
-    # Permite reuso rápido de porta
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
+    # Permite reuso rápido de porta e requisições concorrentes multithread
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    with socketserver.ThreadingTCPServer(("", PORT), CustomHandler) as httpd:
         print_banner(ip, PORT)
         try:
             httpd.serve_forever()
