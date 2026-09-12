@@ -11,7 +11,6 @@ const PRECACHE_ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon.svg',
   './icons/apple-touch-icon.png',
   './icons/favicon.png',
   '../firebase-service.js',
