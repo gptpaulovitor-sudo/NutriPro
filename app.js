@@ -18,72 +18,290 @@ if (typeof window !== 'undefined' && window.lucide && !window.lucide._optimized)
 
 // Google Apps Script Web App Endpoint URL Configuration
 let GOOGLE_SCRIPT_URL = localStorage.getItem("NUTRIAX_GOOGLE_SCRIPT_URL") || "https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec";
-let activePatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") || "paulo-vitor";
+let activePatientId = null;
 let activePatientData = null;
 
-// Active Prescription Items Memory Array
-let currentPrescriptionItems = [
-  { id: "m1", mealName: "Café da manhã", mealTime: "07:00", foodName: "Café (sem açúcar)", quantity: 100, calories: 2, protein: 0.33, carbohydrate: 0, lipid: 0, fiber: 0 },
-  { id: "m2", mealName: "Café da manhã", mealTime: "07:00", foodName: "Leite em Pó Integral", quantity: 30, calories: 149, protein: 7.8, carbohydrate: 11.4, lipid: 8.1, fiber: 0 },
-  { id: "m3", mealName: "Lanche manhã", mealTime: "10:00", foodName: "Albumina Naturovos", quantity: 30, calories: 108.6, protein: 25.2, carbohydrate: 1.2, lipid: 0, fiber: 0 },
-  { id: "m4", mealName: "Almoço", mealTime: "12:30", foodName: "Feijão Carioca (Cozido)", quantity: 80, calories: 63.2, protein: 3.73, carbohydrate: 11.73, lipid: 1.33, fiber: 5.6 },
-  { id: "m5", mealName: "Almoço", mealTime: "12:30", foodName: "Peito de Frango (Grelhado)", quantity: 200, calories: 330, protein: 64.0, carbohydrate: 0, lipid: 5.33, fiber: 0 },
-  { id: "m6", mealName: "Almoço", mealTime: "12:30", foodName: "Arroz Branco (Cozido)", quantity: 200, calories: 276, protein: 4.67, carbohydrate: 58.0, lipid: 3.33, fiber: 0.67 },
-  { id: "m7", mealName: "Pré-treino", mealTime: "16:30", foodName: "Banana Nanica", quantity: 100, calories: 91, protein: 1.33, carbohydrate: 21.67, lipid: 0.33, fiber: 1.67 },
-  { id: "m8", mealName: "Pré-treino", mealTime: "16:30", foodName: "Aveia (Flocos)", quantity: 30, calories: 113.7, protein: 4.7, carbohydrate: 19.4, lipid: 2.6, fiber: 2.9 },
-  { id: "m9", mealName: "Pré-treino", mealTime: "16:30", foodName: "Iogurte Natural Desnatado", quantity: 180, calories: 86.4, protein: 7.2, carbohydrate: 12.6, lipid: 0.6, fiber: 0 },
-  { id: "m10", mealName: "Pré-treino", mealTime: "16:30", foodName: "Leite em Pó Integral", quantity: 30, calories: 149, protein: 7.8, carbohydrate: 11.4, lipid: 8.1, fiber: 0 },
-  { id: "m11", mealName: "Pós-treino", mealTime: "18:30", foodName: "Albumina Naturovos", quantity: 30, calories: 108.6, protein: 25.2, carbohydrate: 1.2, lipid: 0, fiber: 0 },
-  { id: "m12", mealName: "Jantar", mealTime: "20:00", foodName: "Peito de Frango (Grelhado)", quantity: 100, calories: 165, protein: 32.0, carbohydrate: 0, lipid: 2.67, fiber: 0 },
-  { id: "m13", mealName: "Jantar", mealTime: "20:00", foodName: "Tomate Cru", quantity: 50, calories: 9, protein: 0.5, carbohydrate: 2.0, lipid: 0.17, fiber: 0.6 },
-  { id: "m14", mealName: "Jantar", mealTime: "20:00", foodName: "Arroz Branco (Cozido)", quantity: 150, calories: 207, protein: 3.5, carbohydrate: 43.5, lipid: 2.5, fiber: 0.5 },
-  { id: "m15", mealName: "Jantar", mealTime: "20:00", foodName: "Ovo de Galinha (Cozido)", quantity: 20, calories: 31, protein: 2.6, carbohydrate: 0.13, lipid: 2.0, fiber: 0 },
-];
-
+// Active Prescription Items Memory Array (vazio até AUTHORIZED e paciente selecionado)
+let currentPrescriptionItems = [];
 let selectedFoodItem = null;
 
-// Initialize App on DOM Loaded
+// ═══════════════════════════════════════════════════════════
+// FASE 8.3 — CONTROLADOR DO AUTH GATE & IDENTIDADE PROFISSIONAL
+// ═══════════════════════════════════════════════════════════
+let _proAuthGateState = 'AUTHENTICATING';
+let _currentProfessionalUid = null;
+let _currentProfessionalData = null;
+let _proAuthListenerAttached = false;
+let _isWorkspaceBootstrapped = false;
+
+function setProfessionalAuthGateState(state, details = {}) {
+  _proAuthGateState = state;
+  const overlay = document.getElementById('professionalAuthGateOverlay');
+  const appContent = document.getElementById('nutriaxProAppContent');
+  const stateAuth = document.getElementById('proAuthGateStateAuthenticating');
+  const stateUnauth = document.getElementById('proAuthGateStateUnauthenticated');
+  const stateDenied = document.getElementById('proAuthGateStateAccessDenied');
+  const stateError = document.getElementById('proAuthGateStateError');
+
+  if (!overlay) return;
+
+  if (state === 'AUTHORIZED') {
+    overlay.classList.add('hidden');
+    if (appContent) {
+      appContent.classList.remove('hidden');
+      appContent.style.display = '';
+    }
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  // Desmonta e isola a aplicação clínica para qualquer estado não-autorizado (INVARIANTE 1.2)
+  dismantleProfessionalWorkspace();
+  if (appContent) {
+    appContent.classList.add('hidden');
+    appContent.style.display = 'none';
+  }
+  overlay.classList.remove('hidden');
+
+  [stateAuth, stateUnauth, stateDenied, stateError].forEach(el => {
+    if (el) el.classList.add('hidden');
+  });
+
+  if (state === 'AUTHENTICATING') {
+    if (stateAuth) stateAuth.classList.remove('hidden');
+    const txt = document.getElementById('proAuthGateLoadingText');
+    if (txt) txt.textContent = details.message || 'Verificando autorização profissional...';
+  } else if (state === 'UNAUTHENTICATED') {
+    if (stateUnauth) stateUnauth.classList.remove('hidden');
+  } else if (state === 'ACCESS_DENIED') {
+    if (stateDenied) stateDenied.classList.remove('hidden');
+    const emailEl = document.getElementById('proAuthGateDeniedEmail');
+    if (emailEl) emailEl.textContent = details.email ? `(${details.email})` : '';
+    const reasonEl = document.getElementById('proAuthGateDeniedReason');
+    if (reasonEl && details.reason) reasonEl.textContent = details.reason;
+  } else if (state === 'ERROR') {
+    if (stateError) stateError.classList.remove('hidden');
+    const errMsg = document.getElementById('proAuthGateErrorMessage');
+    if (errMsg && details.message) errMsg.textContent = details.message;
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function dismantleProfessionalWorkspace() {
+  activePatientId = null;
+  activePatientData = null;
+  currentPrescriptionItems = [];
+  _isWorkspaceBootstrapped = false;
+  clearPatientHeaderDisplay();
+}
+
+function clearPatientHeaderDisplay() {
+  const nameEl = document.getElementById("headerPatientName");
+  if (nameEl) nameEl.innerText = "Nenhum paciente selecionado";
+  const infoEl = document.getElementById("headerPatientInfo");
+  if (infoEl) infoEl.innerText = "Selecione um paciente acima";
+  const goalEl = document.getElementById("headerPatientGoal");
+  if (goalEl) goalEl.innerText = "Aguardando seleção";
+  const perfPatientNameEl = document.getElementById("perfPatientName");
+  if (perfPatientNameEl) perfPatientNameEl.innerText = "Nenhum paciente selecionado";
+  const perfPatientGoalEl = document.getElementById("perfPatientGoal");
+  if (perfPatientGoalEl) perfPatientGoalEl.innerText = "Selecione um paciente";
+}
+
+async function handleProfessionalSignOut() {
+  try {
+    if (window.NutriProFirebase && window.NutriProFirebase.auth) {
+      await window.NutriProFirebase.auth.signOut();
+    }
+  } catch (err) {
+    console.warn('[NutriAx Pro] Erro ao deslogar:', err);
+  }
+  _currentProfessionalUid = null;
+  _currentProfessionalData = null;
+  dismantleProfessionalWorkspace();
+  setProfessionalAuthGateState('UNAUTHENTICATED');
+}
+
+async function handleProfessionalSignIn() {
+  try {
+    setProfessionalAuthGateState('AUTHENTICATING', { message: 'Iniciando autenticação Google...' });
+    if (window.NutriProFirebase && window.NutriProFirebase.auth) {
+      await window.NutriProFirebase.auth.signInWithGoogle();
+    }
+  } catch (err) {
+    console.error('[NutriAx Pro] Erro ao autenticar com Google:', err);
+    setProfessionalAuthGateState('ERROR', { message: err.message || 'Falha ao autenticar com o Google.' });
+  }
+}
+
+function handleProfessionalRetry() {
+  if (window.NutriProFirebase && window.NutriProFirebase.auth) {
+    const user = window.NutriProFirebase.auth.getCurrentUser();
+    if (user) {
+      setProfessionalAuthGateState('AUTHENTICATING', { message: 'Reverificando credenciais...' });
+      window.NutriProFirebase.identity.resolveAuthorizedProfessional(user).then(resolution => {
+        if (resolution.state === 'AUTHORIZED') {
+          _currentProfessionalUid = user.uid;
+          _currentProfessionalData = resolution.professional;
+          bootstrapProfessionalWorkspace(user, resolution.professional).then(() => {
+            setProfessionalAuthGateState('AUTHORIZED');
+          });
+        } else if (resolution.state === 'ACCESS_DENIED') {
+          setProfessionalAuthGateState('ACCESS_DENIED', { email: user.email, reason: resolution.reason });
+        } else {
+          setProfessionalAuthGateState('ERROR', { message: resolution.error || 'Falha na verificação.' });
+        }
+      }).catch(err => {
+        setProfessionalAuthGateState('ERROR', { message: err.message });
+      });
+      return;
+    }
+  }
+  setProfessionalAuthGateState('UNAUTHENTICATED');
+}
+
+async function bootstrapProfessionalWorkspace(user, professional) {
+  // 1. Atualiza elementos visuais do profissional autenticado no HUD
+  const proNameEl = document.getElementById('proUserName');
+  const proAvatarEl = document.getElementById('proUserAvatar');
+  const proDisplayName = professional?.name || user?.displayName || user?.email || 'Profissional';
+  if (proNameEl) proNameEl.textContent = proDisplayName;
+  if (proAvatarEl) {
+    if (user?.photoURL) {
+      proAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" class="w-full h-full rounded-full object-cover">`;
+    } else {
+      const initial = (proDisplayName[0] || 'P').toUpperCase();
+      proAvatarEl.innerHTML = `<span class="text-xs font-bold text-white">${initial}</span>`;
+    }
+  }
+
+  // 2. Garante inicialização clínica apenas uma vez por sessão
+  if (!_isWorkspaceBootstrapped) {
+    if (typeof initSystemLastSyncDate === "function") {
+      initSystemLastSyncDate();
+    }
+
+    if (typeof seedDatabase === "function") {
+      await seedDatabase();
+    }
+
+    const scriptUrlInput = document.getElementById("googleScriptUrlInput");
+    if (scriptUrlInput) {
+      scriptUrlInput.value = GOOGLE_SCRIPT_URL;
+    }
+
+    // Valida preferência de paciente do localStorage (REQUISITO 6 & 7: não concede autorização)
+    const savedPatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID");
+    if (savedPatientId && typeof db !== "undefined" && db.patients) {
+      const exists = await db.patients.get(savedPatientId);
+      if (exists) {
+        activePatientId = savedPatientId;
+      } else {
+        activePatientId = null;
+        localStorage.removeItem("NUTRIAX_ACTIVE_PATIENT_ID");
+      }
+    } else {
+      activePatientId = null;
+    }
+
+    await populatePatientSelect();
+
+    if (activePatientId) {
+      await onPatientChange(activePatientId);
+    } else {
+      clearPatientHeaderDisplay();
+    }
+
+    if (typeof loadFoods === "function") await loadFoods();
+    if (typeof attachEvaluationTriggers === "function") attachEvaluationTriggers();
+    if (typeof attachAnamneseTriggers === "function") attachAnamneseTriggers();
+
+    _isWorkspaceBootstrapped = true;
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+async function initProfessionalAuthGate() {
+  if (_proAuthListenerAttached) return;
+  _proAuthListenerAttached = true;
+
+  setProfessionalAuthGateState('AUTHENTICATING', { message: 'Iniciando verificação de segurança profissional...' });
+
+  // Aguarda SDK Firebase
+  let retries = 0;
+  while ((!window.NutriProFirebase || !window.NutriProFirebase.isReady()) && retries < 30) {
+    if (window.NutriProFirebase?.init) {
+      window.NutriProFirebase.init();
+    }
+    await new Promise(r => setTimeout(r, 100));
+    retries++;
+  }
+
+  if (!window.NutriProFirebase || !window.NutriProFirebase.auth) {
+    console.error('[NutriAx Pro AuthGate] Firebase SDK indisponível');
+    setProfessionalAuthGateState('ERROR', { message: 'Não foi possível inicializar os serviços de autenticação.' });
+    return;
+  }
+
+  // Listener central de autenticação
+  window.NutriProFirebase.auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      _currentProfessionalUid = null;
+      _currentProfessionalData = null;
+      setProfessionalAuthGateState('UNAUTHENTICATED');
+      return;
+    }
+
+    setProfessionalAuthGateState('AUTHENTICATING', { message: 'Verificando autorização profissional...' });
+
+    try {
+      const resolution = await window.NutriProFirebase.identity.resolveAuthorizedProfessional(user);
+
+      if (resolution.state === 'AUTHORIZED') {
+        _currentProfessionalUid = user.uid;
+        _currentProfessionalData = resolution.professional;
+        await bootstrapProfessionalWorkspace(user, resolution.professional);
+        setProfessionalAuthGateState('AUTHORIZED');
+      } else if (resolution.state === 'ACCESS_DENIED') {
+        _currentProfessionalUid = null;
+        _currentProfessionalData = null;
+        setProfessionalAuthGateState('ACCESS_DENIED', {
+          email: user.email,
+          reason: resolution.reason || 'Usuário sem perfil profissional ativo cadastrado.'
+        });
+      } else {
+        _currentProfessionalUid = null;
+        _currentProfessionalData = null;
+        setProfessionalAuthGateState('ERROR', {
+          message: resolution.error || 'Falha ao validar autorização profissional.'
+        });
+      }
+    } catch (err) {
+      console.error('[NutriAx Pro AuthGate] Erro ao resolver autorização:', err);
+      _currentProfessionalUid = null;
+      _currentProfessionalData = null;
+      setProfessionalAuthGateState('ERROR', { message: err.message || 'Erro inesperado ao verificar credenciais.' });
+    }
+  });
+}
+
+// Exposição explícita para controle global e testes
+window.initProfessionalAuthGate = initProfessionalAuthGate;
+window.setProfessionalAuthGateState = setProfessionalAuthGateState;
+window.handleProfessionalSignIn = handleProfessionalSignIn;
+window.handleProfessionalRetry = handleProfessionalRetry;
+window.handleProfessionalSignOut = handleProfessionalSignOut;
+window.bootstrapProfessionalWorkspace = bootstrapProfessionalWorkspace;
+window.dismantleProfessionalWorkspace = dismantleProfessionalWorkspace;
+
+// Initialize App on DOM Loaded — SUBORDINADO AO AUTH GATE (INVARIANTE 1.2)
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.lucide) {
     lucide.createIcons();
   }
-
-  // Inicializa data da última sincronização no rodapé da Sidebar
-  if (typeof initSystemLastSyncDate === "function") {
-    initSystemLastSyncDate();
-  }
-
-  // Ensure database seeding runs
-  if (typeof seedDatabase === "function") {
-    await seedDatabase();
-  }
-
-  // Load Script URL setting
-  const scriptUrlInput = document.getElementById("googleScriptUrlInput");
-  if (scriptUrlInput) {
-    scriptUrlInput.value = GOOGLE_SCRIPT_URL;
-  }
-
-  // Recupera o último paciente ativo salvo no localStorage
-  const savedPatientId = localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID");
-  if (savedPatientId) {
-    const exists = await db.patients.get(savedPatientId);
-    if (exists) {
-      activePatientId = savedPatientId;
-    }
-  }
-
-  // Populate Patient Selector in Top Bar and Mobile Header
-  await populatePatientSelect();
-
-  // Load active patient data
-  await onPatientChange(activePatientId);
-
-  // Render initial foods catalog
-  if (typeof loadFoods === "function") await loadFoods();
-
-  if (typeof attachEvaluationTriggers === "function") attachEvaluationTriggers();
-  if (typeof attachAnamneseTriggers === "function") attachAnamneseTriggers();
+  await initProfessionalAuthGate();
 });
 
 // =========================================================================
@@ -2681,29 +2899,18 @@ async function clearPrescriptionDiet() {
 }
 
 async function loadPrescriptionForPatient(patientId = activePatientId) {
+  if (!patientId) {
+    currentPrescriptionItems = [];
+    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
+    updateAIPrescriptionBanner();
+    renderPrescriptionTotals();
+    renderMealItems();
+    return;
+  }
   const saved = await db.prescriptions.get(patientId);
   if (saved && Array.isArray(saved.items) && saved.items.length > 0) {
     currentPrescriptionItems = saved.items;
     currentPrescriptionMeta = saved.meta || { isAIGenerated: false, isClinicallyValidated: false };
-  } else if (patientId === "paulo-vitor") {
-    currentPrescriptionItems = [
-      { id: "m1", mealName: "Café da manhã", mealTime: "07:00", foodName: "Café (sem açúcar)", quantity: 100, calories: 2, protein: 0.33, carbohydrate: 0, lipid: 0, fiber: 0 },
-      { id: "m2", mealName: "Café da manhã", mealTime: "07:00", foodName: "Leite em Pó Integral", quantity: 30, calories: 149, protein: 7.8, carbohydrate: 11.4, lipid: 8.1, fiber: 0 },
-      { id: "m3", mealName: "Lanche manhã", mealTime: "10:00", foodName: "Albumina Naturovos", quantity: 30, calories: 108.6, protein: 25.2, carbohydrate: 1.2, lipid: 0, fiber: 0 },
-      { id: "m4", mealName: "Almoço", mealTime: "12:30", foodName: "Feijão Carioca (Cozido)", quantity: 80, calories: 63.2, protein: 3.73, carbohydrate: 11.73, lipid: 1.33, fiber: 5.6 },
-      { id: "m5", mealName: "Almoço", mealTime: "12:30", foodName: "Peito de Frango (Grelhado)", quantity: 200, calories: 330, protein: 64.0, carbohydrate: 0, lipid: 5.33, fiber: 0 },
-      { id: "m6", mealName: "Almoço", mealTime: "12:30", foodName: "Arroz Branco (Cozido)", quantity: 200, calories: 276, protein: 4.67, carbohydrate: 58.0, lipid: 3.33, fiber: 0.67 },
-      { id: "m7", mealName: "Pré-treino", mealTime: "16:30", foodName: "Banana Nanica", quantity: 100, calories: 91, protein: 1.33, carbohydrate: 21.67, lipid: 0.33, fiber: 1.67 },
-      { id: "m8", mealName: "Pré-treino", mealTime: "16:30", foodName: "Aveia (Flocos)", quantity: 30, calories: 113.7, protein: 4.7, carbohydrate: 19.4, lipid: 2.6, fiber: 2.9 },
-      { id: "m9", mealName: "Pré-treino", mealTime: "16:30", foodName: "Iogurte Natural Desnatado", quantity: 180, calories: 86.4, protein: 7.2, carbohydrate: 12.6, lipid: 0.6, fiber: 0 },
-      { id: "m10", mealName: "Pré-treino", mealTime: "16:30", foodName: "Leite em Pó Integral", quantity: 30, calories: 149, protein: 7.8, carbohydrate: 11.4, lipid: 8.1, fiber: 0 },
-      { id: "m11", mealName: "Pós-treino", mealTime: "18:30", foodName: "Albumina Naturovos", quantity: 30, calories: 108.6, protein: 25.2, carbohydrate: 1.2, lipid: 0, fiber: 0 },
-      { id: "m12", mealName: "Jantar", mealTime: "20:00", foodName: "Peito de Frango (Grelhado)", quantity: 100, calories: 165, protein: 32.0, carbohydrate: 0, lipid: 2.67, fiber: 0 },
-      { id: "m13", mealName: "Jantar", mealTime: "20:00", foodName: "Tomate Cru", quantity: 50, calories: 9, protein: 0.5, carbohydrate: 2.0, lipid: 0.17, fiber: 0.6 },
-      { id: "m14", mealName: "Jantar", mealTime: "20:00", foodName: "Arroz Branco (Cozido)", quantity: 150, calories: 207, protein: 3.5, carbohydrate: 43.5, lipid: 2.5, fiber: 0.5 },
-      { id: "m15", mealName: "Jantar", mealTime: "20:00", foodName: "Ovo de Galinha (Cozido)", quantity: 20, calories: 31, protein: 2.6, carbohydrate: 0.13, lipid: 2.0, fiber: 0 },
-    ];
-    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
   } else {
     currentPrescriptionItems = [];
     currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
@@ -5864,10 +6071,8 @@ async function loadClinicalExams(patientId = activePatientId) {
   const tag = document.getElementById("examsPatientTag");
   if (tag && p) tag.innerText = p.name;
 
+  if (!patientId) return;
   let exam = await db.clinicalExams.where("patientId").equals(patientId).first();
-  if (!exam && patientId === "paulo-vitor") {
-    exam = initialClinicalExamsData.find(e => e.patientId === patientId) || initialClinicalExamsData[0];
-  }
 
   if (document.getElementById("examDateInput")) document.getElementById("examDateInput").value = exam ? (exam.examDate || "2026-06-20") : new Date().toISOString().split("T")[0];
   if (document.getElementById("examGlucose")) document.getElementById("examGlucose").value = exam ? (exam.fastingGlucose || "") : "";
@@ -6036,10 +6241,8 @@ function renderClinicalAlerts() {
 }
 
 async function renderPrescriptionClinicalAlerts(patientId = activePatientId) {
+  if (!patientId) return;
   let exam = await db.clinicalExams.where("patientId").equals(patientId).first();
-  if (!exam && patientId === "paulo-vitor") {
-    exam = initialClinicalExamsData.find(e => e.patientId === patientId) || initialClinicalExamsData[0];
-  }
 
   const badgeEl = document.getElementById("prescriptionAlertsBadge");
   const listEl = document.getElementById("prescriptionClinicalAlertsList");
@@ -8601,7 +8804,8 @@ function calculateDisciplineStreak(pState, realScoreIDC) {
 }
 
 async function renderDisciplineDashboard() {
-  const pId = activePatientId || "paulo-vitor";
+  const pId = activePatientId;
+  if (!pId) return;
   let patientName = "Paulo Vitor";
   try {
     if (typeof db !== 'undefined' && db.patients) {
@@ -8629,7 +8833,6 @@ async function renderDisciplineDashboard() {
     `nutriax_patient_discipline_v3_${pId}`,
     `nutriax_patient_discipline_v3_${String(pId).toLowerCase().replace(/\s+/g, '-')}`,
     'nutriax_patient_discipline_v3',
-    'nutriax_patient_discipline_v3_paulo-vitor',
     'nutriax_patient_discipline_v3_default'
   ];
 
@@ -9352,7 +9555,8 @@ function renderDisciplineHabitsList(pState, m) {
     : `${m.doneMeals} de ${m.totalMeals} refeições prescritas consumidas no plano`;
 
   // Checa se há protocolo de jejum intermitente ativo para o paciente
-  const pId = activePatientId || "paulo-vitor";
+  const pId = activePatientId;
+  if (!pId) return;
   const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
     ? window.NutriAxFasting
     : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
@@ -9888,7 +10092,8 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
 // MOTOR DE SINCRONIZAÇÃO TOTAL & BIDIRECIONAL COM O APP DO PACIENTE
 // =========================================================================
 function syncActivePatientToPatientApp(patientId = activePatientId) {
-  const pId = patientId || activePatientId || "paulo-vitor";
+  const pId = patientId || activePatientId;
+  if (!pId) return null;
 
   let patientName = "";
   let targetWater = 4000;
@@ -9919,12 +10124,12 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
   }
 
   // 4. Se ainda assim não encontrou e pId for um identificador (ex: "vitor-gabriel")
-  if (!patientName && pId && pId !== "default" && pId !== "paulo-vitor") {
+  if (!patientName && pId && pId !== "default") {
     patientName = pId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
   }
 
   if (!patientName) {
-    patientName = "Paulo Vitor";
+    patientName = "Paciente";
   }
 
   // 1. Agrupamento estruturado da Prescrição Dietética (Refeições e Alimentos)
@@ -10094,7 +10299,11 @@ async function openPatientShareModal() {
   const modal = document.getElementById('patientShareModal');
   if (!modal) return;
 
-  const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+  const pId = activePatientId || (activePatientData && activePatientData.id);
+  if (!pId) {
+    alert('Por favor, selecione um paciente antes de abrir o compartilhamento.');
+    return;
+  }
 
   // Garante que os dados do paciente ativo estão carregados do Dexie
   if (!activePatientData || activePatientData.id !== pId) {
@@ -10113,7 +10322,9 @@ async function openPatientShareModal() {
 
   // Determina URL pública ou local
   let patientUrl = 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
-  if (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.')) {
+  if (window.location.protocol === 'file:') {
+    patientUrl = 'paciente.html';
+  } else if (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.')) {
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
     patientUrl = `${origin}${path}paciente.html`;
@@ -10133,7 +10344,7 @@ async function openPatientShareModal() {
 
   const qrImg = document.getElementById('patientQrCodeImg');
   if (qrImg) {
-    const qrTargetUrl = `${patientUrl}?id=${encodeURIComponent(pId)}`;
+    const qrTargetUrl = patientUrl;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(qrTargetUrl)}`;
     qrImg.onerror = function () {
       this.onerror = null;
@@ -10165,24 +10376,68 @@ async function openPatientShareModal() {
   }
 
   if (badgeEl) {
-    if (savedEmail && savedEmail.includes('@')) {
-      badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${savedEmail}</span>`;
-      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
-    } else {
-      badgeEl.textContent = 'Não vinculado';
-      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700";
-    }
+    badgeEl.textContent = 'Verificando status...';
+    badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700";
   }
 
   modal.classList.remove('hidden');
   if (window.lucide) window.lucide.createIcons();
+
+  await updatePatientShareModalStatus(pId, savedEmail);
+}
+
+async function updatePatientShareModalStatus(pId, fallbackEmail = '') {
+  const badgeEl = document.getElementById('patientCloudLinkedBadge');
+  const emailInput = document.getElementById('patientShareGmailInput');
+  if (!badgeEl || !pId) return;
+
+  try {
+    if (window.NutriProFirebase && window.NutriProFirebase.identity) {
+      // 1. Verifica se já existe vínculo ativo em patient_users (REQUISITO 13: CLAIMED = Vinculado)
+      if (typeof window.NutriProFirebase.identity.getPatientUserByPatientId === 'function') {
+        const patientUser = await window.NutriProFirebase.identity.getPatientUserByPatientId(pId);
+        if (patientUser) {
+          if (patientUser.status === 'active') {
+            const userEmail = patientUser.email || fallbackEmail;
+            badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${userEmail}</span>`;
+            badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+            if (emailInput && !emailInput.value && userEmail) emailInput.value = userEmail;
+            return;
+          } else if (patientUser.status === 'blocked') {
+            badgeEl.innerHTML = `● Bloqueado`;
+            badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-red-950/80 text-red-400 border border-red-800";
+            return;
+          }
+        }
+      }
+
+      // 2. Se não há patient_users ativo, verifica se há convite PENDING em patient_invites (REQUISITO 13: PENDING = Convite pendente)
+      if (typeof window.NutriProFirebase.identity.getPatientInviteByPatientId === 'function') {
+        const invite = await window.NutriProFirebase.identity.getPatientInviteByPatientId(pId);
+        if (invite && invite.status === 'PENDING') {
+          const invEmail = invite.authorizedEmail || fallbackEmail;
+          badgeEl.innerHTML = `● Convite pendente: <span class="text-amber-300 font-bold">${invEmail}</span>`;
+          badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-400 border border-amber-800";
+          if (emailInput && !emailInput.value && invEmail) emailInput.value = invEmail;
+          return;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[NutriAx Pro] Erro ao checar status de vínculo na nuvem:', err);
+  }
+
+  // 3. Não vinculado
+  badgeEl.textContent = 'Não vinculado';
+  badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700";
 }
 
 function onPatientShareGmailInputChange() {
   const emailInput = document.getElementById('patientShareGmailInput');
   if (!emailInput) return;
   const email = emailInput.value.trim().toLowerCase();
-  const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+  const pId = activePatientId || (activePatientData && activePatientData.id);
+  if (!pId) return;
   const badgeEl = document.getElementById('patientCloudLinkedBadge');
 
   if (email) {
@@ -10221,7 +10476,12 @@ function closePatientShareModal() {
   const emailInput = document.getElementById('patientShareGmailInput');
   if (emailInput) {
     const email = emailInput.value.trim().toLowerCase();
-    const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+    const pId = activePatientId || (activePatientData && activePatientData.id);
+    if (!pId) {
+      const modal = document.getElementById('patientShareModal');
+      if (modal) modal.classList.add('hidden');
+      return;
+    }
     if (email) {
       localStorage.setItem(`nutriax_patient_email_${pId}`, email);
       localStorage.setItem('nutriax_patient_email_last', email);
@@ -10244,11 +10504,16 @@ function closePatientShareModal() {
 }
 
 async function linkPatientEmailFromDashboard() {
-  const pId = activePatientId || (activePatientData && activePatientData.id) || "paulo-vitor";
+  const pId = activePatientId || (activePatientData && activePatientData.id);
   const emailInput = document.getElementById('patientShareGmailInput');
   const btn = document.getElementById('btnLinkPatientGmail');
   const badgeEl = document.getElementById('patientCloudLinkedBadge');
   if (!emailInput) return;
+
+  if (!pId) {
+    alert('Por favor, selecione um paciente antes de vincular.');
+    return;
+  }
 
   const email = emailInput.value.trim().toLowerCase();
   if (!email || !email.includes('@') || !email.includes('.')) {
@@ -10257,12 +10522,14 @@ async function linkPatientEmailFromDashboard() {
     return;
   }
 
-  const pName = activePatientData?.name ||
-    document.getElementById("headerPatientName")?.innerText?.trim() ||
-    document.getElementById("perfPatientName")?.innerText?.trim() ||
-    'Paciente';
+  // REQUISITO 9 & 12: professionalId deve vir do Firebase Auth autenticado
+  const currentProUid = _currentProfessionalUid || window.NutriProFirebase?.auth?.getCurrentUser()?.uid;
+  if (!currentProUid) {
+    alert('Acesso negado: apenas o profissional autenticado pode criar convites de pacientes.');
+    return;
+  }
 
-  // 1. SALVAMENTO LOCAL IMEDIATO (GARANTIA TOTAL DE PERSISTÊNCIA)
+  // 1. SALVAMENTO LOCAL DO EMAIL (PREFERÊNCIA LOCAL DO PROFISSIONAL)
   localStorage.setItem(`nutriax_patient_email_${pId}`, email);
   localStorage.setItem('nutriax_patient_email_last', email);
   if (activePatientData) {
@@ -10281,22 +10548,25 @@ async function linkPatientEmailFromDashboard() {
     }
   }
 
-  // Atualiza badge visual imediatamente
-  if (badgeEl) {
-    badgeEl.innerHTML = `● Vinculado: <span class="text-emerald-300 font-bold">${email}</span>`;
-    badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800";
-  }
-
   const originalBtnHTML = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Vinculando...';
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Criando convite...';
   }
 
-  // 2. SINCRONIZAÇÃO EM NUVEM (RESILIENTE)
+  // 2. CRIAÇÃO CANÔNICA DO CONVITE EM patient_invites (REQUISITO 9, 10, 11, 12)
   try {
+    if (window.NutriProFirebase?.identity?.createPatientInvite) {
+      await window.NutriProFirebase.identity.createPatientInvite({
+        patientId: pId,
+        authorizedEmail: email,
+        professionalId: currentProUid
+      });
+    }
+
+    // 3. SINCRONIZAÇÃO DA PRESCRIÇÃO NA NUVEM
     const payload = syncActivePatientToPatientApp(pId);
-    if (window.NutriProFirebase && typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
+    if (window.NutriProFirebase?.prescription?.syncToCloud) {
       try {
         await window.NutriProFirebase.prescription.syncToCloud(pId, payload);
       } catch (err) {
@@ -10304,17 +10574,15 @@ async function linkPatientEmailFromDashboard() {
       }
     }
 
-    if (window.NutriProFirebase && typeof window.NutriProFirebase.auth?.linkEmailToPatient === 'function') {
-      try {
-        await window.NutriProFirebase.auth.linkEmailToPatient(email, pId, { displayName: pName });
-      } catch (err) {
-        console.warn("Aviso na vinculação do e-mail com Firebase:", err);
-      }
+    // 4. ATUALIZA BADGE VISUAL PARA CONVITE PENDENTE (REQUISITO 13: PENDING !== CLAIMED)
+    if (badgeEl) {
+      badgeEl.innerHTML = `● Convite pendente: <span class="text-amber-300 font-bold">${email}</span>`;
+      badgeEl.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-400 border border-amber-800";
     }
 
     if (btn) {
-      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Vinculado!';
-      btn.className = "px-3.5 py-2 rounded-xl bg-emerald-900/60 text-emerald-300 border border-emerald-700 text-xs font-bold flex items-center gap-1.5 shadow-md";
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-amber-400"></i> Convite Criado!';
+      btn.className = "px-3.5 py-2 rounded-xl bg-amber-900/60 text-amber-300 border border-amber-700 text-xs font-bold flex items-center gap-1.5 shadow-md";
       setTimeout(() => {
         btn.disabled = false;
         btn.innerHTML = originalBtnHTML;
@@ -10322,18 +10590,15 @@ async function linkPatientEmailFromDashboard() {
         if (window.lucide) window.lucide.createIcons();
       }, 2500);
     }
-    if (window.lucide) window.lucide.createIcons();
   } catch (error) {
-    console.warn('Erro ao sincronizar com nuvem:', error);
+    console.error('Erro ao criar convite de paciente:', error);
+    alert('Erro ao criar convite na nuvem: ' + (error.message || error));
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Salvo!';
-      setTimeout(() => {
-        btn.innerHTML = originalBtnHTML;
-        if (window.lucide) window.lucide.createIcons();
-      }, 2500);
+      btn.innerHTML = originalBtnHTML;
     }
   }
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function copyPatientShareLink() {
@@ -10362,7 +10627,8 @@ function copyPatientShareLink() {
 function sendPatientWhatsAppMessage() {
   const input = document.getElementById('patientShareLinkInput');
   const fullShareUrl = input ? input.value : 'https://gptpaulovitor-sudo.github.io/NutriPro/paciente.html';
-  const pId = activePatientId || "paulo-vitor";
+  const pId = activePatientId;
+  if (!pId) { alert("Selecione um paciente antes de enviar WhatsApp."); return; }
   const savedEmail = (activePatientData && activePatientData.email) || localStorage.getItem(`nutriax_patient_email_${pId}`) || '';
 
   const pName = activePatientData?.name ||
@@ -10858,16 +11124,16 @@ function validateCardioProtocol(proto) {
   if (typeof proto.recoveryDemand !== 'string' || !CARDIO_TAXONOMY.RECOVERY_DEMAND_LEVELS.includes(proto.recoveryDemand)) {
     errors.push(`recoveryDemand '${proto.recoveryDemand}' inválida. Permitidos: ${CARDIO_TAXONOMY.RECOVERY_DEMAND_LEVELS.join(', ')}`);
   }
-  if (!Array.isArray(proto.modalityTags) || proto.modalityTags.length === 0) {
-    errors.push('modalityTags deve ser um array não vazio');
-  } else {
-    proto.modalityTags.forEach(tag => {
-      if (typeof tag !== 'string' || tag.trim().length === 0) {
-        errors.push('Itens de modalityTags devem ser strings não vazias');
-      }
-    });
-  }
-
+  if (!Array.isArray(proto.modalityTags) || proto.modalityTags.length === 0) {
+    errors.push('modalityTags deve ser um array não vazio');
+  } else {
+    proto.modalityTags.forEach(tag => {
+      if (typeof tag !== 'string' || tag.trim().length === 0) {
+        errors.push('Itens de modalityTags devem ser strings não vazias');
+      }
+    });
+  }
+
   if (!Array.isArray(proto.adaptationTags)) {
     errors.push('adaptationTags deve ser um array');
   } else {
@@ -19663,7 +19929,7 @@ async function perfGenerateCardioPlan(patientId = activePatientId) {
   }
   _isGeneratingCardioPlan = true;
 
-  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
+  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value);
   if (!pId) {
     _isGeneratingCardioPlan = false;
     return { status: 'ERROR', message: 'Nenhum paciente selecionado.' };
@@ -22440,7 +22706,7 @@ if (typeof window !== 'undefined') {
 
 
 async function savePerformanceForPatient(patientId = activePatientId) {
-  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
+  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value);
   if (!pId) return;
 
   perfWeeklySchedule = perfNormalizeWeeklySchedule(perfWeeklySchedule);
@@ -22502,7 +22768,7 @@ async function savePerformanceForPatient(patientId = activePatientId) {
 }
 
 async function loadPerformanceForPatient(patientId = activePatientId) {
-  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value) || "paulo-vitor";
+  const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value);
   if (!pId) return;
 
   // Se houver validação de IA pendente para outro paciente, limpa o estado pendente
@@ -23388,7 +23654,7 @@ async function handleGenerateAITraining() {
 
   // PASSO 3: Captura imutável do patientId no início da operação (prevenção de race condition)
   const patientSelect = document.getElementById('activePatientSelect');
-  const generationPatientId = (patientSelect && patientSelect.value ? patientSelect.value : null) || activePatientId || "paulo-vitor";
+  const generationPatientId = (patientSelect && patientSelect.value ? patientSelect.value : null) || activePatientId;
 
   if (!generationPatientId) {
     resetGenAiButtons();

@@ -753,6 +753,93 @@
     return !!(profile && profile.status === 'active');
   }
 
+  // Resolução Canônica de Identidade e Autorização do Profissional (Fase 8.3)
+  async function resolveAuthorizedProfessional(user) {
+    if (!user || !user.uid) {
+      return { state: 'UNAUTHENTICATED' };
+    }
+
+    const ready = await ensureReady();
+    if (!ready) {
+      return { state: 'ERROR', error: 'Firebase não inicializado' };
+    }
+
+    try {
+      const uid = String(user.uid).trim();
+      const profile = await getProfessionalProfile(uid);
+
+      if (profile && profile.status === 'active') {
+        return {
+          state: 'AUTHORIZED',
+          uid,
+          professional: profile,
+          user
+        };
+      }
+
+      return {
+        state: 'ACCESS_DENIED',
+        uid,
+        reason: 'NOT_ACTIVE_PROFESSIONAL'
+      };
+    } catch (error) {
+      console.error('[NutriPro Firebase] Erro ao validar profissional:', error);
+      return { state: 'ERROR', error };
+    }
+  }
+
+  async function getPatientInviteByPatientId(patientId) {
+    if (!patientId) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const snapshot = await firestore.collection('patient_invites')
+        .where('patientId', '==', String(patientId).trim())
+        .get();
+
+      if (!snapshot || snapshot.empty) return null;
+
+      let latest = null;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!latest || (data.createdAt && data.createdAt > (latest.createdAt || ''))) {
+          latest = { id: doc.id, ...data };
+        }
+      });
+      return latest;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar convite por patientId:', error);
+      return null;
+    }
+  }
+
+  async function getPatientUserByPatientId(patientId) {
+    if (!patientId) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const snapshot = await firestore.collection('patient_users')
+        .where('patientId', '==', String(patientId).trim())
+        .get();
+
+      if (!snapshot || snapshot.empty) return null;
+
+      let activeUser = null;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.status === 'active') {
+          activeUser = { id: doc.id, ...data };
+        }
+      });
+      return activeUser;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar patient_user por patientId:', error);
+      return null;
+    }
+  }
+
   async function getPatientUser(uid) {
     if (!uid) return null;
     const ready = await ensureReady();
@@ -1091,7 +1178,10 @@
       claimPatientInvite,
       getAuthorizedPatientId,
       isProfessionalAuthorized,
-      resolveAuthorizedPatient
+      resolveAuthorizedPatient,
+      resolveAuthorizedProfessional,
+      getPatientInviteByPatientId,
+      getPatientUserByPatientId
     },
     identity: {
       getCurrentFirebaseUser,
@@ -1107,7 +1197,10 @@
       getPendingPatientInviteByEmail,
       claimPatientInvite,
       auditLegacyPatientUsers,
-      resolveAuthorizedPatient
+      resolveAuthorizedPatient,
+      resolveAuthorizedProfessional,
+      getPatientInviteByPatientId,
+      getPatientUserByPatientId
     },
     discipline: {
       syncToCloud: syncDisciplineToCloud,
