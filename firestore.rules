@@ -1,0 +1,206 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // NutriAx Pro & Disciplina — Firestore Security Rules (Fase 8.1.1 Hardened)
+    // Projeto: base-e-load
+    // Princípio: Menor Privilégio, Zero Confiança no Cliente, Vínculo Canônico por UID
+    // =========================================================================
+
+    // ── Funções Auxiliares de Autenticação e Autorização ──
+
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Verifica se o usuário autenticado possui registro ativo na coleção professionals
+    function isProfessional() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/professionals/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/professionals/$(request.auth.uid)).data.status == 'active';
+    }
+
+    // Verifica se o usuário autenticado é o paciente vinculado canonicamente ao patientId
+    // Baseado ESTRITAMENTE em patient_users/{request.auth.uid} e NUNCA em dados de URL ou payload
+    function isAuthorizedPatient(patientId) {
+      return isAuthenticated() &&
+        patientId != null &&
+        exists(/databases/$(database)/documents/patient_users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/patient_users/$(request.auth.uid)).data.status == 'active' &&
+        get(/databases/$(database)/documents/patient_users/$(request.auth.uid)).data.role == 'patient' &&
+        get(/databases/$(database)/documents/patient_users/$(request.auth.uid)).data.patientId == patientId;
+    }
+
+    // Valida se a criação de vínculo patient_users/{uid} decorre de um convite válido emitido por profissional
+    function isValidInviteClaim(uid) {
+      return isAuthenticated() &&
+        isOwner(uid) &&
+        request.resource.data != null &&
+        'inviteId' in request.resource.data &&
+        exists(/databases/$(database)/documents/patient_invites/$(request.resource.data.inviteId)) &&
+        get(/databases/$(database)/documents/patient_invites/$(request.resource.data.inviteId)).data.status == 'PENDING' &&
+        request.auth.token.email != null &&
+        get(/databases/$(database)/documents/patient_invites/$(request.resource.data.inviteId)).data.authorizedEmail == request.auth.token.email &&
+        get(/databases/$(database)/documents/patient_invites/$(request.resource.data.inviteId)).data.patientId == request.resource.data.patientId &&
+        get(/databases/$(database)/documents/patient_invites/$(request.resource.data.inviteId)).data.professionalId == request.resource.data.professionalId &&
+        request.resource.data.firebaseUid == uid &&
+        request.resource.data.role == 'patient' &&
+        request.resource.data.status == 'active';
+    }
+
+    // ── 1. users: Perfil do usuário autenticado ──
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isProfessional();
+
+      // Próprio usuário cria seu perfil básico (sem auto-atribuição de role profissional)
+      allow create: if isProfessional() || (
+        isOwner(uid) &&
+        request.resource.data.uid == uid &&
+        (!('role' in request.resource.data) || request.resource.data.role != 'professional')
+      );
+
+      // Próprio usuário atualiza (sem alterar seu UID nem alterar role para profissional)
+      allow update: if isProfessional() || (
+        isOwner(uid) &&
+        request.resource.data.uid == uid &&
+        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+      );
+
+      allow delete: if isProfessional();
+    }
+
+    // ── 2. professionals: Cadastro de nutricionistas autorizados ──
+    match /professionals/{uid} {
+      // Usuários autenticados podem consultar dados de profissionais (ex: exibição do nutricionista responsável)
+      allow read: if isAuthenticated();
+
+      // Escrita EXCLUSIVA de profissionais já ativos (ou gestão administrativa server-side).
+      // Zero auto-promoção ou auto-criação por usuários comuns.
+      allow write: if isProfessional();
+    }
+
+    // ── 3. patient_users: Vínculo canônico UID <-> patientId ──
+    match /patient_users/{docId} {
+      // Leitura permitida ao próprio paciente autenticado pelo seu UID canônico ou profissional ativo.
+      // Documentos legados de chave emailKey só podem ser auditados/lidos por profissionais.
+      allow read: if isProfessional() || isOwner(docId);
+
+      // Criação: profissional ativo pode vincular; paciente comum SÓ pode criar via convite PENDING válido
+      allow create: if isProfessional() || isValidInviteClaim(docId);
+
+      // Atualização e Exclusão: ESTRITAMENTE VEDADO ao paciente alterar patientId, role, status ou professionalId
+      allow update, delete: if isProfessional();
+    }
+
+    // ── 4. patient_invites: Convites de pré-vinculação emitidos pelo profissional ──
+    match /patient_invites/{inviteId} {
+      // Leitura: profissional ou usuário autenticado com email autorizado correspondente
+      allow read: if isProfessional() || (
+        isAuthenticated() &&
+        request.auth.token.email != null &&
+        resource != null &&
+        resource.data.authorizedEmail == request.auth.token.email
+      );
+
+      // Criação e Exclusão: EXCLUSIVA do profissional ativo
+      allow create, delete: if isProfessional();
+
+      // Atualização: profissional ou resgate (claim) pelo paciente correspondente.
+      // O paciente só pode transicionar de PENDING para CLAIMED mantendo todos os campos sensíveis inalterados.
+      allow update: if isProfessional() || (
+        isAuthenticated() &&
+        request.auth.token.email != null &&
+        resource != null &&
+        resource.data.status == 'PENDING' &&
+        resource.data.authorizedEmail == request.auth.token.email &&
+        request.resource.data.status == 'CLAIMED' &&
+        request.resource.data.claimedByUid == request.auth.uid &&
+        request.resource.data.patientId == resource.data.patientId &&
+        request.resource.data.authorizedEmail == resource.data.authorizedEmail &&
+        request.resource.data.professionalId == resource.data.professionalId &&
+        request.resource.data.inviteId == resource.data.inviteId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.expiresAt == resource.data.expiresAt
+      );
+    }
+
+    // ── 5. patient_discipline: Hábitos diários, água, sono e Score IDC ──
+    match /patient_discipline/{patientId} {
+      allow read: if isProfessional() || isAuthorizedPatient(patientId);
+
+      allow create: if isProfessional() || (
+        isAuthorizedPatient(patientId) &&
+        request.resource.data.patientId == patientId
+      );
+
+      allow update: if isProfessional() || (
+        isAuthorizedPatient(patientId) &&
+        resource.data.patientId == patientId &&
+        request.resource.data.patientId == patientId
+      );
+
+      allow delete: if isProfessional();
+    }
+
+    // ── 6. patient_performance: Prescrição de musculação, split e cardio ──
+    match /patient_performance/{patientId} {
+      allow read: if isProfessional() || isAuthorizedPatient(patientId);
+      allow write: if isProfessional();
+    }
+
+    // ── 7. patient_prescriptions: Cardápios, refeições e gramagens ──
+    match /patient_prescriptions/{patientId} {
+      allow read: if isProfessional() || isAuthorizedPatient(patientId);
+      allow write: if isProfessional();
+    }
+
+    // ── 8. patient_fasting: Protocolos clínicos de jejum intermitente ──
+    match /patient_fasting/{patientId} {
+      allow read: if isProfessional() || isAuthorizedPatient(patientId);
+      allow write: if isProfessional();
+    }
+
+    // ── 9. patient_fasting_logs: Registros diários de execução de jejum ──
+    match /patient_fasting_logs/{logId} {
+      // Leitura: profissional ativo ou paciente autorizado correspondente ao log
+      allow read: if isProfessional() || (
+        isAuthenticated() &&
+        resource != null &&
+        isAuthorizedPatient(resource.data.patientId)
+      );
+
+      // Criação: profissional ativo ou paciente gravando log com seu patientId oficial
+      allow create: if isProfessional() || (
+        isAuthenticated() &&
+        request.resource.data != null &&
+        request.resource.data.patientId != null &&
+        isAuthorizedPatient(request.resource.data.patientId)
+      );
+
+      // Atualização: profissional ativo ou paciente dono do log, GARANTINDO imutabilidade de patientId:
+      // patientId antigo == patientId novo == patientId oficial do usuário autenticado
+      allow update: if isProfessional() || (
+        isAuthenticated() &&
+        resource != null &&
+        request.resource != null &&
+        resource.data.patientId != null &&
+        request.resource.data.patientId != null &&
+        resource.data.patientId == request.resource.data.patientId &&
+        isAuthorizedPatient(resource.data.patientId)
+      );
+
+      // Exclusão: profissional ou paciente dono do log
+      allow delete: if isProfessional() || (
+        isAuthenticated() &&
+        resource != null &&
+        resource.data.patientId != null &&
+        isAuthorizedPatient(resource.data.patientId)
+      );
+    }
+  }
+}

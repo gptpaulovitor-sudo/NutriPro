@@ -654,19 +654,460 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 6. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
+  // 6. FASE 8.1 — FUNDAÇÃO DE IDENTIDADE CANÔNICA E AUTORIZAÇÃO POR UID
+  // Coleções: users, professionals, patient_users, patient_invites
   // ─────────────────────────────────────────────────────────────────────────
-  window.NutriProFirebase = {
+
+  function getCurrentFirebaseUser() {
+    if (auth && auth.currentUser) {
+      return {
+        uid: auth.currentUser.uid,
+        email: auth.currentUser.email || null,
+        emailVerified: !!auth.currentUser.emailVerified,
+        displayName: auth.currentUser.displayName || '',
+        photoURL: auth.currentUser.photoURL || ''
+      };
+    }
+    return null;
+  }
+
+  function getCurrentFirebaseUid() {
+    const user = getCurrentFirebaseUser();
+    return user ? user.uid : null;
+  }
+
+  function getVerifiedFirebaseEmail() {
+    const user = getCurrentFirebaseUser();
+    if (!user || !user.email) return null;
+    return String(user.email).trim().toLowerCase();
+  }
+
+  async function getUserProfile(uid) {
+    if (!uid) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const docRef = await firestore.collection('users').doc(String(uid).trim()).get();
+      if (docRef.exists) {
+        return docRef.data();
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar perfil do usuário:', error);
+      return null;
+    }
+  }
+
+  async function upsertUserProfile(uid, userData = {}) {
+    if (!uid) return false;
+    const ready = await ensureReady();
+    if (!ready) return false;
+
+    try {
+      const sanitizedUid = String(uid).trim();
+      const payload = {
+        uid: sanitizedUid,
+        email: userData.email ? String(userData.email).trim().toLowerCase() : '',
+        displayName: userData.displayName || '',
+        role: userData.role || 'patient',
+        status: userData.status || 'active',
+        authProvider: userData.authProvider || 'google',
+        updatedAt: (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue)
+          ? firebase.firestore.FieldValue.serverTimestamp()
+          : new Date().toISOString()
+      };
+
+      if (userData.createdAt) {
+        payload.createdAt = userData.createdAt;
+      }
+
+      await firestore.collection('users').doc(sanitizedUid).set(payload, { merge: true });
+      return true;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao salvar perfil do usuário:', error);
+      return false;
+    }
+  }
+
+  async function getProfessionalProfile(uid) {
+    if (!uid) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const docRef = await firestore.collection('professionals').doc(String(uid).trim()).get();
+      if (docRef.exists) {
+        return docRef.data();
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar perfil profissional:', error);
+      return null;
+    }
+  }
+
+  async function isProfessionalAuthorized(uid) {
+    if (!uid) return false;
+    const profile = await getProfessionalProfile(uid);
+    return !!(profile && profile.status === 'active');
+  }
+
+  async function getPatientUser(uid) {
+    if (!uid) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const docRef = await firestore.collection('patient_users').doc(String(uid).trim()).get();
+      if (docRef.exists) {
+        return docRef.data();
+      }
+      return null;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar patient_user por UID:', error);
+      return null;
+    }
+  }
+
+  async function getAuthorizedPatientId(uid) {
+    if (!uid) return null;
+    const patientUser = await getPatientUser(uid);
+    if (patientUser && patientUser.status === 'active' && patientUser.patientId) {
+      return String(patientUser.patientId).trim();
+    }
+    return null;
+  }
+
+  async function createPatientInvite({ patientId, authorizedEmail, professionalId, expiresInDays = 7 }) {
+    if (!patientId || !authorizedEmail || !professionalId) {
+      throw new Error('Parâmetros obrigatórios ausentes: patientId, authorizedEmail e professionalId são necessários.');
+    }
+
+    const ready = await ensureReady();
+    if (!ready) throw new Error('Firebase não inicializado');
+
+    // Valida que o profissional emissor é autorizado
+    const isAuth = await isProfessionalAuthorized(professionalId);
+    if (!isAuth) {
+      throw new Error('Operação não autorizada: apenas profissionais ativos podem gerar convites.');
+    }
+
+    const normalizedEmail = String(authorizedEmail).trim().toLowerCase();
+    const sanitizedPatientId = String(patientId).trim();
+    const sanitizedProfessionalId = String(professionalId).trim();
+    const inviteId = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + (Number(expiresInDays) || 7) * 86400000).toISOString();
+
+    const invitePayload = {
+      inviteId,
+      patientId: sanitizedPatientId,
+      authorizedEmail: normalizedEmail,
+      professionalId: sanitizedProfessionalId,
+      status: 'PENDING',
+      createdAt: now.toISOString(),
+      expiresAt,
+      claimedAt: null,
+      claimedByUid: null,
+      updatedAt: (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue)
+        ? firebase.firestore.FieldValue.serverTimestamp()
+        : now.toISOString()
+    };
+
+    try {
+      await firestore.collection('patient_invites').doc(inviteId).set(invitePayload);
+      console.info(`[NutriPro Firebase] Convite ${inviteId} gerado para paciente ${sanitizedPatientId} (${normalizedEmail})`);
+      return invitePayload;
+    } catch (error) {
+      console.error('[NutriPro Firebase] Erro ao criar convite:', error);
+      throw error;
+    }
+  }
+
+  async function getPendingPatientInviteByEmail(email) {
+    if (!email) return null;
+    const ready = await ensureReady();
+    if (!ready) return null;
+
+    try {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const snapshot = await firestore.collection('patient_invites')
+        .where('authorizedEmail', '==', normalizedEmail)
+        .where('status', '==', 'PENDING')
+        .get();
+
+      if (snapshot.empty) return null;
+
+      const now = new Date();
+      let validInvite = null;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.expiresAt && new Date(data.expiresAt) > now) {
+          validInvite = { ...data, id: doc.id };
+        }
+      });
+
+      return validInvite;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao buscar convite pendente por e-mail:', error);
+      return null;
+    }
+  }
+
+  async function claimPatientInvite(inviteId, userAuth) {
+    if (!inviteId) throw new Error('ID do convite não fornecido');
+    if (!userAuth || !userAuth.uid || !userAuth.email) {
+      throw new Error('Usuário não autenticado ou sem e-mail válido para reivindicar convite');
+    }
+
+    const ready = await ensureReady();
+    if (!ready) throw new Error('Firebase não inicializado');
+
+    const sanitizedInviteId = String(inviteId).trim();
+    const inviteDoc = await firestore.collection('patient_invites').doc(sanitizedInviteId).get();
+
+    if (!inviteDoc.exists) {
+      throw new Error('Convite inexistente');
+    }
+
+    const invite = inviteDoc.data();
+
+    if (invite.status !== 'PENDING') {
+      throw new Error(`Convite não está pendente (status atual: ${invite.status})`);
+    }
+
+    const now = new Date();
+    if (invite.expiresAt && new Date(invite.expiresAt) <= now) {
+      throw new Error('Convite expirado');
+    }
+
+    const normalizedUserEmail = String(userAuth.email).trim().toLowerCase();
+    const normalizedInviteEmail = String(invite.authorizedEmail).trim().toLowerCase();
+
+    if (normalizedUserEmail !== normalizedInviteEmail) {
+      throw new Error(`E-mail autenticado (${normalizedUserEmail}) não corresponde ao e-mail autorizado no convite (${normalizedInviteEmail})`);
+    }
+
+    const uid = String(userAuth.uid).trim();
+    const patientId = String(invite.patientId).trim();
+    const professionalId = String(invite.professionalId).trim();
+    const serverTimestamp = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue)
+      ? firebase.firestore.FieldValue.serverTimestamp()
+      : now.toISOString();
+
+    // 1. Cria o registro canônico em patient_users/{firebaseUid}
+    const patientUserData = {
+      firebaseUid: uid,
+      email: normalizedUserEmail,
+      patientId: patientId,
+      displayName: userAuth.displayName || '',
+      role: 'patient',
+      professionalId: professionalId,
+      status: 'active',
+      authProvider: userAuth.authProvider || 'google',
+      inviteId: sanitizedInviteId,
+      linkedAt: now.toISOString(),
+      createdAt: now.toISOString(),
+      updatedAt: serverTimestamp
+    };
+
+    await firestore.collection('patient_users').doc(uid).set(patientUserData, { merge: true });
+
+    // 2. Mantém compatibilidade com registro legado em patient_users/{emailKey} quando permitido
+    try {
+      const emailKey = normalizedUserEmail.replace(/[^a-z0-9]/g, '_');
+      await firestore.collection('patient_users').doc(emailKey).set({
+        email: normalizedUserEmail,
+        patientId: patientId,
+        firebaseUid: uid,
+        displayName: userAuth.displayName || '',
+        role: 'patient',
+        professionalId: professionalId,
+        status: 'active',
+        linkedAt: now.toISOString(),
+        updatedAt: serverTimestamp
+      }, { merge: true });
+    } catch (_) {
+      // Ignora se o Firestore restringir escritas de pacientes em coleções com chave não-UID
+    }
+
+    // 3. Atualiza perfil global em users/{uid}
+    await upsertUserProfile(uid, {
+      email: normalizedUserEmail,
+      displayName: userAuth.displayName || '',
+      role: 'patient',
+      status: 'active',
+      authProvider: userAuth.authProvider || 'google',
+      createdAt: now.toISOString()
+    });
+
+    // 4. Marca o convite como CLAIMED preservando os campos imutáveis exigidos pelas Rules
+    await firestore.collection('patient_invites').doc(sanitizedInviteId).set({
+      inviteId: sanitizedInviteId,
+      patientId: patientId,
+      authorizedEmail: normalizedInviteEmail,
+      professionalId: professionalId,
+      createdAt: invite.createdAt,
+      expiresAt: invite.expiresAt,
+      status: 'CLAIMED',
+      claimedAt: now.toISOString(),
+      claimedByUid: uid,
+      updatedAt: serverTimestamp
+    }, { merge: true });
+
+    console.info(`[NutriPro Firebase] Convite ${sanitizedInviteId} resgatado com sucesso por UID ${uid} -> Paciente ${patientId}`);
+    return {
+      success: true,
+      patientId: patientId,
+      firebaseUid: uid
+    };
+  }
+
+  async function auditLegacyPatientUsers() {
+    const ready = await ensureReady();
+    if (!ready) return [];
+
+    try {
+      const snapshot = await firestore.collection('patient_users').get();
+      const diagnostic = [];
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const id = doc.id;
+        const hasUid = !!data.firebaseUid;
+        diagnostic.push({
+          docId: id,
+          email: data.email || null,
+          patientId: data.patientId || null,
+          hasFirebaseUid: hasUid,
+          firebaseUid: data.firebaseUid || null,
+          status: hasUid ? 'VINCULADO_CANONICO' : 'PENDENTE_MIGRACAO',
+          novoVinculoNecessario: !hasUid
+        });
+      });
+
+      return diagnostic;
+    } catch (error) {
+      console.warn('[NutriPro Firebase] Erro ao auditar patient_users legados:', error);
+      return [];
+    }
+  }
+
+  // Resolução Canônica de Identidade e Autorização do Paciente (Fase 8.2)
+  async function resolveAuthorizedPatient(user) {
+    if (!user || !user.uid) {
+      return { state: 'UNAUTHENTICATED' };
+    }
+
+    const ready = await ensureReady();
+    if (!ready) {
+      return { state: 'ERROR', error: 'Firebase não inicializado' };
+    }
+
+    try {
+      const uid = String(user.uid).trim();
+      const patientUser = await getPatientUser(uid);
+
+      if (patientUser) {
+        // INVARIANTE 6: Se o vínculo estiver bloqueado, proíbe acesso imediatamente sem buscar convite
+        if (patientUser.status === 'blocked') {
+          return { state: 'BLOCKED' };
+        }
+
+        // Vínculo ativo canônico
+        if (patientUser.status === 'active' && patientUser.role === 'patient' && patientUser.patientId) {
+          return {
+            state: 'AUTHORIZED',
+            patientId: String(patientUser.patientId).trim(),
+            patientUser
+          };
+        }
+
+        return { state: 'AUTHENTICATED_NO_LINK' };
+      }
+
+      // 2. Não possui vínculo canônico direto: busca convite pendente pelo e-mail verificado
+      const verifiedEmail = (user.email || '').trim().toLowerCase();
+      if (!verifiedEmail) {
+        return { state: 'AUTHENTICATED_NO_LINK' };
+      }
+
+      const pendingInvite = await getPendingPatientInviteByEmail(verifiedEmail);
+      if (pendingInvite && pendingInvite.inviteId && pendingInvite.status === 'PENDING') {
+        const claimResult = await claimPatientInvite(pendingInvite.inviteId, user);
+        if (claimResult && claimResult.success && claimResult.patientId) {
+          const freshPatientUser = await getPatientUser(uid);
+          if (freshPatientUser && freshPatientUser.status === 'active' && freshPatientUser.patientId) {
+            return {
+              state: 'AUTHORIZED',
+              patientId: String(freshPatientUser.patientId).trim(),
+              patientUser: freshPatientUser
+            };
+          }
+        }
+      }
+
+      // 3. Sem vínculo canônico e sem convite pendente
+      return { state: 'AUTHENTICATED_NO_LINK' };
+    } catch (error) {
+      console.error('[NutriPro Firebase] Erro em resolveAuthorizedPatient:', error);
+      return { state: 'ERROR', error };
+    }
+  }
+
+  function _setMockInstances(mocks = {}) {
+    if (mocks.auth) auth = mocks.auth;
+    if (mocks.firestore) firestore = mocks.firestore;
+    if (mocks.app) app = mocks.app;
+    isInitialized = true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 7. API PÚBLICA EXPOSTA GLOBALMENTE (NutriProFirebase)
+  // ─────────────────────────────────────────────────────────────────────────
+  const NutriProFirebaseAPI = {
     config: firebaseConfig,
     init: init,
     isReady: () => isInitialized,
+    _setMockInstances,
     auth: {
       signInWithGoogle,
       signOut,
       getCurrentUser,
       onAuthStateChanged,
       findPatientIdByEmail,
-      linkEmailToPatient
+      linkEmailToPatient,
+      // Funções canônicas de identidade e autorização (Fase 8.1 / 8.2)
+      getCurrentFirebaseUser,
+      getCurrentFirebaseUid,
+      getVerifiedFirebaseEmail,
+      getUserProfile,
+      getProfessionalProfile,
+      getPatientUser,
+      createPatientInvite,
+      getPendingPatientInviteByEmail,
+      claimPatientInvite,
+      getAuthorizedPatientId,
+      isProfessionalAuthorized,
+      resolveAuthorizedPatient
+    },
+    identity: {
+      getCurrentFirebaseUser,
+      getCurrentFirebaseUid,
+      getVerifiedFirebaseEmail,
+      getUserProfile,
+      upsertUserProfile,
+      getProfessionalProfile,
+      isProfessionalAuthorized,
+      getPatientUser,
+      getAuthorizedPatientId,
+      createPatientInvite,
+      getPendingPatientInviteByEmail,
+      claimPatientInvite,
+      auditLegacyPatientUsers,
+      resolveAuthorizedPatient
     },
     discipline: {
       syncToCloud: syncDisciplineToCloud,
@@ -692,6 +1133,15 @@
     }
   };
 
+  if (typeof window !== 'undefined') {
+    window.NutriProFirebase = NutriProFirebaseAPI;
+  }
+
+  // Exportação compatível com CommonJS / Node.js para testes automatizados
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = NutriProFirebaseAPI;
+  }
+
   // Auto-inicialização quando a SDK já estiver presente no DOM
   if (typeof document !== 'undefined') {
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -701,4 +1151,4 @@
     }
   }
 
-})(typeof window !== 'undefined' ? window : this);
+})(typeof window !== 'undefined' ? window : globalThis);
