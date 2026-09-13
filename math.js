@@ -557,38 +557,94 @@ function convertFoodUnitToGrams(foodItem, quantity, unitType = "g") {
   const qty = parseFloat(quantity) || 0;
   if (qty <= 0) return { grams: 0, unitLabel: "0g" };
 
-  if (unitType === "g" || unitType === "ml") {
-    return { grams: qty, unitLabel: `${qty}${unitType}` };
+  const rawUnit = (unitType || "g").toString().toLowerCase().trim();
+  const unitAliases = {
+    "unidade": "unid",
+    "unidades": "unid",
+    "unid": "unid",
+    "colher de sopa": "col_sopa",
+    "col. de sopa": "col_sopa",
+    "col. sopa": "col_sopa",
+    "col_sopa": "col_sopa",
+    "colher de sobremesa": "col_sobremesa",
+    "col. sobremesa": "col_sobremesa",
+    "col_sobremesa": "col_sobremesa",
+    "colher de chá": "col_cha",
+    "colher de cha": "col_cha",
+    "col. de chá": "col_cha",
+    "col. de cha": "col_cha",
+    "col. chá": "col_cha",
+    "col. cha": "col_cha",
+    "col_cha": "col_cha",
+    "concha": "concha",
+    "conchas": "concha",
+    "scoop": "scoop",
+    "scoops": "scoop",
+    "dosador": "scoop",
+    "copo": "copo",
+    "copos": "copo",
+    "copo (200ml)": "copo",
+    "xícara": "xicara",
+    "xicara": "xicara",
+    "xícaras": "xicara",
+    "xicaras": "xicara",
+    "fatia": "fatia",
+    "fatias": "fatia",
+    "porção": "porcao",
+    "porcao": "porcao",
+    "porções": "porcao",
+    "porcoes": "porcao",
+    "filé": "file",
+    "file": "file",
+    "filés": "file",
+    "files": "file",
+    "bife": "file",
+    "bifes": "file"
+  };
+
+  const normUnit = unitAliases[rawUnit] || rawUnit;
+
+  if (normUnit === "g" || normUnit === "ml") {
+    return { grams: qty, unitLabel: `${qty}${normUnit}` };
   }
 
-  const nameLower = (foodItem?.name || "").toLowerCase();
-  let unitWeight = 100; // fallback padrão
+  let unitWeight = 0;
 
-  // Procura padrão correspondente no dicionário
-  for (const [key, mapping] of Object.entries(foodUnitWeights)) {
-    if (nameLower.includes(key)) {
-      if (mapping[unitType]) {
-        unitWeight = mapping[unitType];
-        break;
-      } else if (unitType === "unid" && (mapping.file || mapping.fatia || mapping.pote || mapping.lata)) {
-        unitWeight = mapping.file || mapping.fatia || mapping.pote || mapping.lata || 100;
-        break;
+  // 1. Respeita gramPerUnit específico do alimento se definido
+  if (foodItem?.gramPerUnit && (normUnit === "unid" || normUnit === "fatia" || normUnit === "porcao")) {
+    unitWeight = parseFloat(foodItem.gramPerUnit);
+  }
+
+  // 2. Procura padrão correspondente no dicionário
+  if (!unitWeight) {
+    const nameLower = (foodItem?.name || "").toLowerCase();
+    for (const [key, mapping] of Object.entries(foodUnitWeights)) {
+      if (nameLower.includes(key)) {
+        if (mapping[normUnit]) {
+          unitWeight = mapping[normUnit];
+          break;
+        } else if (normUnit === "unid" && (mapping.file || mapping.fatia || mapping.pote || mapping.lata)) {
+          unitWeight = mapping.file || mapping.fatia || mapping.pote || mapping.lata;
+          break;
+        }
       }
     }
   }
 
-  // Fallbacks genéricos para unidades comuns
-  if (unitWeight === 100) {
-    if (unitType === "col_sopa") unitWeight = 20;
-    else if (unitType === "col_sobremesa") unitWeight = 10;
-    else if (unitType === "col_cha") unitWeight = 5;
-    else if (unitType === "fatia") unitWeight = 30;
-    else if (unitType === "concha") unitWeight = 120;
-    else if (unitType === "scoop") unitWeight = 30;
-    else if (unitType === "copo") unitWeight = 200;
-    else if (unitType === "xicara") unitWeight = 150;
-    else if (unitType === "file") unitWeight = 100;
-    else if (unitType === "unid") unitWeight = 50;
+  // 3. Fallbacks genéricos para unidades comuns (preservados estritamente)
+  if (!unitWeight) {
+    if (normUnit === "col_sopa") unitWeight = 20;
+    else if (normUnit === "col_sobremesa") unitWeight = 10;
+    else if (normUnit === "col_cha") unitWeight = 5;
+    else if (normUnit === "fatia") unitWeight = 30;
+    else if (normUnit === "concha") unitWeight = 120;
+    else if (normUnit === "scoop") unitWeight = 30;
+    else if (normUnit === "copo") unitWeight = 200;
+    else if (normUnit === "xicara") unitWeight = 150;
+    else if (normUnit === "file") unitWeight = 100;
+    else if (normUnit === "unid") unitWeight = 50;
+    else if (normUnit === "porcao") unitWeight = 100;
+    else unitWeight = 100; // fallback padrão absoluto
   }
 
   const totalGrams = Number((qty * unitWeight).toFixed(1));
@@ -602,10 +658,11 @@ function convertFoodUnitToGrams(foodItem, quantity, unitType = "g") {
     scoop: qty === 1 ? "scoop (dosador)" : "scoops (dosadores)",
     copo: qty === 1 ? "copo (200ml)" : "copos (200ml)",
     xicara: qty === 1 ? "xícara" : "xícaras",
-    file: qty === 1 ? "filé/bife" : "filés/bifes"
+    file: qty === 1 ? "filé/bife" : "filés/bifes",
+    porcao: qty === 1 ? "porção" : "porções"
   };
 
-  const label = `${qty} ${unitNames[unitType] || unitType} (${totalGrams}g)`;
+  const label = `${qty} ${unitNames[normUnit] || rawUnit} (${totalGrams}g)`;
   return { grams: totalGrams, unitLabel: label, unitWeight };
 }
 
@@ -1573,6 +1630,9 @@ if (typeof module !== "undefined" && module.exports) {
     calculateDietaryMacroTargets,
     validateBromatology,
     calculateBromatologicalPortion,
+    calculateMacroPortion,
+    convertFoodUnitToGrams,
+    foodUnitWeights,
     auditDietBromatology,
     generateAutomatedPrescription,
     CANONICAL_DIET_FOODS,

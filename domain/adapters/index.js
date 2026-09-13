@@ -6,12 +6,18 @@
  */
 
 const legacyAdapters = require('./legacyAdapters');
+const nutritionContextAdapter = require('./nutritionContextAdapter');
+
+const allAdapters = {
+  ...legacyAdapters,
+  ...nutritionContextAdapter
+};
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = legacyAdapters;
+  module.exports = allAdapters;
 }
 
 if (typeof window !== 'undefined') {
   window.NutriDomain = window.NutriDomain || {};
-  window.NutriDomain.adapters = legacyAdapters;
+  window.NutriDomain.adapters = allAdapters;
 }

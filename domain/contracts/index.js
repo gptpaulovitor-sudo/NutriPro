@@ -11,6 +11,7 @@ const NutritionDTO = require('./NutritionDTO');
 const TrainingPrescriptionDTO = require('./TrainingPrescriptionDTO');
 const CardioPrescriptionDTO = require('./CardioPrescriptionDTO');
 const PerformanceContextDTO = require('./PerformanceContextDTO');
+const NutritionPrescriptionContextDTO = require('./NutritionPrescriptionContextDTO');
 
 const contracts = {
   // Patient
@@ -39,7 +40,11 @@ const contracts = {
 
   // Performance Context
   validatePerformanceContextDTO: PerformanceContextDTO.validatePerformanceContextDTO,
-  createPerformanceContextDTO: PerformanceContextDTO.createPerformanceContextDTO
+  createPerformanceContextDTO: PerformanceContextDTO.createPerformanceContextDTO,
+
+  // Nutrition Prescription Context (Fase N1.1)
+  validateNutritionPrescriptionContextDTO: NutritionPrescriptionContextDTO.validateNutritionPrescriptionContextDTO,
+  createNutritionPrescriptionContextDTO: NutritionPrescriptionContextDTO.createNutritionPrescriptionContextDTO
 };
 
 if (typeof module !== 'undefined' && module.exports) {

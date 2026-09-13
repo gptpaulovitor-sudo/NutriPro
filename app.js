@@ -1569,10 +1569,19 @@ async function reseedFoods() {
       return;
     }
 
-    await db.foods.clear();
-    await db.foods.bulkPut(list);
+    // Coleta e preserva alimentos customizados criados pelo nutricionista
+    const customFoods = await db.foods.filter(f => String(f.id || "").startsWith("cust_")).toArray();
+
+    await db.transaction("rw", db.foods, async () => {
+      await db.foods.clear();
+      await db.foods.bulkPut(list);
+      if (customFoods.length > 0) {
+        await db.foods.bulkPut(customFoods);
+      }
+    });
+
     await loadFoods();
-    alert(`✅ Base de alimentos restaurada com sucesso! ${list.length} itens padronizados e validados.`);
+    alert(`✅ Base de alimentos restaurada com sucesso! ${list.length} itens oficiais padronizados e ${customFoods.length} itens personalizados preservados.`);
   } catch (err) {
     console.error("Erro ao restaurar alimentos:", err);
     alert("Erro ao restaurar base de alimentos: " + err.message);
@@ -2308,7 +2317,9 @@ function handleAddPrescriptionItem() {
   const scaled = calculateMacroPortion(selectedFoodItem, grams);
 
   const newItem = {
-    id: Date.now().toString(),
+    id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    foodId: selectedFoodItem.id || null,
+    foodName: selectedFoodItem.name,
     mealName,
     mealTime: mealName === "Café da manhã" ? "07:00" :
       mealName === "Lanche manhã" ? "10:00" :
@@ -2316,11 +2327,19 @@ function handleAddPrescriptionItem() {
           mealName === "Pré-treino" ? "16:00" :
             mealName === "Pós-treino" ? "18:00" :
               mealName === "Jantar" ? "20:00" : "22:00",
-    foodName: selectedFoodItem.name,
     quantity: grams,
+    unit: "g",
     unitDisplay: unitLabel,
     originalQty: rawQty,
     originalUnit: unit,
+    baseQuantity: selectedFoodItem.baseQuantity || 100,
+    baseUnit: selectedFoodItem.unit || "g",
+    kcalPer100: Number(selectedFoodItem.calories) || 0,
+    protPer100: Number(selectedFoodItem.protein) || 0,
+    carbPer100: Number(selectedFoodItem.carbohydrate) || 0,
+    lipidPer100: Number(selectedFoodItem.lipid) || 0,
+    fiberPer100: Number(selectedFoodItem.fiber) || 0,
+    sodiumPer100: Number(selectedFoodItem.sodium) || 0,
     calories: scaled.calories,
     protein: scaled.protein,
     carbohydrate: scaled.carbohydrate,
@@ -2356,11 +2375,15 @@ function openEditPrescriptionItem(id) {
   // Popula o modal de edição
   document.getElementById("editPrescItemId").value = id;
   document.getElementById("editPrescFoodName").innerText = item.foodName;
-  document.getElementById("editPrescQty").value = item.quantity;
-  document.getElementById("editPrescUnit").value = item.unitDisplay?.includes("unidade") ? "unidade" :
+  document.getElementById("editPrescQty").value = (item.originalQty !== undefined && item.originalQty !== null) ? item.originalQty : item.quantity;
+
+  const currentUnit = item.originalUnit || (item.unitDisplay?.includes("unidade") ? "unidade" :
     item.unitDisplay?.includes("ml") ? "ml" :
-      item.unitDisplay?.includes("colher") ? "colher de sopa" :
-        item.unitDisplay?.includes("copo") ? "copo (200ml)" : "g";
+      item.unitDisplay?.includes("colher") || item.unitDisplay?.includes("col.") ? "colher de sopa" :
+        item.unitDisplay?.includes("copo") ? "copo (200ml)" :
+          item.unitDisplay?.includes("fatia") ? "fatia" :
+            item.unitDisplay?.includes("porção") ? "porção" : "g");
+  document.getElementById("editPrescUnit").value = currentUnit;
   document.getElementById("editPrescMeal").value = item.mealName;
   document.getElementById("editPrescTime").value = item.mealTime || "";
 
@@ -2383,26 +2406,84 @@ async function saveEditPrescriptionItem() {
 
   const item = { ...currentPrescriptionItems[idx] };
 
-  // Recalcula macros com nova quantidade
-  const ratio = newQty / (item.baseQuantity || 100);
-  item.quantity = newQty;
+  // 1. Busca alimento oficial no catálogo db.foods caso possua foodId
+  let food = null;
+  if (item.foodId && typeof db !== "undefined" && db.foods) {
+    try {
+      food = await db.foods.get(item.foodId);
+    } catch (_) { }
+  }
+
+  // 2. Determina a base centesimal com preservação de snapshots e fallback histórico não-destrutivo
+  const oldQty = parseFloat(item.quantity) || 100;
+  const fallbackFactor = oldQty > 0 ? (100 / oldQty) : 1;
+
+  const kcalPer100 = (item.kcalPer100 !== undefined && item.kcalPer100 !== null)
+    ? Number(item.kcalPer100)
+    : (food ? Number(food.calories) : Number(((item.calories || 0) * fallbackFactor).toFixed(2)));
+
+  const protPer100 = (item.protPer100 !== undefined && item.protPer100 !== null)
+    ? Number(item.protPer100)
+    : (food ? Number(food.protein) : Number(((item.protein || 0) * fallbackFactor).toFixed(2)));
+
+  const carbPer100 = (item.carbPer100 !== undefined && item.carbPer100 !== null)
+    ? Number(item.carbPer100)
+    : (food ? Number(food.carbohydrate) : Number(((item.carbohydrate || 0) * fallbackFactor).toFixed(2)));
+
+  const lipidPer100 = (item.lipidPer100 !== undefined && item.lipidPer100 !== null)
+    ? Number(item.lipidPer100)
+    : (food ? Number(food.lipid) : Number(((item.lipid || 0) * fallbackFactor).toFixed(2)));
+
+  const fiberPer100 = (item.fiberPer100 !== undefined && item.fiberPer100 !== null)
+    ? Number(item.fiberPer100)
+    : (food ? Number(food.fiber) : Number(((item.fiber || 0) * fallbackFactor).toFixed(2)));
+
+  const sodiumPer100 = (item.sodiumPer100 !== undefined && item.sodiumPer100 !== null)
+    ? Number(item.sodiumPer100)
+    : (food ? Number(food.sodium || 0) : 0);
+
+  // 3. Referência canônica centesimal
+  const foodRef = {
+    id: item.foodId || (food ? food.id : null),
+    name: item.foodName,
+    baseQuantity: 100,
+    unit: "g",
+    calories: kcalPer100,
+    protein: protPer100,
+    carbohydrate: carbPer100,
+    lipid: lipidPer100,
+    fiber: fiberPer100,
+    sodium: sodiumPer100,
+    gramPerUnit: item.gramPerUnit || (food ? food.gramPerUnit : undefined)
+  };
+
+  // 4. Conversão unificada de medidas caseiras via math.js
+  const { grams, unitLabel } = convertFoodUnitToGrams(foodRef, newQty, newUnit);
+
+  // 5. Cálculo linear proporcional sem cancelamento algébrico
+  const scaled = calculateMacroPortion(foodRef, grams);
+
+  item.quantity = grams;
+  item.unit = "g";
+  item.unitDisplay = unitLabel;
+  item.originalQty = newQty;
+  item.originalUnit = newUnit;
+
+  item.kcalPer100 = kcalPer100;
+  item.protPer100 = protPer100;
+  item.carbPer100 = carbPer100;
+  item.lipidPer100 = lipidPer100;
+  item.fiberPer100 = fiberPer100;
+  item.sodiumPer100 = sodiumPer100;
+
+  item.calories = scaled.calories;
+  item.protein = scaled.protein;
+  item.carbohydrate = scaled.carbohydrate;
+  item.lipid = scaled.lipid;
+  item.fiber = scaled.fiber;
+
   item.mealName = newMeal;
   item.mealTime = newTime;
-
-  // Recalcula com base na unidade
-  const unitConversions = {
-    "g": 1, "ml": 1, "unidade": item.gramPerUnit || 100,
-    "colher de sopa": 15, "copo (200ml)": 200, "fatia": item.gramPerUnit || 30
-  };
-  const grams = newUnit === "g" || newUnit === "ml" ? newQty : (unitConversions[newUnit] || 100);
-  const baseRatio = grams / (item.baseQuantity || 100);
-
-  item.calories = Number((item.kcalPer100 || (item.calories / ratio)) * baseRatio).toFixed(1) * 1;
-  item.protein = Number((item.protPer100 || (item.protein / ratio)) * baseRatio).toFixed(1) * 1;
-  item.carbohydrate = Number((item.carbPer100 || (item.carbohydrate / ratio)) * baseRatio).toFixed(1) * 1;
-  item.lipid = Number((item.lipidPer100 || (item.lipid / ratio)) * baseRatio).toFixed(1) * 1;
-  item.fiber = Number((item.fiberPer100 || (item.fiber / ratio || 0)) * baseRatio).toFixed(1) * 1;
-  item.unitDisplay = newUnit === "g" || newUnit === "ml" ? `${newQty}${newUnit}` : `${newQty} ${newUnit}`;
 
   currentPrescriptionItems[idx] = item;
   await db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
@@ -4764,9 +4845,18 @@ async function handleAddRecallItem() {
         mealName === "Almoço" ? "12:30" :
           mealName === "Lanche tarde" ? "16:30" :
             mealName === "Jantar" ? "20:30" : "22:30",
+    foodId: selectedRecallFoodItem.id || null,
     foodName: selectedRecallFoodItem.name,
     quantity: grams,
     unitDisplay: unitLabel,
+    originalQty: rawQty,
+    originalUnit: unit,
+    baseQuantity: selectedRecallFoodItem.baseQuantity || 100,
+    kcalPer100: Number(selectedRecallFoodItem.calories) || 0,
+    protPer100: Number(selectedRecallFoodItem.protein) || 0,
+    carbPer100: Number(selectedRecallFoodItem.carbohydrate) || 0,
+    lipidPer100: Number(selectedRecallFoodItem.lipid) || 0,
+    fiberPer100: Number(selectedRecallFoodItem.fiber) || 0,
     calories: scaled.calories,
     protein: scaled.protein,
     carbohydrate: scaled.carbohydrate,

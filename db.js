@@ -424,7 +424,7 @@ async function seedFoodsDatabase() {
     const foodCount = await db.foods.count();
     const sourceArray = (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== "undefined" && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS) && COMPREHENSIVE_TACO_TBCA_FOODS.length > 0)
       ? COMPREHENSIVE_TACO_TBCA_FOODS
-      : initialFoodsData;
+      : (typeof initialFoodsData !== "undefined" ? initialFoodsData : []);
 
     // Verifica se os alimentos existentes já possuem metadados bromatológicos
     let needsUpdate = foodCount < 2400;
@@ -437,32 +437,61 @@ async function seedFoodsDatabase() {
     }
 
     if (needsUpdate) {
-      await db.foods.clear();
-      await db.foods.bulkPut(sourceArray);
-      console.log(`[Dexie.js] ${sourceArray.length} alimentos TACO 4ª Edição semeados e validados bromatologicamente no banco local!`);
+      // Coleta e preserva alimentos customizados criados pelo nutricionista
+      const customFoods = await db.foods.filter(f => String(f.id || "").startsWith("cust_")).toArray();
+
+      await db.transaction("rw", db.foods, async () => {
+        await db.foods.clear();
+        await db.foods.bulkPut(sourceArray);
+        if (customFoods.length > 0) {
+          await db.foods.bulkPut(customFoods);
+        }
+      });
+      console.log(`[Dexie.js] ${sourceArray.length} alimentos TACO 4ª Edição semeados e validados bromatologicamente (${customFoods.length} customizados preservados).`);
     }
   } catch (err) {
     console.error("Erro ao semear alimentos:", err);
   }
 }
 
-// Forçar resementeira completa caso o banco precise ser atualizado manualmente
-async function reseedFoods() {
+// Forçar resementeira completa caso o banco precise ser atualizado manualmente (preservando customizados)
+async function reseedFoods(isSilent = false) {
   try {
     const sourceArray = (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== "undefined" && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS) && COMPREHENSIVE_TACO_TBCA_FOODS.length > 0)
       ? COMPREHENSIVE_TACO_TBCA_FOODS
-      : initialFoodsData;
+      : (typeof initialFoodsData !== "undefined" ? initialFoodsData : []);
 
-    await db.foods.clear();
-    await db.foods.bulkPut(sourceArray);
-    console.log(`[Dexie.js] Resementeira concluída: ${sourceArray.length} alimentos padronizados.`);
+    if (!sourceArray || sourceArray.length === 0) {
+      if (!isSilent && typeof alert === "function") alert("Catálogo padrão não disponível em memória.");
+      return { success: false, reason: "Catálogo padrão não disponível em memória." };
+    }
+
+    // 1. Coleta e preserva alimentos customizados (cust_*)
+    const customFoods = await db.foods.filter(f => String(f.id || "").startsWith("cust_")).toArray();
+
+    // 2. Executa transação atômica de restauração
+    await db.transaction("rw", db.foods, async () => {
+      await db.foods.clear();
+      await db.foods.bulkPut(sourceArray);
+      if (customFoods.length > 0) {
+        await db.foods.bulkPut(customFoods);
+      }
+    });
+
+    console.log(`[Dexie.js] Resementeira concluída: ${sourceArray.length} oficiais + ${customFoods.length} customizados preservados.`);
     if (typeof loadFoods === "function") {
       await loadFoods();
     }
-    alert(`✅ Base Oficial TACO 4ª Edição & Rótulos: ${sourceArray.length} alimentos padronizados e validados bromatologicamente!`);
+    if (!isSilent && typeof alert === "function") {
+      alert(`✅ Base Oficial TACO 4ª Edição & Rótulos: ${sourceArray.length} alimentos padronizados sincronizados e ${customFoods.length} alimentos personalizados preservados!`);
+    }
+    return { success: true, officialCount: sourceArray.length, customCount: customFoods.length };
   } catch (err) {
-    console.error("Erro ao resead alimentos:", err);
-    alert("Erro ao carregar alimentos: " + err.message);
+    console.error("Erro ao reseed alimentos:", err);
+    if (!isSilent && typeof alert === "function") {
+      alert("Erro ao carregar alimentos: " + err.message);
+    }
+    return { success: false, error: err };
   }
 }
 
