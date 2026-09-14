@@ -7,14 +7,23 @@
 
 const legacyAdapters = require('./legacyAdapters');
 const nutritionContextAdapter = require('./nutritionContextAdapter');
+const prescriptionInputAdapter = require('./prescriptionInputAdapter');
+const prescriptionOutputAdapter = require('./prescriptionOutputAdapter');
 
 const allAdapters = {
   ...legacyAdapters,
-  ...nutritionContextAdapter
+  ...nutritionContextAdapter,
+  ...prescriptionInputAdapter,
+  ...prescriptionOutputAdapter
 };
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = allAdapters;
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.NutriDomain = globalThis.NutriDomain || {};
+  globalThis.NutriDomain.adapters = allAdapters;
 }
 
 if (typeof window !== 'undefined') {

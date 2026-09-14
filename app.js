@@ -18,12 +18,157 @@ if (typeof window !== 'undefined' && window.lucide && !window.lucide._optimized)
 
 // Google Apps Script Web App Endpoint URL Configuration
 let GOOGLE_SCRIPT_URL = localStorage.getItem("NUTRIAX_GOOGLE_SCRIPT_URL") || "https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec";
-let activePatientId = null;
-let activePatientData = null;
+var activePatientId = null;
+var activePatientData = null;
 
 // Active Prescription Items Memory Array (vazio até AUTHORIZED e paciente selecionado)
-let currentPrescriptionItems = [];
-let selectedFoodItem = null;
+var currentPrescriptionItems = [];
+var currentPrescriptionMeta = {
+  isAIGenerated: false,
+  isClinicallyValidated: false,
+  isStale: false,
+  staleReason: null,
+  generatedAt: null,
+  validatedAt: null,
+  validationStatus: null,
+  validationVerdict: null,
+  validationReport: null,
+  pipelineTrace: [],
+  provenance: null
+};
+var selectedFoodItem = null;
+
+// ═══════════════════════════════════════════════════════════
+// FASE N3.7 — INTEGRATION RESOLVERS & FIREWALL DE PRESCRIÇÃO
+// ═══════════════════════════════════════════════════════════
+function getCanonicalPrescriptionOrchestrator() {
+  if (typeof NutriDomain !== 'undefined' && NutriDomain.orchestration && typeof NutriDomain.orchestration.executePrescriptionPipeline === 'function') {
+    return NutriDomain.orchestration;
+  }
+  if (typeof require !== 'undefined') {
+    try {
+      return require('./domain/orchestration');
+    } catch (_) {
+      try {
+        return require('./domain/orchestration/prescriptionOrchestrator');
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
+function getCanonicalPrescriptionAdapters() {
+  if (typeof NutriDomain !== 'undefined' && NutriDomain.adapters && typeof NutriDomain.adapters.buildCanonicalPrescriptionInput === 'function') {
+    return NutriDomain.adapters;
+  }
+  if (typeof require !== 'undefined') {
+    try {
+      return require('./domain/adapters');
+    } catch (_) {}
+  }
+  return null;
+}
+
+/**
+ * Computa um fingerprint determinístico e canônico do conteúdo clínico da prescrição.
+ * Delega para o adaptador canônico ou executa algoritmo puro equivalente.
+ *
+ * @param {Array<Object>} items
+ * @returns {string} Fingerprint canônico formatado ("cfp_xxxxxxxxxxxxxxxx")
+ */
+function computePrescriptionContentFingerprint(items) {
+  const adapters = getCanonicalPrescriptionAdapters();
+  if (adapters && typeof adapters.computePrescriptionContentFingerprint === 'function') {
+    return adapters.computePrescriptionContentFingerprint(items);
+  }
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return 'cfp_empty_0000000000000000';
+  }
+  const normalizedTokens = items.map((item) => {
+    const foodId = String(item.foodId || item.id || '').trim().toLowerCase();
+    const foodName = String(item.foodName || item.name || '').trim().toLowerCase();
+    const qty = Number(Number(item.quantity || 0).toFixed(2));
+    const unit = String(item.unit || item.baseUnit || 'g').trim().toLowerCase();
+    const meal = String(item.mealName || item.mealId || '').trim().toLowerCase();
+    const time = String(item.mealTime || '').trim();
+    return `${meal}@${time}:${foodId}#${foodName}@${qty}${unit}`;
+  });
+  normalizedTokens.sort();
+  const canonicalString = normalizedTokens.join('|');
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  for (let i = 0; i < canonicalString.length; i++) {
+    const ch = canonicalString.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 0x01000193);
+    h2 = Math.imul(h2 ^ (ch + i), 0x5bd1e995);
+  }
+  const p1 = (h1 >>> 0).toString(16).padStart(8, '0');
+  const p2 = (h2 >>> 0).toString(16).padStart(8, '0');
+  return `cfp_${p1}${p2}`;
+}
+
+function isPrescriptionEligibleForPatientPublication(items, meta) {
+  if (!items || !Array.isArray(items) || items.length === 0) return false;
+  if (!meta || typeof meta !== 'object') return false;
+  if (meta.isClinicallyValidated !== true) return false;
+  if (meta.isStale === true) return false;
+  if (meta.validationStatus === 'BLOCKED') return false;
+  if (meta.validationReport && meta.validationReport.status === 'BLOCKED') return false;
+
+  // N3.7 Integridade de Validação: verificação canônica de Content Fingerprint
+  const expectedFingerprint = meta.validatedContentFingerprint ||
+    (meta.validationReport && meta.validationReport.validatedContentFingerprint);
+  if (!expectedFingerprint || typeof expectedFingerprint !== 'string') {
+    return false;
+  }
+
+  const currentFingerprint = computePrescriptionContentFingerprint(items);
+  if (!currentFingerprint || currentFingerprint !== expectedFingerprint) {
+    return false;
+  }
+
+  return true;
+}
+
+async function savePrescriptionWithFirewall(patientId, items, meta) {
+  const pId = patientId || activePatientId;
+  const safeItems = Array.isArray(items) ? items : [];
+  let safeMeta = (meta && typeof meta === 'object') ? { ...meta } : null;
+  if (!safeMeta) {
+    if (currentPrescriptionMeta && typeof currentPrescriptionMeta === 'object') {
+      safeMeta = { ...currentPrescriptionMeta };
+    } else {
+      safeMeta = {
+        isAIGenerated: false,
+        isClinicallyValidated: false,
+        isStale: true,
+        staleReason: 'UNTRACKED_PERSISTENCE',
+        generatedAt: null,
+        validatedAt: null,
+        validationStatus: 'BLOCKED',
+        validationVerdict: 'BLOCKED',
+        validationReport: null
+      };
+    }
+  }
+
+  currentPrescriptionItems = safeItems;
+  currentPrescriptionMeta = safeMeta;
+
+  if (pId && typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.put === 'function') {
+    try {
+      await db.prescriptions.put({
+        id: pId,
+        patientId: pId,
+        items: safeItems,
+        meta: safeMeta
+      });
+    } catch (e) {
+      console.error('Erro ao persistir prescrição com firewall no Dexie:', e);
+    }
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // FASE 8.3 — CONTROLADOR DO AUTH GATE & IDENTIDADE PROFISSIONAL
@@ -2348,7 +2493,14 @@ function handleAddPrescriptionItem() {
   };
 
   currentPrescriptionItems.push(newItem);
-  db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
+  if (!currentPrescriptionMeta) {
+    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
+  }
+  currentPrescriptionMeta.isClinicallyValidated = false;
+  currentPrescriptionMeta.isStale = true;
+  currentPrescriptionMeta.staleReason = 'MANUAL_ITEM_ADDED';
+  savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
+  updateAIPrescriptionBanner();
   renderPrescriptionTotals();
   renderMealItems();
   try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
@@ -2362,7 +2514,14 @@ function handleAddPrescriptionItem() {
 
 function removePrescriptionItem(id) {
   currentPrescriptionItems = currentPrescriptionItems.filter((i) => i.id !== id);
-  db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
+  if (!currentPrescriptionMeta) {
+    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
+  }
+  currentPrescriptionMeta.isClinicallyValidated = false;
+  currentPrescriptionMeta.isStale = true;
+  currentPrescriptionMeta.staleReason = 'MANUAL_ITEM_REMOVED';
+  savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
+  updateAIPrescriptionBanner();
   renderPrescriptionTotals();
   renderMealItems();
   try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
@@ -2486,9 +2645,16 @@ async function saveEditPrescriptionItem() {
   item.mealTime = newTime;
 
   currentPrescriptionItems[idx] = item;
-  await db.prescriptions.put({ id: activePatientId, patientId: activePatientId, items: currentPrescriptionItems });
+  if (!currentPrescriptionMeta) {
+    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
+  }
+  currentPrescriptionMeta.isClinicallyValidated = false;
+  currentPrescriptionMeta.isStale = true;
+  currentPrescriptionMeta.staleReason = 'MANUAL_ITEM_EDITED';
+  await savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
 
   closeEditPrescriptionItemModal();
+  updateAIPrescriptionBanner();
   renderPrescriptionTotals();
   renderMealItems();
   try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
@@ -2612,13 +2778,6 @@ function renderPrescriptionTotals() {
 // 5.4 MOTOR IA: GERAÇÃO AUTOMÁTICA DE DIETA & VALIDAÇÃO CLÍNICA
 // =========================================================================
 
-let currentPrescriptionMeta = {
-  isAIGenerated: false,
-  isClinicallyValidated: false,
-  generatedAt: null,
-  validatedAt: null
-};
-
 function openAIPrescriptionModal() {
   const modal = document.getElementById("aiPrescriptionModal");
   if (!modal) return;
@@ -2651,55 +2810,95 @@ function closeAIPrescriptionModal() {
 async function executeAIPrescriptionGeneration() {
   const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
     parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
+  const pHeight = parseFloat(document.getElementById("evalHeight")?.value) || 175;
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
   const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
   const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
-
-  const targets = typeof calculateDietaryMacroTargets === "function"
-    ? calculateDietaryMacroTargets(obj, patType, pWeight, getKcal)
-    : { caloricTarget: 2000, targetProtG: 140, targetCarbG: 200, targetLipG: 60, minFiber: 25 };
 
   const mealCount = parseInt(document.getElementById("aiMealCountSelect")?.value || "4", 10);
   const dietaryStyle = document.getElementById("aiDietaryStyleSelect")?.value || "tradicional";
   const includeSupplements = document.getElementById("aiIncludeSupplementsCheck")?.checked !== false;
 
-  if (typeof generateAutomatedPrescription !== "function") {
-    alert("Motor de geração automática indisponível em math.js.");
+  const orchestrator = getCanonicalPrescriptionOrchestrator();
+  const adapters = getCanonicalPrescriptionAdapters();
+
+  if (!orchestrator || typeof orchestrator.executePrescriptionPipeline !== 'function' || !adapters) {
+    alert("Pipeline Canônico de Prescrição (N3.7.1 / N3.7.2) indisponível.");
     return;
   }
 
-  const generated = generateAutomatedPrescription(
-    { weightKg: pWeight, objective: obj, patientType: patType },
-    targets,
-    { mealCount, dietaryStyle, includeSupplements }
-  );
-
-  if (!generated || !Array.isArray(generated.items) || generated.items.length === 0) {
-    alert("Não foi possível gerar a prescrição automática.");
-    return;
+  let foodCatalog = [];
+  if (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== 'undefined' && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS)) {
+    foodCatalog = COMPREHENSIVE_TACO_TBCA_FOODS;
+  } else if (typeof window !== 'undefined' && Array.isArray(window.COMPREHENSIVE_TACO_TBCA_FOODS)) {
+    foodCatalog = window.COMPREHENSIVE_TACO_TBCA_FOODS;
+  } else if (typeof require !== 'undefined') {
+    try {
+      foodCatalog = require('./foodsData').COMPREHENSIVE_TACO_TBCA_FOODS || [];
+    } catch (_) {}
   }
 
-  currentPrescriptionItems = generated.items;
-  currentPrescriptionMeta = {
-    isAIGenerated: true,
-    isClinicallyValidated: false,
-    generatedAt: generated.generatedAt,
-    validatedAt: null
-  };
-
-  await db.prescriptions.put({
-    id: activePatientId,
-    patientId: activePatientId,
-    items: currentPrescriptionItems,
-    meta: currentPrescriptionMeta
+  // Prepara input via prescriptionInputAdapter
+  const inputPrep = adapters.buildCanonicalPrescriptionInput({
+    patientData: {
+      patientId: activePatientId || 'patient_active',
+      name: (activePatientData && activePatientData.name) || 'Paciente',
+      weightKg: pWeight,
+      heightCm: pHeight,
+      objective: obj,
+      patientType: patType,
+      getKcal: getKcal,
+      routine: {
+        wakeUpTime: document.getElementById("routineWakeUp")?.value || "07:00",
+        bedTime: document.getElementById("routineBedTime")?.value || "23:00",
+        workoutTime: document.getElementById("routineWorkoutTime")?.value || null
+      },
+      weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : []
+    },
+    foodCatalog: foodCatalog,
+    options: {
+      mealCount: mealCount,
+      dietaryStyle: dietaryStyle,
+      includeSupplements: includeSupplements
+    }
   });
+
+  if (!inputPrep.isValid) {
+    alert(`Erro na validação de entrada do pipeline:\n• ${inputPrep.errors.join('\n• ')}`);
+    return;
+  }
+
+  // Execução do pipeline sequencial canônico N1.1 -> N3.6
+  const pipelineResult = await orchestrator.executePrescriptionPipeline(inputPrep.canonicalInput);
+
+  // Tradução de saída pura via prescriptionOutputAdapter (timestamp fornecido pelo runtime)
+  const currentTimestamp = new Date().toISOString();
+  const adaptedOutput = adapters.adaptPrescriptionPipelineOutput(pipelineResult, {
+    generatedAt: currentTimestamp,
+    isClinicallyValidated: false,
+    isStale: false
+  });
+
+  // Persistência com firewall (preserva meta e rastreabilidade N3.6)
+  await savePrescriptionWithFirewall(activePatientId, adaptedOutput.items, adaptedOutput.meta);
 
   closeAIPrescriptionModal();
   updateAIPrescriptionBanner();
   renderPrescriptionTotals();
   renderMealItems();
 
-  alert(`⚡ Dieta Automática Gerada com Sucesso!\n• Refeições: ${mealCount}\n• Kcal Planejada: ${generated.totals.kcalFonte} kcal (Alvo: ${targets.caloricTarget} kcal)\n• Proteína: ${generated.totals.proteina}g • Carbs: ${generated.totals.carboidrato}g • Lipídios: ${generated.totals.lipidios}g\n\n⚠️ STATUS: REQUER VALIDAÇÃO CLÍNICA.`);
+  if (pipelineResult.status === 'BLOCKED') {
+    alert(`🚫 Prescrição BLOQUEADA pelo Portão Clínico Canônico N3.6!\n\nMotivos do Bloqueio:\n• ${pipelineResult.blockingReasons.join('\n• ')}\n\n⚠️ Esta dieta NÃO PODE ser validada, assinada ou sincronizada.`);
+    return;
+  }
+
+  if (pipelineResult.status === 'WARNING') {
+    const warns = (pipelineResult.warnings || []).slice(0, 3).join('\n• ');
+    alert(`⚡ Dieta Gerada com Alertas Clínicos (Status: WARNING)!\n• Refeições: ${mealCount}\n• Status Canônico N3.6: WARNING\n• Alertas:\n• ${warns || 'Revisão clínica necessária'}\n\n⚠️ REQUER VALIDAÇÃO E ASSINATURA CLÍNICA.`);
+    return;
+  }
+
+  alert(`⚡ Dieta Canônica Gerada com Sucesso (Status: PASS)!\n• Refeições: ${mealCount}\n• Status N3.6: PASS (100% de conformidade com todos os portões clínicos)\n\n⚠️ STATUS: REQUER VALIDAÇÃO E ASSINATURA CLÍNICA.`);
 }
 
 function updateAIPrescriptionBanner() {
@@ -2710,25 +2909,53 @@ function updateAIPrescriptionBanner() {
 
   if (currentPrescriptionMeta && currentPrescriptionMeta.isAIGenerated) {
     banner.classList.remove("hidden");
-    if (currentPrescriptionMeta.isClinicallyValidated) {
+
+    if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || currentPrescriptionMeta.validationReport?.status === 'BLOCKED') {
       if (badge) {
+        badge.className = "bg-red-950 text-red-300 border border-red-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+        badge.innerHTML = "🚫 Status: Bloqueado (Violou Portões Clínicos N3.6)";
+      }
+      if (btnApprove) {
+        btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed";
+        btnApprove.disabled = true;
+        btnApprove.innerHTML = `<i data-lucide="shield-alert" class="w-4 h-4 text-red-400"></i> <span>Aprovação Bloqueada</span>`;
+      }
+    } else if (currentPrescriptionMeta.isStale) {
+      if (badge) {
+        badge.className = "bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+        badge.innerHTML = `⚠️ Status: Modificado / Desatualizado (${currentPrescriptionMeta.staleReason || 'Edição Detectada'})`;
+      }
+      if (btnApprove) {
+        btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed";
+        btnApprove.disabled = true;
+        btnApprove.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i> <span>Revalidação Necessária</span>`;
+      }
+    } else if (currentPrescriptionMeta.isClinicallyValidated) {
+      if (badge) {
+        const vStatus = currentPrescriptionMeta.validationStatus || 'PASS';
         badge.className = "bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = "✅ Status: Validado e Assinado pelo Nutricionista";
+        badge.innerHTML = `✅ Status: Validado e Assinado pelo Nutricionista (N3.6: ${vStatus})`;
       }
       if (btnApprove) {
         btnApprove.className = "bg-zinc-800 text-zinc-400 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-default";
+        btnApprove.disabled = true;
         btnApprove.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> <span>Prescrição Validada</span>`;
       }
     } else {
+      const vStatus = currentPrescriptionMeta.validationStatus || 'PASS';
       if (badge) {
-        badge.className = "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = "⚠️ Status: Requer Validação Clínica";
+        badge.className = vStatus === 'WARNING'
+          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"
+          : "bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+        badge.innerHTML = `⚠️ Status: Requer Validação Clínica (N3.6: ${vStatus})`;
       }
       if (btnApprove) {
         btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer";
+        btnApprove.disabled = false;
         btnApprove.innerHTML = `<i data-lucide="check-check" class="w-4 h-4"></i> <span>Validar e Assinar Prescrição</span>`;
       }
     }
+
     if (window.lucide) window.lucide.createIcons();
   } else {
     banner.classList.add("hidden");
@@ -2736,18 +2963,50 @@ function updateAIPrescriptionBanner() {
 }
 
 async function approveAIPrescription() {
+  if (!currentPrescriptionItems || currentPrescriptionItems.length === 0) {
+    alert("Não é possível validar uma prescrição sem alimentos.");
+    return;
+  }
+
+  if (!currentPrescriptionMeta) {
+    alert("Metadados da prescrição ausentes.");
+    return;
+  }
+
+  if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || currentPrescriptionMeta.validationReport?.status === 'BLOCKED') {
+    alert("🚫 Prescrição BLOQUEADA pelo N3.6!\nNão é permitido aprovar uma prescrição que violou portões clínicos bloqueantes.");
+    return;
+  }
+
+  if (currentPrescriptionMeta.isStale === true) {
+    alert(`⚠️ Prescrição Obsoleta (${currentPrescriptionMeta.staleReason || 'EDIÇÃO_MANUAL'})!\nA prescrição sofreu alterações manuais materiais e perdeu a validação anterior. É necessária nova geração/validação.`);
+    return;
+  }
+
+  // N3.7 Integridade de Validação: verificação de Content Fingerprint antes da assinatura clínica
+  const expectedFingerprint = currentPrescriptionMeta.validatedContentFingerprint ||
+    (currentPrescriptionMeta.validationReport && currentPrescriptionMeta.validationReport.validatedContentFingerprint);
+  if (!expectedFingerprint || typeof expectedFingerprint !== 'string') {
+    alert("🚫 Falha de Integridade!\nA prescrição não possui fingerprint de validação canônica N3.6. É necessária nova validação antes da aprovação clínica.");
+    return;
+  }
+
+  const currentFingerprint = computePrescriptionContentFingerprint(currentPrescriptionItems);
+  if (currentFingerprint !== expectedFingerprint) {
+    alert("🚫 Violação de Integridade Clínica!\nO conteúdo atual dos alimentos difere do conteúdo que foi validado pelo N3.6. É necessária nova validação.");
+    return;
+  }
+
   currentPrescriptionMeta.isClinicallyValidated = true;
   currentPrescriptionMeta.validatedAt = new Date().toISOString();
+  currentPrescriptionMeta.isStale = false;
+  currentPrescriptionMeta.staleReason = null;
+  currentPrescriptionMeta.validatedContentFingerprint = expectedFingerprint;
 
-  await db.prescriptions.put({
-    id: activePatientId,
-    patientId: activePatientId,
-    items: currentPrescriptionItems,
-    meta: currentPrescriptionMeta
-  });
+  await savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
 
   updateAIPrescriptionBanner();
-  alert("✅ Prescrição Clínica Aprovada e Validada com Sucesso!\nStatus atualizado para os relatórios clínicos e App do Paciente.");
+  alert("✅ Prescrição Clínica Aprovada e Validada com Sucesso!\nStatus atualizado para os relatórios clínicos e habilitada para sincronização.");
 }
 
 // =========================================================================
@@ -2965,14 +3224,21 @@ async function clearPrescriptionDiet() {
     return;
   }
   currentPrescriptionItems = [];
-  currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false, generatedAt: null, validatedAt: null };
+  currentPrescriptionMeta = {
+    isAIGenerated: false,
+    isClinicallyValidated: false,
+    isStale: false,
+    staleReason: null,
+    generatedAt: null,
+    validatedAt: null,
+    validationStatus: null,
+    validationVerdict: null,
+    validationReport: null,
+    pipelineTrace: [],
+    provenance: null
+  };
 
-  await db.prescriptions.put({
-    id: activePatientId,
-    patientId: activePatientId,
-    items: [],
-    meta: currentPrescriptionMeta
-  });
+  await savePrescriptionWithFirewall(activePatientId, [], currentPrescriptionMeta);
 
   updateAIPrescriptionBanner();
   renderPrescriptionTotals();
@@ -2982,19 +3248,43 @@ async function clearPrescriptionDiet() {
 async function loadPrescriptionForPatient(patientId = activePatientId) {
   if (!patientId) {
     currentPrescriptionItems = [];
-    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
+    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false, isStale: false };
     updateAIPrescriptionBanner();
     renderPrescriptionTotals();
     renderMealItems();
     return;
   }
-  const saved = await db.prescriptions.get(patientId);
+  let saved = null;
+  if (typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.get === 'function') {
+    try {
+      saved = await db.prescriptions.get(patientId);
+    } catch (_) {}
+  }
   if (saved && Array.isArray(saved.items) && saved.items.length > 0) {
     currentPrescriptionItems = saved.items;
-    currentPrescriptionMeta = saved.meta || { isAIGenerated: false, isClinicallyValidated: false };
+    currentPrescriptionMeta = saved.meta || {
+      isAIGenerated: false,
+      isClinicallyValidated: false,
+      isStale: true,
+      staleReason: 'LEGACY_PRESCRIPTION_WITHOUT_META'
+    };
+    // N3.7: Verificação de Integridade de Conteúdo ao carregar do armazenamento
+    if (currentPrescriptionMeta.isClinicallyValidated === true) {
+      const expectedFingerprint = currentPrescriptionMeta.validatedContentFingerprint ||
+        (currentPrescriptionMeta.validationReport && currentPrescriptionMeta.validationReport.validatedContentFingerprint);
+      const actualFingerprint = computePrescriptionContentFingerprint(currentPrescriptionItems);
+      if (!expectedFingerprint || expectedFingerprint !== actualFingerprint) {
+        currentPrescriptionMeta = {
+          ...currentPrescriptionMeta,
+          isClinicallyValidated: false,
+          isStale: true,
+          staleReason: 'FINGERPRINT_TAMPERED_OR_MISSING'
+        };
+      }
+    }
   } else {
     currentPrescriptionItems = [];
-    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false };
+    currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false, isStale: false };
   }
   updateAIPrescriptionBanner();
   renderPrescriptionTotals();
@@ -3759,7 +4049,25 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
 
       if (cloudData.prescriptions) {
         currentPrescriptionItems = cloudData.prescriptions;
-        await db.prescriptions.put({ id: patientId, patientId: patientId, items: currentPrescriptionItems });
+        const importedMeta = cloudData.prescriptionMeta || cloudData.meta;
+        // N3.7 Firewall de Importação Externa: importações externas NUNCA herdam confiança clínica
+        // Exigem revalidação canônica e nova assinatura antes da publicação
+        const isBlocked = (importedMeta?.validationStatus === 'BLOCKED' || importedMeta?.validationReport?.status === 'BLOCKED');
+        currentPrescriptionMeta = {
+          isAIGenerated: Boolean(importedMeta?.isAIGenerated),
+          isClinicallyValidated: false,
+          isStale: true,
+          staleReason: 'EXTERNAL_IMPORT_REQUIRES_REVALIDATION',
+          generatedAt: importedMeta?.generatedAt || null,
+          validatedAt: null,
+          validationStatus: isBlocked ? 'BLOCKED' : (importedMeta?.validationStatus || 'WARNING'),
+          validationVerdict: isBlocked ? 'BLOCKED' : (importedMeta?.validationVerdict || 'WARNING'),
+          validationReport: importedMeta?.validationReport || null,
+          validatedContentFingerprint: null
+        };
+
+        await savePrescriptionWithFirewall(patientId, currentPrescriptionItems, currentPrescriptionMeta);
+        updateAIPrescriptionBanner();
         renderPrescriptionTotals();
         renderMealItems();
       }
@@ -3902,7 +4210,24 @@ async function loadPatientFromDriveByFileName(patientId) {
       }
       if (cloudData.prescriptions) {
         currentPrescriptionItems = cloudData.prescriptions;
-        await db.prescriptions.put({ id: patientId, patientId: patientId, items: currentPrescriptionItems });
+        const importedMeta = cloudData.prescriptionMeta || cloudData.meta;
+        // N3.7 Firewall de Importação Externa: importações externas NUNCA herdam confiança clínica
+        // Exigem revalidação canônica e nova assinatura antes da publicação
+        const isBlocked = (importedMeta?.validationStatus === 'BLOCKED' || importedMeta?.validationReport?.status === 'BLOCKED');
+        currentPrescriptionMeta = {
+          isAIGenerated: Boolean(importedMeta?.isAIGenerated),
+          isClinicallyValidated: false,
+          isStale: true,
+          staleReason: 'EXTERNAL_IMPORT_REQUIRES_REVALIDATION',
+          generatedAt: importedMeta?.generatedAt || null,
+          validatedAt: null,
+          validationStatus: isBlocked ? 'BLOCKED' : (importedMeta?.validationStatus || 'WARNING'),
+          validationVerdict: isBlocked ? 'BLOCKED' : (importedMeta?.validationVerdict || 'WARNING'),
+          validationReport: importedMeta?.validationReport || null,
+          validatedContentFingerprint: null
+        };
+
+        await savePrescriptionWithFirewall(patientId, currentPrescriptionItems, currentPrescriptionMeta);
       }
 
       // Atualiza seletor de paciente ativo e ativa o paciente carregado
@@ -10223,53 +10548,68 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
   }
 
   // 1. Agrupamento estruturado da Prescrição Dietética (Refeições e Alimentos)
+  // FIREWALL CANÔNICO DE PUBLICAÇÃO PARA O PATIENT APP (N3.7):
+  // Uma dieta SÓ pode ser publicada no Patient App se for clinicamente validada,
+  // não estiver obsoleta (isStale !== true) e não for BLOCKED pelo N3.6.
+  const isDietEligibleForPatientPublication = isPrescriptionEligibleForPatientPublication(
+    currentPrescriptionItems,
+    currentPrescriptionMeta
+  );
+
   const mealsMap = {};
-  (currentPrescriptionItems || []).forEach(item => {
-    const mName = item.mealName || "Refeição";
-    if (!mealsMap[mName]) {
-      mealsMap[mName] = {
-        name: mName,
-        time: item.mealTime || "12:00",
-        items: [],
-        kcal: 0,
-        prot: 0,
-        carbo: 0,
-        lipid: 0
-      };
-    }
-    const itKcal = Math.round(item.calories || 0);
-    const itProt = Math.round((item.protein || 0) * 10) / 10;
-    const itCarbo = Math.round((item.carbohydrate || 0) * 10) / 10;
-    const itLipid = Math.round((item.lipid || 0) * 10) / 10;
+  if (isDietEligibleForPatientPublication) {
+    (currentPrescriptionItems || []).forEach((item, itemIdx) => {
+      const mName = item.mealName || "Refeição";
+      if (!mealsMap[mName]) {
+        mealsMap[mName] = {
+          name: mName,
+          time: item.mealTime || "12:00",
+          items: [],
+          kcal: 0,
+          prot: 0,
+          carbo: 0,
+          lipid: 0
+        };
+      }
+      const itKcal = Math.round(item.calories || 0);
+      const itProt = Math.round((item.protein || 0) * 10) / 10;
+      const itCarbo = Math.round((item.carbohydrate || 0) * 10) / 10;
+      const itLipid = Math.round((item.lipid || 0) * 10) / 10;
 
-    mealsMap[mName].items.push({
-      id: item.id || `f_${Math.random().toString(36).substr(2, 6)}`,
-      name: item.foodName,
-      qty: item.quantity,
-      unit: item.unitDisplay || `${item.quantity}g`,
-      kcal: itKcal,
-      prot: itProt,
-      carbo: itCarbo,
-      lipid: itLipid
+      // Determinismo de ID estável (sem Math.random())
+      const stableItemId = item.id || `f_${item.foodId || itemIdx + 1}`;
+
+      mealsMap[mName].items.push({
+        id: stableItemId,
+        name: item.foodName,
+        qty: item.quantity,
+        unit: item.unitDisplay || `${item.quantity}g`,
+        kcal: itKcal,
+        prot: itProt,
+        carbo: itCarbo,
+        lipid: itLipid
+      });
+      mealsMap[mName].kcal += (item.calories || 0);
+      mealsMap[mName].prot += (item.protein || 0);
+      mealsMap[mName].carbo += (item.carbohydrate || 0);
+      mealsMap[mName].lipid += (item.lipid || 0);
     });
-    mealsMap[mName].kcal += (item.calories || 0);
-    mealsMap[mName].prot += (item.protein || 0);
-    mealsMap[mName].carbo += (item.carbohydrate || 0);
-    mealsMap[mName].lipid += (item.lipid || 0);
-  });
+  }
 
-  const formattedMeals = Object.values(mealsMap).map((m, idx) => ({
-    id: `m_${idx + 1}`,
-    time: m.time,
-    name: m.name,
-    detail: m.items.map(it => `${it.unit && it.unit !== `${it.qty}g` ? `${it.unit} (${it.qty}g)` : `${it.qty}g`} ${it.name}`).join(" + "),
-    items: m.items,
-    kcal: Math.round(m.kcal),
-    prot: Math.round(m.prot),
-    carbo: Math.round(m.carbo),
-    fat: Math.round(m.lipid),
-    done: false
-  }));
+  const formattedMeals = isDietEligibleForPatientPublication
+    ? Object.values(mealsMap).map((m, idx) => ({
+        id: `m_${idx + 1}`,
+        time: m.time,
+        name: m.name,
+        detail: m.items.map(it => `${it.unit && it.unit !== `${it.qty}g` ? `${it.unit} (${it.qty}g)` : `${it.qty}g`} ${it.name}`).join(" + "),
+        items: m.items,
+        kcal: Math.round(m.kcal),
+        prot: Math.round(m.prot),
+        carbo: Math.round(m.carbo),
+        fat: Math.round(m.lipid),
+        done: false
+      }))
+    : [];
 
   // 2. Banco de Dados Biomecânico de Treinos (Rotinas A-F, Cardio, OFF)
   const formattedWorkout = {};
@@ -10460,6 +10800,9 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     patientId: pId,
     patientName: patientName,
     targetWater: targetWater,
+    dietPlanStatus: isDietEligibleForPatientPublication
+      ? 'VALIDATED_CANONICAL'
+      : (Array.isArray(currentPrescriptionItems) && currentPrescriptionItems.length > 0 ? 'PENDING_CLINICAL_VALIDATION' : 'EMPTY'),
     meals: formattedMeals.length > 0 ? formattedMeals : null,
     macroTotals: formattedMeals.length > 0 ? {
       kcal: Math.round(formattedMeals.reduce((acc, m) => acc + (m.kcal || 0), 0)),
@@ -24713,4 +25056,12 @@ window.closeMobileActionsSheet = closeMobileActionsSheet;
 window.updateMobilePilarSheetActive = updateMobilePilarSheetActive;
 window.renderMobileModuleSheetList = renderMobileModuleSheetList;
 window.initMobileSelectors = initMobileSelectors;
-
+window.savePrescriptionWithFirewall = savePrescriptionWithFirewall;
+window.isPrescriptionEligibleForPatientPublication = isPrescriptionEligibleForPatientPublication;
+window.getCanonicalPrescriptionOrchestrator = getCanonicalPrescriptionOrchestrator;
+window.getCanonicalPrescriptionAdapters = getCanonicalPrescriptionAdapters;
+window.executeAIPrescriptionGeneration = executeAIPrescriptionGeneration;
+window.approveAIPrescription = approveAIPrescription;
+window.loadPrescriptionForPatient = loadPrescriptionForPatient;
+window.clearPrescriptionDiet = clearPrescriptionDiet;
+window.computePrescriptionContentFingerprint = computePrescriptionContentFingerprint;
