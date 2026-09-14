@@ -873,7 +873,7 @@
                 </span>
               </div>
               <h3 class="text-sm font-black text-white mt-1" id="cardioName">Cardio 45 min · Zona 2</h3>
-              <p class="text-[10px] text-zinc-400 font-mono mt-0.5">Biogênese Mitocondrial &amp; Sensibilidade à
+              <p class="text-[10px] text-zinc-400 font-mono mt-0.5" id="cardioSubtitle">Biogênese Mitocondrial &amp; Sensibilidade à
                 Insulina</p>
             </div>
           </div>
@@ -3216,6 +3216,99 @@
     });
 
     // 5. PROCESSAMENTO E PERSISTÊNCIA LOCAL
+        function _buildPatientCardioRoutine(cardioProto, cardioPrescription) {
+      if (!cardioProto) {
+        return {
+          id: 'Cardio',
+          name: 'Cardio Estruturado',
+          badge: 'Z2',
+          subtitle: 'Oxidação lipídica e biogênese mitocondrial',
+          isCardio: true,
+          isOff: false,
+          exercises: []
+        };
+      }
+      const exercises = [];
+      if (Array.isArray(cardioProto.blocks) && cardioProto.blocks.length > 0) {
+        cardioProto.blocks.forEach((b, idx) => {
+          const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || b.cadence || '');
+          const timeMatch = (b.name || itemDesc).match(/(\d+)\s*min/i);
+          const bDuration = timeMatch ? `${timeMatch[1]} min` : '15 min';
+          exercises.push({
+            num: idx + 1,
+            id: `card_b_${idx + 1}`,
+            name: b.name || `Bloco ${idx + 1}`,
+            group: 'Cardio',
+            equip: cardioProto.equipment ? (Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : cardioProto.equipment) : 'Ergômetro',
+            primary: cardioProto.category || 'Zona 2 Base Aeróbica',
+            secondary: cardioProto.foco || 'Oxidação Lipídica',
+            cadence: b.cadence || 'Cadência Ritmada sem Impacto',
+            resist: cardioProto.intensityZone || 'Zona 2',
+            sets: 1,
+            reps: bDuration,
+            rpe: cardioProto.isHiit ? 8 : 6,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+            steps: [itemDesc || 'Manter o ritmo constante na frequência cardíaca prescrita.'],
+            breathing: 'Respiração nasal constante e ritmada.',
+            mistakes: 'Evitar oscilações bruscas de velocidade fora da zona alvo.'
+          });
+        });
+      } else if (Array.isArray(cardioProto.components) && cardioProto.components.length > 0) {
+        cardioProto.components.forEach((c, idx) => {
+          exercises.push({
+            num: idx + 1,
+            id: `card_c_${idx + 1}`,
+            name: `${c.modality || 'Ergômetro'} (${c.durationMinutes || 15} min)`,
+            group: 'Cardio',
+            equip: c.equipment || 'Ergômetro',
+            primary: `${c.intensity || 'Zona 2'} · Oxidação Mitocondrial`,
+            secondary: cardioProto.foco || 'Oxidação de Gordura',
+            cadence: 'Cadência contínua',
+            resist: c.intensity || 'Zona 2',
+            sets: 1,
+            reps: `${c.durationMinutes || 15} min`,
+            rpe: cardioProto.isHiit ? 8 : 6,
+            rest: 0,
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+            steps: ['Mantenha a frequência cardíaca na faixa prescrita durante todo o bloco.'],
+            breathing: 'Respiração ritmada.',
+            mistakes: 'Não exceder a zona cardíaca planejada.'
+          });
+        });
+      } else {
+        exercises.push({
+          num: 1,
+          id: 'card_m_1',
+          name: cardioProto.name || cardioProto.title || 'Cardio Prescrito',
+          group: 'Cardio',
+          equip: Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : (cardioProto.equipment || 'Esteira / Bike / Remo'),
+          primary: cardioProto.category || 'Oxidação Lipídica & Zona 2',
+          secondary: cardioProto.foco || 'Biogênese Mitocondrial',
+          cadence: cardioProto.dinamica || 'Contínua em Estado Estável',
+          resist: cardioProto.intensityZone || 'Zona 2 (112-130 bpm)',
+          sets: 1,
+          reps: cardioProto.timeCap || '45 min',
+          rpe: cardioProto.isHiit ? 8 : 6,
+          rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+          steps: ['Execute na intensidade e frequência cardíaca prescritas.'],
+          breathing: 'Respiração nasal ritmada.',
+          mistakes: 'Evitar interrupções desnecessárias.'
+        });
+      }
+
+      return {
+        id: 'Cardio',
+        name: cardioProto.title || cardioProto.name || 'Cardio Estruturado',
+        badge: cardioProto.intensityZone || 'Z2',
+        subtitle: `${cardioProto.timeCap || '45 min'} · ${cardioProto.foco || cardioProto.subtitle || 'Oxidação pura de ácidos graxos'}`,
+        isCardio: true,
+        isOff: false,
+        exercises: exercises
+      };
+    }
+
     function applyPrescriptionPayload(dataPayload) {
       if (!dataPayload) return;
       try {
@@ -3230,6 +3323,12 @@
       if (dataPayload.targetWater) patientState.waterTarget = dataPayload.targetWater;
       if (dataPayload.fastingProtocol) patientState.fastingProtocol = dataPayload.fastingProtocol;
 
+      // Preserva a prescrição canônica de cardio e base de dados
+      if (dataPayload.prescribedCardio) patientState.prescribedCardio = dataPayload.prescribedCardio;
+      if (dataPayload.cardioPrescription) patientState.cardioPrescription = dataPayload.cardioPrescription;
+      if (dataPayload.cardioDatabase && Array.isArray(dataPayload.cardioDatabase)) patientState.cardioDatabase = dataPayload.cardioDatabase;
+      if (dataPayload.activeSplit) patientState.activeSplit = dataPayload.activeSplit;
+
       // Aplica refeições prescritas (preservando status `done` de hoje se já marcado)
       if (Array.isArray(dataPayload.meals) && dataPayload.meals.length > 0) {
         const doneMap = {};
@@ -3242,17 +3341,34 @@
         }));
       }
 
-      // Aplica banco de treinos do paciente
+      // Aplica banco de treinos do paciente preservando rotinas de OFF e Cardio
       if (dataPayload.workoutDatabase && typeof dataPayload.workoutDatabase === 'object' && Object.keys(dataPayload.workoutDatabase).length > 0) {
+        const fallbackOff = WORKOUT_DATABASE['OFF'];
+        const fallbackCardio = WORKOUT_DATABASE['Cardio'];
+
         Object.keys(WORKOUT_DATABASE).forEach(k => delete WORKOUT_DATABASE[k]);
         Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
+
+        if (!WORKOUT_DATABASE['OFF'] && fallbackOff) {
+          WORKOUT_DATABASE['OFF'] = fallbackOff;
+        }
+
+        if (!WORKOUT_DATABASE['Cardio']) {
+          if (dataPayload.prescribedCardio) {
+            WORKOUT_DATABASE['Cardio'] = _buildPatientCardioRoutine(dataPayload.prescribedCardio, dataPayload.cardioPrescription);
+          } else if (fallbackCardio) {
+            WORKOUT_DATABASE['Cardio'] = fallbackCardio;
+          }
+        }
       }
 
-      // Normaliza e aplica agenda semanal
+      // Normaliza e aplica agenda semanal preservando dados de cardio
       if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
         const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'Off': 'zinc', 'off': 'zinc' };
         const _normalized = dataPayload.weeklySchedule.map((d, idx) => {
-          const routineKey = d.routineKey || d.routineId || null;
+          const isOff = d.type === 'Off' || d.type === 'off';
+          const isCardio = d.type === 'Cardio';
+          const routineKey = d.routineKey || d.routineId || (isOff ? 'OFF' : (isCardio ? 'Cardio' : null));
           const synergy = d.synergy || {
             carbo: d.carboTip || '',
             prot: d.proteinTip || '',
@@ -3261,19 +3377,23 @@
           };
           return {
             dayNum: idx + 1,
+            dayKey: d.dayKey || `d${idx + 1}`,
             dayName: (d.dayName || ('DIA ' + (idx + 1))).toUpperCase(),
             type: d.type || 'Treino',
             color: _colorMap[d.type] || 'blue',
             routineKey: routineKey,
-            title: d.title || routineKey || 'Descanso',
+            title: d.title || (isOff ? 'Descanso Total' : (isCardio ? 'Cardio' : routineKey ? `Treino ${routineKey}` : 'Treino')),
             sub: d.focus || d.sub || '',
+            hasCardioPost: !!d.hasCardioPost,
+            cardioId: d.cardioId || null,
+            cardioSession: d.cardioSession || null,
             synergy: synergy
           };
         });
         WEEKLY_SCHEDULE_DATA.length = 0;
         _normalized.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
-        const _firstRoutine = _normalized.find(d => d.routineKey);
-        if (_firstRoutine) selectedRoutineKey = _firstRoutine.routineKey;
+        const _firstRoutine = _normalized.find(d => d.routineKey && d.routineKey !== 'OFF') || _normalized[0];
+        if (_firstRoutine && !selectedRoutineKey) selectedRoutineKey = _firstRoutine.routineKey;
       }
     }
 
@@ -3476,20 +3596,23 @@
         mealsScore = totalItems > 0 ? (checkedItems / totalItems) * 40 : 0;
       }
 
-      const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'];
+      const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || Object.values(WORKOUT_DATABASE)[0];
       let workoutScore = 0;
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
-      const isCardioDay = dayData && (
+      const isOffDay = (currentRoutine && currentRoutine.isOff) || (dayData && (dayData.type === 'Off' || dayData.type === 'off'));
+      const isPureCardio = (currentRoutine && currentRoutine.isCardio) || (dayData && dayData.type === 'Cardio');
+      const hasCardioPost = !isPureCardio && !isOffDay && dayData && (
         dayData.type === 'Treino + Cardio' ||
-        dayData.type === 'Cardio' ||
         dayData.hasCardioPost ||
+        dayData.cardioSession != null ||
         (dayData.title && dayData.title.toLowerCase().includes('cardio'))
       );
-      const hasCardio = isCardioDay || selectedRoutineKey === 'E' || selectedRoutineKey === 'Cardio' || (selectedScheduleDay === 5 && !currentRoutine?.isOff);
 
-      if (currentRoutine && currentRoutine.isOff) {
-        workoutScore = patientState.workoutDone ? 30 : 0;
-      } else if (hasCardio) {
+      if (isOffDay) {
+        workoutScore = 30;
+      } else if (isPureCardio) {
+        workoutScore = (patientState.cardioDone || patientState.workoutDone) ? 30 : 0;
+      } else if (hasCardioPost) {
         workoutScore = (patientState.workoutDone ? 20 : 0) + (patientState.cardioDone ? 10 : 0);
       } else {
         workoutScore = patientState.workoutDone ? 30 : 0;
@@ -4304,7 +4427,16 @@
         return;
       }
 
-      container.innerHTML = availableKeys.map(k => {
+      // Ordena: rotinas (A, B, C...) primeiro, depois Cardio, depois OFF
+      const sortedKeys = availableKeys.slice().sort((a, b) => {
+        if (a === 'OFF') return 1;
+        if (b === 'OFF') return -1;
+        if (a === 'Cardio') return b === 'OFF' ? -1 : 1;
+        if (b === 'Cardio') return a === 'OFF' ? 1 : -1;
+        return a.localeCompare(b);
+      });
+
+      container.innerHTML = sortedKeys.map(k => {
         const r = WORKOUT_DATABASE[k] || {};
         const isSelected = (k === selectedRoutineKey);
         const badge = r.badge || k;
@@ -4317,7 +4449,7 @@
           activeCls = 'bg-emerald-950/70 text-emerald-300 border-emerald-700/60 font-bold';
         }
 
-        const label = r.isOff ? '🛌 Descanso' : (r.isCardio ? '🏃 Cardio Z2' : `Treino ${badge}`);
+        const label = r.isOff ? '🛌 Descanso' : (r.isCardio ? `🏃 ${r.name || 'Cardio'}` : `Treino ${badge}`);
 
         return `
           <button type="button" onclick="selectRoutine('${k}')"
@@ -4363,10 +4495,11 @@
           ? '✅ Feito'
           : (isSelected ? '🎯 Hoje' : d.type);
 
-        const routineBadge = d.routineKey ? `TREINO ${d.routineKey}` : d.dayName;
+        const routineBadge = d.routineKey ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)) : d.dayName;
+        const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
 
         return `
-          <div onclick="selectRoutine('${d.routineKey || 'A'}', ${d.dayNum})"
+          <div onclick="selectRoutine('${targetRoutineKey}', ${d.dayNum})"
             class="min-w-[145px] max-w-[175px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1">
@@ -4423,7 +4556,7 @@
       selectedScheduleDay = dayNum;
       patientState.selectedScheduleDay = dayNum;
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
-      const rKey = dayData ? (dayData.routineKey || (dayData.type === 'Off' ? 'OFF' : 'A')) : 'A';
+      const rKey = dayData ? (dayData.routineKey || (dayData.type === 'Off' || dayData.type === 'off' ? 'OFF' : (dayData.type === 'Cardio' ? 'Cardio' : 'A'))) : 'A';
       selectRoutine(rKey, dayNum);
     }
 
@@ -4589,31 +4722,141 @@
         `;
       }).join('');
 
-      // Controla o Card de Cardio Integrado (Exibido quando houver cardio prescrito no dia ou rotina)
-      const cardioBlock = document.getElementById('workoutCardioBlock');
-      if (cardioBlock) {
-        const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
-        const dayHasCardio = dayData && (
-          dayData.type === 'Treino + Cardio' ||
-          dayData.type === 'Cardio' ||
-          dayData.hasCardioPost ||
-          (dayData.title && dayData.title.toLowerCase().includes('cardio'))
-        );
-        const routineHasCardio = (selectedRoutineKey === 'E' || selectedRoutineKey === 'Cardio');
-        const isDay5 = (selectedScheduleDay === 5 && selectedRoutineKey !== 'OFF');
-
-        const shouldShowCardio = dayHasCardio || routineHasCardio || isDay5;
-        cardioBlock.style.display = shouldShowCardio ? 'block' : 'none';
-
-        // Atualiza a tag do cabeçalho de acordo com o dia selecionado
-        const badgeTag = document.getElementById('cardioBadgeTag');
-        if (badgeTag && dayData) {
-          badgeTag.textContent = `${dayData.dayName || 'DIA'} · PÓS-FORÇA`;
-        }
-      }
+      // Controla o Card de Cardio Integrado Dinamicamente
+      renderWorkoutCardioBlock();
 
       updateCardioVisuals();
       updateWorkoutVisuals();
+    }
+
+    function renderWorkoutCardioBlock() {
+      const cardioBlock = document.getElementById('workoutCardioBlock');
+      if (!cardioBlock) return;
+
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+      const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey];
+      const isRoutineCardio = (selectedRoutineKey === 'Cardio' || currentRoutine?.isCardio);
+      const isRoutineOff = (selectedRoutineKey === 'OFF' || currentRoutine?.isOff);
+
+      const dayHasCardio = !!(dayData && (
+        dayData.type === 'Treino + Cardio' ||
+        dayData.type === 'Cardio' ||
+        dayData.hasCardioPost ||
+        dayData.cardioSession != null ||
+        (dayData.title && dayData.title.toLowerCase().includes('cardio'))
+      ));
+
+      const shouldShowCardio = (dayHasCardio || isRoutineCardio) && !isRoutineOff;
+      cardioBlock.style.display = shouldShowCardio ? 'block' : 'none';
+
+      if (!shouldShowCardio) return;
+
+      // Resolução da sessão de cardio do dia
+      const session = dayData?.cardioSession ||
+        (patientState.cardioPrescription?.sessions && patientState.cardioPrescription.sessions.find(s =>
+          s.dayKey === dayData?.dayKey || s.dayNumber === selectedScheduleDay || String(s.day || '').toLowerCase() === String(dayData?.dayName || '').toLowerCase()
+        )) ||
+        patientState.cardioPrescription?.sessions?.[0] ||
+        null;
+
+      const protoId = session?.protocolId || dayData?.cardioId || patientState.prescribedCardio?.id || 'cardio_01';
+      const proto = (patientState.cardioDatabase && patientState.cardioDatabase.find(p => p.id === protoId)) ||
+        (typeof PERF_CARDIO_CATALOG !== 'undefined' && PERF_CARDIO_CATALOG[protoId]) ||
+        patientState.prescribedCardio ||
+        null;
+
+      const duration = session?.durationMinutes || session?.duration || (proto?.minDurationMinutes || (proto?.timeCap ? parseInt(proto.timeCap) : 45));
+      const zone = session?.heartRateZone || session?.intensityZone || proto?.intensityZone || proto?.category || 'Zona 2';
+      const bpm = session?.bpmTarget || session?.targetBpm || session?.bpm || proto?.bpmAlvo || proto?.bpmTarget || (proto?.hardware ? (proto.hardware.match(/\\d+-\\d+\\s*bpm/)?.[0] || '112-130 bpm') : '112-130 bpm');
+      const isStandalone = dayData?.type === 'Cardio' || isRoutineCardio;
+
+      // Badge Tag
+      const badgeTag = document.getElementById('cardioBadgeTag');
+      if (badgeTag) {
+        const dayLabel = dayData?.dayName || `DIA ${selectedScheduleDay}`;
+        badgeTag.textContent = `${dayLabel} · ${isStandalone ? 'SESSÃO PRINCIPAL' : 'PÓS-FORÇA'}`;
+        if (zone.includes('HIIT') || zone.includes('Z4') || zone.includes('Z5')) {
+          badgeTag.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-950/80 text-orange-300 border border-orange-700/80';
+        } else {
+          badgeTag.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#171B1F] text-amber-300 border border-amber-800/80';
+        }
+      }
+
+      // Nome do Cardio
+      const nameEl = document.getElementById('cardioName');
+      if (nameEl) {
+        nameEl.textContent = `Cardio ${duration} min · ${zone}`;
+      }
+
+      // Subtítulo do Cardio
+      const subEl = document.getElementById('cardioSubtitle');
+      if (subEl) {
+        const pTitle = session?.protocolTitle || session?.protocolName || proto?.title || proto?.name || 'Cardio Estruturado Individualizado';
+        const cleanTitle = pTitle.replace(/^Protocolo\s*["']?|["']?$/gi, '').trim();
+        subEl.textContent = `${cleanTitle} · FC Alvo: ${bpm}`;
+      }
+
+      // Guia e Componentes Detalhados
+      const container = document.getElementById('cardioDetailsContainer');
+      if (container) {
+        let guideHtml = '';
+        if (proto && Array.isArray(proto.blocks) && proto.blocks.length > 0) {
+          guideHtml = `
+            <div class="grid grid-cols-1 sm:grid-cols-${Math.min(proto.blocks.length, 3)} gap-2.5">
+              ${proto.blocks.map((b, idx) => {
+                const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || '');
+                const cadenceText = b.cadence ? `<p class="text-[9px] font-mono text-zinc-500">${b.cadence}</p>` : '';
+                return `
+                  <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
+                    <span class="text-[10px] font-mono font-bold text-white block">${idx + 1}. ${b.name || `Bloco ${idx + 1}`}</span>
+                    ${cadenceText}
+                    <p class="text-[10px] text-zinc-400 leading-relaxed">${itemDesc}</p>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        } else if (proto && Array.isArray(proto.components) && proto.components.length > 0) {
+          guideHtml = `
+            <div class="grid grid-cols-1 sm:grid-cols-${Math.min(proto.components.length, 3)} gap-2.5">
+              ${proto.components.map((c, idx) => `
+                <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
+                  <span class="text-[10px] font-mono font-bold text-white block">${idx + 1}. ${c.modality || 'Ergômetro'} (${c.durationMinutes || 15} min)</span>
+                  <p class="text-[10px] text-zinc-400">Intensidade: ${c.intensity || 'Zona 2'} · Equip: ${c.equipment || 'Ergômetro'}</p>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        } else {
+          const equipStr = proto?.equipment ? (Array.isArray(proto.equipment) ? proto.equipment.join(' / ') : proto.equipment) : 'Esteira / Bike / Remo';
+          const dinamica = proto?.dinamica || 'Contínua em Estado Estável (Respiração Nasal)';
+          const foco = proto?.foco || 'Oxidação pura de ácidos graxos sem interferência anabólica.';
+
+          guideHtml = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
+                <span class="text-[10px] font-mono font-bold text-white block">Equipamento &amp; Dinâmica</span>
+                <p class="text-[10px] text-zinc-400">${equipStr} · ${dinamica}</p>
+              </div>
+              <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
+                <span class="text-[10px] font-mono font-bold text-white block">Zona &amp; Foco Fisiológico</span>
+                <p class="text-[10px] text-zinc-400">${zone} (${bpm}) · ${foco}</p>
+              </div>
+            </div>
+          `;
+        }
+
+        if (proto && Array.isArray(proto.restrictions) && proto.restrictions.length > 0) {
+          guideHtml += `
+            <div class="p-2.5 rounded-xl bg-amber-950/20 border border-amber-800/40 text-[10px] text-amber-300 flex items-start gap-2 mt-2">
+              <span class="shrink-0">⚠️</span>
+              <div>${proto.restrictions.join(' ')}</div>
+            </div>
+          `;
+        }
+
+        container.innerHTML = guideHtml;
+      }
     }
 
     let cardioDetailsExpanded = true;

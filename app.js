@@ -10318,6 +10318,126 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     ? (PERF_CARDIO_DB.find(c => c.id === (typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01')) || PERF_CARDIO_DB[0])
     : null;
 
+  // Garante que as rotinas de Cardio e Descanso (OFF) existam estruturadas em formattedWorkout
+  if (!formattedWorkout['Cardio'] && cardioProto) {
+    const cardioExercises = [];
+    if (Array.isArray(cardioProto.blocks) && cardioProto.blocks.length > 0) {
+      cardioProto.blocks.forEach((b, idx) => {
+        const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || b.cadence || '');
+        const timeMatch = (b.name || itemDesc).match(/(\d+)\s*min/i);
+        const bDuration = timeMatch ? `${timeMatch[1]} min` : '15 min';
+        cardioExercises.push({
+          num: idx + 1,
+          id: `card_block_${idx + 1}`,
+          name: b.name || `Bloco ${idx + 1}`,
+          group: 'Cardio',
+          equip: cardioProto.equipment ? (Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : cardioProto.equipment) : 'Ergômetro',
+          primary: cardioProto.category || 'Zona 2 Base Aeróbica',
+          secondary: cardioProto.foco || 'Oxidação Lipídica',
+          cadence: b.cadence || 'Cadência Ritmada sem Impacto',
+          resist: cardioProto.intensityZone || 'Zona 2',
+          sets: 1,
+          reps: bDuration,
+          rpe: cardioProto.isHiit ? 8 : 6,
+          rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+          steps: [itemDesc || 'Manter o ritmo constante na frequência cardíaca prescrita.'],
+          breathing: 'Respiração nasal constante e ritmada.',
+          mistakes: 'Evitar oscilações bruscas de velocidade fora da zona alvo.'
+        });
+      });
+    } else if (Array.isArray(cardioProto.components) && cardioProto.components.length > 0) {
+      cardioProto.components.forEach((c, idx) => {
+        cardioExercises.push({
+          num: idx + 1,
+          id: `card_comp_${idx + 1}`,
+          name: `${c.modality || 'Ergômetro'} (${c.durationMinutes || 15} min)`,
+          group: 'Cardio',
+          equip: c.equipment || 'Ergômetro',
+          primary: `${c.intensity || 'Zona 2'} · Oxidação Mitocondrial`,
+          secondary: cardioProto.foco || 'Oxidação de Gordura',
+          cadence: 'Cadência contínua',
+          resist: c.intensity || 'Zona 2',
+          sets: 1,
+          reps: `${c.durationMinutes || 15} min`,
+          rpe: cardioProto.isHiit ? 8 : 6,
+          rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+          steps: ['Mantenha a frequência cardíaca na faixa prescrita durante todo o bloco.'],
+          breathing: 'Respiração ritmada.',
+          mistakes: 'Não exceder a zona cardíaca planejada.'
+        });
+      });
+    } else {
+      cardioExercises.push({
+        num: 1,
+        id: 'card_main',
+        name: cardioProto.name || cardioProto.title || 'Cardio Prescrito',
+        group: 'Cardio',
+        equip: Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : (cardioProto.equipment || 'Esteira / Bike / Remo'),
+        primary: cardioProto.category || 'Oxidação Lipídica & Zona 2',
+        secondary: cardioProto.foco || 'Biogênese Mitocondrial',
+        cadence: cardioProto.dinamica || 'Contínua em Estado Estável',
+        resist: cardioProto.intensityZone || 'Zona 2 (112-130 bpm)',
+        sets: 1,
+        reps: cardioProto.timeCap || '45 min',
+        rpe: cardioProto.isHiit ? 8 : 6,
+        rest: 0,
+        gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+        steps: ['Execute na intensidade e frequência cardíaca prescritas.'],
+        breathing: 'Respiração nasal ritmada.',
+        mistakes: 'Evitar interrupções desnecessárias.'
+      });
+    }
+
+    formattedWorkout['Cardio'] = {
+      id: 'Cardio',
+      name: cardioProto.title || cardioProto.name || 'Cardio Estruturado',
+      badge: cardioProto.intensityZone || 'Z2',
+      subtitle: `${cardioProto.timeCap || '45 min'} · ${cardioProto.foco || cardioProto.subtitle || 'Oxidação pura de ácidos graxos'}`,
+      isCardio: true,
+      isOff: false,
+      exercises: cardioExercises
+    };
+  }
+
+  if (!formattedWorkout['OFF']) {
+    formattedWorkout['OFF'] = {
+      id: 'OFF',
+      name: 'Descanso Total · Regeneração Sistêmica',
+      badge: 'OFF',
+      subtitle: 'Supercompensação muscular, síntese proteica e restauração do SNC',
+      isCardio: false,
+      isOff: true,
+      exercises: [
+        {
+          num: 1, id: 'rec_sleep', name: 'Sono Anabólico Reparador (8-9h de Sono Profundo)', group: 'Regeneração', equip: 'Quarto Escuro e Frio',
+          primary: 'Secreção de GH, Reparo Miofibrilar e Restauração do SNC', secondary: 'Sensibilidade à Insulina e Otimização Imunológica',
+          cadence: '8 a 9 horas ininterruptas', resist: 'Zero Luz Azul', sets: 1, reps: '8-9 horas', rpe: 1, rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif',
+          steps: ['Desligue telas e reduza a luz ambiente 1 hora antes de dormir.', 'Mantenha a temperatura do quarto fresca (19-21°C).', 'Garanta 8 a 9 horas de sono para maximizar a síntese proteica miofibrilar.'],
+          breathing: 'Respiração diafragmática profunda 4-7-8.', mistakes: 'Uso de telas na cama ou ingestão de cafeína após as 14h.'
+        },
+        {
+          num: 2, id: 'rec_mob', name: 'Mobilidade Articular e Liberação Miofascial Leve', group: 'Mobilidade', equip: 'Rolo de Liberação / Solo',
+          primary: 'Descompressão da Coluna, Quadril e Torácica', secondary: 'Fluxo Sanguíneo e Redução de Rigidez',
+          cadence: '15-20 minutos suaves', resist: 'Baixa Intensidade', sets: 1, reps: '15-20 min', rpe: 2, rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-romanian-deadlift.gif',
+          steps: ['Execute 10-15 minutos de mobilidade de tornozelo, quadril e torácica.', 'Use o rolo de espuma nos pontos de maior tensão muscular.', 'Mantenha movimentos suaves sem dor excessiva.'],
+          breathing: 'Respiração nasal lenta e relaxada.', mistakes: 'Aplicar pressão excessiva gerando dor aguda.'
+        },
+        {
+          num: 3, id: 'rec_elec', name: 'Hidratação Eletrolítica & Síntese Proteica Fracionada', group: 'Nutrição', equip: 'Garrafa de Água + Dieta',
+          primary: 'Reposição de Sódio, Potássio e Magnésio', secondary: 'Aporte de 30-40g de Proteína a cada 3-4 horas',
+          cadence: 'Fracionado ao longo do dia', resist: `Meta: ${targetWater} mL`, sets: 5, reps: 'Refeições', rpe: 1, rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+          steps: [`Beba no mínimo ${targetWater} mL de água ao longo do dia.`, 'Mantenha as refeições nos horários prescritos.', 'Aproveite carboidratos complexos para recarregar o glicogênio.'],
+          breathing: 'Mantenha-se relaxado.', mistakes: 'Não cortar carboidratos no dia de descanso.'
+        }
+      ]
+    };
+  }
+
   // 3.1 Protocolo Clínico de Jejum Intermitente (se ativo e habilitado)
   let activeFastingProto = null;
   try {
@@ -10351,7 +10471,8 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     weeklySchedule: normalizedSchedule,
     prescribedCardio: cardioProto,
     cardioPrescription: (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription) ? perfCardioPrescription : null,
-    activeSplit: perfActiveSplit,
+    cardioDatabase: (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB)) ? PERF_CARDIO_DB : null,
+    activeSplit: typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : null,
     fastingProtocol: (activeFastingProto && activeFastingProto.enabled === true && activeFastingProto.status === 'ACTIVE') ? activeFastingProto : null,
     updatedAt: new Date().toISOString()
   };
