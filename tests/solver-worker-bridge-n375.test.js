@@ -239,6 +239,75 @@ describe('N3.7.5 — Food Solver Worker & Bridge Não-Bloqueante', () => {
       assert.ok(pipelineRes.blockingReasons.some(r => r.includes('SEARCH_LIMIT_REACHED') || r.toLowerCase().includes('limite computacional')));
     });
 
+    test('10. Early Stop interrompe busca antecipadamente quando solução PASS atende tolerâncias estritas', () => {
+      const earlyStopCatalog = [
+        { id: 'FOOD_P1', name: 'Frango Grelhado', category: 'Carnes e Aves', calories: 159, protein: 32, carbohydrate: 0, lipid: 2.5, fiber: 0, sodium: 50, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+        { id: 'FOOD_C1', name: 'Arroz Branco', category: 'Cereais e Leguminosas', calories: 128, protein: 2.5, carbohydrate: 28, lipid: 0.2, fiber: 1.5, sodium: 1, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+        { id: 'FOOD_F1', name: 'Azeite de Oliva', category: 'Óleos e Gorduras', calories: 884, protein: 0, carbohydrate: 0, lipid: 100, fiber: 0, sodium: 0, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+        { id: 'FOOD_V1', name: 'Brócolis', category: 'Verduras e Legumes', calories: 35, protein: 3, carbohydrate: 7, lipid: 0.5, fiber: 3, sodium: 10, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+        { id: 'FOOD_V2', name: 'Cenoura', category: 'Verduras e Legumes', calories: 41, protein: 0.9, carbohydrate: 9.6, lipid: 0.2, fiber: 2.8, sodium: 69, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } }
+      ];
+
+      const input = {
+        context: { patient: { patientId: 'p_early' } },
+        energyTarget: { caloricTargetKcal: 1200 },
+        macroTarget: { proteinTargetG: 90, carbohydrateTargetG: 135, fatTargetG: 30, fiberTargetG: 12 },
+        validationResult: { valid: true, status: 'PASS' },
+        foodCatalog: earlyStopCatalog
+      };
+
+      const res = solveNutritionDiet(input, {
+        convergence: {
+          enableEarlyStop: true,
+          earlyStopCost: 0.05
+        }
+      });
+
+      assert.strictEqual(res.valid, true);
+      assert.strictEqual(res.status, SOLVER_STATUS.PASS);
+      assert.strictEqual(res.searchLimitReached, false);
+      assert.strictEqual(res.earlyConverged, true);
+      assert.ok(res.solverDiagnostics.some(d => d.includes('EARLY_CONVERGED_CLINICAL_TOLERANCE')));
+    });
+
+    test('11. Espaço combinatório padrão (15 candidatos, k=3..5) é estritamente limitado a 4823 combinações (< 5000) e conclui com CONVERGED', () => {
+      // Cria 15 candidatos para atingir a capacidade máxima do pool
+      const pool15 = [];
+      for (let i = 1; i <= 15; i++) {
+        pool15.push({
+          id: `FOOD_CAND_${i}`,
+          name: `Alimento Teste ${i}`,
+          category: i <= 3 ? 'Carnes' : (i <= 6 ? 'Cereais' : (i <= 9 ? 'Óleos' : (i <= 12 ? 'Verduras' : 'Frutas'))),
+          calories: 100 + i * 10,
+          protein: (i % 5) * 5,
+          carbohydrate: ((i + 1) % 5) * 10,
+          lipid: (i % 3) * 3,
+          fiber: (i % 4) * 2,
+          unit: 'g',
+          bromatology: { energyStatus: 'CONSISTENTE' }
+        });
+      }
+
+      const input = {
+        context: { patient: { patientId: 'p_pool15' } },
+        energyTarget: { caloricTargetKcal: 1800 },
+        macroTarget: { proteinTargetG: 130, carbohydrateTargetG: 200, fatTargetG: 50, fiberTargetG: 20 },
+        validationResult: { valid: true, status: 'PASS' },
+        foodCatalog: pool15
+      };
+
+      const res = solveNutritionDiet(input);
+
+      assert.strictEqual(res.valid, true);
+      assert.strictEqual(res.searchLimitReached, false);
+      const combosDiag = res.solverDiagnostics.find(d => d.includes('Combinações testadas:'));
+      assert.ok(combosDiag, 'Diagnóstico de combinações testadas deve existir');
+      const combosTested = parseInt(combosDiag.match(/\d+/)[0], 10);
+      assert.ok(combosTested <= 4823, `Combinações testadas (${combosTested}) deve ser <= 4823`);
+      assert.ok(combosTested < DEFAULT_FOOD_SOLVER_POLICY.searchLimit.maxCombosToTest);
+    });
+
   });
 
 });
+

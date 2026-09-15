@@ -71,19 +71,21 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
     maxGramsPerItem: 450.0,
     stepGrams: 5.0,
     targetItemCountMin: 3,
-    targetItemCountMax: 7
+    targetItemCountMax: 5
   }),
 
   // Limites para redução determinística do espaço de busca
   candidateLimits: Object.freeze({
-    perSearchRole: 4,
-    globalCandidateLimit: 20
+    perSearchRole: 3,
+    globalCandidateLimit: 15
   }),
 
   // Parâmetros de iteração do algoritmo
   convergence: Object.freeze({
     maxIterations: 150,
-    minCostImprovement: 1e-4
+    minCostImprovement: 1e-4,
+    enableEarlyStop: true,
+    earlyStopCost: 0.05
   }),
 
   // ── LIMITE DE BUSCA COMBINATÓRIA (N3.7.5) ─────────────────────────────────

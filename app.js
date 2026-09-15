@@ -3153,15 +3153,7 @@ async function executeAIPrescriptionGeneration() {
     isStale: false
   });
 
-  // Persistência com firewall (preserva meta e rastreabilidade N3.6)
-  await savePrescriptionWithFirewall(activePatientId, adaptedOutput.items, adaptedOutput.meta);
-
-  closeAIPrescriptionModal();
-  updateAIPrescriptionBanner();
-  renderPrescriptionTotals();
-  renderMealItems();
-
-  // N3.7.5: Tratamento explícito de SEARCH_LIMIT_REACHED
+  // N3.7.5 / N3.7.6: Tratamento explícito de SEARCH_LIMIT_REACHED
   // Este status é distinto de BLOCKED genérico: indica limite computacional, não erro clínico.
   const solverResult = pipelineResult.foodSolverResult;
   if (pipelineResult.status === 'BLOCKED' && solverResult && solverResult.status === 'SEARCH_LIMIT_REACHED') {
@@ -3172,7 +3164,7 @@ async function executeAIPrescriptionGeneration() {
       `❌ Nenhuma dieta foi salva. Esta não é uma falha clínica — é uma limitação computacional do ambiente.\n\n` +
       `✅ Diagnóstico:\n  ${diags}\n\n` +
       `Possíveis soluções:\n` +
-      `  • Reduza o número de alimentos elegantes no catálogo (ver aba Alimentos)\n` +
+      `  • Reduza o número de alimentos elegíveis no catálogo (ver aba Alimentos)\n` +
       `  • O valor das metas clínicas permanece intacto e correto`
     );
     return;
@@ -3182,6 +3174,14 @@ async function executeAIPrescriptionGeneration() {
     alert(`🚫 Prescrição BLOQUEADA pelo Portão Clínico Canônico N3.6!\n\nMotivos do Bloqueio:\n• ${pipelineResult.blockingReasons.join('\n• ')}\n\n⚠️ Esta dieta NÃO PODE ser validada, assinada ou sincronizada.`);
     return;
   }
+
+  // Persistência com firewall (preserva meta e rastreabilidade N3.6)
+  await savePrescriptionWithFirewall(activePatientId, adaptedOutput.items, adaptedOutput.meta);
+
+  closeAIPrescriptionModal();
+  updateAIPrescriptionBanner();
+  renderPrescriptionTotals();
+  renderMealItems();
 
   if (pipelineResult.status === 'WARNING') {
     const warns = (pipelineResult.warnings || []).slice(0, 3).join('\n• ');

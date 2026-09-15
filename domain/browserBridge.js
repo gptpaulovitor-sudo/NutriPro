@@ -10282,19 +10282,21 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
     maxGramsPerItem: 450.0,
     stepGrams: 5.0,
     targetItemCountMin: 3,
-    targetItemCountMax: 7
+    targetItemCountMax: 5
   }),
 
   // Limites para redução determinística do espaço de busca
   candidateLimits: Object.freeze({
-    perSearchRole: 4,
-    globalCandidateLimit: 20
+    perSearchRole: 3,
+    globalCandidateLimit: 15
   }),
 
   // Parâmetros de iteração do algoritmo
   convergence: Object.freeze({
     maxIterations: 150,
-    minCostImprovement: 1e-4
+    minCostImprovement: 1e-4,
+    enableEarlyStop: true,
+    earlyStopCost: 0.05
   }),
 
   // ── LIMITE DE BUSCA COMBINATÓRIA (N3.7.5) ─────────────────────────────────
@@ -10867,6 +10869,12 @@ function solveNutritionDiet(input, customPolicy = {}) {
   let totalCombosTested = 0;
   let totalIterationsExecuted = 0;
   let searchLimitReached = false;
+  let earlyConverged = false;
+
+  const enableEarlyStop = policy.convergence && policy.convergence.enableEarlyStop !== false;
+  const earlyStopCost = (policy.convergence && typeof policy.convergence.earlyStopCost === 'number')
+    ? policy.convergence.earlyStopCost
+    : 0.05;
 
   outerLoop:
   for (let k = targetItemCountMin; k <= targetItemCountMax; k++) {
@@ -10912,6 +10920,40 @@ function solveNutritionDiet(input, customPolicy = {}) {
                 bestSolution = { combo, ...opt };
               }
             }
+          }
+        }
+      }
+
+      // Early Stop determinístico (N3.7.6):
+      // Se a solução atual satisfaz integralmente as tolerâncias canônicas da política,
+      // não contém alimentos com status REVISAR, possui quantidade de itens suficiente
+      // para cobrir todas as refeições diárias e atinge o limiar de custo de parada antecipada,
+      // interrompe a busca imediatamente com garantia de conformidade clínica PASS.
+      if (enableEarlyStop) {
+        const requiredMealCount = (input.context && (input.context.mealsPerDay || (input.context.patient && input.context.patient.mealsPerDay))) ||
+          (input.options && input.options.mealCount) ||
+          policy.searchBounds.targetItemCountMin ||
+          3;
+
+        const containsReview = combo.some(f => (f.bromatology && f.bromatology.energyStatus) === 'REVISAR');
+        if (!containsReview && combo.length >= requiredMealCount && opt.cost <= earlyStopCost) {
+          const diffCal = Math.abs(opt.totals.calories - targets.calories);
+          const diffProt = Math.abs(opt.totals.protein - targets.protein);
+          const diffCarb = Math.abs(opt.totals.carbohydrate - targets.carbohydrate);
+          const diffFat = Math.abs(opt.totals.fat - targets.fat);
+          const diffFib = Math.abs(opt.totals.fiber - targets.fiber);
+
+          const comboWithinTolerances = 
+            diffCal <= policy.tolerances.caloriesKcal &&
+            diffProt <= policy.tolerances.proteinG &&
+            diffCarb <= policy.tolerances.carbohydrateG &&
+            diffFat <= policy.tolerances.fatG &&
+            diffFib <= policy.tolerances.fiberG;
+
+          if (comboWithinTolerances) {
+            bestSolution = { combo, ...opt };
+            earlyConverged = true;
+            break outerLoop;
           }
         }
       }
@@ -11102,7 +11144,9 @@ function solveNutritionDiet(input, customPolicy = {}) {
     fiber: roundTo(finalTotals.fiber - targets.fiber, 2)
   };
 
-  const convergenceLabel = searchLimitReached ? 'SEARCH_LIMIT_REACHED' : 'CONVERGED';
+  const convergenceLabel = earlyConverged
+    ? 'EARLY_CONVERGED_CLINICAL_TOLERANCE'
+    : (searchLimitReached ? (isValid ? 'SEARCH_LIMIT_PARTIAL_VIABLE' : 'SEARCH_LIMIT_REACHED') : 'CONVERGED');
   const solverDiagnostics = [
     `Candidatos recebidos: ${rawCatalog.length}`,
     `Candidatos elegíveis: ${eligibleFoods.length}`,
@@ -11143,6 +11187,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
     valid: isValid,
     // searchLimitReached: campo de diagnóstico explícito para orchestrators e tests
     searchLimitReached: searchLimitReached === true,
+    earlyConverged: earlyConverged === true,
     meals,
     totals: finalTotals,
     target: {
