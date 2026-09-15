@@ -123,7 +123,20 @@ function parseTimeToMinutes(timeStr) {
  * @returns {{ category: string|null, clinicalObjective: string, isMapped: boolean }}
  */
 function normalizeObjective(rawObjective) {
-  const text = (typeof rawObjective === 'string') ? rawObjective.trim() : '';
+  let text = '';
+  if (typeof rawObjective === 'string') {
+    text = rawObjective.trim();
+  } else if (rawObjective && typeof rawObjective === 'object') {
+    text = String(
+      rawObjective.clinicalObjective ||
+      rawObjective.primary ||
+      rawObjective.goal ||
+      rawObjective.objective ||
+      rawObjective.category ||
+      ''
+    ).trim();
+  }
+
   if (!text) {
     return {
       category: null,
@@ -137,6 +150,7 @@ function normalizeObjective(rawObjective) {
   // Mapeamentos inequívocos comprovados
   if (
     lower === 'perda de peso' ||
+    lower === 'perda_de_peso' ||
     lower === 'emagrecimento' ||
     lower === 'emagrecer' ||
     lower === 'definição' ||
@@ -311,7 +325,12 @@ function adaptPatientContext(rawPatientData) {
   }
 
   // Se já for um NutritionPrescriptionContextDTO válido, reutiliza de forma pura
-  if (rawPatientData.contextVersion === 'N1.1' && rawPatientData.patient && rawPatientData.anthropometry) {
+  const isCanonicalContext = (
+    rawPatientData.schemaVersion === '1.0.0' ||
+    rawPatientData.schemaVersion === 'N1.1' ||
+    rawPatientData.contextVersion === 'N1.1'
+  ) && rawPatientData.patient && rawPatientData.anthropometry;
+  if (isCanonicalContext) {
     if (typeof validateNutritionPrescriptionContextDTO === 'function') {
       const v = validateNutritionPrescriptionContextDTO(rawPatientData);
       if (v.isValid) {
@@ -322,11 +341,33 @@ function adaptPatientContext(rawPatientData) {
     }
   }
 
-  const patientId = String(rawPatientData.patientId || rawPatientData.id || 'patient_auto').trim();
-  const name = String(rawPatientData.name || rawPatientData.patientName || 'Paciente').trim();
-  const age = Number(rawPatientData.age) || 30;
-  const sex = String(rawPatientData.sex || 'Masculino').trim();
-  const patientType = String(rawPatientData.patientType || 'Praticante recreativo').trim();
+  const patientId = String(
+    rawPatientData.patientId ||
+    (rawPatientData.patient && rawPatientData.patient.patientId) ||
+    rawPatientData.id ||
+    'patient_auto'
+  ).trim();
+  const name = String(
+    rawPatientData.name ||
+    (rawPatientData.patient && rawPatientData.patient.name) ||
+    rawPatientData.patientName ||
+    'Paciente'
+  ).trim();
+  const age = Number(
+    rawPatientData.age ||
+    (rawPatientData.patient && rawPatientData.patient.age) ||
+    30
+  );
+  const sex = String(
+    rawPatientData.sex ||
+    (rawPatientData.patient && (rawPatientData.patient.gender || rawPatientData.patient.sex)) ||
+    'Masculino'
+  ).trim();
+  const patientType = String(
+    rawPatientData.patientType ||
+    (rawPatientData.patient && rawPatientData.patient.patientType) ||
+    'Praticante recreativo'
+  ).trim();
   const trainingLevel = String(rawPatientData.trainingLevel || 'Intermediário').trim();
 
   const rawWeight = rawPatientData.weightKg != null ? rawPatientData.weightKg : (rawPatientData.weight != null ? rawPatientData.weight : 70);
@@ -350,20 +391,26 @@ function adaptPatientContext(rawPatientData) {
     warnings.push(`[GAP_5] Objetivo clínico "${objResolution.clinicalObjective}" mantido como texto sem adivinhação de categoria.`);
   }
 
+  const rawObjectiveString = typeof rawObj === 'object' && rawObj !== null
+    ? (rawObj.clinicalObjective || rawObj.primary || rawObj.goal || JSON.stringify(rawObj))
+    : String(rawObj);
+
   const objective = {
     clinicalObjective: objResolution.clinicalObjective,
-    rawObjective: String(rawObj).trim(),
+    rawObjective: rawObjectiveString.trim(),
     category: objResolution.category
   };
 
-  const getKcal = Number(rawPatientData.getKcal || rawPatientData.get || 2000);
-  const tmbKcal = Number(rawPatientData.tmbKcal || rawPatientData.tmb || Math.round(getKcal * 0.7));
+  const rawGet = rawPatientData.getKcal ?? rawPatientData.get;
+  const rawTmb = rawPatientData.tmbKcal ?? rawPatientData.tmb;
+  const getKcal = (rawGet != null && Number(rawGet) > 0) ? Math.round(Number(rawGet)) : null;
+  const tmbKcal = (rawTmb != null && Number(rawTmb) > 0) ? Math.round(Number(rawTmb)) : null;
 
   const energy = {
-    tmbKcal: Math.round(tmbKcal),
-    getKcal: Math.round(getKcal),
+    tmbKcal: tmbKcal,
+    getKcal: getKcal,
     activityFactor: Number(rawPatientData.activityFactor) || 1.4,
-    formula: String(rawPatientData.formula || 'Harris-Benedict 1984')
+    formula: String(rawPatientData.formula || ((leanMassKg != null && leanMassKg > 0) ? 'Katch-McArdle' : 'Harris-Benedict 1984'))
   };
 
   const constraints = {

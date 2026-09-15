@@ -3329,6 +3329,10 @@
       if (dataPayload.cardioDatabase && Array.isArray(dataPayload.cardioDatabase)) patientState.cardioDatabase = dataPayload.cardioDatabase;
       if (dataPayload.activeSplit) patientState.activeSplit = dataPayload.activeSplit;
 
+      // Preserva metas clínicas prescritas e totais da dieta separadamente (Fase N3.7.4 - GAP 8)
+      if (dataPayload.prescribedTargets) patientState.prescribedTargets = dataPayload.prescribedTargets;
+      if (dataPayload.actualDietTotals) patientState.actualDietTotals = dataPayload.actualDietTotals;
+
       // Aplica refeições prescritas (preservando status `done` de hoje se já marcado)
       if (Array.isArray(dataPayload.meals) && dataPayload.meals.length > 0) {
         const doneMap = {};

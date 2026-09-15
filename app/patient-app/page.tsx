@@ -64,6 +64,13 @@ export default function PatientAppPage() {
     .filter((m) => m.consumed)
     .reduce((acc, m) => acc + m.protein, 0);
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // AVISO DE GOVERNANÇA (Fase N3.7.4 - GAP 10):
+  // AMBIENTE DEMO / PROTÓTIPO NÃO PRODUTIVO
+  // Os valores abaixo são dados estáticos mockados para prototipagem de UI.
+  // NÃO UTILIZAR COMO FONTE DE VERDADE CLÍNICA DE PRODUÇÃO.
+  // A fonte canônica reside exclusivamente em domain/ e Dexie/IndexedDB.
+  // ──────────────────────────────────────────────────────────────────────────
   const targetKcal = 3739;
   const targetProtein = 186;
 
@@ -80,7 +87,10 @@ export default function PatientAppPage() {
                 NutriAx Paciente • Hoje
               </span>
             </div>
-            <span className="text-[11px] text-slate-400 font-medium">17 Ago 2026</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-800/80 px-2 py-0.5 rounded-full uppercase">[DEMO]</span>
+              <span className="text-[11px] text-slate-400 font-medium">17 Ago 2026</span>
+            </div>
           </div>
 
           <div>

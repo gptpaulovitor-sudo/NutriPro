@@ -27,6 +27,13 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+  // ──────────────────────────────────────────────────────────────────────────
+  // AVISO DE GOVERNANÇA (Fase N3.7.4 - GAP 10):
+  // AMBIENTE DEMO / PROTÓTIPO NÃO PRODUTIVO
+  // Os valores abaixo são dados estáticos mockados para prototipagem de UI.
+  // NÃO UTILIZAR COMO FONTE DE VERDADE CLÍNICA DE PRODUÇÃO.
+  // A fonte canônica reside exclusivamente em domain/ e Dexie/IndexedDB.
+  // ──────────────────────────────────────────────────────────────────────────
   const patient = {
     name: "Paulo Vitor R de Sousa",
     age: 38,
@@ -143,6 +150,9 @@ export default function DashboardPage() {
             </span>
             <span className="text-xs font-mono font-medium text-gray-400">
               Protocolo JP7 • Avaliação 2026
+            </span>
+            <span className="text-xs font-mono font-black bg-amber-950/90 text-amber-300 border border-amber-800/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              [DEMO / PROTÓTIPO NÃO PRODUTIVO]
             </span>
           </div>
 

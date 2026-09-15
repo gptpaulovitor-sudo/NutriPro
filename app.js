@@ -20,6 +20,7 @@ if (typeof window !== 'undefined' && window.lucide && !window.lucide._optimized)
 let GOOGLE_SCRIPT_URL = localStorage.getItem("NUTRIAX_GOOGLE_SCRIPT_URL") || "https://script.google.com/macros/s/AKfycbyWJFXNMHCaPvvnMYgQIOCmcRYjVR-JBXrAmtzYMJ9gcaLuhA-t-dgOYE7RTcrOwetM/exec";
 var activePatientId = null;
 var activePatientData = null;
+var lastEval = null;
 
 // Active Prescription Items Memory Array (vazio até AUTHORIZED e paciente selecionado)
 var currentPrescriptionItems = [];
@@ -1397,6 +1398,17 @@ async function onPatientChange(patientId) {
   if (!p) return;
   activePatientData = p;
 
+  // Carregamento determinístico da última avaliação do paciente selecionado (Fase N3.7.4)
+  try {
+    const evals = await db.assessments.where("patientId").equals(patientId).sortBy("date");
+    if (activePatientId === patientId) {
+      lastEval = (evals && evals.length > 0) ? evals[evals.length - 1] : null;
+    }
+  } catch (e) {
+    console.warn("[N3.7.4] Erro ao carregar avaliações do paciente:", e);
+    if (activePatientId === patientId) lastEval = null;
+  }
+
   // ── 1. Atualiza cabeçalhos imediatamente ──────────────────────────────────
   const nameEl = document.getElementById("headerPatientName");
   if (nameEl) nameEl.innerText = p.name;
@@ -2293,7 +2305,40 @@ async function handleSaveNewAssessment(event) {
     targetBF: parseFloat(document.getElementById("evalTargetFatPercent")?.value) || 10.0
   };
 
+  // Resolução e vinculação canônica direta em memória (Fase N3.7.4 - Eliminação de DOM Scraping)
+  try {
+    const pWeight = weight;
+    const pHeight = parseFloat(document.getElementById("evalHeight")?.value) || 1.75;
+    const pGender = document.getElementById("evalGender")?.value || "Masculino";
+    const pAge = parseFloat(document.getElementById("evalAge")?.value) || 30;
+    const pActFactor = parseFloat(document.getElementById("evalActivityFactor")?.value) || 1.42;
+    const pObjective = document.getElementById("anamneseObjective")?.value || "Perda de peso";
+
+    const canonTargets = resolveCanonicalPrescriptionTargets(
+      activePatientData,
+      {
+        weight: pWeight,
+        height: pHeight,
+        gender: pGender,
+        age: pAge,
+        leanMass: leanMass,
+        fatPercent: fatPercent,
+        activityFactor: pActFactor,
+        objective: pObjective
+      },
+      currentPrescriptionMeta
+    );
+
+    newAssessment.tmb = canonTargets.tmbKcal;
+    newAssessment.get = canonTargets.getKcal;
+    newAssessment.caloricTarget = canonTargets.caloricTargetKcal;
+    newAssessment.canonicalTargets = canonTargets;
+  } catch (err) {
+    console.warn("[N3.7.4] Aviso na resolução de metas canônicas na avaliação:", err);
+  }
+
   await db.assessments.put(newAssessment);
+  lastEval = newAssessment;
 
   // Atualiza peso atual do paciente no perfil
   const p = await db.patients.get(activePatientId);
@@ -2985,17 +3030,29 @@ function closeAIPrescriptionModal() {
 }
 
 async function executeAIPrescriptionGeneration() {
-  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
-    parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
-  const pHeight = parseFloat(document.getElementById("evalHeight")?.value) || 175;
-  const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
+  const p = activePatientData || {};
+  const ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
+  const pWeight = Number(ev.weight || p.currentWeight || p.weight || document.getElementById("evalWeight")?.value || 70.0);
+  const rawH = ev.height || p.height || document.getElementById("evalHeight")?.value || 175;
+  const numH = Number(rawH);
+  const pHeight = (numH > 0 && numH < 3.0) ? Math.round(numH * 100) : (numH || 175);
+  const obj = p.objective || ev.objective || document.getElementById("anamneseObjective")?.value || "Perda de peso";
+  const patType = p.patientType || p.activityLevel || document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
+
   const canonicalTargets = resolveCanonicalPrescriptionTargets(
     activePatientData,
     typeof lastEval !== 'undefined' ? lastEval : null,
     currentPrescriptionMeta
   );
-  const getKcal = canonicalTargets.getKcal || 2000;
+
+  // Validação estrita sem fallback clínico arbitrário (Fase N3.7.4 - GAP 2 / GAP 5)
+  if (!canonicalTargets || !Number.isFinite(canonicalTargets.caloricTargetKcal) || canonicalTargets.caloricTargetKcal <= 0 || !Number.isFinite(canonicalTargets.getKcal)) {
+    alert("Metas clínicas canônicas não puderam ser resolvidas. Verifique os dados antropométricos, objetivo clínico e avaliação do paciente.");
+    return;
+  }
+
+  const getKcal = canonicalTargets.getKcal;
+  const tmbKcal = canonicalTargets.tmbKcal;
 
   const mealCount = parseInt(document.getElementById("aiMealCountSelect")?.value || "4", 10);
   const dietaryStyle = document.getElementById("aiDietaryStyleSelect")?.value || "tradicional";
@@ -3027,9 +3084,13 @@ async function executeAIPrescriptionGeneration() {
       name: (activePatientData && activePatientData.name) || 'Paciente',
       weightKg: pWeight,
       heightCm: pHeight,
+      bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null),
+      leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null,
       objective: obj,
       patientType: patType,
+      tmbKcal: tmbKcal,
       getKcal: getKcal,
+      caloricTargetKcal: canonicalTargets.caloricTargetKcal,
       routine: {
         wakeUpTime: document.getElementById("routineWakeUp")?.value || "07:00",
         bedTime: document.getElementById("routineBedTime")?.value || "23:00",
@@ -3325,12 +3386,12 @@ function refreshWhatsAppMessagePreview(patientObj = null) {
   );
 
   const targets = {
-    caloricTarget: canonicalTargets.caloricTargetKcal || 2000,
-    targetProtG: canonicalTargets.proteinTargetG || 140,
-    targetCarbG: canonicalTargets.carbohydrateTargetG || 200,
-    targetLipG: canonicalTargets.fatTargetG || 60,
-    minFiber: canonicalTargets.fiberTargetG || 25,
-    getKcal: canonicalTargets.getKcal || 2000
+    caloricTarget: canonicalTargets.caloricTargetKcal ?? null,
+    targetProtG: canonicalTargets.proteinTargetG ?? null,
+    targetCarbG: canonicalTargets.carbohydrateTargetG ?? null,
+    targetLipG: canonicalTargets.fatTargetG ?? null,
+    minFiber: canonicalTargets.fiberTargetG ?? null,
+    getKcal: canonicalTargets.getKcal ?? null
   };
 
   const includeMacros = document.getElementById("waCheckMacros")?.checked !== false;
@@ -3663,18 +3724,18 @@ async function exportPrescriptionAndEvaluationPDF() {
     currentPrescriptionMeta
   );
 
-  const tmb = canonicalTargets.tmbKcal ?? Math.round(370 + 21.6 * leanMass);
-  const getKcal = canonicalTargets.getKcal ?? Math.round(tmb * actFactor);
+  const tmb = canonicalTargets.tmbKcal != null ? canonicalTargets.tmbKcal : "Não disponível";
+  const getKcal = canonicalTargets.getKcal != null ? canonicalTargets.getKcal : "Não disponível";
   const macroTargets = {
-    caloricTarget: canonicalTargets.caloricTargetKcal ?? getKcal,
-    getKcal: canonicalTargets.getKcal ?? getKcal,
-    targetProtG: canonicalTargets.proteinTargetG ?? 150,
-    targetProtKg: Number(((canonicalTargets.proteinTargetG || 150) / (weight || 70)).toFixed(2)),
-    targetCarbG: canonicalTargets.carbohydrateTargetG ?? 200,
-    targetCarbKg: Number(((canonicalTargets.carbohydrateTargetG || 200) / (weight || 70)).toFixed(2)),
-    targetLipG: canonicalTargets.fatTargetG ?? 60,
-    targetLipKg: Number(((canonicalTargets.fatTargetG || 60) / (weight || 70)).toFixed(2)),
-    minFiber: canonicalTargets.fiberTargetG ?? 25
+    caloricTarget: canonicalTargets.caloricTargetKcal != null ? `${canonicalTargets.caloricTargetKcal} kcal` : "Pendente de validação clínica",
+    getKcal: getKcal,
+    targetProtG: canonicalTargets.proteinTargetG != null ? `${canonicalTargets.proteinTargetG}g` : "Não disponível",
+    targetProtKg: (weight > 0 && canonicalTargets.proteinTargetG != null) ? `${(canonicalTargets.proteinTargetG / weight).toFixed(2)} g/kg de peso corporal` : "--",
+    targetCarbG: canonicalTargets.carbohydrateTargetG != null ? `${canonicalTargets.carbohydrateTargetG}g` : "Não disponível",
+    targetCarbKg: (weight > 0 && canonicalTargets.carbohydrateTargetG != null) ? `${(canonicalTargets.carbohydrateTargetG / weight).toFixed(2)} g/kg de peso corporal` : "--",
+    targetLipG: canonicalTargets.fatTargetG != null ? `${canonicalTargets.fatTargetG}g` : "Não disponível",
+    targetLipKg: (weight > 0 && canonicalTargets.fatTargetG != null) ? `${(canonicalTargets.fatTargetG / weight).toFixed(2)} g/kg` : "--",
+    minFiber: canonicalTargets.fiberTargetG != null ? `≥ ${canonicalTargets.fiberTargetG}g/dia` : "Não disponível"
   };
 
   // 3. Índice NutriAx & Idade Metabólica
@@ -10997,16 +11058,38 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     }
   } catch (_) {}
 
+  const canonTargets = resolveCanonicalPrescriptionTargets(
+    typeof activePatientData !== 'undefined' ? activePatientData : null,
+    typeof lastEval !== 'undefined' ? lastEval : null,
+    typeof currentPrescriptionMeta !== 'undefined' ? currentPrescriptionMeta : null
+  );
+
+  const isEligible = Boolean(isDietEligibleForPatientPublication);
+
   const syncPayload = {
     version: 4,
     patientId: pId,
     patientName: patientName,
     targetWater: targetWater,
-    dietPlanStatus: isDietEligibleForPatientPublication
+    dietPlanStatus: isEligible
       ? 'VALIDATED_CANONICAL'
       : (Array.isArray(currentPrescriptionItems) && currentPrescriptionItems.length > 0 ? 'PENDING_CLINICAL_VALIDATION' : 'EMPTY'),
-    meals: formattedMeals.length > 0 ? formattedMeals : null,
-    macroTotals: formattedMeals.length > 0 ? {
+    meals: isEligible && formattedMeals.length > 0 ? formattedMeals : null,
+    prescribedTargets: (isEligible && canonTargets && canonTargets.caloricTargetKcal) ? {
+      caloricTargetKcal: canonTargets.caloricTargetKcal,
+      getKcal: canonTargets.getKcal,
+      proteinTargetG: canonTargets.proteinTargetG,
+      carbohydrateTargetG: canonTargets.carbohydrateTargetG,
+      fatTargetG: canonTargets.fatTargetG,
+      fiberTargetG: canonTargets.fiberTargetG
+    } : null,
+    actualDietTotals: isEligible && formattedMeals.length > 0 ? {
+      kcal: Math.round(formattedMeals.reduce((acc, m) => acc + (m.kcal || 0), 0)),
+      prot: Math.round(formattedMeals.reduce((acc, m) => acc + (m.prot || 0), 0)),
+      carbo: Math.round(formattedMeals.reduce((acc, m) => acc + (m.carbo || 0), 0)),
+      fat: Math.round(formattedMeals.reduce((acc, m) => acc + (m.fat || 0), 0))
+    } : null,
+    macroTotals: isEligible && formattedMeals.length > 0 ? {
       kcal: Math.round(formattedMeals.reduce((acc, m) => acc + (m.kcal || 0), 0)),
       prot: Math.round(formattedMeals.reduce((acc, m) => acc + (m.prot || 0), 0)),
       carbo: Math.round(formattedMeals.reduce((acc, m) => acc + (m.carbo || 0), 0)),
