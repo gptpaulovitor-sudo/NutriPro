@@ -208,6 +208,23 @@ function adaptCanonicalMetaToRuntimeMeta(pipelineResult, options = {}) {
     validatedContentFingerprint: validatedFingerprint
   };
 
+  const energyTarget = pipelineResult?.energyTargetResult || options.energyTargetResult || null;
+  const macroTarget = pipelineResult?.macroTargetResult || options.macroTargetResult || null;
+  const targetValidation = pipelineResult?.nutritionValidatorResult || pipelineResult?.targetValidationResult || options.targetValidationResult || null;
+
+  const targets = Object.freeze({
+    tmbKcal: energyTarget?.tmbKcal ?? options.targets?.tmbKcal ?? null,
+    getKcal: energyTarget?.getKcal ?? options.targets?.getKcal ?? null,
+    caloricTargetKcal: energyTarget?.caloricTargetKcal ?? options.targets?.caloricTargetKcal ?? null,
+    proteinTargetG: macroTarget?.proteinTargetG ?? options.targets?.proteinTargetG ?? null,
+    carbohydrateTargetG: macroTarget?.carbohydrateTargetG ?? options.targets?.carbohydrateTargetG ?? null,
+    fatTargetG: macroTarget?.fatTargetG ?? options.targets?.fatTargetG ?? null,
+    fiberTargetG: macroTarget?.fiberTargetG ?? options.targets?.fiberTargetG ?? null,
+    energyTargetResult: energyTarget ? Object.freeze({ ...energyTarget }) : (options.targets?.energyTargetResult || null),
+    macroTargetResult: macroTarget ? Object.freeze({ ...macroTarget }) : (options.targets?.macroTargetResult || null),
+    targetValidationResult: targetValidation ? Object.freeze({ ...targetValidation }) : (options.targets?.targetValidationResult || null)
+  });
+
   const meta = {
     isAIGenerated: true,
     // Validação clínica: somente se explicitamente aprovado (WARNING ou PASS não são aprovados automaticamente)
@@ -225,7 +242,16 @@ function adaptCanonicalMetaToRuntimeMeta(pipelineResult, options = {}) {
     validatedContentFingerprint: validatedFingerprint,
     pipelineTrace: Array.isArray(pipelineResult?.pipelineTrace) ? [...pipelineResult.pipelineTrace] : [],
     provenance: pipelineResult?.context?.provenance || null,
-    orchestratorVersion: pipelineResult?.orchestratorVersion || 'N3.7.1'
+    orchestratorVersion: pipelineResult?.orchestratorVersion || 'N3.7.1',
+    // Metas Canônicas N2.1 e N2.2 persistidas e auditáveis
+    targets,
+    tmbKcal: targets.tmbKcal,
+    getKcal: targets.getKcal,
+    caloricTargetKcal: targets.caloricTargetKcal,
+    proteinTargetG: targets.proteinTargetG,
+    carbohydrateTargetG: targets.carbohydrateTargetG,
+    fatTargetG: targets.fatTargetG,
+    fiberTargetG: targets.fiberTargetG
   };
 
   return Object.freeze(meta);
@@ -233,14 +259,27 @@ function adaptCanonicalMetaToRuntimeMeta(pipelineResult, options = {}) {
 
 /**
  * Adaptador completo de saída: converte o resultado do orquestrador canônico N3.7.1
- * para o par { items, meta } consumível diretamente pelo runtime e persistível no Dexie.
+ * para o par { items, meta, targets } consumível diretamente pelo runtime e persistível no Dexie.
  * 
  * @param {Object} pipelineResult - PrescriptionPipelineResultDTO produzido pelo orquestrador
  * @param {Object} [options] - Opções externas { generatedAt, validatedAt, isClinicallyValidated, isStale, staleReason }
- * @returns {{ items: Array<Object>, meta: Readonly<Object>, status: string, isCompliant: boolean }}
+ * @returns {{ items: Array<Object>, meta: Readonly<Object>, targets: Readonly<Object>, status: string, isCompliant: boolean }}
  */
 function adaptPrescriptionPipelineOutput(pipelineResult, options = {}) {
   if (!pipelineResult || typeof pipelineResult !== 'object') {
+    const emptyTargets = Object.freeze({
+      tmbKcal: null,
+      getKcal: null,
+      caloricTargetKcal: null,
+      proteinTargetG: null,
+      carbohydrateTargetG: null,
+      fatTargetG: null,
+      fiberTargetG: null,
+      energyTargetResult: null,
+      macroTargetResult: null,
+      targetValidationResult: null
+    });
+
     return {
       items: [],
       meta: Object.freeze({
@@ -259,8 +298,17 @@ function adaptPrescriptionPipelineOutput(pipelineResult, options = {}) {
           warnings: [],
           validatedContentFingerprint: null
         },
-        validatedContentFingerprint: null
+        validatedContentFingerprint: null,
+        targets: emptyTargets,
+        tmbKcal: null,
+        getKcal: null,
+        caloricTargetKcal: null,
+        proteinTargetG: null,
+        carbohydrateTargetG: null,
+        fatTargetG: null,
+        fiberTargetG: null
       }),
+      targets: emptyTargets,
       status: 'BLOCKED',
       isCompliant: false
     };
@@ -284,6 +332,7 @@ function adaptPrescriptionPipelineOutput(pipelineResult, options = {}) {
   return {
     items,
     meta,
+    targets: meta.targets,
     status,
     isCompliant
   };

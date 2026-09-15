@@ -69,6 +69,147 @@ function getCanonicalPrescriptionAdapters() {
   return null;
 }
 
+function getCanonicalEnergyTargetMath() {
+  if (typeof NutriDomain !== 'undefined' && NutriDomain.energyTarget && typeof NutriDomain.energyTarget.calculateDeterministicEnergyTarget === 'function') {
+    return NutriDomain.energyTarget;
+  }
+  if (typeof require !== 'undefined') {
+    try {
+      return require('./domain/math/energyTarget');
+    } catch (_) {}
+  }
+  return null;
+}
+
+function getCanonicalMacroTargetMath() {
+  if (typeof NutriDomain !== 'undefined' && NutriDomain.macroTarget && typeof NutriDomain.macroTarget.calculateDeterministicMacroTargets === 'function') {
+    return NutriDomain.macroTarget;
+  }
+  if (typeof require !== 'undefined') {
+    try {
+      return require('./domain/math/macroTarget');
+    } catch (_) {}
+  }
+  return null;
+}
+
+/**
+ * Resolução Canônica de Metas Energéticas e Macronutrientes (N2.1 / N2.2).
+ * ÚNICA autoridade clínica para UI, PDF e Persistência.
+ *
+ * Regra de Precedência Estrita:
+ * 1. Targets canônicos já persistidos em meta/banco (ZERO recálculo);
+ * 2. Cálculo determinístico e puro via N2.1 e N2.2 utilizando o contexto do paciente;
+ * 3. Proibido: DOM innerText, constantes ad-hoc (-468, -550) ou calculateDietaryMacroTargets.
+ */
+function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, meta = null) {
+  const existingTargets = meta?.targets || currentPrescriptionMeta?.targets;
+  if (existingTargets &&
+      typeof existingTargets === 'object' &&
+      Number.isFinite(existingTargets.caloricTargetKcal) &&
+      Number.isFinite(existingTargets.proteinTargetG) &&
+      existingTargets.caloricTargetKcal > 0) {
+    return existingTargets;
+  }
+
+  const p = patient || (typeof activePatientData !== 'undefined' ? activePatientData : {}) || {};
+  const ev = evalData || (typeof lastEval !== 'undefined' ? lastEval : {}) || {};
+
+  const patientId = p.id || p.patientId || (typeof activePatientId !== 'undefined' ? activePatientId : 'patient_active');
+  const name = p.name || 'Paciente';
+  const gender = p.gender || ev.gender || (typeof document !== 'undefined' ? document.getElementById('evalGender')?.value : 'Masculino') || 'Masculino';
+  const age = Number(p.age || ev.age || (typeof document !== 'undefined' ? document.getElementById('evalAge')?.value : 30) || 30);
+  const patientType = p.patientType || p.activityLevel || (typeof document !== 'undefined' ? document.getElementById('anamnesePatientType')?.value : 'Praticante recreativo') || 'Praticante recreativo';
+
+  const weightKg = Number(ev.weight || p.currentWeight || p.weight || (typeof document !== 'undefined' ? document.getElementById('evalWeight')?.value : 70) || 70);
+  const rawHeight = ev.height || p.height || (typeof document !== 'undefined' ? document.getElementById('evalHeight')?.value : 175) || 175;
+  const numHeight = Number(rawHeight);
+  const heightCm = numHeight > 0 ? (numHeight < 3.0 ? Number((numHeight * 100).toFixed(1)) : numHeight) : 175;
+
+  const fatPercent = ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null);
+  const leanMassKg = ev.leanMass != null ? Number(ev.leanMass) : (fatPercent != null && weightKg > 0 ? Number((weightKg * (1 - fatPercent / 100)).toFixed(2)) : null);
+
+  const actFactor = Number(ev.activityFactor || p.activityFactor || (typeof document !== 'undefined' ? document.getElementById('evalActivityFactor')?.value : 1.2) || 1.2);
+  const objectiveText = p.objective || ev.objective || (typeof document !== 'undefined' ? document.getElementById('anamneseObjective')?.value : 'Perda de peso') || 'Perda de peso';
+
+  const canonicalContext = {
+    patient: {
+      patientId: String(patientId),
+      name: String(name),
+      gender: String(gender),
+      age: age,
+      patientType: String(patientType)
+    },
+    anthropometry: {
+      weightKg: weightKg,
+      heightCm: heightCm,
+      bodyFatPercent: fatPercent,
+      leanMassKg: leanMassKg
+    },
+    energy: {
+      activityFactor: actFactor,
+      tmbMethod: (leanMassKg != null && leanMassKg > 0) ? 'KATCH_MCARDLE' : 'HARRIS_BENEDICT'
+    },
+    objective: {
+      clinicalObjective: String(objectiveText)
+    },
+    routine: {},
+    training: {
+      isAthlete: String(patientType).toLowerCase().includes('atleta') || String(patientType).toLowerCase().includes('alto rendimento')
+    },
+    cardio: {},
+    clinical: {}
+  };
+
+  const energyEngine = getCanonicalEnergyTargetMath();
+  const macroEngine = getCanonicalMacroTargetMath();
+
+  if (energyEngine && typeof energyEngine.calculateDeterministicEnergyTarget === 'function') {
+    const energyRes = energyEngine.calculateDeterministicEnergyTarget(canonicalContext);
+    let macroRes = null;
+    if (macroEngine && typeof macroEngine.calculateDeterministicMacroTargets === 'function') {
+      macroRes = macroEngine.calculateDeterministicMacroTargets(canonicalContext, energyRes);
+    }
+
+    const computedTargets = Object.freeze({
+      tmbKcal: energyRes.tmbKcal,
+      getKcal: energyRes.getKcal,
+      caloricTargetKcal: energyRes.caloricTargetKcal,
+      proteinTargetG: macroRes?.proteinTargetG ?? null,
+      carbohydrateTargetG: macroRes?.carbohydrateTargetG ?? null,
+      fatTargetG: macroRes?.fatTargetG ?? null,
+      fiberTargetG: macroRes?.fiberTargetG ?? null,
+      energyTargetResult: energyRes,
+      macroTargetResult: macroRes,
+      targetValidationResult: null
+    });
+
+    return computedTargets;
+  }
+
+  return Object.freeze({
+    tmbKcal: null,
+    getKcal: null,
+    caloricTargetKcal: null,
+    proteinTargetG: null,
+    carbohydrateTargetG: null,
+    fatTargetG: null,
+    fiberTargetG: null,
+    energyTargetResult: null,
+    macroTargetResult: null,
+    targetValidationResult: null
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.resolveCanonicalPrescriptionTargets = resolveCanonicalPrescriptionTargets;
+  window.getCanonicalEnergyTargetMath = getCanonicalEnergyTargetMath;
+  window.getCanonicalMacroTargetMath = getCanonicalMacroTargetMath;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.resolveCanonicalPrescriptionTargets = resolveCanonicalPrescriptionTargets;
+}
+
 /**
  * Computa um fingerprint determinístico e canônico do conteúdo clínico da prescrição.
  * Delega para o adaptador canônico ou executa algoritmo puro equivalente.
@@ -152,6 +293,12 @@ async function savePrescriptionWithFirewall(patientId, items, meta) {
     }
   }
 
+  // Preservação canônica das metas (targets)
+  const targets = safeMeta.targets || currentPrescriptionMeta?.targets || null;
+  if (targets && !safeMeta.targets) {
+    safeMeta.targets = targets;
+  }
+
   currentPrescriptionItems = safeItems;
   currentPrescriptionMeta = safeMeta;
 
@@ -161,7 +308,8 @@ async function savePrescriptionWithFirewall(patientId, items, meta) {
         id: pId,
         patientId: pId,
         items: safeItems,
-        meta: safeMeta
+        meta: safeMeta,
+        targets: safeMeta.targets || targets || null
       });
     } catch (e) {
       console.error('Erro ao persistir prescrição com firewall no Dexie:', e);
@@ -2227,16 +2375,25 @@ function updateEvaluationCalculations() {
     if (document.getElementById("tmbHarrisVal")) document.getElementById("tmbHarrisVal").innerText = `${multi.harris} kcal`;
   }
 
-  // 2. Alvo Calórico Dinâmico pelo Objetivo do Paciente e Projeção Preditiva de Metas (Aba 17)
-  const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  let caloricTarget = getKcal;
-  if (obj.toLowerCase().includes("perda") || obj.toLowerCase().includes("déficit") || obj.toLowerCase().includes("definir")) {
-    caloricTarget = Math.round(getKcal - 468);
-  } else if (obj.toLowerCase().includes("hipertrofia") || obj.toLowerCase().includes("massa") || obj.toLowerCase().includes("superávit")) {
-    caloricTarget = Math.round(getKcal + 350);
-  } else {
-    caloricTarget = Math.round(getKcal);
-  }
+  // 2. Alvo Calórico Dinâmico Canônico (Fase N2.1 — Zero Heurística Legada -468/+350)
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    activePatientData,
+    {
+      weight,
+      height,
+      gender,
+      age,
+      leanMass: bodyComp.leanMassKg,
+      fatPercent: bodyComp.bodyFatPercent,
+      activityFactor: actFactor,
+      objective: document.getElementById("anamneseObjective")?.value || "Perda de peso"
+    },
+    currentPrescriptionMeta
+  );
+
+  const caloricTarget = (canonicalTargets && Number.isFinite(canonicalTargets.caloricTargetKcal))
+    ? canonicalTargets.caloricTargetKcal
+    : getKcal;
 
   if (document.getElementById("resCaloricTarget")) {
     document.getElementById("resCaloricTarget").innerText = caloricTarget;
@@ -2499,6 +2656,7 @@ function handleAddPrescriptionItem() {
   currentPrescriptionMeta.isClinicallyValidated = false;
   currentPrescriptionMeta.isStale = true;
   currentPrescriptionMeta.staleReason = 'MANUAL_ITEM_ADDED';
+  currentPrescriptionMeta.validatedContentFingerprint = null;
   savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
   updateAIPrescriptionBanner();
   renderPrescriptionTotals();
@@ -2520,6 +2678,7 @@ function removePrescriptionItem(id) {
   currentPrescriptionMeta.isClinicallyValidated = false;
   currentPrescriptionMeta.isStale = true;
   currentPrescriptionMeta.staleReason = 'MANUAL_ITEM_REMOVED';
+  currentPrescriptionMeta.validatedContentFingerprint = null;
   savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
   updateAIPrescriptionBanner();
   renderPrescriptionTotals();
@@ -2651,6 +2810,7 @@ async function saveEditPrescriptionItem() {
   currentPrescriptionMeta.isClinicallyValidated = false;
   currentPrescriptionMeta.isStale = true;
   currentPrescriptionMeta.staleReason = 'MANUAL_ITEM_EDITED';
+  currentPrescriptionMeta.validatedContentFingerprint = null;
   await savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
 
   closeEditPrescriptionItemModal();
@@ -2679,7 +2839,7 @@ function renderPrescriptionTotals() {
   const carbKg = calculateMacrosPerKg(totals.carb, pWeight);
   const lipKg = calculateMacrosPerKg(totals.lipid, pWeight);
 
-  // 1. Valores Atuais Computados
+  // 1. Valores Atuais Computados da Prescrição Real
   if (document.getElementById("prescribedKcal")) document.getElementById("prescribedKcal").innerText = Math.round(totals.kcal);
   if (document.getElementById("prescribedProtein")) document.getElementById("prescribedProtein").innerText = `${Math.round(totals.protein)}g`;
   if (document.getElementById("prescribedCarb")) document.getElementById("prescribedCarb").innerText = `${Math.round(totals.carb)}g`;
@@ -2690,39 +2850,58 @@ function renderPrescriptionTotals() {
   if (document.getElementById("prescribedCarbPerKg")) document.getElementById("prescribedCarbPerKg").innerText = `${carbKg} g/kg`;
   if (document.getElementById("prescribedLipPerKg")) document.getElementById("prescribedLipPerKg").innerText = `${lipKg} g/kg`;
 
-  // 2. Metas Calculadas pelo Perfil & Objetivo
-  const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
-  const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 1800;
-
-  const macroTargets = calculateDietaryMacroTargets(obj, patType, pWeight, getKcal);
+  // 2. Metas Canônicas N2.1 e N2.2 (Soberanas, Auditáveis e Sem Leitura de Texto do DOM)
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    activePatientData,
+    typeof lastEval !== 'undefined' ? lastEval : null,
+    currentPrescriptionMeta
+  );
 
   // 3. Atualização dos Labels de Meta nos 5 Cards
+  const targetKcal = canonicalTargets.caloricTargetKcal;
+  const targetGet = canonicalTargets.getKcal;
+  const targetProt = canonicalTargets.proteinTargetG;
+  const targetCarb = canonicalTargets.carbohydrateTargetG;
+  const targetLip = canonicalTargets.fatTargetG;
+  const targetFiber = canonicalTargets.fiberTargetG;
+
   if (document.getElementById("prescribedKcalTarget")) {
-    document.getElementById("prescribedKcalTarget").innerText = `Alvo: ${macroTargets.caloricTarget} kcal`;
+    document.getElementById("prescribedKcalTarget").innerText = targetKcal != null ? `Alvo: ${targetKcal} kcal` : 'Alvo: -- kcal';
   }
   if (document.getElementById("prescribedGetTarget")) {
-    document.getElementById("prescribedGetTarget").innerText = `GET: ${macroTargets.getKcal} kcal`;
+    document.getElementById("prescribedGetTarget").innerText = targetGet != null ? `GET: ${targetGet} kcal` : 'GET: -- kcal';
   }
   if (document.getElementById("prescribedProtTarget")) {
-    document.getElementById("prescribedProtTarget").innerText = `Meta: ${macroTargets.targetProtG}g (${macroTargets.targetProtKg} g/kg)`;
+    const pKg = (pWeight > 0 && targetProt != null) ? (targetProt / pWeight).toFixed(2) : '0.00';
+    document.getElementById("prescribedProtTarget").innerText = targetProt != null ? `Meta: ${targetProt}g (${pKg} g/kg)` : 'Meta: --g';
   }
   if (document.getElementById("prescribedCarbTarget")) {
-    document.getElementById("prescribedCarbTarget").innerText = `Meta: ${macroTargets.targetCarbG}g (${macroTargets.targetCarbKg} g/kg)`;
+    const cKg = (pWeight > 0 && targetCarb != null) ? (targetCarb / pWeight).toFixed(2) : '0.00';
+    document.getElementById("prescribedCarbTarget").innerText = targetCarb != null ? `Meta: ${targetCarb}g (${cKg} g/kg)` : 'Meta: --g';
   }
   if (document.getElementById("prescribedLipTarget")) {
-    document.getElementById("prescribedLipTarget").innerText = `Meta: ${macroTargets.targetLipG}g (${macroTargets.targetLipKg} g/kg)`;
+    const lKg = (pWeight > 0 && targetLip != null) ? (targetLip / pWeight).toFixed(2) : '0.00';
+    document.getElementById("prescribedLipTarget").innerText = targetLip != null ? `Meta: ${targetLip}g (${lKg} g/kg)` : 'Meta: --g';
   }
   if (document.getElementById("prescribedFiberTarget")) {
-    document.getElementById("prescribedFiberTarget").innerText = `Meta: ≥ ${macroTargets.minFiber}g/dia`;
+    document.getElementById("prescribedFiberTarget").innerText = targetFiber != null ? `Meta: ≥ ${targetFiber}g/dia` : 'Meta: ≥ 25g/dia';
   }
   if (document.getElementById("prescribedFiberStatus")) {
     const fiberVal = Math.round(totals.fiber);
-    if (fiberVal >= macroTargets.minFiber) {
+    const minFiber = targetFiber || 25;
+    if (fiberVal >= minFiber) {
       document.getElementById("prescribedFiberStatus").innerHTML = `<span class="text-emerald-400 font-bold">✓ Meta atingida</span>`;
     } else {
-      document.getElementById("prescribedFiberStatus").innerHTML = `<span class="text-zinc-400">Faltam ${macroTargets.minFiber - fiberVal}g</span>`;
+      document.getElementById("prescribedFiberStatus").innerHTML = `<span class="text-zinc-400">Faltam ${minFiber - fiberVal}g</span>`;
     }
+  }
+
+  // Relação Transparente entre Dieta Atual e Alvo Canônico
+  const currentKcal = Math.round(totals.kcal);
+  if (document.getElementById("prescribedKcalDelta") && targetKcal != null) {
+    const diff = currentKcal - targetKcal;
+    const diffText = diff === 0 ? '✓ No alvo' : (diff > 0 ? `+${diff} kcal` : `${diff} kcal`);
+    document.getElementById("prescribedKcalDelta").innerText = diffText;
   }
 
   // 4. Auditoria Bromatológica & Termodinâmica do Total Prescrito (Regra 11)
@@ -2782,21 +2961,19 @@ function openAIPrescriptionModal() {
   const modal = document.getElementById("aiPrescriptionModal");
   if (!modal) return;
 
-  const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
-    parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    activePatientData,
+    typeof lastEval !== 'undefined' ? lastEval : null,
+    currentPrescriptionMeta
+  );
+
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
-  const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
 
-  const targets = typeof calculateDietaryMacroTargets === "function"
-    ? calculateDietaryMacroTargets(obj, patType, pWeight, getKcal)
-    : { caloricTarget: 2000, targetProtG: 140, targetCarbG: 200, targetLipG: 60 };
-
-  if (document.getElementById("aiModalGoalBadge")) document.getElementById("aiModalGoalBadge").innerText = targets.objectiveLabel || obj;
-  if (document.getElementById("aiModalKcalTarget")) document.getElementById("aiModalKcalTarget").innerText = targets.caloricTarget;
-  if (document.getElementById("aiModalProtTarget")) document.getElementById("aiModalProtTarget").innerText = `${targets.targetProtG}g`;
-  if (document.getElementById("aiModalCarbTarget")) document.getElementById("aiModalCarbTarget").innerText = `${targets.targetCarbG}g`;
-  if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = `${targets.targetLipG}g`;
+  if (document.getElementById("aiModalGoalBadge")) document.getElementById("aiModalGoalBadge").innerText = obj;
+  if (document.getElementById("aiModalKcalTarget")) document.getElementById("aiModalKcalTarget").innerText = canonicalTargets.caloricTargetKcal ?? '--';
+  if (document.getElementById("aiModalProtTarget")) document.getElementById("aiModalProtTarget").innerText = canonicalTargets.proteinTargetG != null ? `${canonicalTargets.proteinTargetG}g` : '--g';
+  if (document.getElementById("aiModalCarbTarget")) document.getElementById("aiModalCarbTarget").innerText = canonicalTargets.carbohydrateTargetG != null ? `${canonicalTargets.carbohydrateTargetG}g` : '--g';
+  if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = canonicalTargets.fatTargetG != null ? `${canonicalTargets.fatTargetG}g` : '--g';
 
   modal.classList.remove("hidden");
   if (window.lucide) window.lucide.createIcons();
@@ -2813,7 +2990,12 @@ async function executeAIPrescriptionGeneration() {
   const pHeight = parseFloat(document.getElementById("evalHeight")?.value) || 175;
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
   const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
-  const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    activePatientData,
+    typeof lastEval !== 'undefined' ? lastEval : null,
+    currentPrescriptionMeta
+  );
+  const getKcal = canonicalTargets.getKcal || 2000;
 
   const mealCount = parseInt(document.getElementById("aiMealCountSelect")?.value || "4", 10);
   const dietaryStyle = document.getElementById("aiDietaryStyleSelect")?.value || "tradicional";
@@ -3135,12 +3317,21 @@ function refreshWhatsAppMessagePreview(patientObj = null) {
   const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
     parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
   const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  const patType = document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
-  const getKcal = parseFloat(document.getElementById("resGet")?.innerText) || 2000;
 
-  const targets = typeof calculateDietaryMacroTargets === "function"
-    ? calculateDietaryMacroTargets(obj, patType, pWeight, getKcal)
-    : { caloricTarget: 2000, targetProtG: 140, targetCarbG: 200, targetLipG: 60 };
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    activePatientData,
+    typeof lastEval !== 'undefined' ? lastEval : null,
+    currentPrescriptionMeta
+  );
+
+  const targets = {
+    caloricTarget: canonicalTargets.caloricTargetKcal || 2000,
+    targetProtG: canonicalTargets.proteinTargetG || 140,
+    targetCarbG: canonicalTargets.carbohydrateTargetG || 200,
+    targetLipG: canonicalTargets.fatTargetG || 60,
+    minFiber: canonicalTargets.fiberTargetG || 25,
+    getKcal: canonicalTargets.getKcal || 2000
+  };
 
   const includeMacros = document.getElementById("waCheckMacros")?.checked !== false;
   const includeWater = document.getElementById("waCheckWater")?.checked !== false;
@@ -3206,14 +3397,6 @@ function copyWhatsAppMessageToClipboard() {
   });
 }
 
-function exportPrescriptionAndEvaluationPDF() {
-  if (currentPrescriptionItems.length === 0) {
-    alert("Adicione alimentos ou gere o plano dietético antes de exportar o PDF.");
-    return;
-  }
-  // Ativa a visualização para impressão padrão com CSS otimizado
-  window.print();
-}
 
 async function clearPrescriptionDiet() {
   if (currentPrescriptionItems.length === 0) {
@@ -3268,6 +3451,9 @@ async function loadPrescriptionForPatient(patientId = activePatientId) {
       isStale: true,
       staleReason: 'LEGACY_PRESCRIPTION_WITHOUT_META'
     };
+    if (saved.targets && !currentPrescriptionMeta.targets) {
+      currentPrescriptionMeta.targets = saved.targets;
+    }
     // N3.7: Verificação de Integridade de Conteúdo ao carregar do armazenamento
     if (currentPrescriptionMeta.isClinicallyValidated === true) {
       const expectedFingerprint = currentPrescriptionMeta.validatedContentFingerprint ||
@@ -3470,10 +3656,26 @@ async function exportPrescriptionAndEvaluationPDF() {
   const thigh = parseFloat(lastEval?.circThigh) || 0;
   const abdomen = parseFloat(lastEval?.circAbdomen) || 0;
 
-  // 2. Cálculos Energéticos Katch-McArdle & Metas
-  const tmb = Math.round(370 + 21.6 * leanMass);
-  const getKcal = Math.round(tmb * actFactor);
-  const macroTargets = calculateDietaryMacroTargets(objective, patientType, weight, getKcal, gender);
+  // 2. Metas Clínicas e Energéticas Canônicas (ZERO Recálculo — Renderizador Puro)
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    p,
+    lastEval,
+    currentPrescriptionMeta
+  );
+
+  const tmb = canonicalTargets.tmbKcal ?? Math.round(370 + 21.6 * leanMass);
+  const getKcal = canonicalTargets.getKcal ?? Math.round(tmb * actFactor);
+  const macroTargets = {
+    caloricTarget: canonicalTargets.caloricTargetKcal ?? getKcal,
+    getKcal: canonicalTargets.getKcal ?? getKcal,
+    targetProtG: canonicalTargets.proteinTargetG ?? 150,
+    targetProtKg: Number(((canonicalTargets.proteinTargetG || 150) / (weight || 70)).toFixed(2)),
+    targetCarbG: canonicalTargets.carbohydrateTargetG ?? 200,
+    targetCarbKg: Number(((canonicalTargets.carbohydrateTargetG || 200) / (weight || 70)).toFixed(2)),
+    targetLipG: canonicalTargets.fatTargetG ?? 60,
+    targetLipKg: Number(((canonicalTargets.fatTargetG || 60) / (weight || 70)).toFixed(2)),
+    minFiber: canonicalTargets.fiberTargetG ?? 25
+  };
 
   // 3. Índice NutriAx & Idade Metabólica
   const heightM2 = height * height;
