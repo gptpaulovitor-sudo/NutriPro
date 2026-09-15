@@ -49,7 +49,12 @@ const SOLVER_STATUS = Object.freeze({
   PASS: 'PASS',
   WARNING: 'WARNING',
   NO_SOLUTION: 'NO_SOLUTION',
-  BLOCKED: 'BLOCKED'
+  BLOCKED: 'BLOCKED',
+  // N3.7.5: Limite computacional de busca atingido antes de examinar todas as combinações.
+  // Indica que a melhor solução encontrada até o ponto de interrupção foi retornada (quando
+  // returnBestPartial=true), ou que não há solução disponível (quando returnBestPartial=false).
+  // O orchestrator NUNCA persiste um resultado com este status como prescrição validada.
+  SEARCH_LIMIT_REACHED: 'SEARCH_LIMIT_REACHED'
 });
 
 /**

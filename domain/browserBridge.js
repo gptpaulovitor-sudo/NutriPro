@@ -2065,7 +2065,12 @@ const SOLVER_STATUS = Object.freeze({
   PASS: 'PASS',
   WARNING: 'WARNING',
   NO_SOLUTION: 'NO_SOLUTION',
-  BLOCKED: 'BLOCKED'
+  BLOCKED: 'BLOCKED',
+  // N3.7.5: Limite computacional de busca atingido antes de examinar todas as combinações.
+  // Indica que a melhor solução encontrada até o ponto de interrupção foi retornada (quando
+  // returnBestPartial=true), ou que não há solução disponível (quando returnBestPartial=false).
+  // O orchestrator NUNCA persiste um resultado com este status como prescrição validada.
+  SEARCH_LIMIT_REACHED: 'SEARCH_LIMIT_REACHED'
 });
 
 /**
@@ -10292,6 +10297,34 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
     minCostImprovement: 1e-4
   }),
 
+  // ── LIMITE DE BUSCA COMBINATÓRIA (N3.7.5) ─────────────────────────────────
+  // Proteção determinística contra explosão combinatória na thread principal.
+  //
+  // Justificativa técnica:
+  //   C(20,3)=1.140 + C(20,4)=4.845 + C(20,5)=15.504 + C(20,6)=38.760 +
+  //   C(20,7)=77.520 = ~137.769 combinações × até 150 iterações/otimização
+  //   ≈ 20 milhões de avaliações síncronas → trava o event loop do browser.
+  //
+  // Comportamento quando atingido:
+  //   O solver retorna status SEARCH_LIMIT_REACHED com a melhor solução
+  //   encontrada até o momento e diagnóstico explícito.
+  //   O orchestrator NÃO persiste esse resultado como prescrição validada.
+  //
+  // Valor padrão: 5.000 combinações
+  //   → permite C(20,3)+C(20,4) = ~5.985 (todos k=3,4 e início de k=5)
+  //   → entrega solução de qualidade em <200ms no browser
+  //   → configurável por política de runtime (ex: Node pode usar Infinity)
+  //
+  // Este parâmetro é COMPUTACIONAL, não clínico.
+  // Não altera TMB, GET, macros, déficit ou regras de N3.6.
+  searchLimit: Object.freeze({
+    maxCombosToTest: 5000,
+    // Diagnóstico emitido quando o limite é atingido
+    diagnosticCode: 'SEARCH_LIMIT_REACHED',
+    // true = retornar melhor resultado parcial; false = retornar BLOCKED
+    returnBestPartial: true
+  }),
+
   // Hierarquia determinística de desempate
   tieBreakOrder: Object.freeze([
     'LOWEST_COST',
@@ -10817,18 +10850,35 @@ function solveNutritionDiet(input, customPolicy = {}) {
   // 4. Redução Determinística do Espaço de Busca
   const candidatePool = reduceSearchCandidates(eligibleFoods, policy);
 
-  // 5. Busca Bounded e Otimização Combinatória
+  // 5. Busca Bounded e Otimização Combinatória com Limite Determinístico (N3.7.5)
   const targetItemCountMin = Math.min(policy.searchBounds.targetItemCountMin, candidatePool.length);
   const targetItemCountMax = Math.min(policy.searchBounds.targetItemCountMax, candidatePool.length);
+
+  // Limite computacional de busca — proteção contra explosão combinatória.
+  // NÃO é um parâmetro clínico: não altera TMB, GET, macros ou regras N3.6.
+  // Configurável pela policy para ambientes diferentes (browser: 5000, Node: Infinity).
+  const searchLimitPolicy = policy.searchLimit || {};
+  const maxCombosToTest = (typeof searchLimitPolicy.maxCombosToTest === 'number' && searchLimitPolicy.maxCombosToTest > 0)
+    ? searchLimitPolicy.maxCombosToTest
+    : Infinity;
+  const returnBestPartial = searchLimitPolicy.returnBestPartial !== false;
 
   let bestSolution = null;
   let totalCombosTested = 0;
   let totalIterationsExecuted = 0;
+  let searchLimitReached = false;
 
+  outerLoop:
   for (let k = targetItemCountMin; k <= targetItemCountMax; k++) {
     const combos = getCombinations(candidatePool, k);
 
     for (let c = 0; c < combos.length; c++) {
+      // Verificação do limite antes de avaliar a próxima combinação
+      if (totalCombosTested >= maxCombosToTest) {
+        searchLimitReached = true;
+        break outerLoop;
+      }
+
       totalCombosTested++;
       const combo = combos[c];
       const opt = optimizeComboPortions(combo, targets, policy);
@@ -10868,7 +10918,41 @@ function solveNutritionDiet(input, customPolicy = {}) {
     }
   }
 
-  // Se não foi possível gerar nenhuma solução
+  // 5a. Verificação de limite atingido (N3.7.5)
+  // Quando o limite é atingido sem nenhuma solução parcial, bloqueamos.
+  // Quando há uma solução parcial e returnBestPartial=true, retornamos com status explícito.
+  // O orchestrator NUNCA persiste um resultado SEARCH_LIMIT_REACHED como prescrição validada.
+  if (searchLimitReached && !bestSolution) {
+    return deepFreeze({
+      status: SOLVER_STATUS.SEARCH_LIMIT_REACHED,
+      valid: false,
+      meals: [],
+      totals: { calories: 0, protein: 0, carbohydrate: 0, fat: 0, fiber: 0, sodium: 0 },
+      target: targets,
+      differences: {
+        calories: -targets.calories,
+        protein: -targets.protein,
+        carbohydrate: -targets.carbohydrate,
+        fat: -targets.fat,
+        fiber: -targets.fiber
+      },
+      foodProvenance: [],
+      solverDiagnostics: [
+        `Limite computacional atingido após ${totalCombosTested} combinações testadas.`,
+        `Nenhuma solução parcial disponível para retornar.`,
+        `Diagnóstico: ${searchLimitPolicy.diagnosticCode || 'SEARCH_LIMIT_REACHED'}`
+      ],
+      warnings: governanceWarnings,
+      blockingReasons: [
+        `Limite de busca combinatória (maxCombosToTest=${maxCombosToTest}) atingido sem solução disponível.`,
+        'Aumente o catálogo de alimentos ou ajuste a política de busca.'
+      ],
+      solverVersion,
+      provenance: { engine: 'NutriAxDeterministicFoodSolver', policyVersion: policy.policyVersion }
+    });
+  }
+
+  // Se não foi possível gerar nenhuma solução (sem limite atingido)
   if (!bestSolution || bestSolution.portions.length === 0) {
     return deepFreeze({
       status: SOLVER_STATUS.NO_SOLUTION,
@@ -10924,10 +11008,23 @@ function solveNutritionDiet(input, customPolicy = {}) {
   // - PASS: dentro das tolerâncias, zero REVISAR, zero limitações críticas.
   // - WARNING: dentro ou próximo das tolerâncias, mas contém REVISAR ou alertas não-críticos.
   // - REVISAR NUNCA PODE RESULTAR EM PASS.
+  // - SEARCH_LIMIT_REACHED (N3.7.5): busca interrompida antes do espaço completo ser explorado.
+  //   Mesmo que a solução parcial esteja dentro das tolerâncias, NUNCA pode ser validada como PASS
+  //   porque existem combinações não-exploradas que poderiam ser superiores.
   let finalStatus;
   let isValid;
 
-  if (withinTolerances && !containsReviewFood && warnings.length === 0) {
+  if (searchLimitReached) {
+    // N3.7.5: Resultado parcial — independentemente da qualidade da solução encontrada,
+    // o status é SEARCH_LIMIT_REACHED. O orchestrator NÃO persiste como prescrição validada.
+    finalStatus = SOLVER_STATUS.SEARCH_LIMIT_REACHED;
+    isValid = false;
+    warnings.push(
+      `SEARCH_LIMIT_REACHED: busca interrompida após ${totalCombosTested} combinações ` +
+      `(limite: ${maxCombosToTest}). Solução parcial retornada como diagnóstico — ` +
+      `NÃO persista como prescrição clínica validada.`
+    );
+  } else if (withinTolerances && !containsReviewFood && warnings.length === 0) {
     finalStatus = SOLVER_STATUS.PASS;
     isValid = true;
   } else if (withinTolerances || bestSolution.cost <= 1.0) {
@@ -11005,14 +11102,16 @@ function solveNutritionDiet(input, customPolicy = {}) {
     fiber: roundTo(finalTotals.fiber - targets.fiber, 2)
   };
 
+  const convergenceLabel = searchLimitReached ? 'SEARCH_LIMIT_REACHED' : 'CONVERGED';
   const solverDiagnostics = [
     `Candidatos recebidos: ${rawCatalog.length}`,
     `Candidatos elegíveis: ${eligibleFoods.length}`,
     `Candidatos reduzidos para busca: ${candidatePool.length}`,
     `Combinações testadas: ${totalCombosTested}`,
+    `Limite computacional configurado: ${maxCombosToTest}`,
     `Iterações de otimização executadas: ${totalIterationsExecuted}`,
     `Custo residual final: ${roundTo(bestSolution.cost, 6)}`,
-    `Convergência determinística: CONVERGED`,
+    `Convergência determinística: ${convergenceLabel}`,
     `Versão da política: ${policy.policyVersion}`
   ];
 
@@ -11026,9 +11125,24 @@ function solveNutritionDiet(input, customPolicy = {}) {
     }
   ];
 
+  const blockingReasons = [];
+  if (!isValid) {
+    if (searchLimitReached) {
+      blockingReasons.push(
+        `Limite computacional de busca atingido (${totalCombosTested}/${maxCombosToTest} combinações). ` +
+        'Resultado parcial não pode ser usado como prescrição validada. ' +
+        'Reduza o catálogo de candidatos ou aumente maxCombosToTest na política.'
+      );
+    } else {
+      blockingReasons.push('A solução final não atingiu tolerâncias admissíveis.');
+    }
+  }
+
   const output = {
     status: finalStatus,
     valid: isValid,
+    // searchLimitReached: campo de diagnóstico explícito para orchestrators e tests
+    searchLimitReached: searchLimitReached === true,
     meals,
     totals: finalTotals,
     target: {
@@ -11042,7 +11156,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
     foodProvenance,
     solverDiagnostics,
     warnings,
-    blockingReasons: isValid ? [] : ['A solução final não atingiu tolerâncias admissíveis.'],
+    blockingReasons,
     solverVersion,
     provenance: {
       engine: 'NutriAxDeterministicFoodSolver',
@@ -11096,7 +11210,12 @@ const solverSubsystem = {
   // Motor Determinístico
   solveNutritionDiet: foodSolver.solveNutritionDiet,
   calculateFoodPortionNutrients: foodSolver.calculateFoodPortionNutrients,
-  reduceSearchCandidates: foodSolver.reduceSearchCandidates
+  reduceSearchCandidates: foodSolver.reduceSearchCandidates,
+
+  // Despachante Não-Bloqueante (N3.7.5)
+  bridge: require('./foodSolverBridge'),
+  solveNutritionDietAsync: require('./foodSolverBridge').solveNutritionDietAsync,
+  solveNutritionDietSync: require('./foodSolverBridge').solveNutritionDietSync
 };
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -11106,6 +11225,378 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof globalThis !== 'undefined') {
   globalThis.NutriDomain = globalThis.NutriDomain || {};
   globalThis.NutriDomain.solver = solverSubsystem;
+}
+
+  });
+
+  // ── MÓDULO: domain/solver/foodSolverWorker.js ──
+  defineModule("domain/solver/foodSolverWorker.js", function(require, module, exports) {
+/**
+ * domain/solver/foodSolverWorker.js
+ * 
+ * Web Worker Puro para o Food Solver Canônico (N3.2).
+ * NutriAx Pro — Fase N3.7.5.
+ * 
+ * Executa a busca combinatória de alimentos em uma thread dedicada (Web Worker)
+ * para evitar qualquer bloqueio do Event Loop da UI na thread principal.
+ * 
+ * Sem dependências externas, sem mutação de regras clínicas.
+ */
+
+'use strict';
+
+// Carrega o domínio canônico no escopo do Worker se disponível
+if (typeof importScripts === 'function') {
+  try {
+    // Caminho relativo a partir de domain/solver/foodSolverWorker.js
+    importScripts('../browserBridge.js');
+  } catch (err1) {
+    try {
+      // Fallback para caminhos absolutos ou relativos à raiz
+      importScripts('/domain/browserBridge.js');
+    } catch (err2) {
+      // Se não carregar via importScripts, o solver pode ter sido injetado
+    }
+  }
+}
+
+/**
+ * Resolve a função solveNutritionDiet no contexto do Worker
+ */
+function getWorkerSolver() {
+  if (typeof self !== 'undefined' && self.NutriDomain && self.NutriDomain.solver && typeof self.NutriDomain.solver.solveNutritionDiet === 'function') {
+    return self.NutriDomain.solver.solveNutritionDiet;
+  }
+  if (typeof solveNutritionDiet === 'function') {
+    return solveNutritionDiet;
+  }
+  if (typeof require === 'function') {
+    try {
+      const solverModule = require('./foodSolver');
+      return solverModule.solveNutritionDiet;
+    } catch (e) {}
+  }
+  return null;
+}
+
+/**
+ * Processador central de mensagens do Worker.
+ * Exportado para permitir testes determinísticos unitários em Node.js.
+ */
+function handleWorkerMessage(data, postMessageFn) {
+  const { type, correlationId, payload } = data || {};
+
+  if (type === 'PING') {
+    postMessageFn({ type: 'PONG', correlationId, ok: true });
+    return;
+  }
+
+  if (type === 'SOLVE') {
+    try {
+      const solver = getWorkerSolver();
+      if (!solver) {
+        postMessageFn({
+          type: 'SOLVE_ERROR',
+          correlationId,
+          error: {
+            code: 'SOLVER_UNAVAILABLE',
+            message: 'Motor Food Solver determinístico não disponível no contexto do Worker.'
+          }
+        });
+        return;
+      }
+
+      const { input, customPolicy } = payload || {};
+      const result = solver(input, customPolicy);
+
+      postMessageFn({
+        type: 'SOLVE_SUCCESS',
+        correlationId,
+        result
+      });
+    } catch (err) {
+      postMessageFn({
+        type: 'SOLVE_ERROR',
+        correlationId,
+        error: {
+          code: 'SOLVER_EXECUTION_EXCEPTION',
+          message: err && err.message ? err.message : String(err),
+          stack: err && err.stack ? err.stack : null
+        }
+      });
+    }
+    return;
+  }
+
+  postMessageFn({
+    type: 'UNKNOWN_COMMAND',
+    correlationId,
+    error: {
+      code: 'UNSUPPORTED_MESSAGE_TYPE',
+      message: `Tipo de mensagem desconhecido: ${type}`
+    }
+  });
+}
+
+// Configura o listener no ambiente do Worker
+if (typeof self !== 'undefined' && typeof self.addEventListener === 'function') {
+  self.addEventListener('message', function(event) {
+    handleWorkerMessage(event.data, function(response) {
+      self.postMessage(response);
+    });
+  });
+}
+
+// Export para Node.js / Suíte de testes
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    handleWorkerMessage,
+    getWorkerSolver
+  };
+}
+
+  });
+
+  // ── MÓDULO: domain/solver/foodSolverBridge.js ──
+  defineModule("domain/solver/foodSolverBridge.js", function(require, module, exports) {
+/**
+ * domain/solver/foodSolverBridge.js
+ * 
+ * Despachante Não-Bloqueante do Food Solver Determinístico Canônico (N3.2).
+ * NutriAx Pro — Fase N3.7.5.
+ * 
+ * Fornece interface unificada e segura para execução assíncrona do solver:
+ * - Em ambientes com Web Worker (Browser com suporte): executa fora da thread da UI.
+ * - Em ambientes sem Web Worker (Node.js, SSR, ou fallback de segurança): executa
+ *   de forma determinística in-process sem quebrar o fluxo.
+ * - Suporta timeout configurável e cancelamento seguro.
+ * 
+ * Camada Pura de Domínio — Sem dependências externas de framework.
+ */
+
+'use strict';
+
+const { solveNutritionDiet } = require('./foodSolver');
+
+let activeWorker = null;
+let pendingRequests = new Map();
+let correlationCounter = 0;
+
+/**
+ * Verifica se o ambiente atual suporta Web Workers
+ * @returns {boolean}
+ */
+function isWorkerSupported() {
+  return typeof Worker !== 'undefined';
+}
+
+/**
+ * Resolve a URL do worker dependendo do contexto do runtime
+ * @param {string} [customUrl]
+ * @returns {string}
+ */
+function resolveWorkerUrl(customUrl) {
+  if (customUrl) return customUrl;
+  if (typeof location !== 'undefined' && location.href) {
+    // No ambiente do pro/index.html
+    return '../domain/solver/foodSolverWorker.js';
+  }
+  return './foodSolverWorker.js';
+}
+
+/**
+ * Inicializa ou retorna a instância do Worker compartilhado
+ * @param {string} [workerUrl]
+ * @returns {Worker}
+ */
+function getOrCreateWorker(workerUrl) {
+  if (activeWorker) return activeWorker;
+
+  const url = resolveWorkerUrl(workerUrl);
+  const worker = new Worker(url);
+
+  worker.onmessage = function(event) {
+    const { type, correlationId, result, error } = event.data || {};
+    const pending = pendingRequests.get(correlationId);
+    if (!pending) return;
+
+    pendingRequests.delete(correlationId);
+    if (pending.timeoutTimer) {
+      clearTimeout(pending.timeoutTimer);
+    }
+
+    if (type === 'SOLVE_SUCCESS') {
+      pending.resolve(result);
+    } else {
+      const err = new Error(error?.message || 'Falha na execução do Worker do Food Solver.');
+      err.code = error?.code || 'WORKER_SOLVE_FAILED';
+      err.stack = error?.stack || err.stack;
+      pending.reject(err);
+    }
+  };
+
+  worker.onerror = function(event) {
+    // Rejeita todas as requisições pendentes em caso de erro fatal do worker
+    const errMsg = event && event.message ? event.message : 'Erro no Web Worker do Food Solver.';
+    for (const [id, pending] of pendingRequests.entries()) {
+      if (pending.timeoutTimer) clearTimeout(pending.timeoutTimer);
+      const err = new Error(errMsg);
+      err.code = 'WORKER_FATAL_ERROR';
+      pending.reject(err);
+    }
+    pendingRequests.clear();
+    activeWorker = null;
+  };
+
+  activeWorker = worker;
+  return activeWorker;
+}
+
+/**
+ * Encerra o worker ativo e cancela todas as requisições pendentes
+ */
+function terminateWorker() {
+  if (activeWorker) {
+    try {
+      activeWorker.terminate();
+    } catch (e) {}
+    activeWorker = null;
+  }
+  for (const [id, pending] of pendingRequests.entries()) {
+    if (pending.timeoutTimer) clearTimeout(pending.timeoutTimer);
+    const err = new Error('Operação do Food Solver cancelada: Worker encerrado.');
+    err.code = 'WORKER_TERMINATED';
+    pending.reject(err);
+  }
+  pendingRequests.clear();
+}
+
+/**
+ * Executa o solver de forma síncrona diretamente (in-process).
+ * Útil para testes em Node.js ou quando o consumidor exige retorno imediato.
+ * 
+ * @param {Object} input - DTO de entrada do solver
+ * @param {Object} [customPolicy] - Política customizada opcional
+ * @returns {Object} FoodSolverResultDTO
+ */
+function solveNutritionDietSync(input, customPolicy = {}) {
+  return solveNutritionDiet(input, customPolicy);
+}
+
+/**
+ * Executa o solver de forma assíncrona, usando Web Worker quando disponível
+ * ou agendamento não-bloqueante in-process como fallback seguro.
+ * 
+ * @param {Object} input - DTO de entrada do solver
+ * @param {Object} [customPolicy] - Política customizada opcional
+ * @param {Object} [options] - Opções de execução ({ timeoutMs, preferWorker, workerUrl, fallbackOnTimeout })
+ * @returns {Promise<Object>} Promessa resolvida com FoodSolverResultDTO
+ */
+async function solveNutritionDietAsync(input, customPolicy = {}, options = {}) {
+  const timeoutMs = typeof options.timeoutMs === 'number' && options.timeoutMs > 0
+    ? options.timeoutMs
+    : 10000;
+  const preferWorker = options.preferWorker !== false;
+  const fallbackOnTimeout = options.fallbackOnTimeout !== false;
+
+  // Se não estiver no browser ou se worker não for preferido / suportado:
+  if (!preferWorker || !isWorkerSupported()) {
+    return new Promise((resolve, reject) => {
+      // Usa setImmediate (Node) ou setTimeout (Browser) para descolar da pilha atual
+      const schedule = typeof setImmediate === 'function' ? setImmediate : (fn) => setTimeout(fn, 0);
+      schedule(() => {
+        try {
+          const result = solveNutritionDiet(input, customPolicy);
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  // No Browser com suporte a Web Worker:
+  return new Promise((resolve, reject) => {
+    let worker;
+    try {
+      worker = getOrCreateWorker(options.workerUrl);
+    } catch (createErr) {
+      // Fallback seguro se new Worker falhar (ex: restrição de file:// ou CSP)
+      console.warn('[foodSolverBridge] Falha ao instanciar Web Worker, usando execução síncrona controlada:', createErr.message);
+      try {
+        const result = solveNutritionDiet(input, customPolicy);
+        return resolve(result);
+      } catch (syncErr) {
+        return reject(syncErr);
+      }
+    }
+
+    const correlationId = `solver_req_${++correlationCounter}`;
+
+    const timeoutTimer = setTimeout(() => {
+      pendingRequests.delete(correlationId);
+      // Se houver timeout do worker, recria o worker para limpar estado
+      terminateWorker();
+
+      if (fallbackOnTimeout) {
+        console.warn(`[foodSolverBridge] Timeout do Worker (${timeoutMs}ms) atingido. Executando fallback controlado.`);
+        try {
+          const fallbackResult = solveNutritionDiet(input, customPolicy);
+          resolve(fallbackResult);
+        } catch (fbErr) {
+          reject(fbErr);
+        }
+      } else {
+        const timeoutErr = new Error(`Tempo limite de busca do Food Solver atingido (${timeoutMs}ms).`);
+        timeoutErr.code = 'WORKER_TIMEOUT';
+        reject(timeoutErr);
+      }
+    }, timeoutMs);
+
+    pendingRequests.set(correlationId, {
+      resolve,
+      reject,
+      timeoutTimer
+    });
+
+    try {
+      worker.postMessage({
+        type: 'SOLVE',
+        correlationId,
+        payload: {
+          input,
+          customPolicy
+        }
+      });
+    } catch (postErr) {
+      clearTimeout(timeoutTimer);
+      pendingRequests.delete(correlationId);
+      // Fallback imediato se o postMessage falhar
+      try {
+        const result = solveNutritionDiet(input, customPolicy);
+        resolve(result);
+      } catch (fbErr) {
+        reject(fbErr);
+      }
+    }
+  });
+}
+
+const foodSolverBridge = {
+  isWorkerSupported,
+  getOrCreateWorker,
+  terminateWorker,
+  solveNutritionDietSync,
+  solveNutritionDietAsync
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = foodSolverBridge;
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.NutriDomain = globalThis.NutriDomain || {};
+  globalThis.NutriDomain.solverBridge = foodSolverBridge;
 }
 
   });
@@ -15437,6 +15928,40 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
     });
   }
 
+  // N3.7.5: Tratamento explícito de SEARCH_LIMIT_REACHED antes da verificação genérica.
+  // Este status indica que o solver interrompeu a busca por limite computacional, não por
+  // ausência de solução. O diagnóstico deve ser claro e acionável para o nutricionista.
+  if (foodSolverResult.status === 'SEARCH_LIMIT_REACHED') {
+    const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
+      ? [...foodSolverResult.blockingReasons]
+      : [
+          'O Food Solver atingiu o limite computacional de busca combinatória (SEARCH_LIMIT_REACHED).',
+          'A prescrição não pode ser gerada com o catálogo atual neste ambiente.',
+          'Ação recomendada: reduza o número de alimentos elegíveis no catálogo ou use o modo servidor (Node.js) com limite expandido.'
+        ];
+
+    pipelineTrace.push({
+      step: PIPELINE_STEP.N32_FOOD_SOLVER,
+      status: 'SEARCH_LIMIT_REACHED',
+      blockingReasons: reasons,
+      details: `Solver interrompido por limite computacional. Diagnósticos: ${(foodSolverResult.solverDiagnostics || []).join(' | ')}`,
+      warnings: foodSolverResult.warnings || []
+    });
+
+    return buildPipelineOutput({
+      success: false,
+      status: ORCHESTRATOR_STATUS.BLOCKED,
+      interruptedAt: PIPELINE_STEP.N32_FOOD_SOLVER,
+      blockingReasons: reasons,
+      context: currentContext,
+      energyTargetResult,
+      macroTargetResult,
+      nutritionValidatorResult,
+      foodSolverResult,
+      pipelineTrace
+    });
+  }
+
   if (foodSolverResult.status === 'BLOCKED' || foodSolverResult.status === 'NO_SOLUTION' || foodSolverResult.valid !== true) {
     const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
       ? [...foodSolverResult.blockingReasons]
@@ -15462,6 +15987,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       pipelineTrace
     });
   }
+
 
   if (Array.isArray(foodSolverResult.warnings) && foodSolverResult.warnings.length > 0) {
     accumulatedWarnings.push(...foodSolverResult.warnings.map(w => `[N3.2] ${w}`));

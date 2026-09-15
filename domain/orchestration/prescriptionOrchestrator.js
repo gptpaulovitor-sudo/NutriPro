@@ -444,6 +444,40 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
     });
   }
 
+  // N3.7.5: Tratamento explícito de SEARCH_LIMIT_REACHED antes da verificação genérica.
+  // Este status indica que o solver interrompeu a busca por limite computacional, não por
+  // ausência de solução. O diagnóstico deve ser claro e acionável para o nutricionista.
+  if (foodSolverResult.status === 'SEARCH_LIMIT_REACHED') {
+    const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
+      ? [...foodSolverResult.blockingReasons]
+      : [
+          'O Food Solver atingiu o limite computacional de busca combinatória (SEARCH_LIMIT_REACHED).',
+          'A prescrição não pode ser gerada com o catálogo atual neste ambiente.',
+          'Ação recomendada: reduza o número de alimentos elegíveis no catálogo ou use o modo servidor (Node.js) com limite expandido.'
+        ];
+
+    pipelineTrace.push({
+      step: PIPELINE_STEP.N32_FOOD_SOLVER,
+      status: 'SEARCH_LIMIT_REACHED',
+      blockingReasons: reasons,
+      details: `Solver interrompido por limite computacional. Diagnósticos: ${(foodSolverResult.solverDiagnostics || []).join(' | ')}`,
+      warnings: foodSolverResult.warnings || []
+    });
+
+    return buildPipelineOutput({
+      success: false,
+      status: ORCHESTRATOR_STATUS.BLOCKED,
+      interruptedAt: PIPELINE_STEP.N32_FOOD_SOLVER,
+      blockingReasons: reasons,
+      context: currentContext,
+      energyTargetResult,
+      macroTargetResult,
+      nutritionValidatorResult,
+      foodSolverResult,
+      pipelineTrace
+    });
+  }
+
   if (foodSolverResult.status === 'BLOCKED' || foodSolverResult.status === 'NO_SOLUTION' || foodSolverResult.valid !== true) {
     const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
       ? [...foodSolverResult.blockingReasons]
@@ -469,6 +503,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       pipelineTrace
     });
   }
+
 
   if (Array.isArray(foodSolverResult.warnings) && foodSolverResult.warnings.length > 0) {
     accumulatedWarnings.push(...foodSolverResult.warnings.map(w => `[N3.2] ${w}`));

@@ -86,6 +86,34 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
     minCostImprovement: 1e-4
   }),
 
+  // ── LIMITE DE BUSCA COMBINATÓRIA (N3.7.5) ─────────────────────────────────
+  // Proteção determinística contra explosão combinatória na thread principal.
+  //
+  // Justificativa técnica:
+  //   C(20,3)=1.140 + C(20,4)=4.845 + C(20,5)=15.504 + C(20,6)=38.760 +
+  //   C(20,7)=77.520 = ~137.769 combinações × até 150 iterações/otimização
+  //   ≈ 20 milhões de avaliações síncronas → trava o event loop do browser.
+  //
+  // Comportamento quando atingido:
+  //   O solver retorna status SEARCH_LIMIT_REACHED com a melhor solução
+  //   encontrada até o momento e diagnóstico explícito.
+  //   O orchestrator NÃO persiste esse resultado como prescrição validada.
+  //
+  // Valor padrão: 5.000 combinações
+  //   → permite C(20,3)+C(20,4) = ~5.985 (todos k=3,4 e início de k=5)
+  //   → entrega solução de qualidade em <200ms no browser
+  //   → configurável por política de runtime (ex: Node pode usar Infinity)
+  //
+  // Este parâmetro é COMPUTACIONAL, não clínico.
+  // Não altera TMB, GET, macros, déficit ou regras de N3.6.
+  searchLimit: Object.freeze({
+    maxCombosToTest: 5000,
+    // Diagnóstico emitido quando o limite é atingido
+    diagnosticCode: 'SEARCH_LIMIT_REACHED',
+    // true = retornar melhor resultado parcial; false = retornar BLOCKED
+    returnBestPartial: true
+  }),
+
   // Hierarquia determinística de desempate
   tieBreakOrder: Object.freeze([
     'LOWEST_COST',

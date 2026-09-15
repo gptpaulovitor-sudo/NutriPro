@@ -385,18 +385,35 @@ function solveNutritionDiet(input, customPolicy = {}) {
   // 4. Redução Determinística do Espaço de Busca
   const candidatePool = reduceSearchCandidates(eligibleFoods, policy);
 
-  // 5. Busca Bounded e Otimização Combinatória
+  // 5. Busca Bounded e Otimização Combinatória com Limite Determinístico (N3.7.5)
   const targetItemCountMin = Math.min(policy.searchBounds.targetItemCountMin, candidatePool.length);
   const targetItemCountMax = Math.min(policy.searchBounds.targetItemCountMax, candidatePool.length);
+
+  // Limite computacional de busca — proteção contra explosão combinatória.
+  // NÃO é um parâmetro clínico: não altera TMB, GET, macros ou regras N3.6.
+  // Configurável pela policy para ambientes diferentes (browser: 5000, Node: Infinity).
+  const searchLimitPolicy = policy.searchLimit || {};
+  const maxCombosToTest = (typeof searchLimitPolicy.maxCombosToTest === 'number' && searchLimitPolicy.maxCombosToTest > 0)
+    ? searchLimitPolicy.maxCombosToTest
+    : Infinity;
+  const returnBestPartial = searchLimitPolicy.returnBestPartial !== false;
 
   let bestSolution = null;
   let totalCombosTested = 0;
   let totalIterationsExecuted = 0;
+  let searchLimitReached = false;
 
+  outerLoop:
   for (let k = targetItemCountMin; k <= targetItemCountMax; k++) {
     const combos = getCombinations(candidatePool, k);
 
     for (let c = 0; c < combos.length; c++) {
+      // Verificação do limite antes de avaliar a próxima combinação
+      if (totalCombosTested >= maxCombosToTest) {
+        searchLimitReached = true;
+        break outerLoop;
+      }
+
       totalCombosTested++;
       const combo = combos[c];
       const opt = optimizeComboPortions(combo, targets, policy);
@@ -436,7 +453,41 @@ function solveNutritionDiet(input, customPolicy = {}) {
     }
   }
 
-  // Se não foi possível gerar nenhuma solução
+  // 5a. Verificação de limite atingido (N3.7.5)
+  // Quando o limite é atingido sem nenhuma solução parcial, bloqueamos.
+  // Quando há uma solução parcial e returnBestPartial=true, retornamos com status explícito.
+  // O orchestrator NUNCA persiste um resultado SEARCH_LIMIT_REACHED como prescrição validada.
+  if (searchLimitReached && !bestSolution) {
+    return deepFreeze({
+      status: SOLVER_STATUS.SEARCH_LIMIT_REACHED,
+      valid: false,
+      meals: [],
+      totals: { calories: 0, protein: 0, carbohydrate: 0, fat: 0, fiber: 0, sodium: 0 },
+      target: targets,
+      differences: {
+        calories: -targets.calories,
+        protein: -targets.protein,
+        carbohydrate: -targets.carbohydrate,
+        fat: -targets.fat,
+        fiber: -targets.fiber
+      },
+      foodProvenance: [],
+      solverDiagnostics: [
+        `Limite computacional atingido após ${totalCombosTested} combinações testadas.`,
+        `Nenhuma solução parcial disponível para retornar.`,
+        `Diagnóstico: ${searchLimitPolicy.diagnosticCode || 'SEARCH_LIMIT_REACHED'}`
+      ],
+      warnings: governanceWarnings,
+      blockingReasons: [
+        `Limite de busca combinatória (maxCombosToTest=${maxCombosToTest}) atingido sem solução disponível.`,
+        'Aumente o catálogo de alimentos ou ajuste a política de busca.'
+      ],
+      solverVersion,
+      provenance: { engine: 'NutriAxDeterministicFoodSolver', policyVersion: policy.policyVersion }
+    });
+  }
+
+  // Se não foi possível gerar nenhuma solução (sem limite atingido)
   if (!bestSolution || bestSolution.portions.length === 0) {
     return deepFreeze({
       status: SOLVER_STATUS.NO_SOLUTION,
@@ -492,10 +543,23 @@ function solveNutritionDiet(input, customPolicy = {}) {
   // - PASS: dentro das tolerâncias, zero REVISAR, zero limitações críticas.
   // - WARNING: dentro ou próximo das tolerâncias, mas contém REVISAR ou alertas não-críticos.
   // - REVISAR NUNCA PODE RESULTAR EM PASS.
+  // - SEARCH_LIMIT_REACHED (N3.7.5): busca interrompida antes do espaço completo ser explorado.
+  //   Mesmo que a solução parcial esteja dentro das tolerâncias, NUNCA pode ser validada como PASS
+  //   porque existem combinações não-exploradas que poderiam ser superiores.
   let finalStatus;
   let isValid;
 
-  if (withinTolerances && !containsReviewFood && warnings.length === 0) {
+  if (searchLimitReached) {
+    // N3.7.5: Resultado parcial — independentemente da qualidade da solução encontrada,
+    // o status é SEARCH_LIMIT_REACHED. O orchestrator NÃO persiste como prescrição validada.
+    finalStatus = SOLVER_STATUS.SEARCH_LIMIT_REACHED;
+    isValid = false;
+    warnings.push(
+      `SEARCH_LIMIT_REACHED: busca interrompida após ${totalCombosTested} combinações ` +
+      `(limite: ${maxCombosToTest}). Solução parcial retornada como diagnóstico — ` +
+      `NÃO persista como prescrição clínica validada.`
+    );
+  } else if (withinTolerances && !containsReviewFood && warnings.length === 0) {
     finalStatus = SOLVER_STATUS.PASS;
     isValid = true;
   } else if (withinTolerances || bestSolution.cost <= 1.0) {
@@ -573,14 +637,16 @@ function solveNutritionDiet(input, customPolicy = {}) {
     fiber: roundTo(finalTotals.fiber - targets.fiber, 2)
   };
 
+  const convergenceLabel = searchLimitReached ? 'SEARCH_LIMIT_REACHED' : 'CONVERGED';
   const solverDiagnostics = [
     `Candidatos recebidos: ${rawCatalog.length}`,
     `Candidatos elegíveis: ${eligibleFoods.length}`,
     `Candidatos reduzidos para busca: ${candidatePool.length}`,
     `Combinações testadas: ${totalCombosTested}`,
+    `Limite computacional configurado: ${maxCombosToTest}`,
     `Iterações de otimização executadas: ${totalIterationsExecuted}`,
     `Custo residual final: ${roundTo(bestSolution.cost, 6)}`,
-    `Convergência determinística: CONVERGED`,
+    `Convergência determinística: ${convergenceLabel}`,
     `Versão da política: ${policy.policyVersion}`
   ];
 
@@ -594,9 +660,24 @@ function solveNutritionDiet(input, customPolicy = {}) {
     }
   ];
 
+  const blockingReasons = [];
+  if (!isValid) {
+    if (searchLimitReached) {
+      blockingReasons.push(
+        `Limite computacional de busca atingido (${totalCombosTested}/${maxCombosToTest} combinações). ` +
+        'Resultado parcial não pode ser usado como prescrição validada. ' +
+        'Reduza o catálogo de candidatos ou aumente maxCombosToTest na política.'
+      );
+    } else {
+      blockingReasons.push('A solução final não atingiu tolerâncias admissíveis.');
+    }
+  }
+
   const output = {
     status: finalStatus,
     valid: isValid,
+    // searchLimitReached: campo de diagnóstico explícito para orchestrators e tests
+    searchLimitReached: searchLimitReached === true,
     meals,
     totals: finalTotals,
     target: {
@@ -610,7 +691,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
     foodProvenance,
     solverDiagnostics,
     warnings,
-    blockingReasons: isValid ? [] : ['A solução final não atingiu tolerâncias admissíveis.'],
+    blockingReasons,
     solverVersion,
     provenance: {
       engine: 'NutriAxDeterministicFoodSolver',

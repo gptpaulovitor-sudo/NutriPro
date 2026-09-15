@@ -31,7 +31,12 @@ const solverSubsystem = {
   // Motor Determinístico
   solveNutritionDiet: foodSolver.solveNutritionDiet,
   calculateFoodPortionNutrients: foodSolver.calculateFoodPortionNutrients,
-  reduceSearchCandidates: foodSolver.reduceSearchCandidates
+  reduceSearchCandidates: foodSolver.reduceSearchCandidates,
+
+  // Despachante Não-Bloqueante (N3.7.5)
+  bridge: require('./foodSolverBridge'),
+  solveNutritionDietAsync: require('./foodSolverBridge').solveNutritionDietAsync,
+  solveNutritionDietSync: require('./foodSolverBridge').solveNutritionDietSync
 };
 
 if (typeof module !== 'undefined' && module.exports) {

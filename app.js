@@ -748,14 +748,33 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
     leanMass = weight - fatMass;
   }
 
-  // Cálculo Energético Katch-McArdle
-  const tmb = 370 + (21.6 * leanMass);
-  const get = tmb * activityFactor;
+  // Resolução Canônica das Metas Clínicas (N3.7.5) — Alinhamento Estrito com N2.1/N2.2
+  // Elimina o recálculo paralelo que causava divergências (ex: 3425 kcal)
+  let tmb = Math.round(370 + (21.6 * (leanMass || 0)));
+  let get = Math.round(tmb * activityFactor);
   let caloricTarget = Math.round(get);
-  if (objective.toLowerCase().includes("perda") || objective.toLowerCase().includes("emagrecimento")) {
-    caloricTarget = Math.round(get - 450);
-  } else if (objective.toLowerCase().includes("hipertrofia")) {
-    caloricTarget = Math.round(get + 350);
+
+  try {
+    const prescription = await db.prescriptions.where("patientId").equals(patientId).first();
+    const lastAssessment = (evals && evals.length > 0) ? evals[evals.length - 1] : null;
+    const canonicalTargets = (typeof resolveCanonicalPrescriptionTargets === 'function')
+      ? resolveCanonicalPrescriptionTargets(p, lastAssessment, prescription?.prescriptionMeta)
+      : null;
+
+    if (canonicalTargets && Number.isFinite(canonicalTargets.caloricTargetKcal) && canonicalTargets.caloricTargetKcal > 0) {
+      if (Number.isFinite(canonicalTargets.tmbKcal)) tmb = Math.round(canonicalTargets.tmbKcal);
+      if (Number.isFinite(canonicalTargets.getKcal)) get = Math.round(canonicalTargets.getKcal);
+      caloricTarget = Math.round(canonicalTargets.caloricTargetKcal);
+    } else {
+      // Fallback determinístico alinhado às políticas quando não há metas canônicas resolvidas
+      if (objective.toLowerCase().includes("perda") || objective.toLowerCase().includes("emagrecimento")) {
+        caloricTarget = Math.round(get - 450);
+      } else if (objective.toLowerCase().includes("hipertrofia")) {
+        caloricTarget = Math.round(get + 350);
+      }
+    }
+  } catch (targetErr) {
+    console.warn('[updateDashboardAndRadar] Falha ao resolver metas canônicas, mantendo fallback de segurança:', targetErr);
   }
 
   const dashTmb = document.getElementById("dashTmb");
@@ -3030,6 +3049,18 @@ function closeAIPrescriptionModal() {
 }
 
 async function executeAIPrescriptionGeneration() {
+  // ── Estado de Carregamento (N3.7.5) ────────────────────────────────────────
+  // Mostra feedback imediato ao nutricionista e desabilita o botão de geração
+  // para evitar duplo-clique. O finally garante a restauração em qualquer caso.
+  const generateBtn = document.getElementById('btnGenerateAIPrescription') ||
+                      document.querySelector('[onclick*="executeAIPrescription"]');
+  const originalBtnHTML = generateBtn ? generateBtn.innerHTML : null;
+  if (generateBtn) {
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = `<span class="inline-flex items-center gap-2"><svg class="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Gerando Dieta Canônica...</span>`;
+  }
+
+  try {
   const p = activePatientData || {};
   const ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
   const pWeight = Number(ev.weight || p.currentWeight || p.weight || document.getElementById("evalWeight")?.value || 70.0);
@@ -3130,6 +3161,23 @@ async function executeAIPrescriptionGeneration() {
   renderPrescriptionTotals();
   renderMealItems();
 
+  // N3.7.5: Tratamento explícito de SEARCH_LIMIT_REACHED
+  // Este status é distinto de BLOCKED genérico: indica limite computacional, não erro clínico.
+  const solverResult = pipelineResult.foodSolverResult;
+  if (pipelineResult.status === 'BLOCKED' && solverResult && solverResult.status === 'SEARCH_LIMIT_REACHED') {
+    const diags = (solverResult.solverDiagnostics || []).join('\n  ');
+    alert(
+      `⚡ Limite Computacional do Solver Atingido (SEARCH_LIMIT_REACHED)\n\n` +
+      `O solver interrompeu a busca após testar ${solverResult.solverDiagnostics?.find(d => d.includes('Combinações')) || 'várias'} combinações.\n\n` +
+      `❌ Nenhuma dieta foi salva. Esta não é uma falha clínica — é uma limitação computacional do ambiente.\n\n` +
+      `✅ Diagnóstico:\n  ${diags}\n\n` +
+      `Possíveis soluções:\n` +
+      `  • Reduza o número de alimentos elegantes no catálogo (ver aba Alimentos)\n` +
+      `  • O valor das metas clínicas permanece intacto e correto`
+    );
+    return;
+  }
+
   if (pipelineResult.status === 'BLOCKED') {
     alert(`🚫 Prescrição BLOQUEADA pelo Portão Clínico Canônico N3.6!\n\nMotivos do Bloqueio:\n• ${pipelineResult.blockingReasons.join('\n• ')}\n\n⚠️ Esta dieta NÃO PODE ser validada, assinada ou sincronizada.`);
     return;
@@ -3142,6 +3190,19 @@ async function executeAIPrescriptionGeneration() {
   }
 
   alert(`⚡ Dieta Canônica Gerada com Sucesso (Status: PASS)!\n• Refeições: ${mealCount}\n• Status N3.6: PASS (100% de conformidade com todos os portões clínicos)\n\n⚠️ STATUS: REQUER VALIDAÇÃO E ASSINATURA CLÍNICA.`);
+
+  } catch (err) {
+    // N3.7.5: Tratamento de erros inesperados — sempre informa o nutricionista
+    // e nunca trava a UI silenciosamente.
+    console.error('[executeAIPrescriptionGeneration] Erro inesperado:', err);
+    alert(`❌ Erro inesperado durante a geração da dieta:\n${err && err.message ? err.message : String(err)}\n\nNenhuma dieta foi salva. Tente novamente ou verifique o console.`);
+  } finally {
+    // N3.7.5: Sempre restaura o botão, independente do resultado (PASS, BLOCKED, erro).
+    if (generateBtn && originalBtnHTML !== null) {
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = originalBtnHTML;
+    }
+  }
 }
 
 function updateAIPrescriptionBanner() {
@@ -13973,23 +14034,39 @@ function perfGetNutritionContext() {
   const anamneseObjEl = document.getElementById('anamneseObjective');
   const objective = headerGoalText || perfGoalText || (anamneseObjEl && anamneseObjEl.value) || 'Hipertrofia & Recomposição';
 
-  const tmbEl = document.getElementById('dashTmb');
-  const tmb = tmbEl ? parseInt(tmbEl.innerText) || Math.round(500 + 22 * (currentWeight * 0.77)) : Math.round(500 + 22 * (currentWeight * 0.77));
+  // Resolução Canônica das Metas Clínicas (N3.7.5)
+  const canonTargets = (typeof resolveCanonicalPrescriptionTargets === 'function')
+    ? resolveCanonicalPrescriptionTargets()
+    : null;
 
-  const caloricTargetEl = document.getElementById('dashCaloricTarget');
-  const caloricTarget = caloricTargetEl ? parseInt(caloricTargetEl.innerText) || Math.round(tmb * 1.45 + 280) : Math.round(tmb * 1.45 + 280);
+  const tmb = (canonTargets && Number.isFinite(canonTargets.tmbKcal))
+    ? Math.round(canonTargets.tmbKcal)
+    : (document.getElementById('dashTmb') ? parseInt(document.getElementById('dashTmb').innerText) || Math.round(500 + 22 * (currentWeight * 0.77)) : Math.round(500 + 22 * (currentWeight * 0.77)));
 
-  const getKcal = typeof calculateGET === 'function' ? Math.round(calculateGET(tmb, 1.42)) : Math.round(tmb * 1.42);
+  const getKcal = (canonTargets && Number.isFinite(canonTargets.getKcal))
+    ? Math.round(canonTargets.getKcal)
+    : (typeof calculateGET === 'function' ? Math.round(calculateGET(tmb, 1.42)) : Math.round(tmb * 1.42));
+
+  const caloricTarget = (canonTargets && Number.isFinite(canonTargets.caloricTargetKcal))
+    ? Math.round(canonTargets.caloricTargetKcal)
+    : (document.getElementById('dashCaloricTarget') ? parseInt(document.getElementById('dashCaloricTarget').innerText) || getKcal : getKcal);
+
   const energyBalance = caloricTarget - getKcal;
 
-  let proteinGKg = 2.0;
+  let proteinGKg = (canonTargets && Number.isFinite(canonTargets.proteinTargetG) && currentWeight > 0)
+    ? Number((canonTargets.proteinTargetG / currentWeight).toFixed(2))
+    : 2.0;
   const protInput = document.getElementById('prescProtGKg');
   if (protInput && protInput.value && parseFloat(protInput.value)) {
     proteinGKg = parseFloat(protInput.value);
   }
-  const totalProteinG = Math.round(currentWeight * proteinGKg);
+  const totalProteinG = (canonTargets && Number.isFinite(canonTargets.proteinTargetG))
+    ? Math.round(canonTargets.proteinTargetG)
+    : Math.round(currentWeight * proteinGKg);
 
-  let carbGKg = 3.8;
+  let carbGKg = (canonTargets && Number.isFinite(canonTargets.carbohydrateTargetG) && currentWeight > 0)
+    ? Number((canonTargets.carbohydrateTargetG / currentWeight).toFixed(2))
+    : 3.8;
   const carbInput = document.getElementById('prescCarbGKg');
   if (carbInput && carbInput.value && parseFloat(carbInput.value)) carbGKg = parseFloat(carbInput.value);
 
@@ -24711,11 +24788,19 @@ function perfGeneratePDF() {
   const objInput = document.getElementById('prescGoal') || document.getElementById('anamneseGoal');
   const objective = objInput && objInput.value ? objInput.value : 'Hipertrofia & Recomposição Corporal';
 
-  const caloricTargetEl = document.getElementById('dashCaloricTarget');
-  const caloricTarget = caloricTargetEl ? parseInt(caloricTargetEl.innerText) || 2200 : 2200;
+  // Metas Canônicas (N3.7.5)
+  const canonTargets = (typeof resolveCanonicalPrescriptionTargets === 'function')
+    ? resolveCanonicalPrescriptionTargets()
+    : null;
+
+  const caloricTarget = (canonTargets && Number.isFinite(canonTargets.caloricTargetKcal))
+    ? Math.round(canonTargets.caloricTargetKcal)
+    : (document.getElementById('dashCaloricTarget') ? parseInt(document.getElementById('dashCaloricTarget').innerText) || '--' : '--');
 
   const protInput = document.getElementById('prescProtGKg');
-  const proteinGKg = protInput && protInput.value ? parseFloat(protInput.value) || 2.0 : 2.0;
+  const proteinGKg = (canonTargets && Number.isFinite(canonTargets.proteinTargetG) && (activePatientData?.currentWeight || 70) > 0)
+    ? Number((canonTargets.proteinTargetG / (activePatientData?.currentWeight || 70)).toFixed(2))
+    : (protInput && protInput.value ? parseFloat(protInput.value) || 2.0 : 2.0);
 
   const totalEx = perfWorkoutPlan.reduce((s, r) => s + r.exercises.length, 0);
   const totalSets = perfWorkoutPlan.reduce((s, r) => s + r.exercises.reduce((a, e) => a + e.sets, 0), 0);
