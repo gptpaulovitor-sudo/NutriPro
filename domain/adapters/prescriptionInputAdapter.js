@@ -583,6 +583,7 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
   const canonicalOptions = {
     mealCount: mealCountRes.mealCount,
     dietaryStyle: String(rawOptions.dietaryStyle || 'tradicional').trim(),
+    dietaryCycle: String(rawOptions.dietaryCycle || '').trim(),
     includeSupplements: rawOptions.includeSupplements !== false,
     periWorkoutWindowMinutes
   };

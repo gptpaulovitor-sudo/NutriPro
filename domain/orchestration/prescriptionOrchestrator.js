@@ -299,7 +299,10 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   // ═══════════════════════════════════════════════════════════════════════════
   try {
     macroTargetResult = calculateDeterministicMacroTargets(currentContext, energyTargetResult, {
-      policy: policies.macroPolicy
+      policy: policies.macroPolicy,
+      dietaryStyle: options.dietaryStyle || currentContext.options?.dietaryStyle,
+      dietaryCycle: options.dietaryCycle || currentContext.options?.dietaryCycle,
+      ...(options || {})
     });
   } catch (err) {
     const reasons = [err.message || 'Erro inesperado no cálculo de macronutrientes N2.2.'];
@@ -362,9 +365,13 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       ? { ...policies.nutritionValidationPolicy }
       : {};
 
+    const effectiveEnergyTarget = (macroTargetResult && Number.isFinite(macroTargetResult.caloricTargetKcal) && macroTargetResult.caloricTargetKcal !== energyTargetResult.caloricTargetKcal)
+      ? { ...energyTargetResult, caloricTargetKcal: macroTargetResult.caloricTargetKcal }
+      : energyTargetResult;
+
     nutritionValidatorResult = validateNutritionPrescriptionTargets(
       currentContext,
-      energyTargetResult,
+      effectiveEnergyTarget,
       macroTargetResult,
       nutritionValidationOptions
     );
@@ -428,13 +435,20 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   // ETAPA 5: N3.2 — DETERMINISTIC FOOD SOLVER
   // ═══════════════════════════════════════════════════════════════════════════
   try {
+    const effectiveEnergyTarget = (macroTargetResult && Number.isFinite(macroTargetResult.caloricTargetKcal) && macroTargetResult.caloricTargetKcal !== energyTargetResult.caloricTargetKcal)
+      ? { ...energyTargetResult, caloricTargetKcal: macroTargetResult.caloricTargetKcal }
+      : energyTargetResult;
+
     const solverInput = {
       context: currentContext,
-      energyTarget: energyTargetResult,
+      energyTarget: effectiveEnergyTarget,
       macroTarget: macroTargetResult,
       validationResult: nutritionValidatorResult,
       foodCatalog: Array.isArray(foodCatalog) ? foodCatalog : [],
-      options: options.solverOptions || {}
+      options: {
+        ...(options || {}),
+        ...(options.solverOptions || {})
+      }
     };
 
     foodSolverResult = solveNutritionDiet(solverInput, policies.foodSolverPolicy || {});

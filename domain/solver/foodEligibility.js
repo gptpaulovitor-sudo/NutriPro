@@ -148,6 +148,102 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
     }
   }
 
+  // 4. Governança Culinária e Blacklist de Não-Refeições
+  const excludeNonMealItems = options.excludeNonMealItems !== false && policy.excludeNonMealItems !== false;
+  if (excludeNonMealItems && foodName) {
+    const fn = foodName.trim();
+    const isWithoutSugar = /sem\s+a[çc][uú]car/i.test(fn);
+    if (!isWithoutSugar && (/(?:^|[,\s])a[çc][uú]car(?:[,\s]|$)|gla[çc][uú]car|xarope|melado|sacarose/i.test(fn))) {
+      reasons.push("Ingrediente culinário industrial (açúcar/xarope puro) inelegível como refeição clínica.");
+    } else if (/bcaa|glutamina|beta-alanina|creatina|arginina|citrulina|carnitina/i.test(fn)) {
+      reasons.push("Pó isolado de aminoácido/ergogênico inelegível como alimento estruturador de refeição.");
+    } else if (/banha\s+de\s+porco|gordura\s+vegetal\s+hidrogenada|azeite\s+de\s+dend[eê]/i.test(fn)) {
+      reasons.push("Gordura industrial de cocção inelegível como alimento direto de cardápio.");
+    } else if (/^sal\b|sal\s+(?:refinado|grosso|marinho|rosa|iodado|de\s+parrilla)|color[ií]fico|fermento\s+qu[ií]mico|bicarbonato|ado[çc]ante|sucralose|eritritol|xilitol|est[eé]via/i.test(fn)) {
+      reasons.push("Condimento puro, sal, adoçante ou aditivo químico inelegível como alimento de refeição.");
+    } else if (/refrigerante|bebida\s+energ[eé]tica/i.test(fn)) {
+      reasons.push("Bebida gaseificada/refrigerante inelegível como alimento estruturador de refeição clínica.");
+    }
+  }
+
+  // 5. Governança de Estilo Dietético & Protocolos com Ciclos/Fases
+  let dietaryStyle = String(options.dietaryStyle || (options.context && options.context.options && options.context.options.dietaryStyle) || (options.solverOptions && options.solverOptions.dietaryStyle) || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (dietaryStyle === 'lowvab' || dietaryStyle === 'lowcarb') dietaryStyle = 'lowcarb';
+  if (dietaryStyle === 'keto') dietaryStyle = 'cetogenica';
+  if (dietaryStyle === 'while30') dietaryStyle = 'whole30';
+  const dietaryCycle = String(options.dietaryCycle || (options.context && options.context.options && options.context.options.dietaryCycle) || (options.solverOptions && options.solverOptions.dietaryCycle) || '').trim().toLowerCase();
+  const includeSupplements = options.includeSupplements !== false && (options.context?.options?.includeSupplements !== false) && (options.solverOptions?.includeSupplements !== false);
+
+  if (foodName) {
+    const fn = foodName.trim();
+
+    // Suplementação desativada
+    if (!includeSupplements && /whey|suplemento|albumina\s+em\s+p[oó]|prote[ií]na\s+isolada/i.test(fn)) {
+      reasons.push("Suplemento proteico desativado pelo nutricionista (includeSupplements: false).");
+    }
+
+    // Padrão Ovo-Lacto (plant-based com ovos e lácteos)
+    if (dietaryStyle === 'ovolacto' || dietaryStyle === 'plant_based') {
+      const isEgg = /ovo|clara/i.test(fn);
+      const isMeatOrFish = !isEgg && /\b(frango|galinha|patinho|alcatra|maminha|picanha|bovino|boi|vaca|carne|peixe|til[aá]pia|atum|salm[aã]o|sardinha|bacalhau|merluza|pescada|camar[aã]o|lula|polvo|marisco|su[ií]no|porco|bacon|presunto|peru|chester|cordeiro)\b/i.test(fn);
+      if (isMeatOrFish) {
+        reasons.push("Alimento de origem animal (carne/peixe) incompatível com padrão ovo-lacto.");
+      }
+    }
+
+    // Dukan: Fase de Ataque (PP) ou Cruzeiro (PP)
+    if (dietaryStyle === 'dukan' && (dietaryCycle === 'dukan_ataque' || dietaryCycle === 'dukan_cruzeiro_pp' || !dietaryCycle)) {
+      const isLeanProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|leite\s+desnatado|iogurte\s+desnatado|whey/i.test(fn);
+      const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
+      if (!isLeanProtein && !isOatBran) {
+        reasons.push("Fase de Ataque/PP da Dieta Dukan permite exclusivamente proteínas magras e farelo de aveia.");
+      }
+    }
+
+    // Dukan: Fase de Cruzeiro (PL - Proteína + Legumes)
+    if (dietaryStyle === 'dukan' && dietaryCycle === 'dukan_cruzeiro_pl') {
+      const isProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|iogurte\s+desnatado|whey/i.test(fn);
+      const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
+      const isAllowedVeg = /br[oó]colis|salada|alface|tomate|pepino|abobrinha|espinafre|couve|cogumelo|palmito|berinjela|cenoura/i.test(fn);
+      if (!isProtein && !isOatBran && !isAllowedVeg) {
+        reasons.push("Fase de Cruzeiro (PL) da Dieta Dukan restringe carboidratos feculentos, grãos, tubérculos e frutas.");
+      }
+    }
+
+    // Cetogênica (Keto)
+    if (dietaryStyle === 'cetogenica' && dietaryCycle !== 'keto_ciclica_refeed') {
+      const isHighCarb = /arroz|feij[aã]o|gr[aã]o-de-bico|lentilha|batata|mandioca|aipim|aveia|p[aã]o|tapioca|torrada|biscoito|macarr[aã]o|milho|banana|mam[aã]o|ma[cç][aã]|manga|uva/i.test(fn);
+      if (isHighCarb) {
+        reasons.push("Alimento com alto teor de carboidratos incompatível com indução cetogênica.");
+      }
+    }
+
+    // Whole30
+    if (dietaryStyle === 'whole30' && dietaryCycle !== 'whole30_reintroducao') {
+      const isGrain = /arroz|aveia|trigo|p[aã]o|milho|tapioca|quinoa|centeio|cevada|macarr[aã]o/i.test(fn);
+      const isLegume = /feij[aã]o|lentilha|gr[aã]o-de-bico|amendoim|pasta\s+de\s+amendoim|soja|tofu/i.test(fn);
+      const isDairy = /leite|queijo|cottage|minas|iogurte|manteiga|requeij[aã]o|nata|creme\s+de\s+leite|whey/i.test(fn);
+      if (isGrain) {
+        reasons.push("Whole30 proíbe rigorosamente todos os grãos e cereais.");
+      } else if (isLegume) {
+        reasons.push("Whole30 proíbe todas as leguminosas (feijões, soja, amendoim).");
+      } else if (isDairy) {
+        reasons.push("Whole30 proíbe laticínios de qualquer origem animal.");
+      }
+    }
+
+    // Low Carb
+    if (dietaryStyle === 'lowcarb') {
+      const isUltraCarb = /p[aã]o\s+franc[eê]s|tapioca|refrigerante/i.test(fn);
+      if (isUltraCarb) {
+        reasons.push("Alimento de alta carga glicêmica incompatível com o padrão Low Carb.");
+      }
+      if (dietaryCycle === 'lowcarb_restrita' && /arroz|feij[aã]o|batata/i.test(fn)) {
+        reasons.push("Alimento com densidade glicídica incompatível com Low Carb Restrita / Indução.");
+      }
+    }
+  }
+
   // Se houver qualquer razão de bloqueio, o alimento é inelegível
   if (reasons.length > 0) {
     return deepFreeze({

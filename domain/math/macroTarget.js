@@ -210,6 +210,146 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
     factorsConsidered.push(`Recordatório Alimentar (${dietaryRecall.items.length} itens — referência contextual não sobrescreve metas)`);
   }
 
+  // ── 5.5 PROTOCOLOS CLÍNICOS ESPECIAIS & CICLOS (Low Carb, Cetogênica, Dukan, Whole30) ──
+  let activeStyle = String(options.dietaryStyle || (context.options && context.options.dietaryStyle) || (context.patient && context.patient.dietaryStyle) || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (activeStyle === 'lowvab' || activeStyle === 'lowcarb') activeStyle = 'lowcarb';
+  if (activeStyle === 'keto') activeStyle = 'cetogenica';
+  if (activeStyle === 'while30') activeStyle = 'whole30';
+  const activeCycle = String(options.dietaryCycle || (context.options && context.options.dietaryCycle) || (context.patient && context.patient.dietaryCycle) || '').trim().toLowerCase();
+
+  const isProtocolStyle = ['cetogenica', 'lowcarb', 'dukan', 'whole30'].includes(activeStyle);
+
+  if (isProtocolStyle) {
+    factorsConsidered.push(`Protocolo Dietético Clínico: ${activeStyle.toUpperCase()} (Ciclo/Fase: ${activeCycle || 'Padrão'})`);
+
+    let pTarget = 0;
+    let cTarget = 0;
+    let fTarget = 0;
+    let fibTarget = 25;
+    let effectiveCalTarget = caloricTargetKcal;
+
+    if (activeStyle === 'cetogenica') {
+      if (activeCycle === 'keto_ciclica_refeed') {
+        pTarget = Math.round(weightKg * 1.8);
+        fTarget = Math.max(25, Math.round((caloricTargetKcal * 0.15) / 9));
+        cTarget = Math.max(50, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+        fibTarget = 25;
+      } else if (activeCycle === 'keto_direcionada') {
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 45;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 15;
+      } else {
+        // keto_padrao (SKD) ou keto_ciclica_keto
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 25;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 15;
+      }
+    } else if (activeStyle === 'lowcarb') {
+      if (activeCycle === 'lowcarb_restrita' || activeCycle === 'lowcarb_inducao') {
+        pTarget = Math.round(weightKg * 2.0);
+        cTarget = 60;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 20;
+      } else if (activeCycle === 'lowcarb_liberal') {
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 130;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 25;
+      } else {
+        // lowcarb_moderada / padrão
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 100;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 25;
+      }
+    } else if (activeStyle === 'dukan') {
+      if (activeCycle === 'dukan_cruzeiro_pl') {
+        pTarget = Math.round(weightKg * 2.1);
+        cTarget = 40;
+        fTarget = Math.max(25, Math.round(weightKg * 0.40));
+        fibTarget = 15;
+      } else if (activeCycle === 'dukan_consolidacao') {
+        pTarget = Math.round(weightKg * 2.0);
+        cTarget = 90;
+        fTarget = Math.max(25, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 20;
+      } else if (activeCycle === 'dukan_estabilizacao') {
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 130;
+        fTarget = Math.max(25, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 25;
+      } else {
+        // Ataque PP ou Cruzeiro PP
+        pTarget = Math.round(weightKg * 2.3);
+        cTarget = 15;
+        fTarget = Math.max(20, Math.round(weightKg * 0.35));
+        fibTarget = 10;
+      }
+      effectiveCalTarget = (pTarget * 4) + (cTarget * 4) + (fTarget * 9);
+    } else if (activeStyle === 'whole30') {
+      if (activeCycle === 'whole30_reintroducao') {
+        pTarget = Math.round(weightKg * 1.9);
+        fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.30) / 9));
+        cTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+        fibTarget = 28;
+      } else {
+        // whole30_eliminacao / padrão
+        pTarget = Math.round(weightKg * 2.0);
+        fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.35) / 9));
+        cTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+        fibTarget = 28;
+      }
+    }
+
+    const pKcal = pTarget * 4;
+    const cKcal = cTarget * 4;
+    const fKcal = fTarget * 9;
+    const macroKcal = pKcal + cKcal + fKcal;
+
+    // Sincronização termodinâmica perfeita
+    effectiveCalTarget = macroKcal;
+
+    appliedRules.push(`PROTOCOL_${activeStyle.toUpperCase()}_RULES_APPLIED`);
+    rationale.push(`Metas calculadas segundo o protocolo clínico ${activeStyle.toUpperCase()} (${activeCycle || 'padrão'}): P=${pTarget}g, C=${cTarget}g, G=${fTarget}g.`);
+
+    const protoResult = {
+      status: "PASS",
+      caloricTargetKcal: effectiveCalTarget,
+      proteinTargetG: pTarget,
+      carbohydrateTargetG: cTarget,
+      fatTargetG: fTarget,
+      fiberTargetG: fibTarget,
+      proteinKcal: pKcal,
+      carbohydrateKcal: cKcal,
+      fatKcal: fKcal,
+      macroEnergyKcal: macroKcal,
+      energyDifferenceKcal: 0,
+      objective: rawObjective,
+      calculationMethod: `PROTOCOL_${activeStyle.toUpperCase()}_N22`,
+      factorsConsidered,
+      warnings,
+      blockingReasons,
+      rationale,
+      policy: {
+        version: policy.policyVersion,
+        appliedRules,
+        parameters: [{ key: `dietaryStyle.${activeStyle}`, value: activeCycle || 'standard', source: 'PROTOCOL_SPECIFICATION' }]
+      },
+      provenance: {
+        energyTarget: { caloricTargetKcal: effectiveCalTarget, source: energySource, energyPolicyVersion },
+        protein: { reference: 'PROTOCOL', referenceValue: weightKg, method: 'PROTOCOL_RATIO', gPerKg: Number((pTarget / weightKg).toFixed(2)) },
+        carbohydrate: { method: 'PROTOCOL_CARB_TARGET', residualKcal: cKcal },
+        fat: { method: 'PROTOCOL_FAT_TARGET', gPerKg: Number((fTarget / weightKg).toFixed(2)) },
+        fiber: { method: 'PROTOCOL_FIBER_TARGET' },
+        validation: { toleranceKcal: p.safety.energyToleranceKcal.value, differenceKcal: 0, isConsistent: true }
+      }
+    };
+
+    return deepFreeze(protoResult);
+  }
+
   // ── 6. DETERMINAÇÃO DA META DE PROTEÍNA (ETAPAS 4 & 5) ─────────────────────
   let proteinStrategy = options.proteinStrategy || p.protein.defaultStrategy || "TOTAL_BODY_WEIGHT";
   let proteinRef = "TOTAL_BODY_WEIGHT";

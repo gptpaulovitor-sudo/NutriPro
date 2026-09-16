@@ -3040,7 +3040,132 @@ function openAIPrescriptionModal() {
   if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = canonicalTargets.fatTargetG != null ? `${canonicalTargets.fatTargetG}g` : '--g';
 
   modal.classList.remove("hidden");
+  if (typeof updateAIModalTargetsPreview === 'function') {
+    updateAIModalTargetsPreview();
+  }
   if (window.lucide) window.lucide.createIcons();
+}
+
+function onAIDietaryStyleChanged() {
+  const styleSelect = document.getElementById("aiDietaryStyleSelect");
+  const cycleContainer = document.getElementById("aiDietaryCycleContainer");
+  const cycleSelect = document.getElementById("aiDietaryCycleSelect");
+  if (!styleSelect || !cycleContainer || !cycleSelect) return;
+
+  const style = styleSelect.value;
+  cycleSelect.innerHTML = "";
+
+  if (style === "lowcarb") {
+    cycleContainer.classList.remove("hidden");
+    cycleSelect.innerHTML = `
+      <option value="lowcarb_moderada" selected>Low Carb Moderada (100g - 130g Carbs)</option>
+      <option value="lowcarb_restrita">Low Carb Restrita / Indução (50g - 80g Carbs)</option>
+    `;
+  } else if (style === "cetogenica") {
+    cycleContainer.classList.remove("hidden");
+    cycleSelect.innerHTML = `
+      <option value="keto_padrao" selected>Cetogênica Padrão - SKD (&lt; 30g Carbs, 70-75% Lipídios)</option>
+      <option value="keto_ciclica_keto">Cetogênica Cíclica - CKD (Dia Cetogênico Estrito)</option>
+      <option value="keto_ciclica_refeed">Cetogênica Cíclica - CKD (Dia de Recarga / Carb Refeed)</option>
+      <option value="keto_direcionada">Cetogênica Direcionada - TKD (Carb Peri-Treino)</option>
+    `;
+  } else if (style === "dukan") {
+    cycleContainer.classList.remove("hidden");
+    cycleSelect.innerHTML = `
+      <option value="dukan_ataque" selected>Fase 1: Ataque (PP - Proteína Pura, sem vegetais nem frutas)</option>
+      <option value="dukan_cruzeiro_pl">Fase 2: Cruzeiro (PL - Proteínas e Legumes permitidos)</option>
+      <option value="dukan_cruzeiro_pp">Fase 2: Cruzeiro (PP - Dia de Proteína Pura alternada)</option>
+      <option value="dukan_consolidacao">Fase 3: Consolidação (Frutas e pão integral reintroduzidos)</option>
+    `;
+  } else if (style === "whole30") {
+    cycleContainer.classList.remove("hidden");
+    cycleSelect.innerHTML = `
+      <option value="whole30_eliminacao" selected>Fase de Eliminação (Dias 1-30: Sem grãos, leguminosas, laticínios)</option>
+      <option value="whole30_reintroducao">Fase de Reintrodução (Pós-30 dias: Teste gradual de grupos)</option>
+    `;
+  } else {
+    cycleContainer.classList.add("hidden");
+    cycleSelect.innerHTML = "";
+  }
+
+  updateAIModalTargetsPreview();
+}
+
+function onAIDietaryCycleChanged() {
+  updateAIModalTargetsPreview();
+}
+
+function updateAIModalTargetsPreview() {
+  const styleSelect = document.getElementById("aiDietaryStyleSelect");
+  const cycleSelect = document.getElementById("aiDietaryCycleSelect");
+  const style = styleSelect?.value || "tradicional";
+  const cycle = cycleSelect?.value || "";
+
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(
+    activePatientData,
+    typeof lastEval !== 'undefined' ? lastEval : null,
+    currentPrescriptionMeta
+  );
+
+  const p = activePatientData || {};
+  const ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
+  const weightKg = Number(ev.weight || p.currentWeight || p.weight || 70.0);
+  let calTarget = canonicalTargets.caloricTargetKcal || 2000;
+  let pTarget = canonicalTargets.proteinTargetG;
+  let cTarget = canonicalTargets.carbohydrateTargetG;
+  let fTarget = canonicalTargets.fatTargetG;
+
+  if (style === "cetogenica") {
+    if (cycle === "keto_ciclica_refeed") {
+      pTarget = Math.round(weightKg * 1.8);
+      fTarget = Math.max(25, Math.round((calTarget * 0.15) / 9));
+      cTarget = Math.max(50, Math.round((calTarget - (pTarget * 4) - (fTarget * 9)) / 4));
+    } else {
+      pTarget = Math.round(weightKg * 1.8);
+      cTarget = 25;
+      fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
+    }
+  } else if (style === "lowcarb") {
+    if (cycle === "lowcarb_restrita") {
+      pTarget = Math.round(weightKg * 2.0);
+      cTarget = 70;
+      fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
+    } else {
+      pTarget = Math.round(weightKg * 1.8);
+      cTarget = 120;
+      fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
+    }
+  } else if (style === "dukan") {
+    if (cycle === "dukan_cruzeiro_pl") {
+      pTarget = Math.round(weightKg * 2.1);
+      cTarget = 40;
+      fTarget = Math.max(25, Math.round(weightKg * 0.40));
+    } else if (cycle === "dukan_consolidacao") {
+      pTarget = Math.round(weightKg * 2.0);
+      cTarget = 90;
+      fTarget = Math.max(25, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
+    } else {
+      pTarget = Math.round(weightKg * 2.3);
+      cTarget = 15;
+      fTarget = Math.max(20, Math.round(weightKg * 0.35));
+    }
+    calTarget = (pTarget * 4) + (cTarget * 4) + (fTarget * 9);
+  } else if (style === "whole30") {
+    pTarget = Math.round(weightKg * 2.0);
+    fTarget = Math.max(30, Math.round((calTarget * 0.35) / 9));
+    cTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (fTarget * 9)) / 4));
+  }
+
+  if (document.getElementById("aiModalKcalTarget")) document.getElementById("aiModalKcalTarget").innerText = calTarget ?? '--';
+  if (document.getElementById("aiModalProtTarget")) document.getElementById("aiModalProtTarget").innerText = pTarget != null ? `${pTarget}g` : '--g';
+  if (document.getElementById("aiModalCarbTarget")) document.getElementById("aiModalCarbTarget").innerText = cTarget != null ? `${cTarget}g` : '--g';
+  if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = fTarget != null ? `${fTarget}g` : '--g';
+}
+
+if (typeof window !== 'undefined') {
+  window.onAIDietaryStyleChanged = onAIDietaryStyleChanged;
+  window.onAIDietaryCycleChanged = onAIDietaryCycleChanged;
+  window.updateAIModalTargetsPreview = updateAIModalTargetsPreview;
 }
 
 function closeAIPrescriptionModal() {
@@ -3087,6 +3212,7 @@ async function executeAIPrescriptionGeneration() {
 
   const mealCount = parseInt(document.getElementById("aiMealCountSelect")?.value || "4", 10);
   const dietaryStyle = document.getElementById("aiDietaryStyleSelect")?.value || "tradicional";
+  const dietaryCycle = document.getElementById("aiDietaryCycleSelect")?.value || "";
   const includeSupplements = document.getElementById("aiIncludeSupplementsCheck")?.checked !== false;
 
   const orchestrator = getCanonicalPrescriptionOrchestrator();
@@ -3106,6 +3232,28 @@ async function executeAIPrescriptionGeneration() {
     try {
       foodCatalog = require('./foodsData').COMPREHENSIVE_TACO_TBCA_FOODS || [];
     } catch (_) {}
+  }
+
+  // Prepend canonical staple foods if available
+  const canonicalFoodsSource = (typeof CANONICAL_DIET_FOODS !== 'undefined' ? CANONICAL_DIET_FOODS : (typeof window !== 'undefined' ? window.CANONICAL_DIET_FOODS : null));
+  if (canonicalFoodsSource && typeof canonicalFoodsSource === 'object') {
+    const canonicalFoodList = Object.entries(canonicalFoodsSource).map(([key, f]) => ({
+      id: `canon_${key}`,
+      foodId: `canon_${key}`,
+      name: f.name,
+      calories: f.calories,
+      protein: f.protein,
+      carbohydrate: f.carbohydrate,
+      lipid: f.lipid,
+      fiber: f.fiber || 0,
+      sodium: f.sodium || 0,
+      unit: f.defaultUnit || 'g',
+      gramPerUnit: f.gramPerUnit || 100,
+      source: f.source || 'TACO',
+      prepState: f.prepState || null,
+      category: f.category || 'Geral'
+    }));
+    foodCatalog = [...canonicalFoodList, ...foodCatalog];
   }
 
   // Prepara input via prescriptionInputAdapter
@@ -3140,6 +3288,7 @@ async function executeAIPrescriptionGeneration() {
     options: {
       mealCount: mealCount,
       dietaryStyle: dietaryStyle,
+      dietaryCycle: dietaryCycle,
       includeSupplements: includeSupplements
     }
   });

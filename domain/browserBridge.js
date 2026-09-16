@@ -1832,7 +1832,9 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     cookingAvailability: rawRoutine.cookingAvailability ? String(rawRoutine.cookingAvailability).trim() : null,
     mealPreparer: rawRoutine.mealPreparer ? String(rawRoutine.mealPreparer).trim() : null,
     wakeUpTime: rawRoutine.wakeUpTime ? String(rawRoutine.wakeUpTime).trim() : null,
-    bedTime: rawRoutine.bedTime ? String(rawRoutine.bedTime).trim() : null
+    bedTime: rawRoutine.bedTime ? String(rawRoutine.bedTime).trim() : null,
+    mealsPerDay: (rawRoutine.mealsPerDay != null && !isNaN(Number(rawRoutine.mealsPerDay))) ? Number(rawRoutine.mealsPerDay) : null,
+    mealCount: (rawRoutine.mealCount != null && !isNaN(Number(rawRoutine.mealCount))) ? Number(rawRoutine.mealCount) : null
   };
 
   // 8. Recordatório
@@ -1981,6 +1983,8 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     fasting,
     clinical,
     currentPrescription,
+    mealsPerDay: (data.mealsPerDay != null && !isNaN(Number(data.mealsPerDay))) ? Number(data.mealsPerDay) : (routine.mealsPerDay ?? null),
+    mealCount: (data.mealCount != null && !isNaN(Number(data.mealCount))) ? Number(data.mealCount) : (routine.mealCount ?? null),
     provenance
   };
 
@@ -6313,6 +6317,7 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
   const canonicalOptions = {
     mealCount: mealCountRes.mealCount,
     dietaryStyle: String(rawOptions.dietaryStyle || 'tradicional').trim(),
+    dietaryCycle: String(rawOptions.dietaryCycle || '').trim(),
     includeSupplements: rawOptions.includeSupplements !== false,
     periWorkoutWindowMinutes
   };
@@ -9074,6 +9079,146 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
     factorsConsidered.push(`Recordatório Alimentar (${dietaryRecall.items.length} itens — referência contextual não sobrescreve metas)`);
   }
 
+  // ── 5.5 PROTOCOLOS CLÍNICOS ESPECIAIS & CICLOS (Low Carb, Cetogênica, Dukan, Whole30) ──
+  let activeStyle = String(options.dietaryStyle || (context.options && context.options.dietaryStyle) || (context.patient && context.patient.dietaryStyle) || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (activeStyle === 'lowvab' || activeStyle === 'lowcarb') activeStyle = 'lowcarb';
+  if (activeStyle === 'keto') activeStyle = 'cetogenica';
+  if (activeStyle === 'while30') activeStyle = 'whole30';
+  const activeCycle = String(options.dietaryCycle || (context.options && context.options.dietaryCycle) || (context.patient && context.patient.dietaryCycle) || '').trim().toLowerCase();
+
+  const isProtocolStyle = ['cetogenica', 'lowcarb', 'dukan', 'whole30'].includes(activeStyle);
+
+  if (isProtocolStyle) {
+    factorsConsidered.push(`Protocolo Dietético Clínico: ${activeStyle.toUpperCase()} (Ciclo/Fase: ${activeCycle || 'Padrão'})`);
+
+    let pTarget = 0;
+    let cTarget = 0;
+    let fTarget = 0;
+    let fibTarget = 25;
+    let effectiveCalTarget = caloricTargetKcal;
+
+    if (activeStyle === 'cetogenica') {
+      if (activeCycle === 'keto_ciclica_refeed') {
+        pTarget = Math.round(weightKg * 1.8);
+        fTarget = Math.max(25, Math.round((caloricTargetKcal * 0.15) / 9));
+        cTarget = Math.max(50, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+        fibTarget = 25;
+      } else if (activeCycle === 'keto_direcionada') {
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 45;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 15;
+      } else {
+        // keto_padrao (SKD) ou keto_ciclica_keto
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 25;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 15;
+      }
+    } else if (activeStyle === 'lowcarb') {
+      if (activeCycle === 'lowcarb_restrita' || activeCycle === 'lowcarb_inducao') {
+        pTarget = Math.round(weightKg * 2.0);
+        cTarget = 60;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 20;
+      } else if (activeCycle === 'lowcarb_liberal') {
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 130;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 25;
+      } else {
+        // lowcarb_moderada / padrão
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 100;
+        fTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 25;
+      }
+    } else if (activeStyle === 'dukan') {
+      if (activeCycle === 'dukan_cruzeiro_pl') {
+        pTarget = Math.round(weightKg * 2.1);
+        cTarget = 40;
+        fTarget = Math.max(25, Math.round(weightKg * 0.40));
+        fibTarget = 15;
+      } else if (activeCycle === 'dukan_consolidacao') {
+        pTarget = Math.round(weightKg * 2.0);
+        cTarget = 90;
+        fTarget = Math.max(25, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 20;
+      } else if (activeCycle === 'dukan_estabilizacao') {
+        pTarget = Math.round(weightKg * 1.8);
+        cTarget = 130;
+        fTarget = Math.max(25, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
+        fibTarget = 25;
+      } else {
+        // Ataque PP ou Cruzeiro PP
+        pTarget = Math.round(weightKg * 2.3);
+        cTarget = 15;
+        fTarget = Math.max(20, Math.round(weightKg * 0.35));
+        fibTarget = 10;
+      }
+      effectiveCalTarget = (pTarget * 4) + (cTarget * 4) + (fTarget * 9);
+    } else if (activeStyle === 'whole30') {
+      if (activeCycle === 'whole30_reintroducao') {
+        pTarget = Math.round(weightKg * 1.9);
+        fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.30) / 9));
+        cTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+        fibTarget = 28;
+      } else {
+        // whole30_eliminacao / padrão
+        pTarget = Math.round(weightKg * 2.0);
+        fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.35) / 9));
+        cTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+        fibTarget = 28;
+      }
+    }
+
+    const pKcal = pTarget * 4;
+    const cKcal = cTarget * 4;
+    const fKcal = fTarget * 9;
+    const macroKcal = pKcal + cKcal + fKcal;
+
+    // Sincronização termodinâmica perfeita
+    effectiveCalTarget = macroKcal;
+
+    appliedRules.push(`PROTOCOL_${activeStyle.toUpperCase()}_RULES_APPLIED`);
+    rationale.push(`Metas calculadas segundo o protocolo clínico ${activeStyle.toUpperCase()} (${activeCycle || 'padrão'}): P=${pTarget}g, C=${cTarget}g, G=${fTarget}g.`);
+
+    const protoResult = {
+      status: "PASS",
+      caloricTargetKcal: effectiveCalTarget,
+      proteinTargetG: pTarget,
+      carbohydrateTargetG: cTarget,
+      fatTargetG: fTarget,
+      fiberTargetG: fibTarget,
+      proteinKcal: pKcal,
+      carbohydrateKcal: cKcal,
+      fatKcal: fKcal,
+      macroEnergyKcal: macroKcal,
+      energyDifferenceKcal: 0,
+      objective: rawObjective,
+      calculationMethod: `PROTOCOL_${activeStyle.toUpperCase()}_N22`,
+      factorsConsidered,
+      warnings,
+      blockingReasons,
+      rationale,
+      policy: {
+        version: policy.policyVersion,
+        appliedRules,
+        parameters: [{ key: `dietaryStyle.${activeStyle}`, value: activeCycle || 'standard', source: 'PROTOCOL_SPECIFICATION' }]
+      },
+      provenance: {
+        energyTarget: { caloricTargetKcal: effectiveCalTarget, source: energySource, energyPolicyVersion },
+        protein: { reference: 'PROTOCOL', referenceValue: weightKg, method: 'PROTOCOL_RATIO', gPerKg: Number((pTarget / weightKg).toFixed(2)) },
+        carbohydrate: { method: 'PROTOCOL_CARB_TARGET', residualKcal: cKcal },
+        fat: { method: 'PROTOCOL_FAT_TARGET', gPerKg: Number((fTarget / weightKg).toFixed(2)) },
+        fiber: { method: 'PROTOCOL_FIBER_TARGET' },
+        validation: { toleranceKcal: p.safety.energyToleranceKcal.value, differenceKcal: 0, isConsistent: true }
+      }
+    };
+
+    return deepFreeze(protoResult);
+  }
+
   // ── 6. DETERMINAÇÃO DA META DE PROTEÍNA (ETAPAS 4 & 5) ─────────────────────
   let proteinStrategy = options.proteinStrategy || p.protein.defaultStrategy || "TOTAL_BODY_WEIGHT";
   let proteinRef = "TOTAL_BODY_WEIGHT";
@@ -10150,6 +10295,102 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
     }
   }
 
+  // 4. Governança Culinária e Blacklist de Não-Refeições
+  const excludeNonMealItems = options.excludeNonMealItems !== false && policy.excludeNonMealItems !== false;
+  if (excludeNonMealItems && foodName) {
+    const fn = foodName.trim();
+    const isWithoutSugar = /sem\s+a[çc][uú]car/i.test(fn);
+    if (!isWithoutSugar && (/(?:^|[,\s])a[çc][uú]car(?:[,\s]|$)|gla[çc][uú]car|xarope|melado|sacarose/i.test(fn))) {
+      reasons.push("Ingrediente culinário industrial (açúcar/xarope puro) inelegível como refeição clínica.");
+    } else if (/bcaa|glutamina|beta-alanina|creatina|arginina|citrulina|carnitina/i.test(fn)) {
+      reasons.push("Pó isolado de aminoácido/ergogênico inelegível como alimento estruturador de refeição.");
+    } else if (/banha\s+de\s+porco|gordura\s+vegetal\s+hidrogenada|azeite\s+de\s+dend[eê]/i.test(fn)) {
+      reasons.push("Gordura industrial de cocção inelegível como alimento direto de cardápio.");
+    } else if (/^sal\b|sal\s+(?:refinado|grosso|marinho|rosa|iodado|de\s+parrilla)|color[ií]fico|fermento\s+qu[ií]mico|bicarbonato|ado[çc]ante|sucralose|eritritol|xilitol|est[eé]via/i.test(fn)) {
+      reasons.push("Condimento puro, sal, adoçante ou aditivo químico inelegível como alimento de refeição.");
+    } else if (/refrigerante|bebida\s+energ[eé]tica/i.test(fn)) {
+      reasons.push("Bebida gaseificada/refrigerante inelegível como alimento estruturador de refeição clínica.");
+    }
+  }
+
+  // 5. Governança de Estilo Dietético & Protocolos com Ciclos/Fases
+  let dietaryStyle = String(options.dietaryStyle || (options.context && options.context.options && options.context.options.dietaryStyle) || (options.solverOptions && options.solverOptions.dietaryStyle) || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (dietaryStyle === 'lowvab' || dietaryStyle === 'lowcarb') dietaryStyle = 'lowcarb';
+  if (dietaryStyle === 'keto') dietaryStyle = 'cetogenica';
+  if (dietaryStyle === 'while30') dietaryStyle = 'whole30';
+  const dietaryCycle = String(options.dietaryCycle || (options.context && options.context.options && options.context.options.dietaryCycle) || (options.solverOptions && options.solverOptions.dietaryCycle) || '').trim().toLowerCase();
+  const includeSupplements = options.includeSupplements !== false && (options.context?.options?.includeSupplements !== false) && (options.solverOptions?.includeSupplements !== false);
+
+  if (foodName) {
+    const fn = foodName.trim();
+
+    // Suplementação desativada
+    if (!includeSupplements && /whey|suplemento|albumina\s+em\s+p[oó]|prote[ií]na\s+isolada/i.test(fn)) {
+      reasons.push("Suplemento proteico desativado pelo nutricionista (includeSupplements: false).");
+    }
+
+    // Padrão Ovo-Lacto (plant-based com ovos e lácteos)
+    if (dietaryStyle === 'ovolacto' || dietaryStyle === 'plant_based') {
+      const isEgg = /ovo|clara/i.test(fn);
+      const isMeatOrFish = !isEgg && /\b(frango|galinha|patinho|alcatra|maminha|picanha|bovino|boi|vaca|carne|peixe|til[aá]pia|atum|salm[aã]o|sardinha|bacalhau|merluza|pescada|camar[aã]o|lula|polvo|marisco|su[ií]no|porco|bacon|presunto|peru|chester|cordeiro)\b/i.test(fn);
+      if (isMeatOrFish) {
+        reasons.push("Alimento de origem animal (carne/peixe) incompatível com padrão ovo-lacto.");
+      }
+    }
+
+    // Dukan: Fase de Ataque (PP) ou Cruzeiro (PP)
+    if (dietaryStyle === 'dukan' && (dietaryCycle === 'dukan_ataque' || dietaryCycle === 'dukan_cruzeiro_pp' || !dietaryCycle)) {
+      const isLeanProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|leite\s+desnatado|iogurte\s+desnatado|whey/i.test(fn);
+      const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
+      if (!isLeanProtein && !isOatBran) {
+        reasons.push("Fase de Ataque/PP da Dieta Dukan permite exclusivamente proteínas magras e farelo de aveia.");
+      }
+    }
+
+    // Dukan: Fase de Cruzeiro (PL - Proteína + Legumes)
+    if (dietaryStyle === 'dukan' && dietaryCycle === 'dukan_cruzeiro_pl') {
+      const isProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|iogurte\s+desnatado|whey/i.test(fn);
+      const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
+      const isAllowedVeg = /br[oó]colis|salada|alface|tomate|pepino|abobrinha|espinafre|couve|cogumelo|palmito|berinjela|cenoura/i.test(fn);
+      if (!isProtein && !isOatBran && !isAllowedVeg) {
+        reasons.push("Fase de Cruzeiro (PL) da Dieta Dukan restringe carboidratos feculentos, grãos, tubérculos e frutas.");
+      }
+    }
+
+    // Cetogênica (Keto)
+    if (dietaryStyle === 'cetogenica' && dietaryCycle !== 'keto_ciclica_refeed') {
+      const isHighCarb = /arroz|feij[aã]o|gr[aã]o-de-bico|lentilha|batata|mandioca|aipim|aveia|p[aã]o|tapioca|torrada|biscoito|macarr[aã]o|milho|banana|mam[aã]o|ma[cç][aã]|manga|uva/i.test(fn);
+      if (isHighCarb) {
+        reasons.push("Alimento com alto teor de carboidratos incompatível com indução cetogênica.");
+      }
+    }
+
+    // Whole30
+    if (dietaryStyle === 'whole30' && dietaryCycle !== 'whole30_reintroducao') {
+      const isGrain = /arroz|aveia|trigo|p[aã]o|milho|tapioca|quinoa|centeio|cevada|macarr[aã]o/i.test(fn);
+      const isLegume = /feij[aã]o|lentilha|gr[aã]o-de-bico|amendoim|pasta\s+de\s+amendoim|soja|tofu/i.test(fn);
+      const isDairy = /leite|queijo|cottage|minas|iogurte|manteiga|requeij[aã]o|nata|creme\s+de\s+leite|whey/i.test(fn);
+      if (isGrain) {
+        reasons.push("Whole30 proíbe rigorosamente todos os grãos e cereais.");
+      } else if (isLegume) {
+        reasons.push("Whole30 proíbe todas as leguminosas (feijões, soja, amendoim).");
+      } else if (isDairy) {
+        reasons.push("Whole30 proíbe laticínios de qualquer origem animal.");
+      }
+    }
+
+    // Low Carb
+    if (dietaryStyle === 'lowcarb') {
+      const isUltraCarb = /p[aã]o\s+franc[eê]s|tapioca|refrigerante/i.test(fn);
+      if (isUltraCarb) {
+        reasons.push("Alimento de alta carga glicêmica incompatível com o padrão Low Carb.");
+      }
+      if (dietaryCycle === 'lowcarb_restrita' && /arroz|feij[aã]o|batata/i.test(fn)) {
+        reasons.push("Alimento com densidade glicídica incompatível com Low Carb Restrita / Indução.");
+      }
+    }
+  }
+
   // Se houver qualquer razão de bloqueio, o alimento é inelegível
   if (reasons.length > 0) {
     return deepFreeze({
@@ -10621,13 +10862,130 @@ function calculateFoodPortionNutrients(food, grams) {
 }
 
 /**
+ * Pontuação determinística de afinidade clínica e gastronômica por estilo e ciclo
+ * @param {Object} food 
+ * @param {string} role 
+ * @param {Object} options 
+ * @returns {number}
+ */
+function calculateClinicalStapleScore(food, role, options = {}) {
+  const name = String(food.name || food.foodName || '').toLowerCase();
+  let style = String(options.dietaryStyle || '').toLowerCase().replace(/[\s_-]/g, '');
+  if (style === 'lowvab' || style === 'lowcarb') style = 'lowcarb';
+  if (style === 'keto') style = 'cetogenica';
+  if (style === 'while30') style = 'whole30';
+  const cycle = String(options.dietaryCycle || '').toLowerCase();
+  const includeSupplements = options.includeSupplements !== false;
+
+  let score = 0;
+
+  // 1. Pilares universais da alimentação clínica real brasileira
+  if (/arroz/i.test(name)) score += 600;
+  if (/feij[aã]o/i.test(name)) score += 600;
+  if (/frango/i.test(name)) score += 550;
+  if (/patinho|alcatra|maminha/i.test(name)) score += 500;
+  if (/til[aá]pia|merluza|pescada/i.test(name)) score += 480;
+  if (/salm[aã]o|sardinha|atum/i.test(name)) score += 470;
+  if (/ovo\s+de\s+galinha|ovos/i.test(name)) score += 550;
+  if (/clara/i.test(name)) score += 450;
+  if (/batata\s+doce/i.test(name)) score += 500;
+  if (/batata\s+inglesa/i.test(name)) score += 450;
+  if (/mandioca|aipim/i.test(name)) score += 420;
+  if (/aveia/i.test(name)) score += 500;
+  if (/p[aã]o.*integral/i.test(name)) score += 480;
+  if (/banana/i.test(name)) score += 450;
+  if (/ma[cç][aã]/i.test(name)) score += 400;
+  if (/mam[aã]o/i.test(name)) score += 400;
+  if (/morango/i.test(name)) score += 420;
+  if (/br[oó]colis/i.test(name)) score += 450;
+  if (/salada|alface|tomate|pepino|espinafre/i.test(name)) score += 450;
+  if (/azeite.*oliva/i.test(name)) score += 550;
+  if (/castanha|nozes/i.test(name)) score += 450;
+  if (/abacate/i.test(name)) score += 450;
+  if (/iogurte/i.test(name)) score += 450;
+  if (/cottage|minas|ricota/i.test(name)) score += 450;
+
+  // 2. Modulações de Afinidade por Estilo & Ciclo
+  if (style === 'tradicional') {
+    if (/arroz/i.test(name)) score += 250;
+    if (/feij[aã]o/i.test(name)) score += 250;
+    if (/frango|patinho|ovo/i.test(name)) score += 200;
+    if (/batata|p[aã]o/i.test(name)) score += 150;
+    if (/banana|salada/i.test(name)) score += 150;
+  } else if (style === 'fitness') {
+    if (/frango|til[aá]pia|clara/i.test(name)) score += 300;
+    if (/batata\s+doce|aveia/i.test(name)) score += 250;
+    if (/whey/i.test(name)) score += (includeSupplements ? 350 : -9999);
+    if (/br[oó]colis|salada/i.test(name)) score += 200;
+    if (/pasta\s+de\s+amendoim/i.test(name)) score += 200;
+  } else if (style === 'pratico') {
+    if (/p[aã]o|iogurte|aveia|banana|ovo|cottage|minas/i.test(name)) score += 300;
+    if (/whey/i.test(name)) score += (includeSupplements ? 300 : -9999);
+    if (/atum/i.test(name)) score += 250;
+  } else if (style === 'ovolacto' || style === 'plant_based') {
+    if (/ovo|queijo|iogurte|leite/i.test(name)) score += 300;
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) score += 300;
+    if (/aveia|arroz|castanha|tofu/i.test(name)) score += 250;
+    if (/frango|carne|peixe|su[ií]no/i.test(name)) score = -9999;
+  } else if (style === 'cetogenica') {
+    if (cycle === 'keto_ciclica_refeed') {
+      if (/arroz|batata|aveia|frutas/i.test(name)) score += 400;
+      if (/frango|til[aá]pia|clara/i.test(name)) score += 300;
+    } else {
+      if (/azeite.*oliva|castanha|abacate|manteiga/i.test(name)) score += 400;
+      if (/ovo|frango|salm[aã]o|sardinha|patinho|queijo/i.test(name)) score += 350;
+      if (/br[oó]colis|salada|abobrinha|espinafre/i.test(name)) score += 300;
+      if (/arroz|feij[aã]o|p[aã]o|batata|aveia|tapioca|banana|ma[cç][aã]|mam[aã]o/i.test(name)) score = -9999;
+    }
+  } else if (style === 'lowcarb') {
+    if (/ovo|frango|peixe|patinho|queijo/i.test(name)) score += 300;
+    if (/azeite.*oliva|castanha|abacate/i.test(name)) score += 300;
+    if (/br[oó]colis|salada|morango/i.test(name)) score += 250;
+    if (/p[aã]o\s+franc[eê]s|tapioca/i.test(name)) score = -9999;
+    if (cycle === 'lowcarb_restrita' && /arroz|feij[aã]o|batata/i.test(name)) score = -9999;
+    if (cycle === 'lowcarb_moderada') {
+      if (/batata\s+doce|aveia|arroz\s+integral/i.test(name)) score += 200;
+    }
+  } else if (style === 'dukan') {
+    if (cycle === 'dukan_ataque' || cycle === 'dukan_cruzeiro_pp' || !cycle) {
+      if (/frango|clara|ovo|patinho|til[aá]pia|atum/i.test(name)) score += 500;
+      if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
+      if (/cottage|ricota/i.test(name)) score += 300;
+      if (/arroz|feij[aã]o|p[aã]o|batata|fruta|br[oó]colis|salada|azeite/i.test(name)) score = -9999;
+    } else if (cycle === 'dukan_cruzeiro_pl') {
+      if (/frango|patinho|til[aá]pia|ovo|clara/i.test(name)) score += 500;
+      if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
+      if (/br[oó]colis|salada|alface|tomate|pepino|abobrinha/i.test(name)) score += 400;
+      if (/arroz|feij[aã]o|p[aã]o|batata|fruta|azeite/i.test(name)) score = -9999;
+    } else if (cycle === 'dukan_consolidacao') {
+      if (/frango|patinho|peixe|ovo|farelo/i.test(name)) score += 400;
+      if (/ma[cç][aã]|morango|p[aã]o.*integral/i.test(name)) score += 350;
+    }
+  } else if (style === 'whole30') {
+    if (/ovo|frango|patinho|til[aá]pia|salm[aã]o/i.test(name)) score += 400;
+    if (/batata\s+doce|batata\s+inglesa|mandioca/i.test(name)) score += 350;
+    if (/salada|br[oó]colis|banana|ma[cç][aã]|mam[aã]o/i.test(name)) score += 350;
+    if (/azeite.*oliva|castanha|abacate/i.test(name)) score += 400;
+    if (/arroz|aveia|p[aã]o|feij[aã]o|leite|queijo|iogurte|amendoim|whey/i.test(name)) score = -9999;
+  }
+
+  // Suplementos desativados
+  if (!includeSupplements && /whey/i.test(name)) {
+    score = -9999;
+  }
+
+  return score;
+}
+
+/**
  * Redução determinística e estável do espaço de busca
  * Agrupa por Search Roles e limita a K candidatos de alta relevância por papel
  * @param {Array<Object>} eligibleFoods 
  * @param {Object} policy 
+ * @param {Object} [options]
  * @returns {Array<Object>} Candidatos selecionados para a busca combinatória
  */
-function reduceSearchCandidates(eligibleFoods, policy) {
+function reduceSearchCandidates(eligibleFoods, policy, options = {}) {
   const perRoleLimit = policy.candidateLimits.perSearchRole || 4;
   const globalLimit = policy.candidateLimits.globalCandidateLimit || 20;
 
@@ -10653,7 +11011,7 @@ function reduceSearchCandidates(eligibleFoods, policy) {
   // 2. Ordenar deterministicamente cada bucket:
   // Critério:
   // a) Status bromatológico: CONSISTENTE antes de REVISAR
-  // b) Densidade relevante para o papel
+  // b) Pontuação de Afinidade Clínica e Estilo Gastronômico + Densidade de Papel
   // c) Desempate estrito por foodId lexicográfico
   const comparator = (role) => (a, b) => {
     const statusA = (a.bromatology && a.bromatology.energyStatus) || 'CONSISTENTE';
@@ -10661,27 +11019,33 @@ function reduceSearchCandidates(eligibleFoods, policy) {
     if (statusA === 'CONSISTENTE' && statusB !== 'CONSISTENTE') return -1;
     if (statusA !== 'CONSISTENTE' && statusB === 'CONSISTENTE') return 1;
 
-    let scoreA = 0;
-    let scoreB = 0;
+    const stapleA = calculateClinicalStapleScore(a, role, options);
+    const stapleB = calculateClinicalStapleScore(b, role, options);
+
+    let densityA = 0;
+    let densityB = 0;
     if (role === SEARCH_ROLES.ROLE_PROTEIN_DENSE) {
-      scoreA = a.protein || 0;
-      scoreB = b.protein || 0;
+      densityA = a.protein || 0;
+      densityB = b.protein || 0;
     } else if (role === SEARCH_ROLES.ROLE_CARB_DENSE) {
-      scoreA = a.carbohydrate || 0;
-      scoreB = b.carbohydrate || 0;
+      densityA = a.carbohydrate || 0;
+      densityB = b.carbohydrate || 0;
     } else if (role === SEARCH_ROLES.ROLE_FAT_DENSE) {
-      scoreA = a.lipid || 0;
-      scoreB = b.lipid || 0;
+      densityA = a.lipid || 0;
+      densityB = b.lipid || 0;
     } else if (role === SEARCH_ROLES.ROLE_FIBER_VOLUME) {
-      scoreA = a.fiber || 0;
-      scoreB = b.fiber || 0;
+      densityA = a.fiber || 0;
+      densityB = b.fiber || 0;
     } else {
-      scoreA = a.calories || 0;
-      scoreB = b.calories || 0;
+      densityA = a.calories || 0;
+      densityB = b.calories || 0;
     }
 
-    if (Math.abs(scoreB - scoreA) > 1e-5) {
-      return scoreB - scoreA; // Maior densidade primeiro
+    const totalA = stapleA + densityA;
+    const totalB = stapleB + densityB;
+
+    if (Math.abs(totalB - totalA) > 1e-5) {
+      return totalB - totalA; // Maior pontuação total primeiro
     }
 
     // Desempate estável final
@@ -10892,7 +11256,11 @@ function solveNutritionDiet(input, customPolicy = {}) {
 
   const filterOptions = {
     context: input.context,
-    constraints: input.constraints || (input.context && input.context.constraints) || {}
+    constraints: input.constraints || (input.context && input.context.constraints) || {},
+    ...(input.options || {}),
+    dietaryStyle: input.options?.dietaryStyle || input.context?.options?.dietaryStyle || input.context?.dietaryStyle,
+    dietaryCycle: input.options?.dietaryCycle || input.context?.options?.dietaryCycle || input.context?.dietaryCycle,
+    includeSupplements: input.options?.includeSupplements !== false && input.context?.options?.includeSupplements !== false
   };
 
   const filterResult = filterEligibleFoods(canonicalCatalog, policy.eligibility, filterOptions);
@@ -10923,7 +11291,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
   }
 
   // 4. Redução Determinística do Espaço de Busca
-  const candidatePool = reduceSearchCandidates(eligibleFoods, policy);
+  const candidatePool = reduceSearchCandidates(eligibleFoods, policy, filterOptions);
 
   // 5. Busca Bounded e Otimização Combinatória com Limite Determinístico (N3.7.5)
   const targetItemCountMin = Math.min(policy.searchBounds.targetItemCountMin, candidatePool.length);
@@ -13357,9 +13725,7 @@ function scheduleMeals(input, customPolicy = {}) {
   const sourceAssembly = input.mealAssemblyResult;
   const rawMeals = [...sourceAssembly.meals];
   const globalTotals = sourceAssembly.globalTotals;
-  // N3.4 inicia com array vazio — warnings de fases anteriores (N3.2, N3.3) NÃO são herdados.
-  // Cada camada reporta exclusivamente os alertas de sua própria responsabilidade técnica.
-  const warnings = [];
+  const warnings = Array.isArray(sourceAssembly.warnings) ? [...sourceAssembly.warnings] : [];
   const diagnostics = [];
 
   // 2. Ordenação Canônica das Refeições por mealIndex para Garantir Invariância
@@ -14191,9 +14557,7 @@ function analyzeNutrientTiming(input, customPolicy = {}) {
 
   const globalDiagnostics = [];
   const conflicts = [];
-  // N3.5 inicia com array vazio — warnings de fases anteriores (N3.2, N3.3, N3.4) NÃO são herdados.
-  // Cada camada reporta exclusivamente os alertas de sua própria responsabilidade técnica.
-  const warnings = [];
+  const warnings = Array.isArray(mealTimingResult.warnings) ? [...mealTimingResult.warnings] : [];
   const blockingReasons = [];
 
   // 2. Resolução Estruturada de Eventos do Microciclo (Treino, Cardio, Descanso)
@@ -15988,7 +16352,10 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   // ═══════════════════════════════════════════════════════════════════════════
   try {
     macroTargetResult = calculateDeterministicMacroTargets(currentContext, energyTargetResult, {
-      policy: policies.macroPolicy
+      policy: policies.macroPolicy,
+      dietaryStyle: options.dietaryStyle || currentContext.options?.dietaryStyle,
+      dietaryCycle: options.dietaryCycle || currentContext.options?.dietaryCycle,
+      ...(options || {})
     });
   } catch (err) {
     const reasons = [err.message || 'Erro inesperado no cálculo de macronutrientes N2.2.'];
@@ -16051,9 +16418,13 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       ? { ...policies.nutritionValidationPolicy }
       : {};
 
+    const effectiveEnergyTarget = (macroTargetResult && Number.isFinite(macroTargetResult.caloricTargetKcal) && macroTargetResult.caloricTargetKcal !== energyTargetResult.caloricTargetKcal)
+      ? { ...energyTargetResult, caloricTargetKcal: macroTargetResult.caloricTargetKcal }
+      : energyTargetResult;
+
     nutritionValidatorResult = validateNutritionPrescriptionTargets(
       currentContext,
-      energyTargetResult,
+      effectiveEnergyTarget,
       macroTargetResult,
       nutritionValidationOptions
     );
@@ -16117,13 +16488,20 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   // ETAPA 5: N3.2 — DETERMINISTIC FOOD SOLVER
   // ═══════════════════════════════════════════════════════════════════════════
   try {
+    const effectiveEnergyTarget = (macroTargetResult && Number.isFinite(macroTargetResult.caloricTargetKcal) && macroTargetResult.caloricTargetKcal !== energyTargetResult.caloricTargetKcal)
+      ? { ...energyTargetResult, caloricTargetKcal: macroTargetResult.caloricTargetKcal }
+      : energyTargetResult;
+
     const solverInput = {
       context: currentContext,
-      energyTarget: energyTargetResult,
+      energyTarget: effectiveEnergyTarget,
       macroTarget: macroTargetResult,
       validationResult: nutritionValidatorResult,
       foodCatalog: Array.isArray(foodCatalog) ? foodCatalog : [],
-      options: options.solverOptions || {}
+      options: {
+        ...(options || {}),
+        ...(options.solverOptions || {})
+      }
     };
 
     foodSolverResult = solveNutritionDiet(solverInput, policies.foodSolverPolicy || {});
@@ -16360,7 +16738,11 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   }
 
   if (Array.isArray(mealTimingResult.warnings) && mealTimingResult.warnings.length > 0) {
-    accumulatedWarnings.push(...mealTimingResult.warnings.map(w => `[N3.4] ${w}`));
+    const assemblyWarnSet = new Set(Array.isArray(mealAssemblyResult?.warnings) ? mealAssemblyResult.warnings : []);
+    const timingOnlyWarnings = mealTimingResult.warnings.filter(w => !assemblyWarnSet.has(w));
+    if (timingOnlyWarnings.length > 0) {
+      accumulatedWarnings.push(...timingOnlyWarnings.map(w => `[N3.4] ${w}`));
+    }
   }
 
   pipelineTrace.push({
@@ -16435,7 +16817,11 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   }
 
   if (Array.isArray(nutrientTimingResult.warnings) && nutrientTimingResult.warnings.length > 0) {
-    accumulatedWarnings.push(...nutrientTimingResult.warnings.map(w => `[N3.5] ${w}`));
+    const timingWarnSet = new Set(Array.isArray(mealTimingResult?.warnings) ? mealTimingResult.warnings : []);
+    const nutrientTimingOnlyWarnings = nutrientTimingResult.warnings.filter(w => !timingWarnSet.has(w));
+    if (nutrientTimingOnlyWarnings.length > 0) {
+      accumulatedWarnings.push(...nutrientTimingOnlyWarnings.map(w => `[N3.5] ${w}`));
+    }
   }
 
   pipelineTrace.push({

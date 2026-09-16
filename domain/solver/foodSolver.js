@@ -81,13 +81,130 @@ function calculateFoodPortionNutrients(food, grams) {
 }
 
 /**
+ * Pontuação determinística de afinidade clínica e gastronômica por estilo e ciclo
+ * @param {Object} food 
+ * @param {string} role 
+ * @param {Object} options 
+ * @returns {number}
+ */
+function calculateClinicalStapleScore(food, role, options = {}) {
+  const name = String(food.name || food.foodName || '').toLowerCase();
+  let style = String(options.dietaryStyle || '').toLowerCase().replace(/[\s_-]/g, '');
+  if (style === 'lowvab' || style === 'lowcarb') style = 'lowcarb';
+  if (style === 'keto') style = 'cetogenica';
+  if (style === 'while30') style = 'whole30';
+  const cycle = String(options.dietaryCycle || '').toLowerCase();
+  const includeSupplements = options.includeSupplements !== false;
+
+  let score = 0;
+
+  // 1. Pilares universais da alimentação clínica real brasileira
+  if (/arroz/i.test(name)) score += 600;
+  if (/feij[aã]o/i.test(name)) score += 600;
+  if (/frango/i.test(name)) score += 550;
+  if (/patinho|alcatra|maminha/i.test(name)) score += 500;
+  if (/til[aá]pia|merluza|pescada/i.test(name)) score += 480;
+  if (/salm[aã]o|sardinha|atum/i.test(name)) score += 470;
+  if (/ovo\s+de\s+galinha|ovos/i.test(name)) score += 550;
+  if (/clara/i.test(name)) score += 450;
+  if (/batata\s+doce/i.test(name)) score += 500;
+  if (/batata\s+inglesa/i.test(name)) score += 450;
+  if (/mandioca|aipim/i.test(name)) score += 420;
+  if (/aveia/i.test(name)) score += 500;
+  if (/p[aã]o.*integral/i.test(name)) score += 480;
+  if (/banana/i.test(name)) score += 450;
+  if (/ma[cç][aã]/i.test(name)) score += 400;
+  if (/mam[aã]o/i.test(name)) score += 400;
+  if (/morango/i.test(name)) score += 420;
+  if (/br[oó]colis/i.test(name)) score += 450;
+  if (/salada|alface|tomate|pepino|espinafre/i.test(name)) score += 450;
+  if (/azeite.*oliva/i.test(name)) score += 550;
+  if (/castanha|nozes/i.test(name)) score += 450;
+  if (/abacate/i.test(name)) score += 450;
+  if (/iogurte/i.test(name)) score += 450;
+  if (/cottage|minas|ricota/i.test(name)) score += 450;
+
+  // 2. Modulações de Afinidade por Estilo & Ciclo
+  if (style === 'tradicional') {
+    if (/arroz/i.test(name)) score += 250;
+    if (/feij[aã]o/i.test(name)) score += 250;
+    if (/frango|patinho|ovo/i.test(name)) score += 200;
+    if (/batata|p[aã]o/i.test(name)) score += 150;
+    if (/banana|salada/i.test(name)) score += 150;
+  } else if (style === 'fitness') {
+    if (/frango|til[aá]pia|clara/i.test(name)) score += 300;
+    if (/batata\s+doce|aveia/i.test(name)) score += 250;
+    if (/whey/i.test(name)) score += (includeSupplements ? 350 : -9999);
+    if (/br[oó]colis|salada/i.test(name)) score += 200;
+    if (/pasta\s+de\s+amendoim/i.test(name)) score += 200;
+  } else if (style === 'pratico') {
+    if (/p[aã]o|iogurte|aveia|banana|ovo|cottage|minas/i.test(name)) score += 300;
+    if (/whey/i.test(name)) score += (includeSupplements ? 300 : -9999);
+    if (/atum/i.test(name)) score += 250;
+  } else if (style === 'ovolacto' || style === 'plant_based') {
+    if (/ovo|queijo|iogurte|leite/i.test(name)) score += 300;
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) score += 300;
+    if (/aveia|arroz|castanha|tofu/i.test(name)) score += 250;
+    if (/frango|carne|peixe|su[ií]no/i.test(name)) score = -9999;
+  } else if (style === 'cetogenica') {
+    if (cycle === 'keto_ciclica_refeed') {
+      if (/arroz|batata|aveia|frutas/i.test(name)) score += 400;
+      if (/frango|til[aá]pia|clara/i.test(name)) score += 300;
+    } else {
+      if (/azeite.*oliva|castanha|abacate|manteiga/i.test(name)) score += 400;
+      if (/ovo|frango|salm[aã]o|sardinha|patinho|queijo/i.test(name)) score += 350;
+      if (/br[oó]colis|salada|abobrinha|espinafre/i.test(name)) score += 300;
+      if (/arroz|feij[aã]o|p[aã]o|batata|aveia|tapioca|banana|ma[cç][aã]|mam[aã]o/i.test(name)) score = -9999;
+    }
+  } else if (style === 'lowcarb') {
+    if (/ovo|frango|peixe|patinho|queijo/i.test(name)) score += 300;
+    if (/azeite.*oliva|castanha|abacate/i.test(name)) score += 300;
+    if (/br[oó]colis|salada|morango/i.test(name)) score += 250;
+    if (/p[aã]o\s+franc[eê]s|tapioca/i.test(name)) score = -9999;
+    if (cycle === 'lowcarb_restrita' && /arroz|feij[aã]o|batata/i.test(name)) score = -9999;
+    if (cycle === 'lowcarb_moderada') {
+      if (/batata\s+doce|aveia|arroz\s+integral/i.test(name)) score += 200;
+    }
+  } else if (style === 'dukan') {
+    if (cycle === 'dukan_ataque' || cycle === 'dukan_cruzeiro_pp' || !cycle) {
+      if (/frango|clara|ovo|patinho|til[aá]pia|atum/i.test(name)) score += 500;
+      if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
+      if (/cottage|ricota/i.test(name)) score += 300;
+      if (/arroz|feij[aã]o|p[aã]o|batata|fruta|br[oó]colis|salada|azeite/i.test(name)) score = -9999;
+    } else if (cycle === 'dukan_cruzeiro_pl') {
+      if (/frango|patinho|til[aá]pia|ovo|clara/i.test(name)) score += 500;
+      if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
+      if (/br[oó]colis|salada|alface|tomate|pepino|abobrinha/i.test(name)) score += 400;
+      if (/arroz|feij[aã]o|p[aã]o|batata|fruta|azeite/i.test(name)) score = -9999;
+    } else if (cycle === 'dukan_consolidacao') {
+      if (/frango|patinho|peixe|ovo|farelo/i.test(name)) score += 400;
+      if (/ma[cç][aã]|morango|p[aã]o.*integral/i.test(name)) score += 350;
+    }
+  } else if (style === 'whole30') {
+    if (/ovo|frango|patinho|til[aá]pia|salm[aã]o/i.test(name)) score += 400;
+    if (/batata\s+doce|batata\s+inglesa|mandioca/i.test(name)) score += 350;
+    if (/salada|br[oó]colis|banana|ma[cç][aã]|mam[aã]o/i.test(name)) score += 350;
+    if (/azeite.*oliva|castanha|abacate/i.test(name)) score += 400;
+    if (/arroz|aveia|p[aã]o|feij[aã]o|leite|queijo|iogurte|amendoim|whey/i.test(name)) score = -9999;
+  }
+
+  // Suplementos desativados
+  if (!includeSupplements && /whey/i.test(name)) {
+    score = -9999;
+  }
+
+  return score;
+}
+
+/**
  * Redução determinística e estável do espaço de busca
  * Agrupa por Search Roles e limita a K candidatos de alta relevância por papel
  * @param {Array<Object>} eligibleFoods 
  * @param {Object} policy 
+ * @param {Object} [options]
  * @returns {Array<Object>} Candidatos selecionados para a busca combinatória
  */
-function reduceSearchCandidates(eligibleFoods, policy) {
+function reduceSearchCandidates(eligibleFoods, policy, options = {}) {
   const perRoleLimit = policy.candidateLimits.perSearchRole || 4;
   const globalLimit = policy.candidateLimits.globalCandidateLimit || 20;
 
@@ -113,7 +230,7 @@ function reduceSearchCandidates(eligibleFoods, policy) {
   // 2. Ordenar deterministicamente cada bucket:
   // Critério:
   // a) Status bromatológico: CONSISTENTE antes de REVISAR
-  // b) Densidade relevante para o papel
+  // b) Pontuação de Afinidade Clínica e Estilo Gastronômico + Densidade de Papel
   // c) Desempate estrito por foodId lexicográfico
   const comparator = (role) => (a, b) => {
     const statusA = (a.bromatology && a.bromatology.energyStatus) || 'CONSISTENTE';
@@ -121,27 +238,33 @@ function reduceSearchCandidates(eligibleFoods, policy) {
     if (statusA === 'CONSISTENTE' && statusB !== 'CONSISTENTE') return -1;
     if (statusA !== 'CONSISTENTE' && statusB === 'CONSISTENTE') return 1;
 
-    let scoreA = 0;
-    let scoreB = 0;
+    const stapleA = calculateClinicalStapleScore(a, role, options);
+    const stapleB = calculateClinicalStapleScore(b, role, options);
+
+    let densityA = 0;
+    let densityB = 0;
     if (role === SEARCH_ROLES.ROLE_PROTEIN_DENSE) {
-      scoreA = a.protein || 0;
-      scoreB = b.protein || 0;
+      densityA = a.protein || 0;
+      densityB = b.protein || 0;
     } else if (role === SEARCH_ROLES.ROLE_CARB_DENSE) {
-      scoreA = a.carbohydrate || 0;
-      scoreB = b.carbohydrate || 0;
+      densityA = a.carbohydrate || 0;
+      densityB = b.carbohydrate || 0;
     } else if (role === SEARCH_ROLES.ROLE_FAT_DENSE) {
-      scoreA = a.lipid || 0;
-      scoreB = b.lipid || 0;
+      densityA = a.lipid || 0;
+      densityB = b.lipid || 0;
     } else if (role === SEARCH_ROLES.ROLE_FIBER_VOLUME) {
-      scoreA = a.fiber || 0;
-      scoreB = b.fiber || 0;
+      densityA = a.fiber || 0;
+      densityB = b.fiber || 0;
     } else {
-      scoreA = a.calories || 0;
-      scoreB = b.calories || 0;
+      densityA = a.calories || 0;
+      densityB = b.calories || 0;
     }
 
-    if (Math.abs(scoreB - scoreA) > 1e-5) {
-      return scoreB - scoreA; // Maior densidade primeiro
+    const totalA = stapleA + densityA;
+    const totalB = stapleB + densityB;
+
+    if (Math.abs(totalB - totalA) > 1e-5) {
+      return totalB - totalA; // Maior pontuação total primeiro
     }
 
     // Desempate estável final
@@ -352,7 +475,11 @@ function solveNutritionDiet(input, customPolicy = {}) {
 
   const filterOptions = {
     context: input.context,
-    constraints: input.constraints || (input.context && input.context.constraints) || {}
+    constraints: input.constraints || (input.context && input.context.constraints) || {},
+    ...(input.options || {}),
+    dietaryStyle: input.options?.dietaryStyle || input.context?.options?.dietaryStyle || input.context?.dietaryStyle,
+    dietaryCycle: input.options?.dietaryCycle || input.context?.options?.dietaryCycle || input.context?.dietaryCycle,
+    includeSupplements: input.options?.includeSupplements !== false && input.context?.options?.includeSupplements !== false
   };
 
   const filterResult = filterEligibleFoods(canonicalCatalog, policy.eligibility, filterOptions);
@@ -383,7 +510,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
   }
 
   // 4. Redução Determinística do Espaço de Busca
-  const candidatePool = reduceSearchCandidates(eligibleFoods, policy);
+  const candidatePool = reduceSearchCandidates(eligibleFoods, policy, filterOptions);
 
   // 5. Busca Bounded e Otimização Combinatória com Limite Determinístico (N3.7.5)
   const targetItemCountMin = Math.min(policy.searchBounds.targetItemCountMin, candidatePool.length);

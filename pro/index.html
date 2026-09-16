@@ -5671,16 +5671,23 @@
 
           <div>
             <label class="block font-bold text-zinc-200 text-xs mb-1.5">Estilo Gastronômico & Preferência</label>
-            <select id="aiDietaryStyleSelect"
+            <select id="aiDietaryStyleSelect" onchange="onAIDietaryStyleChanged()"
               class="w-full p-3 bg-zinc-950 border border-zinc-700 rounded-xl font-bold text-white focus:ring-2 focus:ring-red-600 outline-none text-xs">
-              <option value="tradicional" selected>Tradicional Brasileiro (Arroz, feijão, frango/carne, ovos, frutas,
-                batata)</option>
-              <option value="fitness">High Protein / Fitness (Aporte proteico prioritário, whey, aveia, frutas densas)
-              </option>
-              <option value="pratico">Prático / Rotina Corrida (Preparações rápidas, lanches fáceis, shakes e frutas)
-              </option>
-              <option value="vegetariano">Ovo-lacto-vegetariano (Ovos, queijos, leguminosas, cereais e oleaginosas)
-              </option>
+              <option value="tradicional" selected>Tradicional Brasileiro (Arroz, feijão, frango/carne, ovos, frutas, batata)</option>
+              <option value="fitness">High Protein / Fitness (Aporte proteico prioritário, whey, aveia, frutas densas)</option>
+              <option value="pratico">Prático / Rotina Corrida (Preparações rápidas, lanches fáceis, shakes e frutas)</option>
+              <option value="vegetariano">Ovo-lacto-vegetariano (Ovos, queijos, leguminosas, cereais e oleaginosas)</option>
+              <option value="lowcarb">Low Carb (Restrição glicídica, vegetais folhosos, carnes e gorduras boas)</option>
+              <option value="cetogenica">Cetogênica / Keto (Very Low Carb &lt; 30g, alta densidade lipídica)</option>
+              <option value="dukan">Dieta Dukan (Alto teor proteico estruturado por fases PP e PL)</option>
+              <option value="whole30">Whole30 (Zero grãos, leguminosas, laticínios ou açúcares adicionados)</option>
+            </select>
+          </div>
+
+          <div id="aiDietaryCycleContainer" class="hidden">
+            <label class="block font-bold text-zinc-200 text-xs mb-1.5">Fase / Ciclo do Protocolo</label>
+            <select id="aiDietaryCycleSelect" onchange="onAIDietaryCycleChanged()"
+              class="w-full p-3 bg-zinc-950 border border-zinc-700 rounded-xl font-bold text-white focus:ring-2 focus:ring-red-600 outline-none text-xs">
             </select>
           </div>
 
