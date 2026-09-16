@@ -3622,26 +3622,63 @@ function renderMealItems() {
     return;
   }
 
-  const mealGroups = ["Café da manhã", "Lanche manhã", "Almoço", "Pré-treino", "Pós-treino", "Jantar", "Ceia"];
+  const standardMealOrder = [
+    "Café da manhã",
+    "Lanche manhã",
+    "Almoço",
+    "Lanche tarde",
+    "Pré-treino",
+    "Pós-treino",
+    "Jantar",
+    "Ceia"
+  ];
+
+  // Extrai dinamicamente todas as refeições presentes nos itens cadastrados
+  const mealsPresent = [];
+  const seenMeals = new Set();
+  currentPrescriptionItems.forEach((item) => {
+    const mName = (item.mealName || "Refeição").trim();
+    if (!seenMeals.has(mName)) {
+      seenMeals.add(mName);
+      mealsPresent.push(mName);
+    }
+  });
+
+  // Ordena respeitando a ordem clínica padrão ou cronologicamente por horário
+  mealsPresent.sort((a, b) => {
+    const idxA = standardMealOrder.indexOf(a);
+    const idxB = standardMealOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    const timeA = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === a)?.mealTime || "12:00";
+    const timeB = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === b)?.mealTime || "12:00";
+    return timeA.localeCompare(timeB) || a.localeCompare(b);
+  });
+
+  const effectiveMealGroups = mealsPresent.length > 0 ? mealsPresent : standardMealOrder;
 
   // Calcula os totais gerais do plano para fracionamento de metas
-  const totalPrescribedKcal = currentPrescriptionItems.reduce((acc, i) => acc + i.calories, 0) || 1890;
-  const totalPrescribedProt = currentPrescriptionItems.reduce((acc, i) => acc + i.protein, 0) || 191;
-  const totalPrescribedCarb = currentPrescriptionItems.reduce((acc, i) => acc + i.carbohydrate, 0) || 194;
-  const totalPrescribedLip = currentPrescriptionItems.reduce((acc, i) => acc + i.lipid, 0) || 37;
+  const totalPrescribedKcal = currentPrescriptionItems.reduce((acc, i) => acc + (Number(i.calories) || 0), 0) || 1890;
+  const totalPrescribedProt = currentPrescriptionItems.reduce((acc, i) => acc + (Number(i.protein) || 0), 0) || 191;
+  const totalPrescribedCarb = currentPrescriptionItems.reduce((acc, i) => acc + (Number(i.carbohydrate) || 0), 0) || 194;
+  const totalPrescribedLip = currentPrescriptionItems.reduce((acc, i) => acc + (Number(i.lipid) || 0), 0) || 37;
 
-  container.innerHTML = mealGroups
+  container.innerHTML = effectiveMealGroups
     .map((group) => {
-      const items = currentPrescriptionItems.filter((i) => i.mealName === group);
+      const items = currentPrescriptionItems.filter((i) => (i.mealName || "").trim() === group);
       if (items.length === 0) return "";
 
-      const groupKcal = items.reduce((acc, i) => acc + i.calories, 0);
-      const groupProt = items.reduce((acc, i) => acc + i.protein, 0);
-      const groupCarb = items.reduce((acc, i) => acc + i.carbohydrate, 0);
-      const groupLip = items.reduce((acc, i) => acc + i.lipid, 0);
+      const groupKcal = items.reduce((acc, i) => acc + (Number(i.calories) || 0), 0);
+      const groupProt = items.reduce((acc, i) => acc + (Number(i.protein) || 0), 0);
+      const groupCarb = items.reduce((acc, i) => acc + (Number(i.carbohydrate) || 0), 0);
+      const groupLip = items.reduce((acc, i) => acc + (Number(i.lipid) || 0), 0);
 
       // Metas Proporcionais Calculadas
-      const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group]) ? mealStrategies[group] : { pct: 0.15, label: "Refeição", guideline: "Aporte equilibrado de macronutrientes." };
+      const fallbackPct = Number((1 / (effectiveMealGroups.length || 1)).toFixed(2));
+      const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group])
+        ? mealStrategies[group]
+        : { pct: fallbackPct, label: group, guideline: "Aporte equilibrado de macronutrientes conforme prescrição clínica." };
       const targetMealKcal = Math.round(totalPrescribedKcal * strat.pct);
       const targetMealProt = Math.round(totalPrescribedProt * strat.pct);
       const targetMealCarb = Math.round(totalPrescribedCarb * strat.pct);
@@ -3840,7 +3877,27 @@ async function exportPrescriptionAndEvaluationPDF() {
     { kcal: 0, protein: 0, carb: 0, lipid: 0, fiber: 0 }
   );
 
-  const mealGroups = ["Café da manhã", "Lanche manhã", "Almoço", "Lanche tarde", "Pré-treino", "Pós-treino", "Jantar", "Ceia"];
+  const standardMealOrder = ["Café da manhã", "Lanche manhã", "Almoço", "Lanche tarde", "Pré-treino", "Pós-treino", "Jantar", "Ceia"];
+  const mealsPresent = [];
+  const seenMeals = new Set();
+  currentPrescriptionItems.forEach((item) => {
+    const mName = (item.mealName || "Refeição").trim();
+    if (!seenMeals.has(mName)) {
+      seenMeals.add(mName);
+      mealsPresent.push(mName);
+    }
+  });
+  mealsPresent.sort((a, b) => {
+    const idxA = standardMealOrder.indexOf(a);
+    const idxB = standardMealOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    const timeA = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === a)?.mealTime || "12:00";
+    const timeB = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === b)?.mealTime || "12:00";
+    return timeA.localeCompare(timeB) || a.localeCompare(b);
+  });
+  const mealGroups = mealsPresent.length > 0 ? mealsPresent : standardMealOrder;
   const hydration = p.hydrationLiters || (weight ? Number((weight * 0.035).toFixed(1)) : 3.0);
   const emissionDate = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -4020,14 +4077,17 @@ async function exportPrescriptionAndEvaluationPDF() {
       </div>
 
       ${mealGroups.map((group) => {
-    const items = currentPrescriptionItems.filter((i) => i.mealName === group);
+    const items = currentPrescriptionItems.filter((i) => (i.mealName || "").trim() === group);
     if (items.length === 0) return "";
 
-    const groupKcal = items.reduce((acc, i) => acc + i.calories, 0);
-    const groupProt = items.reduce((acc, i) => acc + i.protein, 0);
-    const groupCarb = items.reduce((acc, i) => acc + i.carbohydrate, 0);
-    const groupLip = items.reduce((acc, i) => acc + i.lipid, 0);
-    const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group]) ? mealStrategies[group] : { pct: 0.15, guideline: "Aporte harmônico de macronutrientes." };
+    const groupKcal = items.reduce((acc, i) => acc + (Number(i.calories) || 0), 0);
+    const groupProt = items.reduce((acc, i) => acc + (Number(i.protein) || 0), 0);
+    const groupCarb = items.reduce((acc, i) => acc + (Number(i.carbohydrate) || 0), 0);
+    const groupLip = items.reduce((acc, i) => acc + (Number(i.lipid) || 0), 0);
+    const fallbackPct = Number((1 / (mealGroups.length || 1)).toFixed(2));
+    const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group])
+      ? mealStrategies[group]
+      : { pct: fallbackPct, guideline: "Aporte harmônico de macronutrientes." };
 
     return `
           <div class="meal-card">

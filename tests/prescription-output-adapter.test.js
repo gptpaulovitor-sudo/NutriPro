@@ -27,6 +27,7 @@ const assert = require('node:assert/strict');
 const {
   formatMinutesToTimeString,
   resolveMealTimeString,
+  resolveClinicalMealName,
   adaptCanonicalMealsToRuntimeItems,
   adaptCanonicalMetaToRuntimeMeta,
   adaptPrescriptionPipelineOutput
@@ -188,5 +189,52 @@ describe('Subfase N3.7.2 — Adaptador Canônico de Saída (prescriptionOutputAd
     const out2 = adaptPrescriptionPipelineOutput(mockResult, options);
 
     assert.deepStrictEqual(out1, out2);
+  });
+
+  test('10. resolveClinicalMealName: mapeia refeições genéricas para nomes clínicos conforme total de refeições', () => {
+    // Para plano de 6 refeições (como na tela do usuário)
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 1' }, 0, 6), 'Café da manhã');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 2' }, 1, 6), 'Lanche manhã');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 3' }, 2, 6), 'Almoço');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 4' }, 3, 6), 'Pré-treino');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 5' }, 4, 6), 'Pós-treino');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 6' }, 5, 6), 'Jantar');
+
+    // Para plano de 4 refeições
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 1' }, 0, 4), 'Café da manhã');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 2' }, 1, 4), 'Almoço');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 3' }, 2, 4), 'Pré-treino');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Refeição 4' }, 3, 4), 'Jantar');
+  });
+
+  test('11. resolveClinicalMealName: preserva nomes clínicos pré-existentes não-genéricos', () => {
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Desjejum Especial' }, 0, 6), 'Desjejum Especial');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Almoço de Domingo' }, 2, 6), 'Almoço de Domingo');
+    assert.strictEqual(resolveClinicalMealName({ mealName: 'Shake Noturno' }, 5, 6), 'Shake Noturno');
+  });
+
+  test('12. adaptCanonicalMealsToRuntimeItems: converte plano canônico de 6 refeições em itens com nomes clínicos padrão', () => {
+    const meals = Array.from({ length: 6 }, (_, i) => ({
+      mealId: `meal_${i + 1}`,
+      mealName: `Refeição ${i + 1}`,
+      scheduledTime: `${7 + i * 3}:00`,
+      items: [
+        {
+          foodId: `FOOD_${i + 1}`,
+          foodName: `Alimento ${i + 1}`,
+          grams: 100,
+          nutrients: { calories: 200, protein: 20, carbohydrate: 20, lipid: 5, fiber: 2, sodium: 50 }
+        }
+      ]
+    }));
+
+    const runtimeItems = adaptCanonicalMealsToRuntimeItems(meals);
+    assert.strictEqual(runtimeItems.length, 6);
+    assert.strictEqual(runtimeItems[0].mealName, 'Café da manhã');
+    assert.strictEqual(runtimeItems[1].mealName, 'Lanche manhã');
+    assert.strictEqual(runtimeItems[2].mealName, 'Almoço');
+    assert.strictEqual(runtimeItems[3].mealName, 'Pré-treino');
+    assert.strictEqual(runtimeItems[4].mealName, 'Pós-treino');
+    assert.strictEqual(runtimeItems[5].mealName, 'Jantar');
   });
 });

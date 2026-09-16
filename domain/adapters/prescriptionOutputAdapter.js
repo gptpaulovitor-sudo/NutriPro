@@ -67,6 +67,45 @@ function resolveMealTimeString(meal) {
   return '12:00';
 }
 
+const STANDARD_CLINICAL_MEAL_NAMES = {
+  1: ['Refeição Principal'],
+  2: ['Almoço', 'Jantar'],
+  3: ['Café da manhã', 'Almoço', 'Jantar'],
+  4: ['Café da manhã', 'Almoço', 'Pré-treino', 'Jantar'],
+  5: ['Café da manhã', 'Lanche manhã', 'Almoço', 'Pré-treino', 'Jantar'],
+  6: ['Café da manhã', 'Lanche manhã', 'Almoço', 'Pré-treino', 'Pós-treino', 'Jantar'],
+  7: ['Café da manhã', 'Lanche manhã', 'Almoço', 'Pré-treino', 'Pós-treino', 'Jantar', 'Ceia'],
+  8: ['Café da manhã', 'Lanche manhã', 'Almoço', 'Lanche tarde', 'Pré-treino', 'Pós-treino', 'Jantar', 'Ceia']
+};
+
+/**
+ * Resolve o nome clínico da refeição para a camada de visualização e runtime.
+ * Se meal.mealName já for clínico (ex: 'Café da Manhã', 'Almoço', 'Ceia'), preserva-o.
+ * Se for genérico ('Refeição 1', 'Refeição 2', etc.) ou indefinido, mapeia para o nome clínico
+ * correspondente ao índice e ao total de refeições do plano.
+ * 
+ * @param {Object} meal 
+ * @param {number} mealIdx 
+ * @param {number} totalMeals 
+ * @returns {string}
+ */
+function resolveClinicalMealName(meal, mealIdx, totalMeals) {
+  if (meal && typeof meal.mealName === 'string') {
+    const trimmed = meal.mealName.trim();
+    if (trimmed && !/^Refeição(\s*\d+)?$/i.test(trimmed) && !/^Meal(\s*\d+)?$/i.test(trimmed)) {
+      return trimmed;
+    }
+  }
+
+  const count = Number(totalMeals) || 1;
+  const standardList = STANDARD_CLINICAL_MEAL_NAMES[count];
+  if (standardList && standardList[mealIdx]) {
+    return standardList[mealIdx];
+  }
+
+  return meal?.mealName || `Refeição ${mealIdx + 1}`;
+}
+
 /**
  * Traduz os itens de refeição canônicos para o array linear currentPrescriptionItems do runtime.
  * Pura tradução estrutural — preserva calorias, proteínas, carboidratos, lipidios, fibras e sódio.
@@ -79,10 +118,11 @@ function adaptCanonicalMealsToRuntimeItems(meals) {
   if (!Array.isArray(meals) || meals.length === 0) return [];
 
   const runtimeItems = [];
+  const totalMeals = meals.length;
 
   meals.forEach((meal, mealIdx) => {
     const mealId = meal.mealId || `meal_${mealIdx + 1}`;
-    const mealName = meal.mealName || `Refeição ${mealIdx + 1}`;
+    const mealName = resolveClinicalMealName(meal, mealIdx, totalMeals);
     const mealTime = resolveMealTimeString(meal);
     const mealRole = meal.mealRole || 'PRIMARY';
 
@@ -343,6 +383,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     formatMinutesToTimeString,
     resolveMealTimeString,
+    resolveClinicalMealName,
+    STANDARD_CLINICAL_MEAL_NAMES,
     computePrescriptionContentFingerprint,
     adaptCanonicalMealsToRuntimeItems,
     adaptCanonicalMetaToRuntimeMeta,
@@ -355,6 +397,8 @@ if (typeof globalThis !== 'undefined') {
   globalThis.NutriDomain.prescriptionOutputAdapter = {
     formatMinutesToTimeString,
     resolveMealTimeString,
+    resolveClinicalMealName,
+    STANDARD_CLINICAL_MEAL_NAMES,
     computePrescriptionContentFingerprint,
     adaptCanonicalMealsToRuntimeItems,
     adaptCanonicalMetaToRuntimeMeta,
