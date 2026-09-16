@@ -671,7 +671,11 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   }
 
   if (Array.isArray(mealTimingResult.warnings) && mealTimingResult.warnings.length > 0) {
-    accumulatedWarnings.push(...mealTimingResult.warnings.map(w => `[N3.4] ${w}`));
+    const assemblyWarnSet = new Set(Array.isArray(mealAssemblyResult?.warnings) ? mealAssemblyResult.warnings : []);
+    const timingOnlyWarnings = mealTimingResult.warnings.filter(w => !assemblyWarnSet.has(w));
+    if (timingOnlyWarnings.length > 0) {
+      accumulatedWarnings.push(...timingOnlyWarnings.map(w => `[N3.4] ${w}`));
+    }
   }
 
   pipelineTrace.push({
@@ -746,7 +750,11 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   }
 
   if (Array.isArray(nutrientTimingResult.warnings) && nutrientTimingResult.warnings.length > 0) {
-    accumulatedWarnings.push(...nutrientTimingResult.warnings.map(w => `[N3.5] ${w}`));
+    const timingWarnSet = new Set(Array.isArray(mealTimingResult?.warnings) ? mealTimingResult.warnings : []);
+    const nutrientTimingOnlyWarnings = nutrientTimingResult.warnings.filter(w => !timingWarnSet.has(w));
+    if (nutrientTimingOnlyWarnings.length > 0) {
+      accumulatedWarnings.push(...nutrientTimingOnlyWarnings.map(w => `[N3.5] ${w}`));
+    }
   }
 
   pipelineTrace.push({

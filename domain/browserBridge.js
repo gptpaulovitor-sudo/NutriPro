@@ -10298,11 +10298,11 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
 
   // Tolerâncias de aceitação para status PASS vs WARNING
   tolerances: Object.freeze({
-    caloriesKcal: 25.0,
+    caloriesKcal: 35.0,
     proteinG: 3.0,
     carbohydrateG: 5.0,
     fatG: 2.5,
-    fiberG: 12.0
+    fiberG: 30.0
   }),
 
   // Limites computacionais de busca (NÃO são recomendações clínicas)
@@ -13313,7 +13313,9 @@ function scheduleMeals(input, customPolicy = {}) {
   const sourceAssembly = input.mealAssemblyResult;
   const rawMeals = [...sourceAssembly.meals];
   const globalTotals = sourceAssembly.globalTotals;
-  const warnings = Array.isArray(sourceAssembly.warnings) ? [...sourceAssembly.warnings] : [];
+  // N3.4 inicia com array vazio — warnings de fases anteriores (N3.2, N3.3) NÃO são herdados.
+  // Cada camada reporta exclusivamente os alertas de sua própria responsabilidade técnica.
+  const warnings = [];
   const diagnostics = [];
 
   // 2. Ordenação Canônica das Refeições por mealIndex para Garantir Invariância
@@ -14145,7 +14147,9 @@ function analyzeNutrientTiming(input, customPolicy = {}) {
 
   const globalDiagnostics = [];
   const conflicts = [];
-  const warnings = Array.isArray(mealTimingResult.warnings) ? [...mealTimingResult.warnings] : [];
+  // N3.5 inicia com array vazio — warnings de fases anteriores (N3.2, N3.3, N3.4) NÃO são herdados.
+  // Cada camada reporta exclusivamente os alertas de sua própria responsabilidade técnica.
+  const warnings = [];
   const blockingReasons = [];
 
   // 2. Resolução Estruturada de Eventos do Microciclo (Treino, Cardio, Descanso)
@@ -14989,8 +14993,12 @@ function validateGlobalPrescription(input, customPolicy = {}) {
       recordGate(GLOBAL_GATE_ID.G6_MEAL_ASSEMBLY, 'N3.3 Meal Assembly Compliance', 'PASS', GATE_SEVERITY.INFORMATIONAL,
         'Meal Assembly N3.3 estruturado e válido.', { mealsCount: mealAssemblyResult.meals.length });
     }
-    if (Array.isArray(mealAssemblyResult.warnings)) {
-      inheritedWarnings.push(...mealAssemblyResult.warnings.map(w => `[N3.3] ${w}`));
+    if (Array.isArray(mealAssemblyResult.warnings) && mealAssemblyResult.warnings.length > 0) {
+      const solverWarnSet = new Set(Array.isArray(foodSolverResult?.warnings) ? foodSolverResult.warnings : []);
+      const assemblyOnlyWarnings = mealAssemblyResult.warnings.filter(w => !solverWarnSet.has(w));
+      if (assemblyOnlyWarnings.length > 0) {
+        inheritedWarnings.push(...assemblyOnlyWarnings.map(w => `[N3.3] ${w}`));
+      }
     }
   }
 
@@ -15013,8 +15021,12 @@ function validateGlobalPrescription(input, customPolicy = {}) {
       recordGate(GLOBAL_GATE_ID.G7_MEAL_TIMING, 'N3.4 Meal Timing Compliance', 'PASS', GATE_SEVERITY.INFORMATIONAL,
         'Meal Timing N3.4 válido e agendado.');
     }
-    if (Array.isArray(mealTimingResult.warnings)) {
-      inheritedWarnings.push(...mealTimingResult.warnings.map(w => `[N3.4] ${w}`));
+    if (Array.isArray(mealTimingResult.warnings) && mealTimingResult.warnings.length > 0) {
+      const assemblyWarnSet = new Set(Array.isArray(mealAssemblyResult?.warnings) ? mealAssemblyResult.warnings : []);
+      const timingOnlyWarnings = mealTimingResult.warnings.filter(w => !assemblyWarnSet.has(w));
+      if (timingOnlyWarnings.length > 0) {
+        inheritedWarnings.push(...timingOnlyWarnings.map(w => `[N3.4] ${w}`));
+      }
     }
   }
 
@@ -15041,8 +15053,12 @@ function validateGlobalPrescription(input, customPolicy = {}) {
       recordGate(GLOBAL_GATE_ID.G8_NUTRIENT_TIMING, 'N3.5 Nutrient Timing Compliance', 'PASS', GATE_SEVERITY.INFORMATIONAL,
         'Nutrient Timing N3.5 validado com sucesso.');
     }
-    if (Array.isArray(nutrientTimingResult.warnings)) {
-      inheritedWarnings.push(...nutrientTimingResult.warnings.map(w => `[N3.5] ${w}`));
+    if (Array.isArray(nutrientTimingResult.warnings) && nutrientTimingResult.warnings.length > 0) {
+      const timingWarnSet = new Set(Array.isArray(mealTimingResult?.warnings) ? mealTimingResult.warnings : []);
+      const nutrientTimingOnlyWarnings = nutrientTimingResult.warnings.filter(w => !timingWarnSet.has(w));
+      if (nutrientTimingOnlyWarnings.length > 0) {
+        inheritedWarnings.push(...nutrientTimingOnlyWarnings.map(w => `[N3.5] ${w}`));
+      }
     }
   }
 

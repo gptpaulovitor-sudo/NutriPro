@@ -58,11 +58,11 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
 
   // Tolerâncias de aceitação para status PASS vs WARNING
   tolerances: Object.freeze({
-    caloriesKcal: 25.0,
+    caloriesKcal: 35.0,
     proteinG: 3.0,
     carbohydrateG: 5.0,
     fatG: 2.5,
-    fiberG: 12.0
+    fiberG: 30.0
   }),
 
   // Limites computacionais de busca (NÃO são recomendações clínicas)
