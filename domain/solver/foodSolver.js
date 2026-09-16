@@ -576,7 +576,23 @@ function solveNutritionDiet(input, customPolicy = {}) {
   }
 
   if (!withinTolerances) {
-    warnings.push(`Resíduo nutricional excedeu tolerâncias de política (diffKcal: ${diffs.calories} kcal).`);
+    const exceeded = [];
+    if (Math.abs(diffs.calories) > policy.tolerances.caloriesKcal) {
+      exceeded.push(`calorias: ${diffs.calories > 0 ? '+' : ''}${diffs.calories} kcal (tol: ±${policy.tolerances.caloriesKcal} kcal)`);
+    }
+    if (Math.abs(diffs.protein) > policy.tolerances.proteinG) {
+      exceeded.push(`proteína: ${diffs.protein > 0 ? '+' : ''}${diffs.protein}g (tol: ±${policy.tolerances.proteinG}g)`);
+    }
+    if (Math.abs(diffs.carbohydrate) > policy.tolerances.carbohydrateG) {
+      exceeded.push(`carboidratos: ${diffs.carbohydrate > 0 ? '+' : ''}${diffs.carbohydrate}g (tol: ±${policy.tolerances.carbohydrateG}g)`);
+    }
+    if (Math.abs(diffs.fat) > policy.tolerances.fatG) {
+      exceeded.push(`gordura: ${diffs.fat > 0 ? '+' : ''}${diffs.fat}g (tol: ±${policy.tolerances.fatG}g)`);
+    }
+    if (Math.abs(diffs.fiber) > policy.tolerances.fiberG) {
+      exceeded.push(`fibras: ${diffs.fiber > 0 ? '+' : ''}${diffs.fiber}g (tol: ±${policy.tolerances.fiberG}g)`);
+    }
+    warnings.push(`Resíduo nutricional excedeu tolerâncias de política: ${exceeded.join(', ')}.`);
   }
 
   // Regra Inegociável de Status:

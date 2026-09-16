@@ -346,7 +346,9 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     cookingAvailability: rawRoutine.cookingAvailability ? String(rawRoutine.cookingAvailability).trim() : null,
     mealPreparer: rawRoutine.mealPreparer ? String(rawRoutine.mealPreparer).trim() : null,
     wakeUpTime: rawRoutine.wakeUpTime ? String(rawRoutine.wakeUpTime).trim() : null,
-    bedTime: rawRoutine.bedTime ? String(rawRoutine.bedTime).trim() : null
+    bedTime: rawRoutine.bedTime ? String(rawRoutine.bedTime).trim() : null,
+    mealsPerDay: (rawRoutine.mealsPerDay != null && !isNaN(Number(rawRoutine.mealsPerDay))) ? Number(rawRoutine.mealsPerDay) : null,
+    mealCount: (rawRoutine.mealCount != null && !isNaN(Number(rawRoutine.mealCount))) ? Number(rawRoutine.mealCount) : null
   };
 
   // 8. Recordatório
@@ -495,6 +497,8 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     fasting,
     clinical,
     currentPrescription,
+    mealsPerDay: (data.mealsPerDay != null && !isNaN(Number(data.mealsPerDay))) ? Number(data.mealsPerDay) : (routine.mealsPerDay ?? null),
+    mealCount: (data.mealCount != null && !isNaN(Number(data.mealCount))) ? Number(data.mealCount) : (routine.mealCount ?? null),
     provenance
   };
 

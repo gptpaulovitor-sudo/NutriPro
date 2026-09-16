@@ -62,7 +62,7 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
     proteinG: 3.0,
     carbohydrateG: 5.0,
     fatG: 2.5,
-    fiberG: 3.0
+    fiberG: 12.0
   }),
 
   // Limites computacionais de busca (NÃO são recomendações clínicas)

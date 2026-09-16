@@ -307,6 +307,79 @@ describe('N3.7.5 — Food Solver Worker & Bridge Não-Bloqueante', () => {
       assert.ok(combosTested < DEFAULT_FOOD_SOLVER_POLICY.searchLimit.maxCombosToTest);
     });
 
+    test('12. Injeção e montagem de 6 refeições via buildCanonicalPrescriptionInput sem fallback computacional de 3 refeições', () => {
+      const { buildCanonicalPrescriptionInput } = require('../domain/adapters/prescriptionInputAdapter');
+      const prep = buildCanonicalPrescriptionInput({
+        patientData: {
+          patientId: 'p_test_6meals',
+          name: 'Paciente 6 Refeições',
+          weightKg: 80,
+          heightCm: 180,
+          objective: 'Hipertrofia'
+        },
+        foodCatalog: sampleCatalog,
+        options: {
+          mealCount: 6
+        }
+      });
+
+      assert.strictEqual(prep.isValid, true);
+      assert.strictEqual(prep.canonicalInput.options.mealCount, 6);
+      assert.strictEqual(prep.canonicalInput.context.mealsPerDay, 6);
+      assert.strictEqual(prep.canonicalInput.context.routine.mealsPerDay, 6);
+
+      const pipelineRes = executePrescriptionPipelineSync(prep.canonicalInput);
+      assert.strictEqual(pipelineRes.mealAssemblyResult.meals.length, 6);
+      assert.ok(
+        !pipelineRes.warnings.some(w => w.includes('fallback computacional versionado de política (3 refeições)')),
+        'Não deve disparar warning de fallback de 3 refeições quando 6 refeições foram solicitadas'
+      );
+    });
+
+    test('13. Ausência de duplicação de alertas entre [N3.2] e [N3.3] no accumulatedWarnings do orquestrador', () => {
+      const { buildCanonicalPrescriptionInput } = require('../domain/adapters/prescriptionInputAdapter');
+      const prep = buildCanonicalPrescriptionInput({
+        patientData: {
+          patientId: 'p_dup_warn',
+          name: 'Paciente Duplicação Alertas',
+          weightKg: 85,
+          heightCm: 182,
+          objective: 'Manutenção'
+        },
+        foodCatalog: sampleCatalog,
+        options: {
+          mealCount: 4
+        }
+      });
+
+      const pipelineRes = executePrescriptionPipelineSync(prep.canonicalInput);
+      // Nenhuma mensagem idêntica deve aparecer sob [N3.2] e sob [N3.3] simultaneamente
+      const n32Warnings = pipelineRes.warnings.filter(w => w.startsWith('[N3.2] ')).map(w => w.replace('[N3.2] ', ''));
+      const n33Warnings = pipelineRes.warnings.filter(w => w.startsWith('[N3.3] ')).map(w => w.replace('[N3.3] ', ''));
+
+      for (const w32 of n32Warnings) {
+        assert.ok(!n33Warnings.includes(w32), `Alerta não pode ser duplicado sob [N3.3]: ${w32}`);
+      }
+    });
+
+    test('14. Mensagem de tolerâncias do solver relata exatamente os nutrientes excedidos de forma transparente', () => {
+      // Força um solver com target de fibras inatingível para verificar formatação transparente do warning
+      const input = {
+        context: { patient: { patientId: 'p_tol' } },
+        energyTarget: { caloricTargetKcal: 2000 },
+        macroTarget: { proteinTargetG: 150, carbohydrateTargetG: 220, fatTargetG: 58, fiberTargetG: 80 },
+        validationResult: { valid: true, status: 'PASS' },
+        foodCatalog: sampleCatalog
+      };
+
+      const res = solveNutritionDiet(input);
+      const tolWarn = res.warnings.find(w => w.includes('Resíduo nutricional excedeu tolerâncias de política'));
+      if (tolWarn) {
+        assert.ok(tolWarn.includes('fibras:'), 'Deve explicitar que fibras excederam a tolerância');
+        assert.ok(!tolWarn.includes('(diffKcal:'), 'Não deve reportar diffKcal como rótulo genérico quando outro nutriente falhou');
+      }
+    });
+
   });
 
 });

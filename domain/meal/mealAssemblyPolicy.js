@@ -119,6 +119,9 @@ function resolveMealCount(context, policy = DEFAULT_MEAL_ASSEMBLY_POLICY) {
       context.patient && context.patient.routine && context.patient.routine.mealCount,
       context.routine && context.routine.mealsPerDay,
       context.routine && context.routine.mealCount,
+      context.preferences && context.preferences.mealFrequency,
+      context.options && context.options.mealCount,
+      context.options && context.options.mealsPerDay,
       context.mealsPerDay,
       context.mealCount
     ];

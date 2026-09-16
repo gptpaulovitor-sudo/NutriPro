@@ -3122,10 +3122,17 @@ async function executeAIPrescriptionGeneration() {
       tmbKcal: tmbKcal,
       getKcal: getKcal,
       caloricTargetKcal: canonicalTargets.caloricTargetKcal,
+      mealsPerDay: mealCount,
+      mealCount: mealCount,
+      preferences: {
+        mealFrequency: mealCount
+      },
       routine: {
         wakeUpTime: document.getElementById("routineWakeUp")?.value || "07:00",
         bedTime: document.getElementById("routineBedTime")?.value || "23:00",
-        workoutTime: document.getElementById("routineWorkoutTime")?.value || null
+        workoutTime: document.getElementById("routineWorkoutTime")?.value || null,
+        mealsPerDay: mealCount,
+        mealCount: mealCount
       },
       weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : []
     },

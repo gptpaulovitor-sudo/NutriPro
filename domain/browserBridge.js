@@ -6150,15 +6150,23 @@ function adaptPatientContext(rawPatientData) {
     aversions: Array.isArray(rawPatientData.aversions) ? [...rawPatientData.aversions] : []
   };
 
+  const rawMealsPerDay = rawPatientData.mealsPerDay ?? rawPatientData.mealCount ?? (rawPatientData.routine && (rawPatientData.routine.mealsPerDay || rawPatientData.routine.mealCount)) ?? (rawPatientData.preferences && rawPatientData.preferences.mealFrequency);
+  const normalizedMealsPerDay = (rawMealsPerDay != null && !isNaN(Number(rawMealsPerDay)) && Number(rawMealsPerDay) >= CANONICAL_MIN_MEALS && Number(rawMealsPerDay) <= CANONICAL_MAX_MEALS)
+    ? parseInt(rawMealsPerDay, 10)
+    : null;
+
   const preferences = {
     preferredFoods: Array.isArray(rawPatientData.preferredFoods) ? [...rawPatientData.preferredFoods] : [],
-    dislikedFoods: Array.isArray(rawPatientData.dislikedFoods) ? [...rawPatientData.dislikedFoods] : []
+    dislikedFoods: Array.isArray(rawPatientData.dislikedFoods) ? [...rawPatientData.dislikedFoods] : [],
+    mealFrequency: normalizedMealsPerDay
   };
 
   const routine = {
     wakeUpTime: typeof rawPatientData.wakeUpTime === 'string' ? rawPatientData.wakeUpTime : '07:00',
     bedTime: typeof rawPatientData.bedTime === 'string' ? rawPatientData.bedTime : '23:00',
-    workoutTime: typeof rawPatientData.workoutTime === 'string' ? rawPatientData.workoutTime : null
+    workoutTime: typeof rawPatientData.workoutTime === 'string' ? rawPatientData.workoutTime : null,
+    mealsPerDay: normalizedMealsPerDay,
+    mealCount: normalizedMealsPerDay
   };
 
   const training = {
@@ -6196,6 +6204,8 @@ function adaptPatientContext(rawPatientData) {
     constraints,
     preferences,
     routine,
+    mealsPerDay: normalizedMealsPerDay,
+    mealCount: normalizedMealsPerDay,
     training,
     cardio,
     fasting,
@@ -6273,9 +6283,28 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
   const rawOptions = rawInput.options || {};
 
   // GAP 7: Validação do número de refeições
-  const mealCountRes = validateMealCount(rawOptions.mealCount);
+  const declaredMealCount = rawOptions.mealCount ?? rawOptions.mealsPerDay ?? resolvedContext?.routine?.mealsPerDay ?? resolvedContext?.mealsPerDay ?? (rawInput.patientData && (rawInput.patientData.mealsPerDay || rawInput.patientData.mealCount));
+  const mealCountRes = validateMealCount(declaredMealCount);
   if (!mealCountRes.valid) {
     errors.push(`[GAP_7] ${mealCountRes.error}`);
+  }
+
+  // Sincronização explícita do número de refeições no contexto canônico
+  if (resolvedContext && mealCountRes.valid) {
+    resolvedContext = {
+      ...resolvedContext,
+      mealsPerDay: mealCountRes.mealCount,
+      mealCount: mealCountRes.mealCount,
+      routine: {
+        ...(resolvedContext.routine || {}),
+        mealsPerDay: mealCountRes.mealCount,
+        mealCount: mealCountRes.mealCount
+      },
+      preferences: {
+        ...(resolvedContext.preferences || {}),
+        mealFrequency: mealCountRes.mealCount
+      }
+    };
   }
 
   // GAP 1: Janela peri-treino canônica (150 min por padrão N3.5)
@@ -10273,7 +10302,7 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
     proteinG: 3.0,
     carbohydrateG: 5.0,
     fatG: 2.5,
-    fiberG: 3.0
+    fiberG: 12.0
   }),
 
   // Limites computacionais de busca (NÃO são recomendações clínicas)
@@ -11043,7 +11072,23 @@ function solveNutritionDiet(input, customPolicy = {}) {
   }
 
   if (!withinTolerances) {
-    warnings.push(`Resíduo nutricional excedeu tolerâncias de política (diffKcal: ${diffs.calories} kcal).`);
+    const exceeded = [];
+    if (Math.abs(diffs.calories) > policy.tolerances.caloriesKcal) {
+      exceeded.push(`calorias: ${diffs.calories > 0 ? '+' : ''}${diffs.calories} kcal (tol: ±${policy.tolerances.caloriesKcal} kcal)`);
+    }
+    if (Math.abs(diffs.protein) > policy.tolerances.proteinG) {
+      exceeded.push(`proteína: ${diffs.protein > 0 ? '+' : ''}${diffs.protein}g (tol: ±${policy.tolerances.proteinG}g)`);
+    }
+    if (Math.abs(diffs.carbohydrate) > policy.tolerances.carbohydrateG) {
+      exceeded.push(`carboidratos: ${diffs.carbohydrate > 0 ? '+' : ''}${diffs.carbohydrate}g (tol: ±${policy.tolerances.carbohydrateG}g)`);
+    }
+    if (Math.abs(diffs.fat) > policy.tolerances.fatG) {
+      exceeded.push(`gordura: ${diffs.fat > 0 ? '+' : ''}${diffs.fat}g (tol: ±${policy.tolerances.fatG}g)`);
+    }
+    if (Math.abs(diffs.fiber) > policy.tolerances.fiberG) {
+      exceeded.push(`fibras: ${diffs.fiber > 0 ? '+' : ''}${diffs.fiber}g (tol: ±${policy.tolerances.fiberG}g)`);
+    }
+    warnings.push(`Resíduo nutricional excedeu tolerâncias de política: ${exceeded.join(', ')}.`);
   }
 
   // Regra Inegociável de Status:
@@ -11769,6 +11814,9 @@ function resolveMealCount(context, policy = DEFAULT_MEAL_ASSEMBLY_POLICY) {
       context.patient && context.patient.routine && context.patient.routine.mealCount,
       context.routine && context.routine.mealsPerDay,
       context.routine && context.routine.mealCount,
+      context.preferences && context.preferences.mealFrequency,
+      context.options && context.options.mealCount,
+      context.options && context.options.mealsPerDay,
       context.mealsPerDay,
       context.mealCount
     ];
@@ -12351,7 +12399,11 @@ function assembleMeals(input, customPolicy = {}) {
   const solverWarnings = Array.isArray(input.foodSolverResult.warnings) ? [...input.foodSolverResult.warnings] : [];
 
   // 3. Resolução de Refeições e Papéis
-  const { mealCount, isFromContext, warning: countWarning } = resolveMealCount(input.context, policy);
+  const contextForResolution = {
+    ...(input.context || {}),
+    ...(input.options ? { options: input.options } : {})
+  };
+  const { mealCount, isFromContext, warning: countWarning } = resolveMealCount(contextForResolution, policy);
   const warnings = [...solverWarnings];
   if (countWarning) {
     warnings.push(countWarning);
@@ -12397,14 +12449,12 @@ function assembleMeals(input, customPolicy = {}) {
     });
   }
 
-  // Identifica índices de refeições primárias para receber bases quando houver divisão
-  const primaryMealIndices = [];
+  // Identifica índices de refeições candidatas para receber divisões
+  const allMealIndices = [];
   for (let m = 0; m < mealCount; m++) {
-    if (roles[m] === 'PRIMARY') {
-      primaryMealIndices.push(m);
-    }
+    allMealIndices.push(m);
   }
-  const splitCandidateMeals = primaryMealIndices.length >= 2 ? primaryMealIndices : (mealCount >= 2 ? [0, 1] : [0]);
+  const splitCandidateMeals = allMealIndices.length >= 2 ? allMealIndices : [0];
 
   let totalSplitsCount = 0;
 
@@ -12519,6 +12569,56 @@ function assembleMeals(input, customPolicy = {}) {
 
     if (bestCand.isSplit) {
       totalSplitsCount++;
+    }
+  }
+
+  // 4.1 Garantia estrita de que nenhuma refeição fica vazia se houver itens distribuíveis
+  for (let m = 0; m < workingMeals.length; m++) {
+    if (workingMeals[m].items.length === 0) {
+      let donorMeal = null;
+      let donorItemIdx = -1;
+      let maxGrams = 0;
+      for (let dm = 0; dm < workingMeals.length; dm++) {
+        if (dm !== m && workingMeals[dm].items.length > 0) {
+          for (let itIdx = 0; itIdx < workingMeals[dm].items.length; itIdx++) {
+            const it = workingMeals[dm].items[itIdx];
+            if (workingMeals[dm].items.length > 1 || it.grams >= 20) {
+              if (it.grams > maxGrams) {
+                maxGrams = it.grams;
+                donorMeal = workingMeals[dm];
+                donorItemIdx = itIdx;
+              }
+            }
+          }
+        }
+      }
+
+      if (donorMeal && donorItemIdx >= 0) {
+        if (donorMeal.items.length > 1) {
+          const [movedItem] = donorMeal.items.splice(donorItemIdx, 1);
+          workingMeals[m].items.push(movedItem);
+        } else {
+          const fullItem = donorMeal.items[donorItemIdx];
+          const halfGrams = roundTo(fullItem.grams / 2, 1);
+          donorMeal.items[donorItemIdx] = {
+            ...fullItem,
+            grams: roundTo(fullItem.grams - halfGrams, 1),
+            nutrients: {
+              calories: roundTo(fullItem.nutrients.calories / 2, 2),
+              protein: roundTo(fullItem.nutrients.protein / 2, 2),
+              carbohydrate: roundTo(fullItem.nutrients.carbohydrate / 2, 2),
+              lipid: roundTo(fullItem.nutrients.lipid / 2, 2),
+              fiber: roundTo(fullItem.nutrients.fiber / 2, 2),
+              sodium: fullItem.nutrients.sodium != null ? roundTo(fullItem.nutrients.sodium / 2, 2) : null
+            }
+          };
+          workingMeals[m].items.push({
+            ...fullItem,
+            grams: halfGrams,
+            nutrients: { ...donorMeal.items[donorItemIdx].nutrients }
+          });
+        }
+      }
     }
   }
 
@@ -15711,6 +15811,21 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   const accumulatedWarnings = [];
 
   let currentContext = resolvedContext;
+  if (options && (options.mealCount || options.mealsPerDay) && currentContext) {
+    const desiredMealCount = options.mealCount || options.mealsPerDay;
+    if (typeof desiredMealCount === 'number' && desiredMealCount >= 1 && desiredMealCount <= 8) {
+      currentContext = {
+        ...currentContext,
+        mealsPerDay: desiredMealCount,
+        mealCount: desiredMealCount,
+        routine: {
+          ...(currentContext.routine || {}),
+          mealsPerDay: desiredMealCount,
+          mealCount: desiredMealCount
+        }
+      };
+    }
+  }
   let energyTargetResult = null;
   let macroTargetResult = null;
   let nutritionValidatorResult = null;
@@ -16053,7 +16168,8 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
     const assemblyInput = {
       context: currentContext,
       validationResult: nutritionValidatorResult,
-      foodSolverResult
+      foodSolverResult,
+      options
     };
 
     mealAssemblyResult = assembleMeals(assemblyInput, policies.mealAssemblyPolicy || {});
@@ -16107,7 +16223,11 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   }
 
   if (Array.isArray(mealAssemblyResult.warnings) && mealAssemblyResult.warnings.length > 0) {
-    accumulatedWarnings.push(...mealAssemblyResult.warnings.map(w => `[N3.3] ${w}`));
+    const solverWarnSet = new Set(Array.isArray(foodSolverResult?.warnings) ? foodSolverResult.warnings : []);
+    const assemblyOnlyWarnings = mealAssemblyResult.warnings.filter(w => !solverWarnSet.has(w));
+    if (assemblyOnlyWarnings.length > 0) {
+      accumulatedWarnings.push(...assemblyOnlyWarnings.map(w => `[N3.3] ${w}`));
+    }
   }
 
   const assembledMealCount = Array.isArray(mealAssemblyResult.meals) ? mealAssemblyResult.meals.length : 0;

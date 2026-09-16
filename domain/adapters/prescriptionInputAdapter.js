@@ -420,15 +420,23 @@ function adaptPatientContext(rawPatientData) {
     aversions: Array.isArray(rawPatientData.aversions) ? [...rawPatientData.aversions] : []
   };
 
+  const rawMealsPerDay = rawPatientData.mealsPerDay ?? rawPatientData.mealCount ?? (rawPatientData.routine && (rawPatientData.routine.mealsPerDay || rawPatientData.routine.mealCount)) ?? (rawPatientData.preferences && rawPatientData.preferences.mealFrequency);
+  const normalizedMealsPerDay = (rawMealsPerDay != null && !isNaN(Number(rawMealsPerDay)) && Number(rawMealsPerDay) >= CANONICAL_MIN_MEALS && Number(rawMealsPerDay) <= CANONICAL_MAX_MEALS)
+    ? parseInt(rawMealsPerDay, 10)
+    : null;
+
   const preferences = {
     preferredFoods: Array.isArray(rawPatientData.preferredFoods) ? [...rawPatientData.preferredFoods] : [],
-    dislikedFoods: Array.isArray(rawPatientData.dislikedFoods) ? [...rawPatientData.dislikedFoods] : []
+    dislikedFoods: Array.isArray(rawPatientData.dislikedFoods) ? [...rawPatientData.dislikedFoods] : [],
+    mealFrequency: normalizedMealsPerDay
   };
 
   const routine = {
     wakeUpTime: typeof rawPatientData.wakeUpTime === 'string' ? rawPatientData.wakeUpTime : '07:00',
     bedTime: typeof rawPatientData.bedTime === 'string' ? rawPatientData.bedTime : '23:00',
-    workoutTime: typeof rawPatientData.workoutTime === 'string' ? rawPatientData.workoutTime : null
+    workoutTime: typeof rawPatientData.workoutTime === 'string' ? rawPatientData.workoutTime : null,
+    mealsPerDay: normalizedMealsPerDay,
+    mealCount: normalizedMealsPerDay
   };
 
   const training = {
@@ -466,6 +474,8 @@ function adaptPatientContext(rawPatientData) {
     constraints,
     preferences,
     routine,
+    mealsPerDay: normalizedMealsPerDay,
+    mealCount: normalizedMealsPerDay,
     training,
     cardio,
     fasting,
@@ -543,9 +553,28 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
   const rawOptions = rawInput.options || {};
 
   // GAP 7: Validação do número de refeições
-  const mealCountRes = validateMealCount(rawOptions.mealCount);
+  const declaredMealCount = rawOptions.mealCount ?? rawOptions.mealsPerDay ?? resolvedContext?.routine?.mealsPerDay ?? resolvedContext?.mealsPerDay ?? (rawInput.patientData && (rawInput.patientData.mealsPerDay || rawInput.patientData.mealCount));
+  const mealCountRes = validateMealCount(declaredMealCount);
   if (!mealCountRes.valid) {
     errors.push(`[GAP_7] ${mealCountRes.error}`);
+  }
+
+  // Sincronização explícita do número de refeições no contexto canônico
+  if (resolvedContext && mealCountRes.valid) {
+    resolvedContext = {
+      ...resolvedContext,
+      mealsPerDay: mealCountRes.mealCount,
+      mealCount: mealCountRes.mealCount,
+      routine: {
+        ...(resolvedContext.routine || {}),
+        mealsPerDay: mealCountRes.mealCount,
+        mealCount: mealCountRes.mealCount
+      },
+      preferences: {
+        ...(resolvedContext.preferences || {}),
+        mealFrequency: mealCountRes.mealCount
+      }
+    };
   }
 
   // GAP 1: Janela peri-treino canônica (150 min por padrão N3.5)

@@ -182,6 +182,21 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   const accumulatedWarnings = [];
 
   let currentContext = resolvedContext;
+  if (options && (options.mealCount || options.mealsPerDay) && currentContext) {
+    const desiredMealCount = options.mealCount || options.mealsPerDay;
+    if (typeof desiredMealCount === 'number' && desiredMealCount >= 1 && desiredMealCount <= 8) {
+      currentContext = {
+        ...currentContext,
+        mealsPerDay: desiredMealCount,
+        mealCount: desiredMealCount,
+        routine: {
+          ...(currentContext.routine || {}),
+          mealsPerDay: desiredMealCount,
+          mealCount: desiredMealCount
+        }
+      };
+    }
+  }
   let energyTargetResult = null;
   let macroTargetResult = null;
   let nutritionValidatorResult = null;
@@ -524,7 +539,8 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
     const assemblyInput = {
       context: currentContext,
       validationResult: nutritionValidatorResult,
-      foodSolverResult
+      foodSolverResult,
+      options
     };
 
     mealAssemblyResult = assembleMeals(assemblyInput, policies.mealAssemblyPolicy || {});
@@ -578,7 +594,11 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   }
 
   if (Array.isArray(mealAssemblyResult.warnings) && mealAssemblyResult.warnings.length > 0) {
-    accumulatedWarnings.push(...mealAssemblyResult.warnings.map(w => `[N3.3] ${w}`));
+    const solverWarnSet = new Set(Array.isArray(foodSolverResult?.warnings) ? foodSolverResult.warnings : []);
+    const assemblyOnlyWarnings = mealAssemblyResult.warnings.filter(w => !solverWarnSet.has(w));
+    if (assemblyOnlyWarnings.length > 0) {
+      accumulatedWarnings.push(...assemblyOnlyWarnings.map(w => `[N3.3] ${w}`));
+    }
   }
 
   const assembledMealCount = Array.isArray(mealAssemblyResult.meals) ? mealAssemblyResult.meals.length : 0;
