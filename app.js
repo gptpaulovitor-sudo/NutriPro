@@ -701,6 +701,7 @@ function renderNutriAxSpiderRadar(scores) {
 }
 
 async function updateDashboardAndRadar(patientId = activePatientId) {
+  if (!patientId) return; // Guarda: patientId inválido (null/undefined) antes de autenticação
   const p = await db.patients.get(patientId);
   if (!p) return;
 

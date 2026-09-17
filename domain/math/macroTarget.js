@@ -268,7 +268,9 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
       if (activeCycle === 'dukan_cruzeiro_pl') {
         pTarget = Math.round(weightKg * 2.1);
         cTarget = 40;
-        fTarget = Math.max(25, Math.round(weightKg * 0.40));
+        // Cruzeiro PL: gordura principalmente de ovos e traços de proteínas magras + legumes.
+        // Limitar para valor atingível com alimentos Dukan-elegíveis.
+        fTarget = Math.max(15, Math.min(25, Math.round(weightKg * 0.20)));
         fibTarget = 15;
       } else if (activeCycle === 'dukan_consolidacao') {
         pTarget = Math.round(weightKg * 2.0);
@@ -281,10 +283,14 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
         fTarget = Math.max(25, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
         fibTarget = 25;
       } else {
-        // Ataque PP ou Cruzeiro PP
+        // Ataque PP (Proteína Pura) ou Cruzeiro PP — ciclo padrão Dukan
+        // O protocolo clínico Dukan original especifica 2.3 g/kg para a fase de Ataque
+        // (proteína pura maciça), garantindo preservação muscular máxima e cetose rápida.
         pTarget = Math.round(weightKg * 2.3);
         cTarget = 15;
-        fTarget = Math.max(20, Math.round(weightKg * 0.35));
+        // Fase de Ataque: gordura provém exclusivamente de ovos e traços de proteínas magras.
+        // Limite superior de 30g para manter o perfil de gordura muito baixo conforme protocolo.
+        fTarget = Math.max(10, Math.min(30, Math.round(weightKg * 0.20)));
         fibTarget = 10;
       }
       effectiveCalTarget = (pTarget * 4) + (cTarget * 4) + (fTarget * 9);

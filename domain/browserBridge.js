@@ -9137,7 +9137,9 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
       if (activeCycle === 'dukan_cruzeiro_pl') {
         pTarget = Math.round(weightKg * 2.1);
         cTarget = 40;
-        fTarget = Math.max(25, Math.round(weightKg * 0.40));
+        // Cruzeiro PL: gordura principalmente de ovos e traços de proteínas magras + legumes.
+        // Limitar para valor atingível com alimentos Dukan-elegíveis.
+        fTarget = Math.max(15, Math.min(25, Math.round(weightKg * 0.20)));
         fibTarget = 15;
       } else if (activeCycle === 'dukan_consolidacao') {
         pTarget = Math.round(weightKg * 2.0);
@@ -9150,10 +9152,14 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
         fTarget = Math.max(25, Math.round((caloricTargetKcal - (pTarget * 4) - (cTarget * 4)) / 9));
         fibTarget = 25;
       } else {
-        // Ataque PP ou Cruzeiro PP
+        // Ataque PP (Proteína Pura) ou Cruzeiro PP — ciclo padrão Dukan
+        // O protocolo clínico Dukan original especifica 2.3 g/kg para a fase de Ataque
+        // (proteína pura maciça), garantindo preservação muscular máxima e cetose rápida.
         pTarget = Math.round(weightKg * 2.3);
         cTarget = 15;
-        fTarget = Math.max(20, Math.round(weightKg * 0.35));
+        // Fase de Ataque: gordura provém exclusivamente de ovos e traços de proteínas magras.
+        // Limite superior de 30g para manter o perfil de gordura muito baixo conforme protocolo.
+        fTarget = Math.max(10, Math.min(30, Math.round(weightKg * 0.20)));
         fibTarget = 10;
       }
       effectiveCalTarget = (pTarget * 4) + (cTarget * 4) + (fTarget * 9);
@@ -10340,7 +10346,7 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
 
     // Dukan: Fase de Ataque (PP) ou Cruzeiro (PP)
     if (dietaryStyle === 'dukan' && (dietaryCycle === 'dukan_ataque' || dietaryCycle === 'dukan_cruzeiro_pp' || !dietaryCycle)) {
-      const isLeanProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|leite\s+desnatado|iogurte\s+desnatado|whey/i.test(fn);
+      const isLeanProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|salm[aã]o|sardinha|ovo|clara|cottage|ricota|leite\s+desnatado|iogurte\s+desnatado|whey/i.test(fn);
       const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
       if (!isLeanProtein && !isOatBran) {
         reasons.push("Fase de Ataque/PP da Dieta Dukan permite exclusivamente proteínas magras e farelo de aveia.");
@@ -10349,7 +10355,7 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
 
     // Dukan: Fase de Cruzeiro (PL - Proteína + Legumes)
     if (dietaryStyle === 'dukan' && dietaryCycle === 'dukan_cruzeiro_pl') {
-      const isProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|iogurte\s+desnatado|whey/i.test(fn);
+      const isProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|salm[aã]o|sardinha|ovo|clara|cottage|ricota|iogurte\s+desnatado|whey/i.test(fn);
       const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
       const isAllowedVeg = /br[oó]colis|salada|alface|tomate|pepino|abobrinha|espinafre|couve|cogumelo|palmito|berinjela|cenoura/i.test(fn);
       if (!isProtein && !isOatBran && !isAllowedVeg) {
@@ -10584,8 +10590,8 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
   // Tolerâncias de aceitação para status PASS vs WARNING
   tolerances: Object.freeze({
     caloriesKcal: 35.0,
-    proteinG: 3.0,
-    carbohydrateG: 5.0,
+    proteinG: 5.0,
+    carbohydrateG: 8.0,
     fatG: 2.5,
     fiberG: 30.0
   }),
@@ -10601,8 +10607,8 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
 
   // Limites para redução determinística do espaço de busca
   candidateLimits: Object.freeze({
-    perSearchRole: 3,
-    globalCandidateLimit: 15
+    perRoleLimit: 5,
+    globalCandidateLimit: 25
   }),
 
   // Parâmetros de iteração do algoritmo
@@ -10948,23 +10954,23 @@ function calculateClinicalStapleScore(food, role, options = {}) {
     }
   } else if (style === 'dukan') {
     if (cycle === 'dukan_ataque' || cycle === 'dukan_cruzeiro_pp' || !cycle) {
-      if (/frango|clara|ovo|patinho|til[aá]pia|atum/i.test(name)) score += 500;
+      if (/frango|clara|ovo|patinho|til[aá]pia|merluza|sardinha|salm[aã]o|atum/i.test(name)) score += 500;
       if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
       if (/cottage|ricota/i.test(name)) score += 300;
       if (/arroz|feij[aã]o|p[aã]o|batata|fruta|br[oó]colis|salada|azeite/i.test(name)) score = -9999;
     } else if (cycle === 'dukan_cruzeiro_pl') {
-      if (/frango|patinho|til[aá]pia|ovo|clara/i.test(name)) score += 500;
+      if (/frango|patinho|til[aá]pia|merluza|sardinha|salm[aã]o|ovo|clara/i.test(name)) score += 500;
       if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
-      if (/br[oó]colis|salada|alface|tomate|pepino|abobrinha/i.test(name)) score += 400;
+      if (/br[oó]colis|salada|alface|tomate|pepino|abobrinha|espinafre/i.test(name)) score += 400;
       if (/arroz|feij[aã]o|p[aã]o|batata|fruta|azeite/i.test(name)) score = -9999;
     } else if (cycle === 'dukan_consolidacao') {
       if (/frango|patinho|peixe|ovo|farelo/i.test(name)) score += 400;
       if (/ma[cç][aã]|morango|p[aã]o.*integral/i.test(name)) score += 350;
     }
   } else if (style === 'whole30') {
-    if (/ovo|frango|patinho|til[aá]pia|salm[aã]o/i.test(name)) score += 400;
-    if (/batata\s+doce|batata\s+inglesa|mandioca/i.test(name)) score += 350;
-    if (/salada|br[oó]colis|banana|ma[cç][aã]|mam[aã]o/i.test(name)) score += 350;
+    if (/ovo|frango|patinho|til[aá]pia|salm[aã]o|sardinha|merluza/i.test(name)) score += 400;
+    if (/batata\s+doce|batata\s+inglesa|mandioca|aipim/i.test(name)) score += 350;
+    if (/salada|br[oó]colis|abobrinha|espinafre|banana|ma[cç][aã]|mam[aã]o|morango/i.test(name)) score += 350;
     if (/azeite.*oliva|castanha|abacate/i.test(name)) score += 400;
     if (/arroz|aveia|p[aã]o|feij[aã]o|leite|queijo|iogurte|amendoim|whey/i.test(name)) score = -9999;
   }

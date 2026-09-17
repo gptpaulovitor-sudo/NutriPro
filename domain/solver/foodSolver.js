@@ -167,23 +167,23 @@ function calculateClinicalStapleScore(food, role, options = {}) {
     }
   } else if (style === 'dukan') {
     if (cycle === 'dukan_ataque' || cycle === 'dukan_cruzeiro_pp' || !cycle) {
-      if (/frango|clara|ovo|patinho|til[aá]pia|atum/i.test(name)) score += 500;
+      if (/frango|clara|ovo|patinho|til[aá]pia|merluza|sardinha|salm[aã]o|atum/i.test(name)) score += 500;
       if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
       if (/cottage|ricota/i.test(name)) score += 300;
       if (/arroz|feij[aã]o|p[aã]o|batata|fruta|br[oó]colis|salada|azeite/i.test(name)) score = -9999;
     } else if (cycle === 'dukan_cruzeiro_pl') {
-      if (/frango|patinho|til[aá]pia|ovo|clara/i.test(name)) score += 500;
+      if (/frango|patinho|til[aá]pia|merluza|sardinha|salm[aã]o|ovo|clara/i.test(name)) score += 500;
       if (/farelo\s+de\s+aveia/i.test(name)) score += 500;
-      if (/br[oó]colis|salada|alface|tomate|pepino|abobrinha/i.test(name)) score += 400;
+      if (/br[oó]colis|salada|alface|tomate|pepino|abobrinha|espinafre/i.test(name)) score += 400;
       if (/arroz|feij[aã]o|p[aã]o|batata|fruta|azeite/i.test(name)) score = -9999;
     } else if (cycle === 'dukan_consolidacao') {
       if (/frango|patinho|peixe|ovo|farelo/i.test(name)) score += 400;
       if (/ma[cç][aã]|morango|p[aã]o.*integral/i.test(name)) score += 350;
     }
   } else if (style === 'whole30') {
-    if (/ovo|frango|patinho|til[aá]pia|salm[aã]o/i.test(name)) score += 400;
-    if (/batata\s+doce|batata\s+inglesa|mandioca/i.test(name)) score += 350;
-    if (/salada|br[oó]colis|banana|ma[cç][aã]|mam[aã]o/i.test(name)) score += 350;
+    if (/ovo|frango|patinho|til[aá]pia|salm[aã]o|sardinha|merluza/i.test(name)) score += 400;
+    if (/batata\s+doce|batata\s+inglesa|mandioca|aipim/i.test(name)) score += 350;
+    if (/salada|br[oó]colis|abobrinha|espinafre|banana|ma[cç][aã]|mam[aã]o|morango/i.test(name)) score += 350;
     if (/azeite.*oliva|castanha|abacate/i.test(name)) score += 400;
     if (/arroz|aveia|p[aã]o|feij[aã]o|leite|queijo|iogurte|amendoim|whey/i.test(name)) score = -9999;
   }

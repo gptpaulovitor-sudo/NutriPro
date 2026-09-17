@@ -193,7 +193,7 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
 
     // Dukan: Fase de Ataque (PP) ou Cruzeiro (PP)
     if (dietaryStyle === 'dukan' && (dietaryCycle === 'dukan_ataque' || dietaryCycle === 'dukan_cruzeiro_pp' || !dietaryCycle)) {
-      const isLeanProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|leite\s+desnatado|iogurte\s+desnatado|whey/i.test(fn);
+      const isLeanProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|salm[aã]o|sardinha|ovo|clara|cottage|ricota|leite\s+desnatado|iogurte\s+desnatado|whey/i.test(fn);
       const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
       if (!isLeanProtein && !isOatBran) {
         reasons.push("Fase de Ataque/PP da Dieta Dukan permite exclusivamente proteínas magras e farelo de aveia.");
@@ -202,7 +202,7 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
 
     // Dukan: Fase de Cruzeiro (PL - Proteína + Legumes)
     if (dietaryStyle === 'dukan' && dietaryCycle === 'dukan_cruzeiro_pl') {
-      const isProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|ovo|clara|cottage|ricota|iogurte\s+desnatado|whey/i.test(fn);
+      const isProtein = /frango|patinho|alcatra|til[aá]pia|merluza|pescada|atum|salm[aã]o|sardinha|ovo|clara|cottage|ricota|iogurte\s+desnatado|whey/i.test(fn);
       const isOatBran = /farelo\s+de\s+aveia/i.test(fn);
       const isAllowedVeg = /br[oó]colis|salada|alface|tomate|pepino|abobrinha|espinafre|couve|cogumelo|palmito|berinjela|cenoura/i.test(fn);
       if (!isProtein && !isOatBran && !isAllowedVeg) {

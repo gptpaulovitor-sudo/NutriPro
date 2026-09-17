@@ -5944,7 +5944,7 @@
             class="relative w-full rounded-xl overflow-hidden bg-black border border-blue-900/60 flex items-center justify-center min-h-[260px] shadow-inner">
             <img id="guide-modal-gif" src="" alt="Demonstração do Exercício" referrerpolicy="no-referrer"
               class="w-full h-auto max-h-[300px] object-contain rounded-lg transition-opacity duration-300"
-              onerror="perfHandleGifError(this);" />
+              onerror="if(typeof perfHandleGifError==='function') perfHandleGifError(this); else this.style.display='none';" />
 
             <div
               class="absolute bottom-2 left-2 right-2 bg-black/80 backdrop-blur-sm border border-zinc-800 px-3 py-1.5 rounded-lg flex items-center justify-between text-[11px]">

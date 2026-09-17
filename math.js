@@ -1392,6 +1392,7 @@ const CANONICAL_DIET_FOODS = {
   banana_prata: { name: "Banana Nanica (Crua)", source: "TACO", prepState: "Cru/In natura", category: "Frutas", calories: 97.0, protein: 1.4, carbohydrate: 23.8, lipid: 0.1, fiber: 1.9, sodium: 0.0, defaultUnit: "unid", gramPerUnit: 100 },
   maca_fuji: { name: "Maçã Fuji com Casca", source: "TACO", prepState: "Cru/In natura", category: "Frutas", calories: 56.0, protein: 0.3, carbohydrate: 15.2, lipid: 0.0, fiber: 1.3, sodium: 0.0, defaultUnit: "unid", gramPerUnit: 130 },
   mamao_papaia: { name: "Mamão Papaia (Cru)", source: "TACO", prepState: "Cru/In natura", category: "Frutas", calories: 40.0, protein: 0.5, carbohydrate: 10.4, lipid: 0.1, fiber: 1.0, sodium: 2.0, defaultUnit: "unid", gramPerUnit: 150 },
+  abacate: { name: "Abacate", source: "TACO", prepState: "Cru/In natura", category: "Frutas", calories: 96.0, protein: 1.2, carbohydrate: 6.0, lipid: 8.4, fiber: 6.3, sodium: 2.0, defaultUnit: "col_sopa", gramPerUnit: 30 },
   brocolis_cozido: { name: "Brócolis (Cozido)", source: "TACO", prepState: "Cozido", category: "Verduras e Legumes", calories: 25.0, protein: 2.1, carbohydrate: 4.0, lipid: 0.5, fiber: 3.4, sodium: 3.0, defaultUnit: "col_sopa", gramPerUnit: 100 },
   salada_verde: { name: "Salada Verde Mista (Alface, Tomate, Pepino)", source: "TACO", prepState: "Cru/In natura", category: "Verduras e Legumes", calories: 15.0, protein: 1.1, carbohydrate: 3.0, lipid: 0.2, fiber: 1.5, sodium: 5.0, defaultUnit: "prato", gramPerUnit: 100 },
 
@@ -1399,6 +1400,35 @@ const CANONICAL_DIET_FOODS = {
   azeite_oliva: { name: "Azeite de Oliva Extravirgem", source: "TACO", prepState: "Cru/In natura", category: "Óleos e Gorduras", calories: 884.0, protein: 0.0, carbohydrate: 0.0, lipid: 100.0, fiber: 0.0, sodium: 0.0, defaultUnit: "col_sopa", gramPerUnit: 10 },
   castanha_brasil: { name: "Castanha-do-Brasil (Crua)", source: "TACO", prepState: "Cru/In natura", category: "Oleaginosas e Pastas", calories: 643.0, protein: 14.5, carbohydrate: 15.1, lipid: 63.5, fiber: 7.9, sodium: 2.0, defaultUnit: "unid", gramPerUnit: 15 },
   pasta_amendoim: { name: "Pasta de Amendoim Integral", source: "Rótulo Oficial", prepState: "Preparado", category: "Oleaginosas e Pastas", calories: 590.0, protein: 26.0, carbohydrate: 18.0, lipid: 49.0, fiber: 6.0, sodium: 10.0, defaultUnit: "col_sopa", gramPerUnit: 15 },
+  castanha_caju: { name: "Castanha-de-Caju Torrada", source: "TACO", prepState: "Assado", category: "Oleaginosas e Pastas", calories: 574.0, protein: 18.5, carbohydrate: 29.1, lipid: 46.3, fiber: 3.3, sodium: 10.0, defaultUnit: "unid", gramPerUnit: 5 },
+  queijo_parmesao: { name: "Queijo Parmesão Ralado", source: "TACO", prepState: "Preparado", category: "Laticínios", calories: 456.0, protein: 35.6, carbohydrate: 3.5, lipid: 33.5, fiber: 0.0, sodium: 1500.0, defaultUnit: "col_sopa", gramPerUnit: 15 },
+  manteiga_sem_sal: { name: "Manteiga com Sal", source: "TACO", prepState: "Cru/In natura", category: "Óleos e Gorduras", calories: 727.0, protein: 0.4, carbohydrate: 0.1, lipid: 82.4, fiber: 0.0, sodium: 540.0, defaultUnit: "col_sopa", gramPerUnit: 10 },
+  oleo_coco: { name: "Óleo de Coco Extra Virgem", source: "Rótulo Oficial", prepState: "Cru/In natura", category: "Óleos e Gorduras", calories: 862.0, protein: 0.0, carbohydrate: 0.0, lipid: 100.0, fiber: 0.0, sodium: 0.0, defaultUnit: "col_sopa", gramPerUnit: 10 },
+  creme_leite: { name: "Creme de Leite UHT", source: "TACO", prepState: "Preparado", category: "Laticínios", calories: 234.0, protein: 1.8, carbohydrate: 3.9, lipid: 23.5, fiber: 0.0, sodium: 30.0, defaultUnit: "col_sopa", gramPerUnit: 15 },
+
+  // Cereais Especiais (Dukan Attack - farelo de aveia é o único carboidrato permitido)
+  farelo_aveia: { name: "Farelo de Aveia", source: "TACO", prepState: "Cru/In natura", category: "Cereais e Leguminosas", calories: 246.0, protein: 15.4, carbohydrate: 40.6, lipid: 7.0, fiber: 17.0, sodium: 4.0, defaultUnit: "col_sopa", gramPerUnit: 15 },
+
+  // Peixes Adicionais (Keto, Whole30, Dukan)
+  salmao_grelhado: { name: "Salmão (Grelhado)", source: "TACO", prepState: "Grelhado", category: "Peixes e Frutos do Mar", calories: 208.0, protein: 28.0, carbohydrate: 0.0, lipid: 10.3, fiber: 0.0, sodium: 59.0, defaultUnit: "file", gramPerUnit: 100 },
+  sardinha_lata: { name: "Sardinha em Lata (Escorrida)", source: "TACO", prepState: "Preparado", category: "Peixes e Frutos do Mar", calories: 208.0, protein: 27.0, carbohydrate: 0.0, lipid: 11.0, fiber: 0.0, sodium: 400.0, defaultUnit: "lata", gramPerUnit: 125 },
+  merluza_grelhada: { name: "Merluza (Grelhada)", source: "TACO", prepState: "Grelhado", category: "Peixes e Frutos do Mar", calories: 97.0, protein: 20.8, carbohydrate: 0.0, lipid: 1.4, fiber: 0.0, sodium: 72.0, defaultUnit: "file", gramPerUnit: 100 },
+
+  // Laticínios Especiais (Dukan)
+  ricota: { name: "Ricota", source: "TACO", prepState: "Preparado", category: "Laticínios", calories: 137.0, protein: 9.2, carbohydrate: 3.2, lipid: 10.0, fiber: 0.0, sodium: 84.0, defaultUnit: "fatia", gramPerUnit: 30 },
+
+  // Tubérculos Adicionais (Whole30, Prático)
+  mandioca_cozida: { name: "Mandioca (Aipim) Cozida", source: "TACO", prepState: "Cozido", category: "Tubérculos e Raízes", calories: 125.0, protein: 1.0, carbohydrate: 30.1, lipid: 0.3, fiber: 1.9, sodium: 8.0, defaultUnit: "pedaco", gramPerUnit: 100 },
+
+  // Frutas Adicionais (Low Carb, Whole30)
+  morango: { name: "Morango (Cru)", source: "TACO", prepState: "Cru/In natura", category: "Frutas", calories: 30.0, protein: 0.9, carbohydrate: 6.6, lipid: 0.3, fiber: 2.1, sodium: 1.0, defaultUnit: "unid", gramPerUnit: 12 },
+
+  // Vegetais Adicionais (Whole30, Keto, Dukan PL)
+  abobrinha_cozida: { name: "Abobrinha (Cozida)", source: "TACO", prepState: "Cozido", category: "Verduras e Legumes", calories: 16.0, protein: 1.1, carbohydrate: 2.8, lipid: 0.2, fiber: 1.0, sodium: 2.0, defaultUnit: "col_sopa", gramPerUnit: 100 },
+  espinafre_cozido: { name: "Espinafre (Cozido)", source: "TACO", prepState: "Cozido", category: "Verduras e Legumes", calories: 23.0, protein: 3.0, carbohydrate: 3.2, lipid: 0.4, fiber: 2.4, sodium: 70.0, defaultUnit: "prato", gramPerUnit: 100 },
+
+  // Gorduras Adicionais (Keto, Low Carb)
+  semente_linhaca: { name: "Semente de Linhaça Dourada", source: "TACO", prepState: "Cru/In natura", category: "Oleaginosas e Pastas", calories: 478.0, protein: 18.3, carbohydrate: 28.9, lipid: 32.3, fiber: 27.3, sodium: 6.0, defaultUnit: "col_sopa", gramPerUnit: 10 },
 
   // Bebidas
   cafe_sem_acucar: { name: "Café sem açúcar", source: "TACO", prepState: "Cru/In natura", category: "Achocolatados e Bebidas", calories: 2.0, protein: 0.3, carbohydrate: 0.0, lipid: 0.0, fiber: 0.0, sodium: 1.0, defaultUnit: "xicara", gramPerUnit: 100 }

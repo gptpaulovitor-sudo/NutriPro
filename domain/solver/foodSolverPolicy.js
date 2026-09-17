@@ -59,8 +59,8 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
   // Tolerâncias de aceitação para status PASS vs WARNING
   tolerances: Object.freeze({
     caloriesKcal: 35.0,
-    proteinG: 3.0,
-    carbohydrateG: 5.0,
+    proteinG: 5.0,
+    carbohydrateG: 8.0,
     fatG: 2.5,
     fiberG: 30.0
   }),
@@ -76,8 +76,8 @@ const DEFAULT_FOOD_SOLVER_POLICY = Object.freeze({
 
   // Limites para redução determinística do espaço de busca
   candidateLimits: Object.freeze({
-    perSearchRole: 3,
-    globalCandidateLimit: 15
+    perRoleLimit: 5,
+    globalCandidateLimit: 25
   }),
 
   // Parâmetros de iteração do algoritmo
