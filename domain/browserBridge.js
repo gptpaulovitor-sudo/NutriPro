@@ -3353,7 +3353,10 @@ const GLOBAL_GATE_ID = Object.freeze({
   G17_NUTRIENT_TIMING_INTEGRITY: 'G17_NUTRIENT_TIMING_INTEGRITY',
   G18_PROVENANCE_INTEGRITY: 'G18_PROVENANCE_INTEGRITY',
   G19_DETERMINISM: 'G19_DETERMINISM',
-  G20_IMMUTABILITY: 'G20_IMMUTABILITY'
+  G20_IMMUTABILITY: 'G20_IMMUTABILITY',
+  G21_MEAL_MACRO_COHERENCE: 'G21_MEAL_MACRO_COHERENCE',
+  G22_FOOD_DIVERSITY_AND_REPETITION: 'G22_FOOD_DIVERSITY_AND_REPETITION',
+  G23_MEAL_FOOD_STRUCTURE: 'G23_MEAL_FOOD_STRUCTURE'
 });
 
 /**
@@ -10885,39 +10888,53 @@ function calculateClinicalStapleScore(food, role, options = {}) {
 
   let score = 0;
 
-  // 1. Pilares universais da alimentação clínica real brasileira
-  if (/arroz/i.test(name)) score += 600;
-  if (/feij[aã]o/i.test(name)) score += 600;
-  if (/frango/i.test(name)) score += 550;
-  if (/patinho|alcatra|maminha/i.test(name)) score += 500;
-  if (/til[aá]pia|merluza|pescada/i.test(name)) score += 480;
-  if (/salm[aã]o|sardinha|atum/i.test(name)) score += 470;
-  if (/ovo\s+de\s+galinha|ovos/i.test(name)) score += 550;
-  if (/clara/i.test(name)) score += 450;
-  if (/batata\s+doce/i.test(name)) score += 500;
-  if (/batata\s+inglesa/i.test(name)) score += 450;
-  if (/mandioca|aipim/i.test(name)) score += 420;
-  if (/aveia/i.test(name)) score += 500;
-  if (/p[aã]o.*integral/i.test(name)) score += 480;
-  if (/banana/i.test(name)) score += 450;
-  if (/ma[cç][aã]/i.test(name)) score += 400;
-  if (/mam[aã]o/i.test(name)) score += 400;
-  if (/morango/i.test(name)) score += 420;
-  if (/br[oó]colis/i.test(name)) score += 450;
-  if (/salada|alface|tomate|pepino|espinafre/i.test(name)) score += 450;
-  if (/azeite.*oliva/i.test(name)) score += 550;
-  if (/castanha|nozes/i.test(name)) score += 450;
-  if (/abacate/i.test(name)) score += 450;
-  if (/iogurte/i.test(name)) score += 450;
-  if (/cottage|minas|ricota/i.test(name)) score += 450;
+  // 0. Despriorização rigorosa de pratos preparados e receitas compostas
+  // (ex: bolo, escondidinho, torta, lasanha, sanduíche pronto, pizza, pastel, folhado, empanado, frito)
+  // para garantir que a dieta clínica seja construída a partir de alimentos base puros (arroz, feijão, frango, etc.).
+  const isCompositeDish = /bolo|torta|escondidinho|sandu[ií]che|lasanha|pizza|pastel|hamb[uú]rguer|empanado|nuggets|folhado|panqueca|rechead/i.test(name);
+  if (isCompositeDish) {
+    score -= 1500;
+  }
+
+  // Bônus para alimentos da tabela curada canônica (canon_*)
+  const isCanonicalCurated = (food.id && String(food.id).startsWith('canon_')) || (food.foodId && String(food.foodId).startsWith('canon_'));
+  if (isCanonicalCurated) {
+    score += 350;
+  }
+
+  // 1. Pilares universais da alimentação clínica real brasileira (alimentos base in natura / minimamente processados)
+  if (/arroz/i.test(name) && !isCompositeDish) score += 700;
+  if (/feij[aã]o/i.test(name) && !isCompositeDish) score += 700;
+  if (/frango/i.test(name) && !isCompositeDish) score += 650;
+  if (/patinho|alcatra|maminha/i.test(name) && !isCompositeDish) score += 600;
+  if (/til[aá]pia|merluza|pescada/i.test(name) && !isCompositeDish) score += 580;
+  if (/salm[aã]o|sardinha|atum/i.test(name) && !isCompositeDish) score += 520;
+  if (/ovo\s+de\s+galinha|ovos/i.test(name) && !isCompositeDish) score += 650;
+  if (/clara/i.test(name) && !isCompositeDish) score += 500;
+  if (/batata\s+doce/i.test(name) && !isCompositeDish) score += 600;
+  if (/batata\s+inglesa/i.test(name) && !isCompositeDish) score += 550;
+  if (/mandioca|aipim/i.test(name) && !isCompositeDish) score += 500;
+  if (/aveia/i.test(name) && !isCompositeDish) score += 600;
+  if (/p[aã]o.*integral/i.test(name) && !isCompositeDish) score += 550;
+  if (/banana/i.test(name) && !isCompositeDish) score += 550;
+  if (/ma[cç][aã]/i.test(name) && !isCompositeDish) score += 450;
+  if (/mam[aã]o/i.test(name) && !isCompositeDish) score += 450;
+  if (/morango/i.test(name) && !isCompositeDish) score += 480;
+  if (/br[oó]colis/i.test(name) && !isCompositeDish) score += 500;
+  if (/salada|alface|tomate|pepino|espinafre/i.test(name) && !isCompositeDish) score += 500;
+  if (/azeite.*oliva/i.test(name) && !isCompositeDish) score += 650;
+  if (/castanha|nozes/i.test(name) && !isCompositeDish) score += 500;
+  if (/abacate/i.test(name) && !isCompositeDish) score += 500;
+  if (/iogurte/i.test(name) && !isCompositeDish) score += 500;
+  if (/cottage|minas|ricota/i.test(name) && !isCompositeDish) score += 500;
 
   // 2. Modulações de Afinidade por Estilo & Ciclo
   if (style === 'tradicional') {
-    if (/arroz/i.test(name)) score += 250;
-    if (/feij[aã]o/i.test(name)) score += 250;
-    if (/frango|patinho|ovo/i.test(name)) score += 200;
-    if (/batata|p[aã]o/i.test(name)) score += 150;
-    if (/banana|salada/i.test(name)) score += 150;
+    if (/arroz/i.test(name) && !isCompositeDish) score += 250;
+    if (/feij[aã]o/i.test(name) && !isCompositeDish) score += 250;
+    if (/frango|patinho|ovo/i.test(name) && !isCompositeDish) score += 200;
+    if (/batata|p[aã]o/i.test(name) && !isCompositeDish) score += 150;
+    if (/banana|salada/i.test(name) && !isCompositeDish) score += 150;
   } else if (style === 'fitness') {
     if (/frango|til[aá]pia|clara/i.test(name)) score += 300;
     if (/batata\s+doce|aveia/i.test(name)) score += 250;
@@ -12149,11 +12166,11 @@ const ROLE_ARCHETYPES = Object.freeze({
   1: Object.freeze([MEAL_ROLES.PRIMARY]),
   2: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.PRIMARY]),
   3: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY]),
-  4: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY]),
-  5: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK]),
-  6: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.FLEXIBLE]),
-  7: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.FLEXIBLE, MEAL_ROLES.FLEXIBLE]),
-  8: Object.freeze([MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.SNACK, MEAL_ROLES.FLEXIBLE, MEAL_ROLES.FLEXIBLE])
+  4: Object.freeze([MEAL_ROLES.SECONDARY, MEAL_ROLES.PRIMARY, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY]),
+  5: Object.freeze([MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY]),
+  6: Object.freeze([MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY, MEAL_ROLES.SNACK, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY]),
+  7: Object.freeze([MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY, MEAL_ROLES.SNACK, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY, MEAL_ROLES.FLEXIBLE]),
+  8: Object.freeze([MEAL_ROLES.SECONDARY, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY, MEAL_ROLES.SNACK, MEAL_ROLES.SNACK, MEAL_ROLES.SNACK, MEAL_ROLES.PRIMARY, MEAL_ROLES.FLEXIBLE])
 });
 
 /**
@@ -12918,14 +12935,16 @@ function assembleMeals(input, customPolicy = {}) {
     // Opções candidatas de alocação para este item
     const candidateAllocations = [];
 
-    // Opção A: Alocar inteiro em cada uma das M refeições
-    for (let m = 0; m < mealCount; m++) {
-      candidateAllocations.push({
-        type: 'SINGLE',
-        allocations: [{ mealIndex: m, ratio: 1.0 }],
-        isSplit: false,
-        sortKey: `0_${m}`
-      });
+    // Opção A: Alocar inteiro em cada uma das M refeições (se massa <= 350g ou se houver apenas 1 refeição)
+    if (item.grams <= 350.0 || mealCount === 1) {
+      for (let m = 0; m < mealCount; m++) {
+        candidateAllocations.push({
+          type: 'SINGLE',
+          allocations: [{ mealIndex: m, ratio: 1.0 }],
+          isSplit: false,
+          sortKey: `0_${m}`
+        });
+      }
     }
 
     // Opção B: Dividir em 2 refeições se a massa for substancial (>= minimumPreferredSplitMass)
@@ -14957,6 +14976,13 @@ const DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY = Object.freeze({
   // Tolerância para coerência Atwater (4P + 4C + 9F vs valor fechado)
   atwaterToleranceKcal: 1.0,
 
+  // Parâmetros de Coerência Clínica de Refeições (G21, G22, G23)
+  minMainMealCarbsGrams: 15.0,
+  maxSingleMealCarbRatio: 0.55,
+  maxIndividualPortionGrams: 350.0,
+  minDistinctDietFoods: 4,
+  minItemsInMainMeal: 2,
+
   // Tratamento de Fasted Training
   allowFastedTrainingWithWarning: true,
 
@@ -15000,6 +15026,21 @@ function createGlobalPrescriptionValidationPolicy(overrides = {}) {
     atwaterToleranceKcal: typeof overrides.atwaterToleranceKcal === 'number' && Number.isFinite(overrides.atwaterToleranceKcal)
       ? Math.abs(overrides.atwaterToleranceKcal)
       : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.atwaterToleranceKcal,
+    minMainMealCarbsGrams: typeof overrides.minMainMealCarbsGrams === 'number' && Number.isFinite(overrides.minMainMealCarbsGrams)
+      ? Math.abs(overrides.minMainMealCarbsGrams)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.minMainMealCarbsGrams,
+    maxSingleMealCarbRatio: typeof overrides.maxSingleMealCarbRatio === 'number' && Number.isFinite(overrides.maxSingleMealCarbRatio)
+      ? Math.abs(overrides.maxSingleMealCarbRatio)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.maxSingleMealCarbRatio,
+    maxIndividualPortionGrams: typeof overrides.maxIndividualPortionGrams === 'number' && Number.isFinite(overrides.maxIndividualPortionGrams)
+      ? Math.abs(overrides.maxIndividualPortionGrams)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.maxIndividualPortionGrams,
+    minDistinctDietFoods: typeof overrides.minDistinctDietFoods === 'number' && Number.isFinite(overrides.minDistinctDietFoods)
+      ? Math.abs(overrides.minDistinctDietFoods)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.minDistinctDietFoods,
+    minItemsInMainMeal: typeof overrides.minItemsInMainMeal === 'number' && Number.isFinite(overrides.minItemsInMainMeal)
+      ? Math.abs(overrides.minItemsInMainMeal)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.minItemsInMainMeal,
     allowFastedTrainingWithWarning: overrides.allowFastedTrainingWithWarning !== undefined
       ? Boolean(overrides.allowFastedTrainingWithWarning)
       : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.allowFastedTrainingWithWarning,
@@ -15829,6 +15870,110 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   } else {
     recordGate(GLOBAL_GATE_ID.G17_NUTRIENT_TIMING_INTEGRITY, 'Nutrient Timing Integrity', 'PASS', GATE_SEVERITY.INFORMATIONAL,
       'Classificações de nutrient timing válidas e livres de sobreposição física.');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // G21 — MEAL MACRO COHERENCE (Coerência de macros por refeição)
+  // ─────────────────────────────────────────────────────────────────────────
+  const mealMacroFailures = [];
+  const totalDailyCarbs = (macroTargetResult && typeof macroTargetResult.carbohydrateTargetG === 'number')
+    ? macroTargetResult.carbohydrateTargetG
+    : (finalNutrients.carbohydrate || 0);
+  const isKetoOrVeryLowCarb = totalDailyCarbs < 80;
+
+  if (finalMeals.length > 0) {
+    finalMeals.forEach(meal => {
+      const isMainMeal = meal.mealRole === 'PRIMARY' || /almo[cç]o|jantar/i.test(meal.mealName || '');
+      const mealCarbs = (meal.totals && typeof meal.totals.carbohydrate === 'number')
+        ? meal.totals.carbohydrate
+        : (Array.isArray(meal.items) ? meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0) : 0);
+
+      // Verificação de aporte mínimo de carboidratos em refeições principais
+      if (isMainMeal && !isKetoOrVeryLowCarb) {
+        if (mealCarbs < policy.minMainMealCarbsGrams) {
+          mealMacroFailures.push(`Refeição principal "${meal.mealName || meal.mealId}" possui apenas ${mealCarbs.toFixed(1)}g de carboidrato (mínimo exigido: ${policy.minMainMealCarbsGrams}g).`);
+        }
+      }
+
+      // Verificação de hiperconcentração de carboidratos em uma única refeição (quando há >= 3 refeições)
+      if (finalMeals.length >= 3 && totalDailyCarbs > 0) {
+        const carbRatio = mealCarbs / totalDailyCarbs;
+        if (carbRatio > policy.maxSingleMealCarbRatio) {
+          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(policy.maxSingleMealCarbRatio * 100).toFixed(0)}%).`);
+        }
+      }
+    });
+  }
+
+  if (mealMacroFailures.length > 0) {
+    recordGate(GLOBAL_GATE_ID.G21_MEAL_MACRO_COHERENCE, 'Meal Macro Coherence', 'FAIL', GATE_SEVERITY.BLOCKING,
+      'Incoerência na distribuição de carboidratos entre as refeições.', { failures: mealMacroFailures });
+  } else {
+    recordGate(GLOBAL_GATE_ID.G21_MEAL_MACRO_COHERENCE, 'Meal Macro Coherence', 'PASS', GATE_SEVERITY.INFORMATIONAL,
+      'Distribuição de macronutrientes e aporte de carboidratos por refeição clinicamente coerente.');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // G22 — FOOD DIVERSITY AND REPETITION (Porções e diversidade global)
+  // ─────────────────────────────────────────────────────────────────────────
+  const diversityFailures = [];
+  const allFinalFoodIds = new Set();
+
+  finalMeals.forEach(meal => {
+    if (Array.isArray(meal.items)) {
+      meal.items.forEach(it => {
+        const foodId = String(it.foodId || it.id || '').trim();
+        if (foodId) allFinalFoodIds.add(foodId);
+        const g = (typeof it.grams === 'number' && Number.isFinite(it.grams)) ? it.grams : (it.quantity || 0);
+
+        // Vegetais e folhosos de baixa densidade calórica (< 40 kcal/100g) admitem até 500g de volume
+        const isLowDensityVegetable = (it.nutrients && g > 0 && (it.nutrients.calories / (g / 100)) <= 40) ||
+          /br[oó]colis|salada|alface|couve|pepino|tomate|abobrinha|espinafre|folhas/i.test(it.foodName || '');
+        const maxAllowedGrams = isLowDensityVegetable ? 500.0 : policy.maxIndividualPortionGrams;
+
+        if (g > maxAllowedGrams) {
+          diversityFailures.push(`Porção excessiva do item "${it.foodName || foodId}" na refeição "${meal.mealName || meal.mealId}": ${g}g (limite seguro: ${maxAllowedGrams}g).`);
+        }
+      });
+    }
+  });
+
+  const totalAvailableDistinct = solverFoodIds.size > 0 ? solverFoodIds.size : allFinalFoodIds.size;
+  const effectiveMinDistinct = Math.min(policy.minDistinctDietFoods, totalAvailableDistinct);
+
+  if (finalMeals.length >= 3 && allFinalFoodIds.size < effectiveMinDistinct) {
+    diversityFailures.push(`Variedade alimentar insuficiente: prescrição de ${finalMeals.length} refeições contém apenas ${allFinalFoodIds.size} alimentos distintos (mínimo exigido: ${effectiveMinDistinct}).`);
+  }
+
+  if (diversityFailures.length > 0) {
+    recordGate(GLOBAL_GATE_ID.G22_FOOD_DIVERSITY_AND_REPETITION, 'Food Diversity and Repetition', 'FAIL', GATE_SEVERITY.BLOCKING,
+      'Violação de limites de porção individual ou diversidade alimentar global.', { failures: diversityFailures });
+  } else {
+    recordGate(GLOBAL_GATE_ID.G22_FOOD_DIVERSITY_AND_REPETITION, 'Food Diversity and Repetition', 'PASS', GATE_SEVERITY.INFORMATIONAL,
+      'Porções individuais seguras e diversidade alimentar diária adequada.', { distinctFoodsCount: allFinalFoodIds.size });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // G23 — MEAL FOOD STRUCTURE (Estrutura de composição da refeição)
+  // ─────────────────────────────────────────────────────────────────────────
+  const structureFailures = [];
+  const isMainMealStructureStrict = totalAvailableDistinct >= 4;
+
+  finalMeals.forEach(meal => {
+    const isMainMeal = meal.mealRole === 'PRIMARY' || /almo[cç]o|jantar/i.test(meal.mealName || '');
+    const itemCount = Array.isArray(meal.items) ? meal.items.length : 0;
+
+    if (isMainMealStructureStrict && isMainMeal && itemCount < policy.minItemsInMainMeal) {
+      structureFailures.push(`Refeição principal "${meal.mealName || meal.mealId}" estruturalmente incompleta com apenas ${itemCount} alimento(s) (mínimo: ${policy.minItemsInMainMeal}).`);
+    }
+  });
+
+  if (structureFailures.length > 0) {
+    recordGate(GLOBAL_GATE_ID.G23_MEAL_FOOD_STRUCTURE, 'Meal Food Structure', 'FAIL', GATE_SEVERITY.BLOCKING,
+      'Estrutura de montagem de refeições principais incompleta ou inadequada.', { failures: structureFailures });
+  } else {
+    recordGate(GLOBAL_GATE_ID.G23_MEAL_FOOD_STRUCTURE, 'Meal Food Structure', 'PASS', GATE_SEVERITY.INFORMATIONAL,
+      'Estrutura de composição de todas as refeições principais em conformidade.');
   }
 
   // ─────────────────────────────────────────────────────────────────────────

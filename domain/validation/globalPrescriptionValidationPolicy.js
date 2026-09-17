@@ -30,6 +30,13 @@ const DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY = Object.freeze({
   // Tolerância para coerência Atwater (4P + 4C + 9F vs valor fechado)
   atwaterToleranceKcal: 1.0,
 
+  // Parâmetros de Coerência Clínica de Refeições (G21, G22, G23)
+  minMainMealCarbsGrams: 15.0,
+  maxSingleMealCarbRatio: 0.55,
+  maxIndividualPortionGrams: 350.0,
+  minDistinctDietFoods: 4,
+  minItemsInMainMeal: 2,
+
   // Tratamento de Fasted Training
   allowFastedTrainingWithWarning: true,
 
@@ -73,6 +80,21 @@ function createGlobalPrescriptionValidationPolicy(overrides = {}) {
     atwaterToleranceKcal: typeof overrides.atwaterToleranceKcal === 'number' && Number.isFinite(overrides.atwaterToleranceKcal)
       ? Math.abs(overrides.atwaterToleranceKcal)
       : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.atwaterToleranceKcal,
+    minMainMealCarbsGrams: typeof overrides.minMainMealCarbsGrams === 'number' && Number.isFinite(overrides.minMainMealCarbsGrams)
+      ? Math.abs(overrides.minMainMealCarbsGrams)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.minMainMealCarbsGrams,
+    maxSingleMealCarbRatio: typeof overrides.maxSingleMealCarbRatio === 'number' && Number.isFinite(overrides.maxSingleMealCarbRatio)
+      ? Math.abs(overrides.maxSingleMealCarbRatio)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.maxSingleMealCarbRatio,
+    maxIndividualPortionGrams: typeof overrides.maxIndividualPortionGrams === 'number' && Number.isFinite(overrides.maxIndividualPortionGrams)
+      ? Math.abs(overrides.maxIndividualPortionGrams)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.maxIndividualPortionGrams,
+    minDistinctDietFoods: typeof overrides.minDistinctDietFoods === 'number' && Number.isFinite(overrides.minDistinctDietFoods)
+      ? Math.abs(overrides.minDistinctDietFoods)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.minDistinctDietFoods,
+    minItemsInMainMeal: typeof overrides.minItemsInMainMeal === 'number' && Number.isFinite(overrides.minItemsInMainMeal)
+      ? Math.abs(overrides.minItemsInMainMeal)
+      : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.minItemsInMainMeal,
     allowFastedTrainingWithWarning: overrides.allowFastedTrainingWithWarning !== undefined
       ? Boolean(overrides.allowFastedTrainingWithWarning)
       : DEFAULT_GLOBAL_PRESCRIPTION_VALIDATION_POLICY.allowFastedTrainingWithWarning,

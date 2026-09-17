@@ -98,39 +98,53 @@ function calculateClinicalStapleScore(food, role, options = {}) {
 
   let score = 0;
 
-  // 1. Pilares universais da alimentação clínica real brasileira
-  if (/arroz/i.test(name)) score += 600;
-  if (/feij[aã]o/i.test(name)) score += 600;
-  if (/frango/i.test(name)) score += 550;
-  if (/patinho|alcatra|maminha/i.test(name)) score += 500;
-  if (/til[aá]pia|merluza|pescada/i.test(name)) score += 480;
-  if (/salm[aã]o|sardinha|atum/i.test(name)) score += 470;
-  if (/ovo\s+de\s+galinha|ovos/i.test(name)) score += 550;
-  if (/clara/i.test(name)) score += 450;
-  if (/batata\s+doce/i.test(name)) score += 500;
-  if (/batata\s+inglesa/i.test(name)) score += 450;
-  if (/mandioca|aipim/i.test(name)) score += 420;
-  if (/aveia/i.test(name)) score += 500;
-  if (/p[aã]o.*integral/i.test(name)) score += 480;
-  if (/banana/i.test(name)) score += 450;
-  if (/ma[cç][aã]/i.test(name)) score += 400;
-  if (/mam[aã]o/i.test(name)) score += 400;
-  if (/morango/i.test(name)) score += 420;
-  if (/br[oó]colis/i.test(name)) score += 450;
-  if (/salada|alface|tomate|pepino|espinafre/i.test(name)) score += 450;
-  if (/azeite.*oliva/i.test(name)) score += 550;
-  if (/castanha|nozes/i.test(name)) score += 450;
-  if (/abacate/i.test(name)) score += 450;
-  if (/iogurte/i.test(name)) score += 450;
-  if (/cottage|minas|ricota/i.test(name)) score += 450;
+  // 0. Despriorização rigorosa de pratos preparados e receitas compostas
+  // (ex: bolo, escondidinho, torta, lasanha, sanduíche pronto, pizza, pastel, folhado, empanado, frito)
+  // para garantir que a dieta clínica seja construída a partir de alimentos base puros (arroz, feijão, frango, etc.).
+  const isCompositeDish = /bolo|torta|escondidinho|sandu[ií]che|lasanha|pizza|pastel|hamb[uú]rguer|empanado|nuggets|folhado|panqueca|rechead/i.test(name);
+  if (isCompositeDish) {
+    score -= 1500;
+  }
+
+  // Bônus para alimentos da tabela curada canônica (canon_*)
+  const isCanonicalCurated = (food.id && String(food.id).startsWith('canon_')) || (food.foodId && String(food.foodId).startsWith('canon_'));
+  if (isCanonicalCurated) {
+    score += 350;
+  }
+
+  // 1. Pilares universais da alimentação clínica real brasileira (alimentos base in natura / minimamente processados)
+  if (/arroz/i.test(name) && !isCompositeDish) score += 700;
+  if (/feij[aã]o/i.test(name) && !isCompositeDish) score += 700;
+  if (/frango/i.test(name) && !isCompositeDish) score += 650;
+  if (/patinho|alcatra|maminha/i.test(name) && !isCompositeDish) score += 600;
+  if (/til[aá]pia|merluza|pescada/i.test(name) && !isCompositeDish) score += 580;
+  if (/salm[aã]o|sardinha|atum/i.test(name) && !isCompositeDish) score += 520;
+  if (/ovo\s+de\s+galinha|ovos/i.test(name) && !isCompositeDish) score += 650;
+  if (/clara/i.test(name) && !isCompositeDish) score += 500;
+  if (/batata\s+doce/i.test(name) && !isCompositeDish) score += 600;
+  if (/batata\s+inglesa/i.test(name) && !isCompositeDish) score += 550;
+  if (/mandioca|aipim/i.test(name) && !isCompositeDish) score += 500;
+  if (/aveia/i.test(name) && !isCompositeDish) score += 600;
+  if (/p[aã]o.*integral/i.test(name) && !isCompositeDish) score += 550;
+  if (/banana/i.test(name) && !isCompositeDish) score += 550;
+  if (/ma[cç][aã]/i.test(name) && !isCompositeDish) score += 450;
+  if (/mam[aã]o/i.test(name) && !isCompositeDish) score += 450;
+  if (/morango/i.test(name) && !isCompositeDish) score += 480;
+  if (/br[oó]colis/i.test(name) && !isCompositeDish) score += 500;
+  if (/salada|alface|tomate|pepino|espinafre/i.test(name) && !isCompositeDish) score += 500;
+  if (/azeite.*oliva/i.test(name) && !isCompositeDish) score += 650;
+  if (/castanha|nozes/i.test(name) && !isCompositeDish) score += 500;
+  if (/abacate/i.test(name) && !isCompositeDish) score += 500;
+  if (/iogurte/i.test(name) && !isCompositeDish) score += 500;
+  if (/cottage|minas|ricota/i.test(name) && !isCompositeDish) score += 500;
 
   // 2. Modulações de Afinidade por Estilo & Ciclo
   if (style === 'tradicional') {
-    if (/arroz/i.test(name)) score += 250;
-    if (/feij[aã]o/i.test(name)) score += 250;
-    if (/frango|patinho|ovo/i.test(name)) score += 200;
-    if (/batata|p[aã]o/i.test(name)) score += 150;
-    if (/banana|salada/i.test(name)) score += 150;
+    if (/arroz/i.test(name) && !isCompositeDish) score += 250;
+    if (/feij[aã]o/i.test(name) && !isCompositeDish) score += 250;
+    if (/frango|patinho|ovo/i.test(name) && !isCompositeDish) score += 200;
+    if (/batata|p[aã]o/i.test(name) && !isCompositeDish) score += 150;
+    if (/banana|salada/i.test(name) && !isCompositeDish) score += 150;
   } else if (style === 'fitness') {
     if (/frango|til[aá]pia|clara/i.test(name)) score += 300;
     if (/batata\s+doce|aveia/i.test(name)) score += 250;

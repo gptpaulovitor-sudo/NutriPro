@@ -261,14 +261,16 @@ function assembleMeals(input, customPolicy = {}) {
     // Opções candidatas de alocação para este item
     const candidateAllocations = [];
 
-    // Opção A: Alocar inteiro em cada uma das M refeições
-    for (let m = 0; m < mealCount; m++) {
-      candidateAllocations.push({
-        type: 'SINGLE',
-        allocations: [{ mealIndex: m, ratio: 1.0 }],
-        isSplit: false,
-        sortKey: `0_${m}`
-      });
+    // Opção A: Alocar inteiro em cada uma das M refeições (se massa <= 350g ou se houver apenas 1 refeição)
+    if (item.grams <= 350.0 || mealCount === 1) {
+      for (let m = 0; m < mealCount; m++) {
+        candidateAllocations.push({
+          type: 'SINGLE',
+          allocations: [{ mealIndex: m, ratio: 1.0 }],
+          isSplit: false,
+          sortKey: `0_${m}`
+        });
+      }
     }
 
     // Opção B: Dividir em 2 refeições se a massa for substancial (>= minimumPreferredSplitMass)

@@ -4191,23 +4191,23 @@ async function exportPrescriptionAndEvaluationPDF() {
       <div class="card-grid">
         <div class="card-box primary">
           <span class="card-label">Alvo Energético Prescrito</span>
-          <div class="card-val" style="color: #f87171;">${macroTargets.caloricTarget} kcal</div>
+          <div class="card-val" style="color: #f87171;">${macroTargets.caloricTarget}</div>
           <div class="card-sub">TMB: ${tmb} kcal • GET: ${macroTargets.getKcal} kcal</div>
         </div>
         <div class="card-box highlight">
           <span class="card-label">Meta de Proteína</span>
-          <div class="card-val">${macroTargets.targetProtG}g</div>
-          <div class="card-sub">${macroTargets.targetProtKg} g/kg de peso corporal</div>
+          <div class="card-val">${macroTargets.targetProtG}</div>
+          <div class="card-sub">${macroTargets.targetProtKg}</div>
         </div>
         <div class="card-box">
           <span class="card-label">Meta de Carboidrato</span>
-          <div class="card-val">${macroTargets.targetCarbG}g</div>
-          <div class="card-sub">${macroTargets.targetCarbKg} g/kg de peso corporal</div>
+          <div class="card-val">${macroTargets.targetCarbG}</div>
+          <div class="card-sub">${macroTargets.targetCarbKg}</div>
         </div>
         <div class="card-box">
           <span class="card-label">Meta de Lipídios</span>
-          <div class="card-val">${macroTargets.targetLipG}g</div>
-          <div class="card-sub">${macroTargets.targetLipKg} g/kg • Fibras: ≥ ${macroTargets.minFiber}g/dia</div>
+          <div class="card-val">${macroTargets.targetLipG}</div>
+          <div class="card-sub">${macroTargets.targetLipKg} • Fibras: ${macroTargets.minFiber}</div>
         </div>
       </div>
 

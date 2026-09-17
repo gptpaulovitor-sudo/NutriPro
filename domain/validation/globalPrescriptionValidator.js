@@ -810,6 +810,110 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // G21 — MEAL MACRO COHERENCE (Coerência de macros por refeição)
+  // ─────────────────────────────────────────────────────────────────────────
+  const mealMacroFailures = [];
+  const totalDailyCarbs = (macroTargetResult && typeof macroTargetResult.carbohydrateTargetG === 'number')
+    ? macroTargetResult.carbohydrateTargetG
+    : (finalNutrients.carbohydrate || 0);
+  const isKetoOrVeryLowCarb = totalDailyCarbs < 80;
+
+  if (finalMeals.length > 0) {
+    finalMeals.forEach(meal => {
+      const isMainMeal = meal.mealRole === 'PRIMARY' || /almo[cç]o|jantar/i.test(meal.mealName || '');
+      const mealCarbs = (meal.totals && typeof meal.totals.carbohydrate === 'number')
+        ? meal.totals.carbohydrate
+        : (Array.isArray(meal.items) ? meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0) : 0);
+
+      // Verificação de aporte mínimo de carboidratos em refeições principais
+      if (isMainMeal && !isKetoOrVeryLowCarb) {
+        if (mealCarbs < policy.minMainMealCarbsGrams) {
+          mealMacroFailures.push(`Refeição principal "${meal.mealName || meal.mealId}" possui apenas ${mealCarbs.toFixed(1)}g de carboidrato (mínimo exigido: ${policy.minMainMealCarbsGrams}g).`);
+        }
+      }
+
+      // Verificação de hiperconcentração de carboidratos em uma única refeição (quando há >= 3 refeições)
+      if (finalMeals.length >= 3 && totalDailyCarbs > 0) {
+        const carbRatio = mealCarbs / totalDailyCarbs;
+        if (carbRatio > policy.maxSingleMealCarbRatio) {
+          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(policy.maxSingleMealCarbRatio * 100).toFixed(0)}%).`);
+        }
+      }
+    });
+  }
+
+  if (mealMacroFailures.length > 0) {
+    recordGate(GLOBAL_GATE_ID.G21_MEAL_MACRO_COHERENCE, 'Meal Macro Coherence', 'FAIL', GATE_SEVERITY.BLOCKING,
+      'Incoerência na distribuição de carboidratos entre as refeições.', { failures: mealMacroFailures });
+  } else {
+    recordGate(GLOBAL_GATE_ID.G21_MEAL_MACRO_COHERENCE, 'Meal Macro Coherence', 'PASS', GATE_SEVERITY.INFORMATIONAL,
+      'Distribuição de macronutrientes e aporte de carboidratos por refeição clinicamente coerente.');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // G22 — FOOD DIVERSITY AND REPETITION (Porções e diversidade global)
+  // ─────────────────────────────────────────────────────────────────────────
+  const diversityFailures = [];
+  const allFinalFoodIds = new Set();
+
+  finalMeals.forEach(meal => {
+    if (Array.isArray(meal.items)) {
+      meal.items.forEach(it => {
+        const foodId = String(it.foodId || it.id || '').trim();
+        if (foodId) allFinalFoodIds.add(foodId);
+        const g = (typeof it.grams === 'number' && Number.isFinite(it.grams)) ? it.grams : (it.quantity || 0);
+
+        // Vegetais e folhosos de baixa densidade calórica (< 40 kcal/100g) admitem até 500g de volume
+        const isLowDensityVegetable = (it.nutrients && g > 0 && (it.nutrients.calories / (g / 100)) <= 40) ||
+          /br[oó]colis|salada|alface|couve|pepino|tomate|abobrinha|espinafre|folhas/i.test(it.foodName || '');
+        const maxAllowedGrams = isLowDensityVegetable ? 500.0 : policy.maxIndividualPortionGrams;
+
+        if (g > maxAllowedGrams) {
+          diversityFailures.push(`Porção excessiva do item "${it.foodName || foodId}" na refeição "${meal.mealName || meal.mealId}": ${g}g (limite seguro: ${maxAllowedGrams}g).`);
+        }
+      });
+    }
+  });
+
+  const totalAvailableDistinct = solverFoodIds.size > 0 ? solverFoodIds.size : allFinalFoodIds.size;
+  const effectiveMinDistinct = Math.min(policy.minDistinctDietFoods, totalAvailableDistinct);
+
+  if (finalMeals.length >= 3 && allFinalFoodIds.size < effectiveMinDistinct) {
+    diversityFailures.push(`Variedade alimentar insuficiente: prescrição de ${finalMeals.length} refeições contém apenas ${allFinalFoodIds.size} alimentos distintos (mínimo exigido: ${effectiveMinDistinct}).`);
+  }
+
+  if (diversityFailures.length > 0) {
+    recordGate(GLOBAL_GATE_ID.G22_FOOD_DIVERSITY_AND_REPETITION, 'Food Diversity and Repetition', 'FAIL', GATE_SEVERITY.BLOCKING,
+      'Violação de limites de porção individual ou diversidade alimentar global.', { failures: diversityFailures });
+  } else {
+    recordGate(GLOBAL_GATE_ID.G22_FOOD_DIVERSITY_AND_REPETITION, 'Food Diversity and Repetition', 'PASS', GATE_SEVERITY.INFORMATIONAL,
+      'Porções individuais seguras e diversidade alimentar diária adequada.', { distinctFoodsCount: allFinalFoodIds.size });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // G23 — MEAL FOOD STRUCTURE (Estrutura de composição da refeição)
+  // ─────────────────────────────────────────────────────────────────────────
+  const structureFailures = [];
+  const isMainMealStructureStrict = totalAvailableDistinct >= 4;
+
+  finalMeals.forEach(meal => {
+    const isMainMeal = meal.mealRole === 'PRIMARY' || /almo[cç]o|jantar/i.test(meal.mealName || '');
+    const itemCount = Array.isArray(meal.items) ? meal.items.length : 0;
+
+    if (isMainMealStructureStrict && isMainMeal && itemCount < policy.minItemsInMainMeal) {
+      structureFailures.push(`Refeição principal "${meal.mealName || meal.mealId}" estruturalmente incompleta com apenas ${itemCount} alimento(s) (mínimo: ${policy.minItemsInMainMeal}).`);
+    }
+  });
+
+  if (structureFailures.length > 0) {
+    recordGate(GLOBAL_GATE_ID.G23_MEAL_FOOD_STRUCTURE, 'Meal Food Structure', 'FAIL', GATE_SEVERITY.BLOCKING,
+      'Estrutura de montagem de refeições principais incompleta ou inadequada.', { failures: structureFailures });
+  } else {
+    recordGate(GLOBAL_GATE_ID.G23_MEAL_FOOD_STRUCTURE, 'Meal Food Structure', 'PASS', GATE_SEVERITY.INFORMATIONAL,
+      'Estrutura de composição de todas as refeições principais em conformidade.');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // G18 — GLOBAL PROVENANCE INTEGRITY
   // ─────────────────────────────────────────────────────────────────────────
   const globalProvenance = {

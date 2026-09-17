@@ -445,9 +445,9 @@ test('1.5 Valida DTO de saída via validateGlobalPrescriptionValidationOutput', 
   assert.strictEqual(check.errors.length, 0);
 });
 
-test('1.6 Preserva todos os 20 portões (G1 a G20) avaliados na saída', () => {
+test('1.6 Preserva todos os portões invariantes (G1 a G23) avaliados na saída', () => {
   const result = validateGlobalPrescription(createValidPipelineInput());
-  assert.strictEqual(result.gateResults.length, 20);
+  assert.strictEqual(result.gateResults.length, Object.values(GLOBAL_GATE_ID).length);
   const gateIds = result.gateResults.map(g => g.gateId);
   Object.values(GLOBAL_GATE_ID).forEach(expectedId => {
     assert.ok(gateIds.includes(expectedId), `Portão ${expectedId} deve estar presente`);
