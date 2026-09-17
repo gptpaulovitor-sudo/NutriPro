@@ -11509,26 +11509,43 @@ function solveNutritionDiet(input, customPolicy = {}) {
     warnings.push(`Resíduo nutricional excedeu tolerâncias de política: ${exceeded.join(', ')}.`);
   }
 
-  // Regra Inegociável de Status:
-  // - PASS: dentro das tolerâncias, zero REVISAR, zero limitações críticas.
-  // - WARNING: dentro ou próximo das tolerâncias, mas contém REVISAR ou alertas não-críticos.
+  // Regra de Status (N3.7.6 — Revisão do SEARCH_LIMIT_REACHED):
+  // - PASS: dentro das tolerâncias, zero REVISAR, sem limite atingido.
+  // - WARNING: dentro/próximo das tolerâncias, mas contém REVISAR ou alertas; ou limite atingido
+  //   com solução de alta qualidade (custo residual <= earlyStopCost).
+  // - SEARCH_LIMIT_REACHED promotable: limite atingido, mas custo residual baixo o suficiente
+  //   para ser aceito como WARNING com aviso clínico explícito. Isso evita bloquear dietas
+  //   geradas corretamente apenas por atingir o limite combinatório com solução de boa qualidade.
   // - REVISAR NUNCA PODE RESULTAR EM PASS.
-  // - SEARCH_LIMIT_REACHED (N3.7.5): busca interrompida antes do espaço completo ser explorado.
-  //   Mesmo que a solução parcial esteja dentro das tolerâncias, NUNCA pode ser validada como PASS
-  //   porque existem combinações não-exploradas que poderiam ser superiores.
   let finalStatus;
   let isValid;
 
   if (searchLimitReached) {
-    // N3.7.5: Resultado parcial — independentemente da qualidade da solução encontrada,
-    // o status é SEARCH_LIMIT_REACHED. O orchestrator NÃO persiste como prescrição validada.
-    finalStatus = SOLVER_STATUS.SEARCH_LIMIT_REACHED;
-    isValid = false;
+    // N3.7.6: Avalia qualidade da solução parcial.
+    // Se o custo residual for suficientemente baixo (<= earlyStopCost), a solução é
+    // clinicamente aceitável e promovida para WARNING (salva) em vez de ser bloqueada.
+    // Um aviso explícito de rastreabilidade é sempre emitido.
+    const partialResidualCost = bestSolution ? bestSolution.cost : Infinity;
+    const partialQualityThreshold = earlyStopCost; // Default: 0.05 (configurável na policy)
+    const partialIsHighQuality = partialResidualCost <= partialQualityThreshold;
+
     warnings.push(
-      `SEARCH_LIMIT_REACHED: busca interrompida após ${totalCombosTested} combinações ` +
-      `(limite: ${maxCombosToTest}). Solução parcial retornada como diagnóstico — ` +
-      `NÃO persista como prescrição clínica validada.`
+      `[SEARCH_LIMIT_REACHED] Busca interrompida após ${totalCombosTested} combinações ` +
+      `(limite: ${maxCombosToTest}). Custo residual: ${partialResidualCost.toFixed(6)}. ` +
+      (partialIsHighQuality
+        ? `Solução de alta qualidade aceita como WARNING (custo <= ${partialQualityThreshold}).`
+        : `Solução de qualidade insuficiente bloqueada (custo > ${partialQualityThreshold}).`)
     );
+
+    if (partialIsHighQuality) {
+      // Promove para WARNING — a dieta é salva com aviso de rastreabilidade
+      finalStatus = SOLVER_STATUS.WARNING;
+      isValid = true;
+    } else {
+      // Custo alto demais — bloqueia corretamente
+      finalStatus = SOLVER_STATUS.SEARCH_LIMIT_REACHED;
+      isValid = false;
+    }
   } else if (withinTolerances && !containsReviewFood && warnings.length === 0) {
     finalStatus = SOLVER_STATUS.PASS;
     isValid = true;
@@ -16532,15 +16549,19 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
     });
   }
 
-  // N3.7.5: Tratamento explícito de SEARCH_LIMIT_REACHED antes da verificação genérica.
-  // Este status indica que o solver interrompeu a busca por limite computacional, não por
-  // ausência de solução. O diagnóstico deve ser claro e acionável para o nutricionista.
-  if (foodSolverResult.status === 'SEARCH_LIMIT_REACHED') {
+  // N3.7.6: Tratamento revisado de SEARCH_LIMIT_REACHED.
+  // Quando o solver atinge o limite, mas a solução parcial é de alta qualidade
+  // (custo residual <= earlyStopCost = 0.05), o foodSolver promove o status para WARNING
+  // com isValid = true. Nesse caso, o orchestrator deixa o resultado fluir normalmente
+  // pela pipeline, acumulando os warnings de rastreabilidade.
+  //
+  // Apenas bloqueia quando foodSolverResult.valid === false (custo residual alto demais).
+  if (foodSolverResult.status === 'SEARCH_LIMIT_REACHED' && foodSolverResult.valid !== true) {
     const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
       ? [...foodSolverResult.blockingReasons]
       : [
           'O Food Solver atingiu o limite computacional de busca combinatória (SEARCH_LIMIT_REACHED).',
-          'A prescrição não pode ser gerada com o catálogo atual neste ambiente.',
+          'A solução parcial encontrada não atingiu o limiar mínimo de qualidade.',
           'Ação recomendada: reduza o número de alimentos elegíveis no catálogo ou use o modo servidor (Node.js) com limite expandido.'
         ];
 
@@ -16548,7 +16569,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       step: PIPELINE_STEP.N32_FOOD_SOLVER,
       status: 'SEARCH_LIMIT_REACHED',
       blockingReasons: reasons,
-      details: `Solver interrompido por limite computacional. Diagnósticos: ${(foodSolverResult.solverDiagnostics || []).join(' | ')}`,
+      details: `Solver interrompido por limite computacional sem solução de qualidade suficiente. Diagnósticos: ${(foodSolverResult.solverDiagnostics || []).join(' | ')}`,
       warnings: foodSolverResult.warnings || []
     });
 
@@ -16565,6 +16586,9 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       pipelineTrace
     });
   }
+  // Se SEARCH_LIMIT_REACHED mas valid===true (promovido para WARNING pelo solver),
+  // continua o fluxo normalmente — os warnings já foram emitidos pelo solver.
+
 
   if (foodSolverResult.status === 'BLOCKED' || foodSolverResult.status === 'NO_SOLUTION' || foodSolverResult.valid !== true) {
     const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0

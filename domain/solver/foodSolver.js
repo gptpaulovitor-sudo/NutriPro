@@ -722,26 +722,43 @@ function solveNutritionDiet(input, customPolicy = {}) {
     warnings.push(`Resíduo nutricional excedeu tolerâncias de política: ${exceeded.join(', ')}.`);
   }
 
-  // Regra Inegociável de Status:
-  // - PASS: dentro das tolerâncias, zero REVISAR, zero limitações críticas.
-  // - WARNING: dentro ou próximo das tolerâncias, mas contém REVISAR ou alertas não-críticos.
+  // Regra de Status (N3.7.6 — Revisão do SEARCH_LIMIT_REACHED):
+  // - PASS: dentro das tolerâncias, zero REVISAR, sem limite atingido.
+  // - WARNING: dentro/próximo das tolerâncias, mas contém REVISAR ou alertas; ou limite atingido
+  //   com solução de alta qualidade (custo residual <= earlyStopCost).
+  // - SEARCH_LIMIT_REACHED promotable: limite atingido, mas custo residual baixo o suficiente
+  //   para ser aceito como WARNING com aviso clínico explícito. Isso evita bloquear dietas
+  //   geradas corretamente apenas por atingir o limite combinatório com solução de boa qualidade.
   // - REVISAR NUNCA PODE RESULTAR EM PASS.
-  // - SEARCH_LIMIT_REACHED (N3.7.5): busca interrompida antes do espaço completo ser explorado.
-  //   Mesmo que a solução parcial esteja dentro das tolerâncias, NUNCA pode ser validada como PASS
-  //   porque existem combinações não-exploradas que poderiam ser superiores.
   let finalStatus;
   let isValid;
 
   if (searchLimitReached) {
-    // N3.7.5: Resultado parcial — independentemente da qualidade da solução encontrada,
-    // o status é SEARCH_LIMIT_REACHED. O orchestrator NÃO persiste como prescrição validada.
-    finalStatus = SOLVER_STATUS.SEARCH_LIMIT_REACHED;
-    isValid = false;
+    // N3.7.6: Avalia qualidade da solução parcial.
+    // Se o custo residual for suficientemente baixo (<= earlyStopCost), a solução é
+    // clinicamente aceitável e promovida para WARNING (salva) em vez de ser bloqueada.
+    // Um aviso explícito de rastreabilidade é sempre emitido.
+    const partialResidualCost = bestSolution ? bestSolution.cost : Infinity;
+    const partialQualityThreshold = earlyStopCost; // Default: 0.05 (configurável na policy)
+    const partialIsHighQuality = partialResidualCost <= partialQualityThreshold;
+
     warnings.push(
-      `SEARCH_LIMIT_REACHED: busca interrompida após ${totalCombosTested} combinações ` +
-      `(limite: ${maxCombosToTest}). Solução parcial retornada como diagnóstico — ` +
-      `NÃO persista como prescrição clínica validada.`
+      `[SEARCH_LIMIT_REACHED] Busca interrompida após ${totalCombosTested} combinações ` +
+      `(limite: ${maxCombosToTest}). Custo residual: ${partialResidualCost.toFixed(6)}. ` +
+      (partialIsHighQuality
+        ? `Solução de alta qualidade aceita como WARNING (custo <= ${partialQualityThreshold}).`
+        : `Solução de qualidade insuficiente bloqueada (custo > ${partialQualityThreshold}).`)
     );
+
+    if (partialIsHighQuality) {
+      // Promove para WARNING — a dieta é salva com aviso de rastreabilidade
+      finalStatus = SOLVER_STATUS.WARNING;
+      isValid = true;
+    } else {
+      // Custo alto demais — bloqueia corretamente
+      finalStatus = SOLVER_STATUS.SEARCH_LIMIT_REACHED;
+      isValid = false;
+    }
   } else if (withinTolerances && !containsReviewFood && warnings.length === 0) {
     finalStatus = SOLVER_STATUS.PASS;
     isValid = true;

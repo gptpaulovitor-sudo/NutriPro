@@ -473,15 +473,19 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
     });
   }
 
-  // N3.7.5: Tratamento explícito de SEARCH_LIMIT_REACHED antes da verificação genérica.
-  // Este status indica que o solver interrompeu a busca por limite computacional, não por
-  // ausência de solução. O diagnóstico deve ser claro e acionável para o nutricionista.
-  if (foodSolverResult.status === 'SEARCH_LIMIT_REACHED') {
+  // N3.7.6: Tratamento revisado de SEARCH_LIMIT_REACHED.
+  // Quando o solver atinge o limite, mas a solução parcial é de alta qualidade
+  // (custo residual <= earlyStopCost = 0.05), o foodSolver promove o status para WARNING
+  // com isValid = true. Nesse caso, o orchestrator deixa o resultado fluir normalmente
+  // pela pipeline, acumulando os warnings de rastreabilidade.
+  //
+  // Apenas bloqueia quando foodSolverResult.valid === false (custo residual alto demais).
+  if (foodSolverResult.status === 'SEARCH_LIMIT_REACHED' && foodSolverResult.valid !== true) {
     const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
       ? [...foodSolverResult.blockingReasons]
       : [
           'O Food Solver atingiu o limite computacional de busca combinatória (SEARCH_LIMIT_REACHED).',
-          'A prescrição não pode ser gerada com o catálogo atual neste ambiente.',
+          'A solução parcial encontrada não atingiu o limiar mínimo de qualidade.',
           'Ação recomendada: reduza o número de alimentos elegíveis no catálogo ou use o modo servidor (Node.js) com limite expandido.'
         ];
 
@@ -489,7 +493,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       step: PIPELINE_STEP.N32_FOOD_SOLVER,
       status: 'SEARCH_LIMIT_REACHED',
       blockingReasons: reasons,
-      details: `Solver interrompido por limite computacional. Diagnósticos: ${(foodSolverResult.solverDiagnostics || []).join(' | ')}`,
+      details: `Solver interrompido por limite computacional sem solução de qualidade suficiente. Diagnósticos: ${(foodSolverResult.solverDiagnostics || []).join(' | ')}`,
       warnings: foodSolverResult.warnings || []
     });
 
@@ -506,6 +510,9 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       pipelineTrace
     });
   }
+  // Se SEARCH_LIMIT_REACHED mas valid===true (promovido para WARNING pelo solver),
+  // continua o fluxo normalmente — os warnings já foram emitidos pelo solver.
+
 
   if (foodSolverResult.status === 'BLOCKED' || foodSolverResult.status === 'NO_SOLUTION' || foodSolverResult.valid !== true) {
     const reasons = Array.isArray(foodSolverResult.blockingReasons) && foodSolverResult.blockingReasons.length > 0
