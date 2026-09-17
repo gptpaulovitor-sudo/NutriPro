@@ -235,7 +235,9 @@ function assignSearchRole(food) {
     }
   }
 
-  if (fiber >= 3.0 || (kcal > 0 && kcal <= 60)) {
+  const name = String(food.name || food.foodName || '').toLowerCase();
+  const isBeverage = /caf[eé]|leite|bebida|ch[aá]|suco|refrigerante|caldo\s+de|sopa/i.test(name);
+  if (fiber >= 2.0 || (!isBeverage && kcal > 0 && kcal <= 60)) {
     return SEARCH_ROLES.ROLE_FIBER_VOLUME;
   }
 

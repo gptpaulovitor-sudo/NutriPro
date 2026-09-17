@@ -462,4 +462,89 @@ describe('Regressão Canônica — Caso Real do Paciente (Seção 12)', () => {
     assert.strictEqual(pipelineResult.globalValidationResult.valid, true, 'N3.6 deve homologar valid = true');
   });
 
+  test('3. Prevenção de SEARCH_LIMIT_REACHED no caso real de Paulo Vitor sobre o catálogo completo TACO/IBGE (3.025+ alimentos)', async () => {
+    const { COMPREHENSIVE_TACO_TBCA_FOODS } = require('../foodsData.js');
+
+    const canonicalFoods = [
+      { id: 'canon_frango_grelhado', name: 'Peito de Frango Grelhado', category: 'Carnes e Aves', calories: 159, protein: 32, carbohydrate: 0, lipid: 2.5, fiber: 0, sodium: 50, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_ovo_cozido', name: 'Ovo de Galinha Cozido', category: 'Ovos', calories: 146, protein: 13, carbohydrate: 0.6, lipid: 8.9, fiber: 0, sodium: 146, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_patinho_grelhado', name: 'Patinho Grelhado', category: 'Carnes e Aves', calories: 219, protein: 35.9, carbohydrate: 0, lipid: 7.3, fiber: 0, sodium: 60, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_arroz_branco', name: 'Arroz Branco Cozido', category: 'Cereais e Leguminosas', calories: 128, protein: 2.5, carbohydrate: 28.1, lipid: 0.2, fiber: 1.6, sodium: 1, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_batata_doce', name: 'Batata Doce Cozida', category: 'Tubérculos e Raízes', calories: 77, protein: 0.6, carbohydrate: 18.4, lipid: 0.1, fiber: 2.2, sodium: 3, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_aveia_flocos', name: 'Aveia em Flocos', category: 'Cereais e Leguminosas', calories: 394, protein: 13.9, carbohydrate: 66.6, lipid: 8.5, fiber: 9.1, sodium: 4, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_banana_prata', name: 'Banana Prata', category: 'Frutas', calories: 98, protein: 1.3, carbohydrate: 26, lipid: 0.1, fiber: 2, sodium: 1, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_feijao_carioca', name: 'Feijão Carioca Cozido', category: 'Cereais e Leguminosas', calories: 76, protein: 4.8, carbohydrate: 13.6, lipid: 0.5, fiber: 8.5, sodium: 2, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_azeite_oliva', name: 'Azeite de Oliva Extravirgem', category: 'Óleos e Gorduras', calories: 884, protein: 0, carbohydrate: 0, lipid: 100, fiber: 0, sodium: 0, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } },
+      { id: 'canon_brocolis_cozido', name: 'Brócolis Cozido', category: 'Verduras e Legumes', calories: 25, protein: 2.1, carbohydrate: 4.0, lipid: 0.5, fiber: 3.4, sodium: 3, unit: 'g', bromatology: { energyStatus: 'CONSISTENTE' } }
+    ];
+
+    const fullCatalog = [...canonicalFoods, ...COMPREHENSIVE_TACO_TBCA_FOODS];
+
+    const context = createNutritionPrescriptionContextDTO({
+      patient: {
+        patientId: 'patient_pv_real_full',
+        name: 'Paulo Vitor',
+        age: 39,
+        sex: 'Masculino'
+      },
+      anthropometry: {
+        weightKg: 116.1,
+        heightCm: 193.0,
+        hasRecentAssessment: true
+      },
+      objective: {
+        clinicalObjective: 'Recomposição Corporal',
+        rawObjective: 'Recomposição corporal com preservação de massa magra',
+        targetWeightKg: 105.0
+      },
+      energy: {
+        tmbKcal: 2200,
+        getKcal: 3100,
+        activityFactor: 1.41
+      },
+      routine: {
+        wakeUpTime: '06:30',
+        bedTime: '23:30',
+        workoutTime: '17:30'
+      },
+      training: {
+        hasActiveTraining: true,
+        workoutTime: '17:30'
+      },
+      cardio: { hasActiveCardio: false },
+      fasting: { hasActiveProtocol: false },
+      mealsPerDay: 4
+    });
+
+    const start = Date.now();
+    const result = await executePrescriptionPipeline({
+      context,
+      foodCatalog: fullCatalog,
+      options: { mealCount: 4 }
+    });
+    const duration = Date.now() - start;
+
+    // 1. Pipeline foi bem-sucedido
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.interruptedAt, null);
+    assert.strictEqual(result.blockingReasons.length, 0);
+
+    // 2. Zero SEARCH_LIMIT_REACHED (resolução construtiva multi-camada)
+    assert.strictEqual(result.foodSolverResult.searchLimitReached, false);
+    assert.ok(result.foodSolverResult.status === 'PASS' || result.foodSolverResult.status === 'WARNING');
+
+    // 3. Validação global N3.6 aprova a dieta (valid === true)
+    assert.strictEqual(result.globalValidationResult.valid, true);
+    assert.strictEqual(result.globalValidationResult.blockingReasons.length, 0);
+
+    // 4. Todas as 4 refeições foram geradas e contêm alimentos
+    assert.strictEqual(result.mealAssemblyResult.meals.length, 4);
+    result.mealAssemblyResult.meals.forEach(m => {
+      assert.ok(m.items.length > 0, `Refeição ${m.mealName} não pode estar vazia`);
+    });
+
+    // 5. Performance sub-segundo (resolvido rapidamente sem esgotar combinações)
+    assert.ok(duration < 1000, `Duração deve ser < 1000ms, obtido: ${duration}ms`);
+  });
+
 });

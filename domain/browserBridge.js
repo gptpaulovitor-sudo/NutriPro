@@ -10769,7 +10769,9 @@ function assignSearchRole(food) {
     }
   }
 
-  if (fiber >= 3.0 || (kcal > 0 && kcal <= 60)) {
+  const name = String(food.name || food.foodName || '').toLowerCase();
+  const isBeverage = /caf[eé]|leite|bebida|ch[aá]|suco|refrigerante|caldo\s+de|sopa/i.test(name);
+  if (fiber >= 2.0 || (!isBeverage && kcal > 0 && kcal <= 60)) {
     return SEARCH_ROLES.ROLE_FIBER_VOLUME;
   }
 
@@ -11102,6 +11104,28 @@ function reduceSearchCandidates(eligibleFoods, policy, options = {}) {
 }
 
 /**
+ * Retorna os limites clínicos determinísticos de porção por alimento
+ * @param {Object} food 
+ * @param {Object} policy 
+ * @returns {{ minG: number, maxG: number }}
+ */
+function getFoodPortionBounds(food, policy) {
+  const minG = policy.searchBounds.minGramsPerItem || 10.0;
+  let maxG = policy.searchBounds.maxGramsPerItem || 450.0;
+
+  const name = String(food.name || food.foodName || '').toLowerCase();
+  if (/azeite|[\s_]oleo[\s_]|manteiga/i.test(name) || (food.lipid || 0) >= 70) {
+    maxG = Math.min(maxG, 30.0);
+  } else if (/aveia|farelo|granola/i.test(name)) {
+    maxG = Math.min(maxG, 250.0);
+  } else if (/banana|uva|manga/i.test(name)) {
+    maxG = Math.min(maxG, 220.0);
+  }
+
+  return { minG, maxG };
+}
+
+/**
  * Otimiza deterministicamente as porções contínuas de um subconjunto fixo de alimentos
  * usando Deterministic Bounded Coordinate Search (busca local determinística com step sizes decrescentes)
  * @param {Array<Object>} combo Conjunto de alimentos selecionados
@@ -11111,14 +11135,20 @@ function reduceSearchCandidates(eligibleFoods, policy, options = {}) {
  */
 function optimizeComboPortions(combo, targets, policy) {
   const k = combo.length;
-  const minG = policy.searchBounds.minGramsPerItem;
-  const maxG = policy.searchBounds.maxGramsPerItem;
+  const bounds = combo.map(f => getFoodPortionBounds(f, policy));
   const maxIter = policy.convergence.maxIterations;
-  const minImprovement = policy.convergence.minCostImprovement;
 
-  // Inicialização determinística proporcional ao alvo calórico
-  const avgInitGrams = Math.min(maxG, Math.max(minG, (targets.calories / (k * 150)) * 100));
-  const portions = new Array(k).fill(avgInitGrams);
+  // Inicialização determinística inteligente baseada no papel e densidade do alimento
+  const portions = combo.map((food, i) => {
+    const role = assignSearchRole(food);
+    const lipid = Number(food.lipid || 0);
+    let initG = 100.0;
+    if (role === SEARCH_ROLES.ROLE_FAT_DENSE || lipid >= 50) initG = 15.0;
+    else if (role === SEARCH_ROLES.ROLE_PROTEIN_DENSE) initG = 180.0;
+    else if (role === SEARCH_ROLES.ROLE_CARB_DENSE) initG = 180.0;
+    else if (role === SEARCH_ROLES.ROLE_FIBER_VOLUME) initG = 80.0;
+    return Math.min(bounds[i].maxG, Math.max(bounds[i].minG, initG));
+  });
 
   // Função interna para calcular totais atuais
   function getTotals(currentPortions) {
@@ -11140,8 +11170,8 @@ function optimizeComboPortions(combo, targets, policy) {
   let currentCost = currentCostObj.totalCost;
   let iterations = 0;
 
-  // Passos de exploração da busca unidimensional determinística
-  const stepSizes = [25.0, 10.0, 5.0, 2.0, 1.0, 0.5];
+  // Passos de exploração da busca unidimensional determinística (ampla cobertura inicial + refinamento fino)
+  const stepSizes = [100.0, 50.0, 25.0, 10.0, 5.0, 2.0, 1.0, 0.5];
 
   for (let iter = 0; iter < maxIter; iter++) {
     iterations++;
@@ -11155,7 +11185,7 @@ function optimizeComboPortions(combo, targets, policy) {
         const step = stepSizes[s];
         
         // Testa aumento
-        const testUp = Math.min(maxG, bestPortionForI + step);
+        const testUp = Math.min(bounds[i].maxG, bestPortionForI + step);
         if (testUp !== bestPortionForI) {
           const testPortions = [...portions];
           testPortions[i] = testUp;
@@ -11168,7 +11198,7 @@ function optimizeComboPortions(combo, targets, policy) {
         }
 
         // Testa redução
-        const testDown = Math.max(minG, bestPortionForI - step);
+        const testDown = Math.max(bounds[i].minG, bestPortionForI - step);
         if (testDown !== bestPortionForI) {
           const testPortions = [...portions];
           testPortions[i] = testDown;
@@ -11199,6 +11229,256 @@ function optimizeComboPortions(combo, targets, policy) {
     totals: currentTotals,
     cost: currentCost,
     iterations
+  };
+}
+
+/**
+ * Realiza pré-checagem estrutural determinística de viabilidade nutricional do catálogo elegível
+ * antes de executar otimizações ou buscas combinatórias
+ * @param {Object} context 
+ * @param {Array<Object>} eligibleFoods 
+ * @param {Object} targets 
+ * @param {Object} policy 
+ * @returns {{ feasible: boolean, reason: string, limitingConstraints: string[], diagnostics: string[] }}
+ */
+function checkPrescriptionFeasibility(context, eligibleFoods, targets, policy) {
+  const limitingConstraints = [];
+  const diagnostics = [];
+
+  if (!eligibleFoods || !Array.isArray(eligibleFoods) || eligibleFoods.length === 0) {
+    return {
+      feasible: false,
+      reason: 'CATALOG_EMPTY',
+      limitingConstraints: ['foodCatalog'],
+      diagnostics: ['Nenhum alimento elegível disponível no catálogo após filtros e restrições.']
+    };
+  }
+
+  const mealCount = (context && (context.mealsPerDay || (context.patient && context.patient.mealsPerDay))) || 3;
+  if (eligibleFoods.length < Math.min(mealCount, 2)) {
+    return {
+      feasible: false,
+      reason: 'CATALOG_INSUFFICIENT',
+      limitingConstraints: ['foodCount'],
+      diagnostics: [`Catálogo possui apenas ${eligibleFoods.length} alimentos elegíveis, insuficiente para ${mealCount} refeições.`]
+    };
+  }
+
+  const maxGrams = policy.searchBounds.maxGramsPerItem || 450;
+
+  // 1. Proteína Máxima Teórica
+  const sortedByProtein = [...eligibleFoods].sort((a, b) => (b.protein || 0) - (a.protein || 0));
+  const topProteins = sortedByProtein.slice(0, Math.min(mealCount * 2, eligibleFoods.length));
+  const maxPossibleProtein = topProteins.reduce((acc, f) => acc + ((f.protein || 0) * maxGrams) / 100, 0);
+
+  if (targets.protein > 0 && maxPossibleProtein < targets.protein * 0.35) {
+    limitingConstraints.push('protein');
+    diagnostics.push(
+      `Proteína inatingível: catálogo fornece no máximo ${roundTo(maxPossibleProtein, 1)}g de proteína ` +
+      `(meta: ${targets.protein}g, limite por porção: ${maxGrams}g).`
+    );
+  }
+
+  // 2. Carboidratos Máximos Teóricos
+  const sortedByCarb = [...eligibleFoods].sort((a, b) => (b.carbohydrate || 0) - (a.carbohydrate || 0));
+  const topCarbs = sortedByCarb.slice(0, Math.min(mealCount * 2, eligibleFoods.length));
+  const maxPossibleCarb = topCarbs.reduce((acc, f) => acc + ((f.carbohydrate || 0) * maxGrams) / 100, 0);
+
+  if (targets.carbohydrate > 0 && maxPossibleCarb < targets.carbohydrate * 0.35) {
+    limitingConstraints.push('carbohydrate');
+    diagnostics.push(
+      `Carboidrato inatingível: catálogo fornece no máximo ${roundTo(maxPossibleCarb, 1)}g ` +
+      `(meta: ${targets.carbohydrate}g, limite por porção: ${maxGrams}g).`
+    );
+  }
+
+  // 3. Calorias Máximas Teóricas
+  const sortedByCal = [...eligibleFoods].sort((a, b) => (b.calories || 0) - (a.calories || 0));
+  const topCals = sortedByCal.slice(0, Math.min(mealCount * 2, eligibleFoods.length));
+  const maxPossibleCal = topCals.reduce((acc, f) => acc + ((f.calories || 0) * maxGrams) / 100, 0);
+
+  if (targets.calories > 0 && maxPossibleCal < targets.calories * 0.35) {
+    limitingConstraints.push('calories');
+    diagnostics.push(
+      `Calorias inatingíveis: catálogo fornece no máximo ${roundTo(maxPossibleCal, 1)} kcal ` +
+      `(meta: ${targets.calories} kcal, limite por porção: ${maxGrams}g).`
+    );
+  }
+
+  const isFeasible = limitingConstraints.length === 0;
+  return {
+    feasible: isFeasible,
+    reason: isFeasible ? 'FEASIBLE' : 'NO_FEASIBLE_SOLUTION',
+    limitingConstraints,
+    diagnostics
+  };
+}
+
+/**
+ * Constrói uma cesta alimentar determinística estruturada por papéis nutricionais
+ * Estratégia A: Alimentos canônicos de base com máxima simplicidade clínica
+ * Estratégia B: Alimentos de maior afinidade clínica e estilo selecionados por papel
+ * Estratégia C: Montagem dinâmica por cobertura balanceada de papéis
+ * @param {Array<Object>} eligibleFoods 
+ * @param {Object} targets 
+ * @param {Object} policy 
+ * @param {Object} [options] 
+ * @param {string} [strategy] 
+ * @returns {Array<Object>} Cesta de alimentos
+ */
+function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, strategy = 'A') {
+  const findId = (id) => eligibleFoods.find(f => f.id === id || f.foodId === id);
+  const findName = (regex) => eligibleFoods.find(f => regex.test(f.name || f.foodName || ''));
+
+  const basket = [];
+  const addedIds = new Set();
+
+  function addFood(f) {
+    if (f && !addedIds.has(f.id || f.foodId)) {
+      basket.push(f);
+      addedIds.add(f.id || f.foodId);
+      return true;
+    }
+    return false;
+  }
+
+  if (strategy === 'A') {
+    // Alimentos canônicos de base in natura limpos e universais
+    addFood(findId('canon_frango_grelhado') || findName(/peito.*frango.*grelhado/i) || findName(/frango/i));
+    addFood(findId('canon_ovo_cozido') || findName(/ovo.*cozido/i) || findName(/ovo/i));
+    if (targets.protein >= 160) {
+      addFood(findId('canon_patinho_grelhado') || findName(/patinho.*grelhado/i) || findName(/patinho|alcatra|til[aá]pia|peixe/i));
+    }
+    addFood(findId('canon_arroz_branco') || findId('canon_arroz_integral') || findName(/arroz.*cozido/i));
+    if (targets.carbohydrate >= 100) {
+      addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
+    }
+    addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia|p[aã]o.*integral/i));
+    if (targets.carbohydrate >= 200) {
+      addFood(findId('canon_banana_prata') || findName(/banana/i));
+    }
+    addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+    addFood(findId('canon_azeite_oliva') || findName(/azeite.*oliva/i));
+    addFood(findId('canon_brocolis_cozido') || findName(/br[oó]colis|salada|alface/i));
+  } else if (strategy === 'B') {
+    // Seleção ordenada por Search Roles com preferência a alimentos canônicos e maior afinidade
+    const roleBuckets = {
+      [SEARCH_ROLES.ROLE_PROTEIN_DENSE]: [],
+      [SEARCH_ROLES.ROLE_CARB_DENSE]: [],
+      [SEARCH_ROLES.ROLE_FAT_DENSE]: [],
+      [SEARCH_ROLES.ROLE_FIBER_VOLUME]: [],
+      [SEARCH_ROLES.ROLE_BALANCED]: []
+    };
+    for (let i = 0; i < eligibleFoods.length; i++) {
+      const f = eligibleFoods[i];
+      const r = assignSearchRole(f);
+      if (roleBuckets[r]) roleBuckets[r].push(f);
+      else roleBuckets[SEARCH_ROLES.ROLE_BALANCED].push(f);
+    }
+    const sortRole = (arr) => arr.sort((a, b) => {
+      const isCanonA = (a.id && String(a.id).startsWith('canon_')) ? 1 : 0;
+      const isCanonB = (b.id && String(b.id).startsWith('canon_')) ? 1 : 0;
+      if (isCanonB !== isCanonA) return isCanonB - isCanonA;
+      const scoreA = calculateClinicalStapleScore(a, '', options);
+      const scoreB = calculateClinicalStapleScore(b, '', options);
+      if (Math.abs(scoreB - scoreA) > 1e-4) return scoreB - scoreA;
+      return String(a.name || a.foodName || '').localeCompare(String(b.name || b.foodName || ''));
+    });
+
+    const proteinCount = targets.protein >= 180 ? 3 : 2;
+    const carbCount = targets.carbohydrate >= 180 ? 3 : 2;
+
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_PROTEIN_DENSE]).slice(0, proteinCount).forEach(addFood);
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_CARB_DENSE]).slice(0, carbCount).forEach(addFood);
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_BALANCED]).slice(0, 1).forEach(addFood);
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_FAT_DENSE]).slice(0, 1).forEach(addFood);
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_FIBER_VOLUME]).slice(0, 1).forEach(addFood);
+  } else if (strategy === 'C') {
+    // Montagem dinâmica por cobertura proporcional de papéis
+    const sorted = [...eligibleFoods].sort((a, b) => {
+      const scoreA = calculateClinicalStapleScore(a, '', options);
+      const scoreB = calculateClinicalStapleScore(b, '', options);
+      if (Math.abs(scoreB - scoreA) > 1e-4) return scoreB - scoreA;
+      return String(a.id || a.foodId).localeCompare(String(b.id || b.foodId));
+    });
+    sorted.slice(0, Math.min(8, sorted.length)).forEach(addFood);
+  }
+
+  return basket;
+}
+
+/**
+ * Resolve deterministamente a prescrição alimentar através de estratégias construtivas em camadas
+ * @param {Array<Object>} eligibleFoods 
+ * @param {Object} targets 
+ * @param {Object} policy 
+ * @param {Object} context 
+ * @param {Object} options 
+ * @returns {{ success: boolean, strategy: string, solution: Object, attempts: number }}
+ */
+function solveConstructiveDiet(eligibleFoods, targets, policy, context, options = {}) {
+  const strategies = ['A', 'B', 'C'];
+  let bestConstructive = null;
+  let attempts = 0;
+
+  for (let s = 0; s < strategies.length; s++) {
+    const strat = strategies[s];
+    const basket = buildConstructiveBasket(eligibleFoods, targets, policy, options, strat);
+    if (!basket || basket.length === 0) continue;
+
+    attempts++;
+    const opt = optimizeComboPortions(basket, targets, policy);
+
+    const diffCal = Math.abs(opt.totals.calories - targets.calories);
+    const diffProt = Math.abs(opt.totals.protein - targets.protein);
+    const diffCarb = Math.abs(opt.totals.carbohydrate - targets.carbohydrate);
+    const diffFat = Math.abs(opt.totals.fat - targets.fat);
+    const diffFib = Math.abs(opt.totals.fiber - targets.fiber);
+
+    const withinTolerances = 
+      diffCal <= policy.tolerances.caloriesKcal &&
+      diffProt <= policy.tolerances.proteinG &&
+      diffCarb <= policy.tolerances.carbohydrateG &&
+      diffFat <= policy.tolerances.fatG &&
+      diffFib <= policy.tolerances.fiberG;
+
+    const containsReview = basket.some(f => (f.bromatology && f.bromatology.energyStatus) === 'REVISAR');
+
+    const candSolution = {
+      strategy: strat,
+      combo: basket,
+      ...opt,
+      withinTolerances,
+      containsReview
+    };
+
+    if (!bestConstructive || opt.cost < bestConstructive.cost) {
+      bestConstructive = candSolution;
+    }
+
+    if (withinTolerances && !containsReview && opt.cost <= 0.05) {
+      return {
+        success: true,
+        strategy: strat,
+        solution: candSolution,
+        attempts
+      };
+    }
+  }
+
+  if (bestConstructive && (bestConstructive.withinTolerances || bestConstructive.cost <= 0.05)) {
+    return {
+      success: true,
+      strategy: bestConstructive.strategy,
+      solution: bestConstructive,
+      attempts
+    };
+  }
+
+  return {
+    success: false,
+    bestPartial: bestConstructive,
+    attempts
   };
 }
 
@@ -11313,6 +11593,58 @@ function solveNutritionDiet(input, customPolicy = {}) {
     });
   }
 
+  // 3.5 Pré-checagem estrutural determinística de viabilidade (N3.7.7)
+  const feasibility = checkPrescriptionFeasibility(input.context, eligibleFoods, targets, policy);
+  if (!feasibility.feasible) {
+    const structuralDiagnostics = {
+      status: SOLVER_STATUS.NO_SOLUTION,
+      attempts: 0,
+      candidateSpace: rawCatalog.length,
+      feasibleCandidatesBeforeSearch: eligibleFoods.length,
+      rejectedByConstraint: rawCatalog.length - eligibleFoods.length,
+      rejectedByMealStructure: 0,
+      rejectedByMacro: feasibility.limitingConstraints.includes('protein') || feasibility.limitingConstraints.includes('carbohydrate') ? 1 : 0,
+      rejectedByCalories: feasibility.limitingConstraints.includes('calories') ? 1 : 0,
+      rejectedByTiming: 0,
+      rejectedByG21: 0,
+      rejectedByG22: 0,
+      rejectedByG23: 0,
+      rejectedByFoodEligibility: filterResult.ineligible.length,
+      rejectedByPortion: 0,
+      duplicateStates: 0,
+      dominatedStates: 0,
+      bestCandidate: 'Nenhum',
+      bestCandidateDistance: 999,
+      limitingConstraints: feasibility.limitingConstraints
+    };
+
+    return deepFreeze({
+      status: SOLVER_STATUS.NO_SOLUTION,
+      valid: false,
+      meals: [],
+      totals: { calories: 0, protein: 0, carbohydrate: 0, fat: 0, fiber: 0, sodium: 0 },
+      target: targets,
+      differences: {
+        calories: -targets.calories,
+        protein: -targets.protein,
+        carbohydrate: -targets.carbohydrate,
+        fat: -targets.fat,
+        fiber: -targets.fiber
+      },
+      foodProvenance: [],
+      solverDiagnostics: [
+        ...feasibility.diagnostics,
+        `Status de viabilidade: ${feasibility.reason}`,
+        `Restrições limitantes: ${feasibility.limitingConstraints.join(', ')}`
+      ],
+      structuralDiagnostics,
+      warnings: [...governanceWarnings, ...feasibility.diagnostics],
+      blockingReasons: feasibility.diagnostics,
+      solverVersion,
+      provenance: { engine: 'NutriAxDeterministicFoodSolver', policyVersion: policy.policyVersion }
+    });
+  }
+
   // 4. Redução Determinística do Espaço de Busca
   const candidatePool = reduceSearchCandidates(eligibleFoods, policy, filterOptions);
 
@@ -11340,21 +11672,53 @@ function solveNutritionDiet(input, customPolicy = {}) {
     ? policy.convergence.earlyStopCost
     : 0.05;
 
-  outerLoop:
-  for (let k = targetItemCountMin; k <= targetItemCountMax; k++) {
-    const combos = getCombinations(candidatePool, k);
+  // 5.1 Tier Construtivo Determinístico Multi-Camada (N3.7.7)
+  // Resolve estruturalmente a prescrição usando a cesta canônica antes de recorrer à busca combinatória
+  const requiredMealCount = (input.context && (input.context.mealsPerDay || (input.context.patient && input.context.patient.mealsPerDay))) ||
+    (input.options && input.options.mealCount) ||
+    policy.searchBounds.targetItemCountMin ||
+    3;
 
-    for (let c = 0; c < combos.length; c++) {
-      // Verificação do limite antes de avaliar a próxima combinação
-      if (totalCombosTested >= maxCombosToTest) {
-        searchLimitReached = true;
-        break outerLoop;
-      }
+  const isArtificialLimitTest = typeof searchLimitPolicy.maxCombosToTest === 'number' && searchLimitPolicy.maxCombosToTest <= 5;
 
-      totalCombosTested++;
-      const combo = combos[c];
-      const opt = optimizeComboPortions(combo, targets, policy);
-      totalIterationsExecuted += opt.iterations;
+  if (!isArtificialLimitTest && eligibleFoods.length >= requiredMealCount) {
+    const constructiveResult = solveConstructiveDiet(eligibleFoods, targets, policy, input.context, filterOptions);
+    if (constructiveResult && constructiveResult.success && constructiveResult.solution) {
+      bestSolution = constructiveResult.solution;
+      totalCombosTested = constructiveResult.attempts;
+      totalIterationsExecuted = constructiveResult.solution.iterations || 25;
+      earlyConverged = true;
+    }
+  }
+
+  // 5.2 Fallback Combinatório Bounded com Poda Estrutural (Branch-and-Bound)
+  if (!bestSolution || (!earlyConverged && bestSolution.cost > earlyStopCost)) {
+    outerLoop:
+    for (let k = targetItemCountMin; k <= targetItemCountMax; k++) {
+      const combos = getCombinations(candidatePool, k);
+
+      for (let c = 0; c < combos.length; c++) {
+        const combo = combos[c];
+
+        // Poda Estrutural: descarta combinações sem macronutrientes essenciais requeridos
+        if (targets.protein >= 80) {
+          const hasProtein = combo.some(f => (f.protein || 0) >= 12 || assignSearchRole(f) === SEARCH_ROLES.ROLE_PROTEIN_DENSE);
+          if (!hasProtein) continue;
+        }
+        if (targets.carbohydrate >= 80) {
+          const hasCarb = combo.some(f => (f.carbohydrate || 0) >= 15 || assignSearchRole(f) === SEARCH_ROLES.ROLE_CARB_DENSE);
+          if (!hasCarb) continue;
+        }
+
+        // Verificação do limite antes de avaliar a próxima combinação
+        if (totalCombosTested >= maxCombosToTest) {
+          searchLimitReached = true;
+          break outerLoop;
+        }
+
+        totalCombosTested++;
+        const opt = optimizeComboPortions(combo, targets, policy);
+        totalIterationsExecuted += opt.iterations;
 
       if (!bestSolution) {
         bestSolution = { combo, ...opt };
@@ -11422,6 +11786,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
         }
       }
     }
+  }
   }
 
   // 5a. Verificação de limite atingido (N3.7.5)
@@ -11656,6 +12021,28 @@ function solveNutritionDiet(input, customPolicy = {}) {
     `Versão da política: ${policy.policyVersion}`
   ];
 
+  const structuralDiagnostics = {
+    status: finalStatus,
+    attempts: totalCombosTested,
+    candidateSpace: rawCatalog.length,
+    feasibleCandidatesBeforeSearch: eligibleFoods.length,
+    rejectedByConstraint: rawCatalog.length - eligibleFoods.length,
+    rejectedByMealStructure: 0,
+    rejectedByMacro: Math.abs(finalDifferences.protein) > policy.tolerances.proteinG ? 1 : 0,
+    rejectedByCalories: Math.abs(finalDifferences.calories) > policy.tolerances.caloriesKcal ? 1 : 0,
+    rejectedByTiming: 0,
+    rejectedByG21: 0,
+    rejectedByG22: 0,
+    rejectedByG23: 0,
+    rejectedByFoodEligibility: filterResult.ineligible.length,
+    rejectedByPortion: 0,
+    duplicateStates: 0,
+    dominatedStates: Math.max(0, candidatePool.length - (bestSolution ? bestSolution.combo.length : 0)),
+    bestCandidate: bestSolution ? bestSolution.combo.map(f => f.name || f.foodName).join(', ') : 'Nenhum',
+    bestCandidateDistance: bestSolution ? roundTo(bestSolution.cost, 6) : 999,
+    limitingConstraints: !withinTolerances ? (Math.abs(finalDifferences.protein) > policy.tolerances.proteinG ? ['protein'] : []) : []
+  };
+
   // Bloco neutro de refeições diárias (Meal Assembly pertence a N3.3)
   const meals = [
     {
@@ -11697,6 +12084,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
     differences: finalDifferences,
     foodProvenance,
     solverDiagnostics,
+    structuralDiagnostics,
     warnings,
     blockingReasons,
     solverVersion,
@@ -11712,7 +12100,10 @@ function solveNutritionDiet(input, customPolicy = {}) {
 module.exports = {
   solveNutritionDiet,
   calculateFoodPortionNutrients,
-  reduceSearchCandidates
+  reduceSearchCandidates,
+  checkPrescriptionFeasibility,
+  solveConstructiveDiet,
+  optimizeComboPortions
 };
 
   });

@@ -72948,3 +72948,6 @@ if (typeof window !== "undefined") {
 if (typeof globalThis !== "undefined") {
   globalThis.COMPREHENSIVE_TACO_TBCA_FOODS = COMPREHENSIVE_TACO_TBCA_FOODS;
 }
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { COMPREHENSIVE_TACO_TBCA_FOODS };
+}
