@@ -11165,17 +11165,36 @@ function reduceSearchCandidates(eligibleFoods, policy, options = {}) {
  * @param {Object} policy 
  * @returns {{ minG: number, maxG: number }}
  */
-function getFoodPortionBounds(food, policy) {
-  const minG = policy.searchBounds.minGramsPerItem || 10.0;
-  let maxG = policy.searchBounds.maxGramsPerItem || 450.0;
+function getFoodPortionBounds(food, policy, targets = null) {
+  let minG = policy?.searchBounds?.minGramsPerItem || 10.0;
+  let maxG = policy?.searchBounds?.maxGramsPerItem || 450.0;
 
   const name = String(food.name || food.foodName || '').toLowerCase();
   if (/azeite|[\s_]oleo[\s_]|manteiga/i.test(name) || (food.lipid || 0) >= 70) {
-    maxG = Math.min(maxG, 30.0);
+    minG = 5.0;
+    maxG = Math.min(maxG, (targets && targets.fat >= 180) ? 70.0 : 35.0);
+  } else if (/feij[aã]o|lentilha|gr[aã]o.*bico/i.test(name)) {
+    minG = 60.0; // Porção mínima clínica realista
+    maxG = Math.min(maxG, 280.0);
+  } else if (/br[oó]colis|couve|legume|vegeta|salada/i.test(name)) {
+    minG = 40.0; // Porção mínima realista de vegetais/hortaliças
+    maxG = Math.min(maxG, (targets && targets.fiber >= 30) ? 450.0 : 300.0);
   } else if (/aveia|farelo|granola/i.test(name)) {
-    maxG = Math.min(maxG, 250.0);
+    minG = 20.0;
+    maxG = Math.min(maxG, (targets && targets.carbohydrate >= 300) ? 250.0 : 120.0);
   } else if (/banana|uva|manga/i.test(name)) {
+    minG = 50.0;
     maxG = Math.min(maxG, 220.0);
+  } else if (/p[aã]o.*integral|p[aã]o/i.test(name)) {
+    minG = 25.0;
+    maxG = Math.min(maxG, 150.0);
+  } else if (/frango|patinho|alcatra|peixe|til[aá]pia|salm[aã]o|merluza|carne/i.test(name)) {
+    if (targets && targets.protein && targets.protein < 60) {
+      minG = 40.0;
+    } else {
+      minG = 80.0; // Prato principal substancial
+    }
+    maxG = Math.min(maxG, 450.0);
   }
 
   return { minG, maxG };
@@ -11191,15 +11210,20 @@ function getFoodPortionBounds(food, policy) {
  */
 function optimizeComboPortions(combo, targets, policy) {
   const k = combo.length;
-  const bounds = combo.map(f => getFoodPortionBounds(f, policy));
+  const bounds = combo.map(f => getFoodPortionBounds(f, policy, targets));
   const maxIter = policy.convergence.maxIterations;
 
   // Inicialização determinística inteligente baseada no papel e densidade do alimento
   const portions = combo.map((food, i) => {
     const role = assignSearchRole(food);
     const lipid = Number(food.lipid || 0);
+    const name = String(food.name || food.foodName || '').toLowerCase();
     let initG = 100.0;
     if (role === SEARCH_ROLES.ROLE_FAT_DENSE || lipid >= 50) initG = 15.0;
+    else if (/feij[aã]o|lentilha|gr[aã]o.*bico/i.test(name)) initG = 120.0;
+    else if (/br[oó]colis|couve|legume|vegeta|salada/i.test(name)) initG = 80.0;
+    else if (/aveia|farelo/i.test(name)) initG = 45.0;
+    else if (/arroz|batata/i.test(name)) initG = 200.0;
     else if (role === SEARCH_ROLES.ROLE_PROTEIN_DENSE) initG = 180.0;
     else if (role === SEARCH_ROLES.ROLE_CARB_DENSE) initG = 180.0;
     else if (role === SEARCH_ROLES.ROLE_FIBER_VOLUME) initG = 80.0;
@@ -11419,11 +11443,14 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
         if (targets.carbohydrate >= 100) {
           addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
         }
-        addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia|p[aã]o.*integral/i));
-        if (targets.carbohydrate >= 200) {
+        addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia/i));
+        if (targets.carbohydrate >= 180) {
           addFood(findId('canon_banana_prata') || findName(/banana/i));
         }
         addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+        if (targets.carbohydrate >= 240) {
+          addFood(findId('canon_pao_integral') || findName(/p[aã]o.*integral/i) || findId('canon_mandioca_cozida') || findName(/mandioca|aipim/i));
+        }
       } else {
         // Low Carb: aporte moderado e controlado de carboidratos complexos
         if (targets.carbohydrate >= 70) {
@@ -11444,7 +11471,17 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
       addFood(findId('canon_castanha_para') || findName(/castanha.*par[aá]|amendoim|nozes|pasta.*amendoim/i));
       addFood(findName(/abacate/i) || findName(/queijo.*mussarela|queijo.*prato|queijo/i));
       if (targets.fat >= 140) {
-        addFood(findName(/queijo|manteiga|iogurte.*natural/i) || findId('canon_castanha_para'));
+        addFood(
+          eligibleFoods.find(f => /(^|[^\w])manteiga/i.test(f.name || f.foodName || '') && !/feij[aã]o/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 50) ||
+          eligibleFoods.find(f => /queijo.*(parmes|mussarela|prato|minas)|pasta.*amendoim/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 25) ||
+          findId('canon_castanha_para')
+        );
+      }
+      if (targets.fat >= 220) {
+        addFood(
+          eligibleFoods.find(f => /(^|[^\w])manteiga/i.test(f.name || f.foodName || '') && !/feij[aã]o/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 50) ||
+          eligibleFoods.find(f => /queijo.*(parmes|mussarela|prato)|bacon/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 30)
+        );
       }
     }
 
@@ -11479,6 +11516,7 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
     let carbCount = 2;
     if (isKeto) carbCount = 0;
     else if (targets.carbohydrate < 80) carbCount = 1;
+    else if (targets.carbohydrate >= 240) carbCount = 4;
     else if (targets.carbohydrate >= 180) carbCount = 3;
 
     let fatCount = 1;
@@ -12030,7 +12068,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
   } else if (withinTolerances && !containsReviewFood && warnings.length === 0) {
     finalStatus = SOLVER_STATUS.PASS;
     isValid = true;
-  } else if (withinTolerances || bestSolution.cost <= 1.0) {
+  } else if (withinTolerances || bestSolution.cost <= 1.05) {
     finalStatus = SOLVER_STATUS.WARNING;
     isValid = true;
   } else {
@@ -12892,33 +12930,34 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
 
   // 1. REFEIÇÕES PRINCIPAIS (Almoço / Jantar - PRIMARY)
   if (mealType === 'MAIN') {
-    if (/aveia/i.test(name)) return 0.8;
-    if (/iogurte|leite\s+em\s+p[oó]/i.test(name)) return 0.5;
-    if (/caf[eé]/i.test(name)) return 0.4;
-    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 0.2;
+    // Alimentos matinais/lanches são proibidos em almoço e jantar tradicional
+    if (/aveia|granola|farelo\s+de\s+aveia/i.test(name)) return 500.0;
+    if (/iogurte|leite\s+em\s+p[oó]|whey/i.test(name)) return 250.0;
+    if (/caf[eé]/i.test(name)) return 50.0;
+    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 15.0;
     return 0;
   }
 
   // 2. REFEICAO MATINAL (Café da Manhã - SECONDARY)
   if (mealType === 'BREAKFAST') {
-    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 0.8;
-    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 0.8;
-    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 0.8;
-    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 0.6;
-    if (/arroz/i.test(name)) return 0.5;
-    if (/frango/i.test(name)) return 0.4;
-    if (/azeite/i.test(name)) return 0.3;
+    // Comida pesada de almoço/jantar é proibida no café da manhã
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
+    if (/arroz/i.test(name)) return 300.0;
+    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 250.0;
+    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 250.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 100.0;
+    if (/frango/i.test(name)) return 40.0;
+    if (/azeite/i.test(name)) return 20.0;
     return 0;
   }
 
   // 3. REFEIÇÕES INTERMEDIÁRIAS (SNACK / FLEXIBLE)
   if (mealType === 'SNACK') {
-    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 0.8;
-    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 0.7;
-    if (/br[oó]colis|couve-flor|abobrinha/i.test(name)) return 0.5;
-    if (/arroz/i.test(name)) return 0.4;
-    if (/frango/i.test(name)) return 0.3;
-    if (/azeite/i.test(name)) return 0.3;
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
+    if (/arroz/i.test(name)) return 300.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|legumes/i.test(name)) return 200.0;
+    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 100.0;
+    if (/azeite/i.test(name)) return 10.0;
     return 0;
   }
 
@@ -13558,6 +13597,28 @@ function assembleMeals(input, customPolicy = {}) {
         }
       }
 
+      // Diretriz da Literatura: Refeições Principais (Almoço e Jantar) com Proteína Nobre
+      const isNobleProteinFood = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|ovo\s+de\s+galinha|ovos|clara|tofu/i.test(item.foodName || '');
+      if (isNobleProteinFood && Array.isArray(cand.allocations)) {
+        for (let s = 0; s < cand.allocations.length; s++) {
+          const alloc = cand.allocations[s];
+          const mIdx = alloc.mealIndex;
+          if (roles[mIdx] === 'PRIMARY') {
+            // Bonificação para alocar proteína nobre em refeição principal
+            cost -= 15.0 * (alloc.ratio || 1.0);
+          }
+        }
+        // Se a divisão é entre duas refeições principais (ex: Almoço e Jantar), isenta de penalidade de split
+        if (cand.isSplit && cand.allocations.length === 2) {
+          const r1 = roles[cand.allocations[0].mealIndex];
+          const r2 = roles[cand.allocations[1].mealIndex];
+          if (r1 === 'PRIMARY' && r2 === 'PRIMARY') {
+            cost -= (policy.weights?.w_frag || 0.5); // Isenta penalidade de fragmentação
+            cost -= 25.0; // Bonificação por equilibrar proteína nobre no almoço e jantar
+          }
+        }
+      }
+
       if (cost < bestCost - 1e-6) {
         bestCost = cost;
         bestCand = cand;
@@ -13609,11 +13670,13 @@ function assembleMeals(input, customPolicy = {}) {
       }
 
       if (donorMeal && donorItemIdx >= 0) {
-        if (donorMeal.items.length > 1) {
+        const fullItem = donorMeal.items[donorItemIdx];
+        const isPrimaryDonor = donorMeal.mealRole === 'PRIMARY';
+        // Se a refeição doadora é PRINCIPAL ou o item é substancial (>= 50g), divide em vez de arrancar o alimento por completo
+        if (donorMeal.items.length > 1 && !isPrimaryDonor && fullItem.grams < 50) {
           const [movedItem] = donorMeal.items.splice(donorItemIdx, 1);
           workingMeals[m].items.push(movedItem);
         } else {
-          const fullItem = donorMeal.items[donorItemIdx];
           const halfGrams = roundTo(fullItem.grams / 2, 1);
           donorMeal.items[donorItemIdx] = {
             ...fullItem,
@@ -17992,17 +18055,17 @@ function evaluateMealScience(mealName, items = [], options = {}) {
   const normName = String(mealName || '').toLowerCase().trim();
   const safeItems = Array.isArray(items) ? items : [];
 
-  const totalKcal = safeItems.reduce((acc, i) => acc + (Number(i.calories) || Number(i.kcal) || 0), 0);
-  const totalProt = safeItems.reduce((acc, i) => acc + (Number(i.protein) || 0), 0);
-  const totalCarb = safeItems.reduce((acc, i) => acc + (Number(i.carbohydrate) || Number(i.carb) || 0), 0);
-  const totalLip = safeItems.reduce((acc, i) => acc + (Number(i.lipid) || Number(i.fat) || 0), 0);
+  const totalKcal = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.calories) || Number(i.calories) || Number(i.kcal) || 0), 0);
+  const totalProt = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.protein) || Number(i.protein) || 0), 0);
+  const totalCarb = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.carbohydrate) || Number(i.carbohydrate) || Number(i.carb) || 0), 0);
+  const totalLip = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.lipid) || Number(i.nutrients?.fat) || Number(i.lipid) || Number(i.fat) || 0), 0);
 
   const itemClassifications = safeItems.map(i => ({
     name: i.foodName || i.name || 'Alimento',
     quantity: i.quantity || i.grams || 0,
-    carbs: Number(i.carbohydrate) || Number(i.carb) || 0,
-    protein: Number(i.protein) || 0,
-    lipids: Number(i.lipid) || Number(i.fat) || 0,
+    carbs: Number(i.nutrients?.carbohydrate) || Number(i.carbohydrate) || Number(i.carb) || 0,
+    protein: Number(i.nutrients?.protein) || Number(i.protein) || 0,
+    lipids: Number(i.nutrients?.lipid) || Number(i.nutrients?.fat) || Number(i.lipid) || Number(i.fat) || 0,
     science: classifyFoodScience(i.foodName || i.name)
   }));
 

@@ -333,6 +333,28 @@ function assembleMeals(input, customPolicy = {}) {
         }
       }
 
+      // Diretriz da Literatura: Refeições Principais (Almoço e Jantar) com Proteína Nobre
+      const isNobleProteinFood = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|ovo\s+de\s+galinha|ovos|clara|tofu/i.test(item.foodName || '');
+      if (isNobleProteinFood && Array.isArray(cand.allocations)) {
+        for (let s = 0; s < cand.allocations.length; s++) {
+          const alloc = cand.allocations[s];
+          const mIdx = alloc.mealIndex;
+          if (roles[mIdx] === 'PRIMARY') {
+            // Bonificação para alocar proteína nobre em refeição principal
+            cost -= 15.0 * (alloc.ratio || 1.0);
+          }
+        }
+        // Se a divisão é entre duas refeições principais (ex: Almoço e Jantar), isenta de penalidade de split
+        if (cand.isSplit && cand.allocations.length === 2) {
+          const r1 = roles[cand.allocations[0].mealIndex];
+          const r2 = roles[cand.allocations[1].mealIndex];
+          if (r1 === 'PRIMARY' && r2 === 'PRIMARY') {
+            cost -= (policy.weights?.w_frag || 0.5); // Isenta penalidade de fragmentação
+            cost -= 25.0; // Bonificação por equilibrar proteína nobre no almoço e jantar
+          }
+        }
+      }
+
       if (cost < bestCost - 1e-6) {
         bestCost = cost;
         bestCand = cand;
@@ -384,11 +406,13 @@ function assembleMeals(input, customPolicy = {}) {
       }
 
       if (donorMeal && donorItemIdx >= 0) {
-        if (donorMeal.items.length > 1) {
+        const fullItem = donorMeal.items[donorItemIdx];
+        const isPrimaryDonor = donorMeal.mealRole === 'PRIMARY';
+        // Se a refeição doadora é PRINCIPAL ou o item é substancial (>= 50g), divide em vez de arrancar o alimento por completo
+        if (donorMeal.items.length > 1 && !isPrimaryDonor && fullItem.grams < 50) {
           const [movedItem] = donorMeal.items.splice(donorItemIdx, 1);
           workingMeals[m].items.push(movedItem);
         } else {
-          const fullItem = donorMeal.items[donorItemIdx];
           const halfGrams = roundTo(fullItem.grams / 2, 1);
           donorMeal.items[donorItemIdx] = {
             ...fullItem,

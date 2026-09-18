@@ -126,17 +126,17 @@ function evaluateMealScience(mealName, items = [], options = {}) {
   const normName = String(mealName || '').toLowerCase().trim();
   const safeItems = Array.isArray(items) ? items : [];
 
-  const totalKcal = safeItems.reduce((acc, i) => acc + (Number(i.calories) || Number(i.kcal) || 0), 0);
-  const totalProt = safeItems.reduce((acc, i) => acc + (Number(i.protein) || 0), 0);
-  const totalCarb = safeItems.reduce((acc, i) => acc + (Number(i.carbohydrate) || Number(i.carb) || 0), 0);
-  const totalLip = safeItems.reduce((acc, i) => acc + (Number(i.lipid) || Number(i.fat) || 0), 0);
+  const totalKcal = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.calories) || Number(i.calories) || Number(i.kcal) || 0), 0);
+  const totalProt = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.protein) || Number(i.protein) || 0), 0);
+  const totalCarb = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.carbohydrate) || Number(i.carbohydrate) || Number(i.carb) || 0), 0);
+  const totalLip = safeItems.reduce((acc, i) => acc + (Number(i.nutrients?.lipid) || Number(i.nutrients?.fat) || Number(i.lipid) || Number(i.fat) || 0), 0);
 
   const itemClassifications = safeItems.map(i => ({
     name: i.foodName || i.name || 'Alimento',
     quantity: i.quantity || i.grams || 0,
-    carbs: Number(i.carbohydrate) || Number(i.carb) || 0,
-    protein: Number(i.protein) || 0,
-    lipids: Number(i.lipid) || Number(i.fat) || 0,
+    carbs: Number(i.nutrients?.carbohydrate) || Number(i.carbohydrate) || Number(i.carb) || 0,
+    protein: Number(i.nutrients?.protein) || Number(i.protein) || 0,
+    lipids: Number(i.nutrients?.lipid) || Number(i.nutrients?.fat) || Number(i.lipid) || Number(i.fat) || 0,
     science: classifyFoodScience(i.foodName || i.name)
   }));
 

@@ -317,17 +317,36 @@ function reduceSearchCandidates(eligibleFoods, policy, options = {}) {
  * @param {Object} policy 
  * @returns {{ minG: number, maxG: number }}
  */
-function getFoodPortionBounds(food, policy) {
-  const minG = policy.searchBounds.minGramsPerItem || 10.0;
-  let maxG = policy.searchBounds.maxGramsPerItem || 450.0;
+function getFoodPortionBounds(food, policy, targets = null) {
+  let minG = policy?.searchBounds?.minGramsPerItem || 10.0;
+  let maxG = policy?.searchBounds?.maxGramsPerItem || 450.0;
 
   const name = String(food.name || food.foodName || '').toLowerCase();
   if (/azeite|[\s_]oleo[\s_]|manteiga/i.test(name) || (food.lipid || 0) >= 70) {
-    maxG = Math.min(maxG, 30.0);
+    minG = 5.0;
+    maxG = Math.min(maxG, (targets && targets.fat >= 180) ? 70.0 : 35.0);
+  } else if (/feij[aã]o|lentilha|gr[aã]o.*bico/i.test(name)) {
+    minG = 60.0; // Porção mínima clínica realista
+    maxG = Math.min(maxG, 280.0);
+  } else if (/br[oó]colis|couve|legume|vegeta|salada/i.test(name)) {
+    minG = 40.0; // Porção mínima realista de vegetais/hortaliças
+    maxG = Math.min(maxG, (targets && targets.fiber >= 30) ? 450.0 : 300.0);
   } else if (/aveia|farelo|granola/i.test(name)) {
-    maxG = Math.min(maxG, 250.0);
+    minG = 20.0;
+    maxG = Math.min(maxG, (targets && targets.carbohydrate >= 300) ? 250.0 : 120.0);
   } else if (/banana|uva|manga/i.test(name)) {
+    minG = 50.0;
     maxG = Math.min(maxG, 220.0);
+  } else if (/p[aã]o.*integral|p[aã]o/i.test(name)) {
+    minG = 25.0;
+    maxG = Math.min(maxG, 150.0);
+  } else if (/frango|patinho|alcatra|peixe|til[aá]pia|salm[aã]o|merluza|carne/i.test(name)) {
+    if (targets && targets.protein && targets.protein < 60) {
+      minG = 40.0;
+    } else {
+      minG = 80.0; // Prato principal substancial
+    }
+    maxG = Math.min(maxG, 450.0);
   }
 
   return { minG, maxG };
@@ -343,15 +362,20 @@ function getFoodPortionBounds(food, policy) {
  */
 function optimizeComboPortions(combo, targets, policy) {
   const k = combo.length;
-  const bounds = combo.map(f => getFoodPortionBounds(f, policy));
+  const bounds = combo.map(f => getFoodPortionBounds(f, policy, targets));
   const maxIter = policy.convergence.maxIterations;
 
   // Inicialização determinística inteligente baseada no papel e densidade do alimento
   const portions = combo.map((food, i) => {
     const role = assignSearchRole(food);
     const lipid = Number(food.lipid || 0);
+    const name = String(food.name || food.foodName || '').toLowerCase();
     let initG = 100.0;
     if (role === SEARCH_ROLES.ROLE_FAT_DENSE || lipid >= 50) initG = 15.0;
+    else if (/feij[aã]o|lentilha|gr[aã]o.*bico/i.test(name)) initG = 120.0;
+    else if (/br[oó]colis|couve|legume|vegeta|salada/i.test(name)) initG = 80.0;
+    else if (/aveia|farelo/i.test(name)) initG = 45.0;
+    else if (/arroz|batata/i.test(name)) initG = 200.0;
     else if (role === SEARCH_ROLES.ROLE_PROTEIN_DENSE) initG = 180.0;
     else if (role === SEARCH_ROLES.ROLE_CARB_DENSE) initG = 180.0;
     else if (role === SEARCH_ROLES.ROLE_FIBER_VOLUME) initG = 80.0;
@@ -571,11 +595,14 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
         if (targets.carbohydrate >= 100) {
           addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
         }
-        addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia|p[aã]o.*integral/i));
-        if (targets.carbohydrate >= 200) {
+        addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia/i));
+        if (targets.carbohydrate >= 180) {
           addFood(findId('canon_banana_prata') || findName(/banana/i));
         }
         addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+        if (targets.carbohydrate >= 240) {
+          addFood(findId('canon_pao_integral') || findName(/p[aã]o.*integral/i) || findId('canon_mandioca_cozida') || findName(/mandioca|aipim/i));
+        }
       } else {
         // Low Carb: aporte moderado e controlado de carboidratos complexos
         if (targets.carbohydrate >= 70) {
@@ -596,7 +623,17 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
       addFood(findId('canon_castanha_para') || findName(/castanha.*par[aá]|amendoim|nozes|pasta.*amendoim/i));
       addFood(findName(/abacate/i) || findName(/queijo.*mussarela|queijo.*prato|queijo/i));
       if (targets.fat >= 140) {
-        addFood(findName(/queijo|manteiga|iogurte.*natural/i) || findId('canon_castanha_para'));
+        addFood(
+          eligibleFoods.find(f => /(^|[^\w])manteiga/i.test(f.name || f.foodName || '') && !/feij[aã]o/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 50) ||
+          eligibleFoods.find(f => /queijo.*(parmes|mussarela|prato|minas)|pasta.*amendoim/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 25) ||
+          findId('canon_castanha_para')
+        );
+      }
+      if (targets.fat >= 220) {
+        addFood(
+          eligibleFoods.find(f => /(^|[^\w])manteiga/i.test(f.name || f.foodName || '') && !/feij[aã]o/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 50) ||
+          eligibleFoods.find(f => /queijo.*(parmes|mussarela|prato)|bacon/i.test(f.name || f.foodName || '') && (f.lipid || 0) >= 30)
+        );
       }
     }
 
@@ -631,6 +668,7 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
     let carbCount = 2;
     if (isKeto) carbCount = 0;
     else if (targets.carbohydrate < 80) carbCount = 1;
+    else if (targets.carbohydrate >= 240) carbCount = 4;
     else if (targets.carbohydrate >= 180) carbCount = 3;
 
     let fatCount = 1;
@@ -1182,7 +1220,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
   } else if (withinTolerances && !containsReviewFood && warnings.length === 0) {
     finalStatus = SOLVER_STATUS.PASS;
     isValid = true;
-  } else if (withinTolerances || bestSolution.cost <= 1.0) {
+  } else if (withinTolerances || bestSolution.cost <= 1.05) {
     finalStatus = SOLVER_STATUS.WARNING;
     isValid = true;
   } else {

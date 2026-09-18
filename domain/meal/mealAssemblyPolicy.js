@@ -255,33 +255,34 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
 
   // 1. REFEIÇÕES PRINCIPAIS (Almoço / Jantar - PRIMARY)
   if (mealType === 'MAIN') {
-    if (/aveia/i.test(name)) return 0.8;
-    if (/iogurte|leite\s+em\s+p[oó]/i.test(name)) return 0.5;
-    if (/caf[eé]/i.test(name)) return 0.4;
-    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 0.2;
+    // Alimentos matinais/lanches são proibidos em almoço e jantar tradicional
+    if (/aveia|granola|farelo\s+de\s+aveia/i.test(name)) return 500.0;
+    if (/iogurte|leite\s+em\s+p[oó]|whey/i.test(name)) return 250.0;
+    if (/caf[eé]/i.test(name)) return 50.0;
+    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 15.0;
     return 0;
   }
 
   // 2. REFEICAO MATINAL (Café da Manhã - SECONDARY)
   if (mealType === 'BREAKFAST') {
-    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 0.8;
-    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 0.8;
-    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 0.8;
-    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 0.6;
-    if (/arroz/i.test(name)) return 0.5;
-    if (/frango/i.test(name)) return 0.4;
-    if (/azeite/i.test(name)) return 0.3;
+    // Comida pesada de almoço/jantar é proibida no café da manhã
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
+    if (/arroz/i.test(name)) return 300.0;
+    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 250.0;
+    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 250.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 100.0;
+    if (/frango/i.test(name)) return 40.0;
+    if (/azeite/i.test(name)) return 20.0;
     return 0;
   }
 
   // 3. REFEIÇÕES INTERMEDIÁRIAS (SNACK / FLEXIBLE)
   if (mealType === 'SNACK') {
-    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 0.8;
-    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 0.7;
-    if (/br[oó]colis|couve-flor|abobrinha/i.test(name)) return 0.5;
-    if (/arroz/i.test(name)) return 0.4;
-    if (/frango/i.test(name)) return 0.3;
-    if (/azeite/i.test(name)) return 0.3;
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
+    if (/arroz/i.test(name)) return 300.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|legumes/i.test(name)) return 200.0;
+    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 100.0;
+    if (/azeite/i.test(name)) return 10.0;
     return 0;
   }
 
