@@ -228,6 +228,66 @@ function calculateAssemblyCost(mealTotals, globalTotals, targetRatios, weights =
   };
 }
 
+/**
+ * Calcula a penalidade determinística de afinidade gastronômica
+ * entre um alimento e o papel estrutural da refeição.
+ * Função 100% pura, estóica e determinística.
+ * 
+ * @param {string} foodName Nome do alimento
+ * @param {string} mealRole Papel computacional da refeição (PRIMARY, SECONDARY, SNACK, FLEXIBLE)
+ * @param {number} mealIndex Índice da refeição (0 a totalMeals - 1)
+ * @param {number} totalMeals Quantidade total de refeições do plano
+ * @returns {number} Penalidade a ser somada ao custo (0 = combinação ideal)
+ */
+function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMeals) {
+  if (!foodName || totalMeals <= 1) return 0;
+  const name = String(foodName).toLowerCase();
+
+  let mealType = 'MAIN';
+
+  if (mealRole === 'SECONDARY' || (totalMeals >= 4 && mealIndex === 0) || (totalMeals === 3 && mealIndex === 2)) {
+    mealType = 'BREAKFAST';
+  } else if (mealRole === 'SNACK' || mealRole === 'FLEXIBLE') {
+    mealType = 'SNACK';
+  } else if (mealRole === 'PRIMARY') {
+    mealType = 'MAIN';
+  }
+
+  // 1. REFEIÇÕES PRINCIPAIS (Almoço / Jantar - PRIMARY)
+  if (mealType === 'MAIN') {
+    if (/aveia/i.test(name)) return 0.8;
+    if (/iogurte|leite\s+em\s+p[oó]/i.test(name)) return 0.5;
+    if (/caf[eé]/i.test(name)) return 0.4;
+    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 0.2;
+    return 0;
+  }
+
+  // 2. REFEICAO MATINAL (Café da Manhã - SECONDARY)
+  if (mealType === 'BREAKFAST') {
+    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 0.8;
+    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 0.8;
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 0.8;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 0.6;
+    if (/arroz/i.test(name)) return 0.5;
+    if (/frango/i.test(name)) return 0.4;
+    if (/azeite/i.test(name)) return 0.3;
+    return 0;
+  }
+
+  // 3. REFEIÇÕES INTERMEDIÁRIAS (SNACK / FLEXIBLE)
+  if (mealType === 'SNACK') {
+    if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 0.8;
+    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 0.7;
+    if (/br[oó]colis|couve-flor|abobrinha/i.test(name)) return 0.5;
+    if (/arroz/i.test(name)) return 0.4;
+    if (/frango/i.test(name)) return 0.3;
+    if (/azeite/i.test(name)) return 0.3;
+    return 0;
+  }
+
+  return 0;
+}
+
 module.exports = deepFreeze({
   ROLE_ARCHETYPES,
   ROLE_ENERGY_WEIGHTS,
@@ -236,5 +296,6 @@ module.exports = deepFreeze({
   resolveMealCount,
   resolveMealRoles,
   calculateTargetRatios,
-  calculateAssemblyCost
+  calculateAssemblyCost,
+  calculateFoodMealAffinityPenalty
 });

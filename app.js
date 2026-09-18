@@ -3403,9 +3403,9 @@ async function analyzePatientContextForPrescription() {
       const prev = await db.prescriptions.get(patientId);
       if (prev && Array.isArray(prev.items) && prev.items.length > 0) {
         analysis.previousPrescription.hasPrevious = true;
-        const prevKcal = prev.items.reduce((s, i) => s + (i.kcal || 0), 0);
+        const prevKcal = prev.items.reduce((s, i) => s + (Number(i.calories) || Number(i.kcal) || 0), 0);
         analysis.previousPrescription.kcal = Math.round(prevKcal);
-        if (analysis.energetics.caloricTarget && Math.abs(prevKcal - analysis.energetics.caloricTarget) > 200) {
+        if (analysis.energetics.caloricTarget && prevKcal > 0 && Math.abs(prevKcal - analysis.energetics.caloricTarget) > 200) {
           const delta = Math.round(analysis.energetics.caloricTarget - prevKcal);
           analysis.alerts.push('🔄 Anterior: ' + Math.round(prevKcal) + ' kcal → Meta: ' + analysis.energetics.caloricTarget + ' kcal (Δ' + (delta > 0 ? '+' : '') + delta + ' kcal).');
         }
@@ -3857,12 +3857,12 @@ function renderSmartPrescSuccess(pipelineResult, adaptedOutput, mealCount, analy
   var gates = ((pipelineResult.globalValidationResult || {}).gateResults || []);
   var passedGates = gates.filter(function(g) { return g.status === 'PASS'; }).length;
   var items = adaptedOutput.items || [];
-  var totalKcal = Math.round(items.reduce(function(s, i) { return s + (i.kcal || 0); }, 0));
-  var totalProt = Math.round(items.reduce(function(s, i) { return s + (i.protein || 0); }, 0));
-  var totalCarb = Math.round(items.reduce(function(s, i) { return s + (i.carb || i.carbohydrate || 0); }, 0));
-  var totalLip = Math.round(items.reduce(function(s, i) { return s + (i.lipid || i.fat || 0); }, 0));
+  var totalKcal = Math.round(items.reduce(function(s, i) { return s + (Number(i.calories) || Number(i.kcal) || 0); }, 0));
+  var totalProt = Math.round(items.reduce(function(s, i) { return s + (Number(i.protein) || 0); }, 0));
+  var totalCarb = Math.round(items.reduce(function(s, i) { return s + (Number(i.carbohydrate) || Number(i.carb) || 0); }, 0));
+  var totalLip = Math.round(items.reduce(function(s, i) { return s + (Number(i.lipid) || Number(i.fat) || 0); }, 0));
   var prevKcal = (analysis.previousPrescription || {}).kcal;
-  var deltaKcal = prevKcal != null ? totalKcal - prevKcal : null;
+  var deltaKcal = (prevKcal != null && prevKcal > 0) ? totalKcal - prevKcal : null;
 
   inner.innerHTML = [
     '<div class="p-6 space-y-5">',

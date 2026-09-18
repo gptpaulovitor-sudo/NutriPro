@@ -161,8 +161,10 @@ function adaptCanonicalMealsToRuntimeItems(meals) {
         baseQuantity: 100,
         baseUnit: 'g',
         calories: cal,
+        kcal: cal,
         protein: prot,
         carbohydrate: carb,
+        carb: carb,
         lipid: lipidVal, // GAP 9: campo centesimal padrão para renderPrescriptionTotals
         fat: fatVal,     // GAP 9: campo alias canônico para o Patient App
         fiber: fib,

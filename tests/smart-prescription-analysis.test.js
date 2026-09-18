@@ -176,4 +176,35 @@ test('MOTOR PRESCRIÇÃO INTELIGENTE — Não-Regressão e Arquitetura', async (
     assert.ok(appJsContent.includes('window.analyzePatientContextForPrescription = analyzePatientContextForPrescription;'));
     assert.ok(appJsContent.includes('window.executeSmartPrescriptionGeneration = executeSmartPrescriptionGeneration;'));
   });
+
+  await t.test('5. Cálculo de Kcal e Macros no renderSmartPrescSuccess consome calories e kcal sem retornar 0', () => {
+    const successStart = appJsContent.indexOf('function renderSmartPrescSuccess(');
+    const successEnd = appJsContent.indexOf('function renderSmartPrescBlocked(');
+    const successCode = appJsContent.substring(successStart, successEnd);
+    assert.ok(successCode.includes('Number(i.calories) || Number(i.kcal) || 0'));
+
+    const items = [
+      { foodName: 'Banana', calories: 217, protein: 3, carbohydrate: 50.8, lipid: 0.2 },
+      { foodName: 'Frango', calories: 509, protein: 108.3, carbohydrate: 0, lipid: 8.5 }
+    ];
+    const totalKcal = Math.round(items.reduce((s, i) => s + (Number(i.calories) || Number(i.kcal) || 0), 0));
+    assert.strictEqual(totalKcal, 726);
+  });
+
+  await t.test('6. Afinidade gastronômica e clínica: Patinho e Brócolis não vão para o café da manhã, e Aveia não vai para o jantar', () => {
+    const { calculateFoodMealAffinityPenalty } = require('../domain/meal/mealAssemblyPolicy');
+    // Café da manhã (SECONDARY / breakfast)
+    assert.ok(calculateFoodMealAffinityPenalty('Patinho Bovino (Grelhado)', 'SECONDARY', 0, 5) > 0);
+    assert.ok(calculateFoodMealAffinityPenalty('Brócolis (Cozido)', 'SECONDARY', 0, 5) > 0);
+    assert.strictEqual(calculateFoodMealAffinityPenalty('Aveia em Flocos', 'SECONDARY', 0, 5), 0);
+    assert.strictEqual(calculateFoodMealAffinityPenalty('Banana Nanica', 'SECONDARY', 0, 5), 0);
+    assert.strictEqual(calculateFoodMealAffinityPenalty('Ovo de Galinha (Cozido)', 'SECONDARY', 0, 5), 0);
+
+    // Jantar / Almoço (PRIMARY / main)
+    assert.ok(calculateFoodMealAffinityPenalty('Aveia em Flocos', 'PRIMARY', 4, 5) > 0);
+    assert.strictEqual(calculateFoodMealAffinityPenalty('Peito de Frango (Grelhado)', 'PRIMARY', 4, 5), 0);
+    assert.strictEqual(calculateFoodMealAffinityPenalty('Patinho Bovino (Grelhado)', 'PRIMARY', 4, 5), 0);
+    assert.strictEqual(calculateFoodMealAffinityPenalty('Arroz Branco (Cozido)', 'PRIMARY', 4, 5), 0);
+  });
 });
+

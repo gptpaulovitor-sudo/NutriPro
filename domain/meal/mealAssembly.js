@@ -23,7 +23,8 @@ const {
   resolveMealCount,
   resolveMealRoles,
   calculateTargetRatios,
-  calculateAssemblyCost
+  calculateAssemblyCost,
+  calculateFoodMealAffinityPenalty
 } = mealAssemblyPolicy;
 
 const mealAssemblyValidator = require('./mealAssemblyValidator');
@@ -321,7 +322,16 @@ function assembleMeals(input, customPolicy = {}) {
         totalSplitsCount + (cand.isSplit ? 1 : 0)
       );
 
-      const cost = costObj.totalCost;
+      let cost = costObj.totalCost;
+
+      // Penalidade determinística de afinidade gastronômica/papel de refeição
+      if (Array.isArray(cand.allocations)) {
+        for (let s = 0; s < cand.allocations.length; s++) {
+          const alloc = cand.allocations[s];
+          const mIdx = alloc.mealIndex;
+          cost += calculateFoodMealAffinityPenalty(item.foodName, roles[mIdx], mIdx, mealCount) * (alloc.ratio || 1.0);
+        }
+      }
 
       if (cost < bestCost - 1e-6) {
         bestCost = cost;
