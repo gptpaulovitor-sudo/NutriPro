@@ -25,6 +25,11 @@
 
 'use strict';
 
+const {
+  evaluateMealScience,
+  evaluatePrescriptionScience
+} = require('../clinical/scientificPrescriptionEvaluator');
+
 /**
  * Formata minutos inteiros (0..1439) para string no padrão "HH:MM".
  * Função pura e determinística.
@@ -127,6 +132,11 @@ function adaptCanonicalMealsToRuntimeItems(meals) {
     const mealRole = meal.mealRole || 'PRIMARY';
 
     const items = Array.isArray(meal.items) ? meal.items : [];
+    let mealScience = null;
+    try {
+      mealScience = evaluateMealScience(mealName, items);
+    } catch (_) {}
+
     items.forEach((item, itemIdx) => {
       const foodId = String(item.foodId || `food_${itemIdx + 1}`).trim();
       const foodName = String(item.foodName || 'Alimento').trim();
@@ -170,7 +180,11 @@ function adaptCanonicalMealsToRuntimeItems(meals) {
         fiber: fib,
         sodium: sod,
         sourceMealSolution: item.sourceMealSolution || 'CANONICAL_SOLVER',
-        allocationRatio: item.allocationRatio ?? 1.0
+        allocationRatio: item.allocationRatio ?? 1.0,
+        scientificRationale: mealScience ? mealScience.scientificRationale : null,
+        scientificAlerts: mealScience ? mealScience.clinicalAlerts : [],
+        overallIg: mealScience ? mealScience.overallIg : null,
+        mealScore: mealScience ? mealScience.score : null
       };
 
       runtimeItems.push(Object.freeze(runtimeItem));
@@ -285,6 +299,20 @@ function adaptCanonicalMetaToRuntimeMeta(pipelineResult, options = {}) {
     pipelineTrace: Array.isArray(pipelineResult?.pipelineTrace) ? [...pipelineResult.pipelineTrace] : [],
     provenance: pipelineResult?.context?.provenance || null,
     orchestratorVersion: pipelineResult?.orchestratorVersion || 'N3.7.1',
+    scientificEvaluation: (() => {
+      try {
+        const canonicalMeals = pipelineResult?.mealTimingResult?.meals ||
+                               pipelineResult?.mealAssemblyResult?.meals ||
+                               [];
+        const mealsToEval = canonicalMeals.map((m, idx) => ({
+          mealName: resolveClinicalMealName(m, idx, canonicalMeals.length),
+          items: m.items || []
+        }));
+        return evaluatePrescriptionScience(mealsToEval, pipelineResult?.context);
+      } catch (_) {
+        return null;
+      }
+    })(),
     // Metas Canônicas N2.1 e N2.2 persistidas e auditáveis
     targets,
     tmbKcal: targets.tmbKcal,

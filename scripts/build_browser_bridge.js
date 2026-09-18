@@ -97,6 +97,7 @@ const footer = `
   const validation = rootRequire('./validation/index');
   const orchestration = rootRequire('./orchestration/index');
   const adapters = rootRequire('./adapters/index');
+  const clinical = rootRequire('./clinical/index');
 
   const NutriDomain = {
     contracts,
@@ -107,6 +108,7 @@ const footer = `
     validation,
     orchestration,
     adapters,
+    clinical,
     energyTarget: {
       calculateDeterministicEnergyTarget: math.calculateDeterministicEnergyTarget,
       DEFAULT_ENERGY_POLICY: math.DEFAULT_ENERGY_POLICY,
@@ -187,7 +189,9 @@ const modules = [
   "domain/validation/globalPrescriptionValidator.js",
   "domain/validation/index.js",
   "domain/orchestration/prescriptionOrchestrator.js",
-  "domain/orchestration/index.js"
+  "domain/orchestration/index.js",
+  "domain/clinical/scientificPrescriptionEvaluator.js",
+  "domain/clinical/index.js"
 ];
 
 let bundle = header;

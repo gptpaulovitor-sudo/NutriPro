@@ -3881,6 +3881,27 @@ function renderSmartPrescSuccess(pipelineResult, adaptedOutput, mealCount, analy
     '</div>',
     (deltaKcal != null ? '<p class="text-center text-zinc-500 text-xs">vs anterior: ' + (deltaKcal > 0 ? '+' : '') + deltaKcal + ' kcal</p>' : ''),
     '<p class="text-center text-zinc-500 text-xs mt-1">' + mealCount + ' refeições • ' + items.length + ' alimentos selecionados</p></div>',
+    (() => {
+      var sciEval = (adaptedOutput.meta || {}).scientificEvaluation || null;
+      if (!sciEval) return '';
+      var score = sciEval.scientificScore || 95;
+      var grade = sciEval.grade || 'A+ (Excelente)';
+      var highlights = sciEval.globalHighlights || [];
+      var recs = sciEval.recommendations || [];
+      var hHtml = '';
+      hHtml += '<div class="bg-gradient-to-r from-teal-950/40 to-emerald-950/40 border border-teal-800/40 rounded-xl p-4">';
+      hHtml += '<div class="flex items-center justify-between mb-2">';
+      hHtml += '<div class="flex items-center gap-2"><span class="text-sm">🔬</span><h3 class="text-teal-300 font-bold text-xs uppercase tracking-wider">Avaliação Científica & Timing (ISSN / SBNE)</h3></div>';
+      hHtml += '<span class="bg-teal-900/60 text-teal-200 border border-teal-700/50 text-xs px-2.5 py-0.5 rounded-full font-black">' + score + '% • ' + grade + '</span></div>';
+      if (highlights.length > 0) {
+        hHtml += '<div class="space-y-1 mt-1">' + highlights.map(function(h) { return '<p class="text-teal-200 text-xs">' + h + '</p>'; }).join('') + '</div>';
+      }
+      if (recs.length > 0) {
+        hHtml += '<div class="space-y-1 mt-2 border-t border-teal-800/30 pt-1.5">' + recs.map(function(r) { return '<p class="text-amber-300 text-xs">' + r + '</p>'; }).join('') + '</div>';
+      }
+      hHtml += '</div>';
+      return hHtml;
+    })(),
     (warnings.length > 0 ? '<div class="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4"><h3 class="text-amber-400 font-semibold text-xs uppercase tracking-widest mb-2">⚡ Alertas Clínicos</h3><div class="space-y-1 max-h-28 overflow-y-auto">' + warnings.slice(0, 5).map(function(w) { return '<p class="text-amber-200 text-xs">' + w + '</p>'; }).join('') + (warnings.length > 5 ? '<p class="text-amber-500 text-xs">+ ' + (warnings.length - 5) + ' alertas</p>' : '') + '</div></div>' : ''),
     '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-300 font-semibold text-sm mb-2">⚠️ Próximos Passos</h3><ul class="space-y-1 text-xs text-zinc-400"><li class="flex gap-2"><span class="text-amber-400">1.</span>Revise os alimentos na aba Prescrição</li><li class="flex gap-2"><span class="text-amber-400">2.</span>Clique em <strong class="text-white">"Validar e Assinar Prescrição"</strong></li><li class="flex gap-2"><span class="text-amber-400">3.</span>Envie via WhatsApp ou exporte PDF</li></ul></div>',
     '<div class="flex gap-3 pt-1">',
@@ -4459,7 +4480,7 @@ function renderMealItems() {
 
           <div class="text-[11px] text-zinc-400 flex items-center gap-1.5">
             <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-            <span class="font-medium"><strong class="text-zinc-200">Direcionamento:</strong> ${strat.guideline}</span>
+            <span class="font-medium"><strong class="text-zinc-200">Direcionamento Científico:</strong> ${items.find(i => i.scientificRationale)?.scientificRationale || strat.guideline}</span>
           </div>
         </div>
 
@@ -4820,6 +4841,7 @@ async function exportPrescriptionAndEvaluationPDF() {
     const strat = (typeof mealStrategies !== "undefined" && mealStrategies[group])
       ? mealStrategies[group]
       : { pct: fallbackPct, guideline: "Aporte harmônico de macronutrientes." };
+    const scientificGuideline = items.find(i => i.scientificRationale)?.scientificRationale || strat.guideline;
 
     return `
           <div class="meal-card">
@@ -4857,7 +4879,7 @@ async function exportPrescriptionAndEvaluationPDF() {
                 `).join("")}
               </tbody>
             </table>
-            <div class="meal-direction">💡 <strong>Direcionamento:</strong> ${strat.guideline}</div>
+            <div class="meal-direction">💡 <strong>Direcionamento Científico (ISSN/SBNE):</strong> ${scientificGuideline}</div>
           </div>
         `;
   }).join("")}
