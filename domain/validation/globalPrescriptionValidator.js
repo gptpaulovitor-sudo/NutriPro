@@ -445,9 +445,14 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   let finalItems = [];
   const finalMeals = (nutrientTimingResult && Array.isArray(nutrientTimingResult.meals))
     ? nutrientTimingResult.meals
-    : [];
+    : ((mealTimingResult && Array.isArray(mealTimingResult.meals))
+        ? mealTimingResult.meals
+        : ((mealAssemblyResult && Array.isArray(mealAssemblyResult.meals))
+            ? mealAssemblyResult.meals
+            : []));
 
   if (!nutrientTimingResult || typeof nutrientTimingResult !== 'object') {
+    finalItems = extractItemsFromPhase(mealAssemblyResult || mealTimingResult);
     recordGate(GLOBAL_GATE_ID.G8_NUTRIENT_TIMING, 'N3.5 Nutrient Timing Compliance', 'FAIL', GATE_SEVERITY.BLOCKING,
       'Resultado de Nutrient Timing N3.5 ausente.');
   } else {
@@ -848,6 +853,36 @@ function validateGlobalPrescription(input, customPolicy = {}) {
         const carbRatio = mealCarbs / totalDailyCarbs;
         if (carbRatio > allowedRatio) {
           mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(allowedRatio * 100).toFixed(0)}%).`);
+        }
+      }
+
+      // Verificação de combinações culinárias incompatíveis (ex: abacate com manteiga)
+      if (Array.isArray(meal.items)) {
+        const itemNames = meal.items.map(it => String(it.foodName || '').toLowerCase());
+        const hasAvocado = itemNames.some(n => /abacate/i.test(n));
+        const hasButter = itemNames.some(n => /(^|[^\w])manteiga/i.test(n));
+        if (hasAvocado && hasButter) {
+          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" contém combinação culinária incompatível: abacate com manteiga no mesmo prato.`);
+        }
+      }
+
+      // Verificação da Trindade de Macronutrientes (Macro Trinity):
+      // Em planos não-restritivos com proteína adequada (>= 60g P e >= 80g CHO),
+      // refeições de aporte energético relevante (>= 220 kcal) não podem conter apenas carboidrato sem proteína (< 4g P).
+      const mealCalories = (meal.totals && typeof meal.totals.calories === 'number')
+        ? meal.totals.calories
+        : (Array.isArray(meal.items) ? meal.items.reduce((acc, it) => acc + (it.nutrients?.calories || 0), 0) : 0);
+      const mealProtein = (meal.totals && typeof meal.totals.protein === 'number')
+        ? meal.totals.protein
+        : (Array.isArray(meal.items) ? meal.items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0) : 0);
+
+      const dailyProtein = (macroTargetResult && typeof macroTargetResult.proteinTargetG === 'number')
+        ? macroTargetResult.proteinTargetG
+        : (finalNutrients.protein || 0);
+
+      if (!isLowCarbProtocol && totalDailyCarbs >= 80 && dailyProtein >= 60) {
+        if (mealCalories >= 220 && mealCarbs >= 30 && mealProtein < 4.0) {
+          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" é composta apenas por carboidrato isolado sem aporte proteico (${mealProtein.toFixed(1)}g de proteína para ${mealCarbs.toFixed(1)}g de carboidrato).`);
         }
       }
     });

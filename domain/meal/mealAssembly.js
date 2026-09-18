@@ -24,7 +24,8 @@ const {
   resolveMealRoles,
   calculateTargetRatios,
   calculateAssemblyCost,
-  calculateFoodMealAffinityPenalty
+  calculateFoodMealAffinityPenalty,
+  calculateMealCulinaryClashPenalty
 } = mealAssemblyPolicy;
 
 const mealAssemblyValidator = require('./mealAssemblyValidator');
@@ -224,7 +225,7 @@ function assembleMeals(input, customPolicy = {}) {
       mealIndex: m,
       mealRole: roles[m],
       items: [],
-      totals: { calories: 0, protein: 0, carbohydrate: 0, fat: 0, fiber: 0, sodium: allHaveSodium ? 0 : null }
+      totals: { calories: 0, protein: 0, carbohydrate: 0, fat: 0, lipid: 0, fiber: 0, sodium: allHaveSodium ? 0 : null }
     });
   }
 
@@ -333,24 +334,66 @@ function assembleMeals(input, customPolicy = {}) {
         }
       }
 
-      // Diretriz da Literatura: Refeições Principais (Almoço e Jantar) com Proteína Nobre
-      const isNobleProteinFood = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|ovo\s+de\s+galinha|ovos|clara|tofu/i.test(item.foodName || '');
-      if (isNobleProteinFood && Array.isArray(cand.allocations)) {
+      // 1. Penalidade determinística de incompatibilidade culinária (ex: abacate + manteiga, aveia + azeite)
+      if (Array.isArray(cand.allocations)) {
         for (let s = 0; s < cand.allocations.length; s++) {
           const alloc = cand.allocations[s];
           const mIdx = alloc.mealIndex;
-          if (roles[mIdx] === 'PRIMARY') {
-            // Bonificação para alocar proteína nobre em refeição principal
-            cost -= 15.0 * (alloc.ratio || 1.0);
+          const existingNames = workingMeals[mIdx].items.map(it => it.foodName);
+          cost += calculateMealCulinaryClashPenalty(existingNames, item.foodName) * (alloc.ratio || 1.0);
+        }
+      }
+
+      // 2. Diretriz da Literatura: Proteína Nobre e Harmonia Gastronômica
+      const isMeatOrFish = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife/i.test(item.foodName || '');
+      const isEggOrDairy = /ovo\s+de\s+galinha|ovos|clara|queijo|iogurte|cottage|ricota/i.test(item.foodName || '');
+
+      if (Array.isArray(cand.allocations)) {
+        for (let s = 0; s < cand.allocations.length; s++) {
+          const alloc = cand.allocations[s];
+          const mIdx = alloc.mealIndex;
+          const r = roles[mIdx];
+
+          if (isMeatOrFish) {
+            if (r === 'PRIMARY') {
+              cost -= 15.0 * (alloc.ratio || 1.0); // Carne/Frango/Peixe preferem almoço e jantar
+            }
+          }
+
+          if (isEggOrDairy) {
+            if (r === 'SECONDARY') {
+              cost -= 25.0 * (alloc.ratio || 1.0); // Ovos/laticínios preferem refeição matinal
+            } else if (r === 'SNACK') {
+              cost -= 15.0 * (alloc.ratio || 1.0); // Ovos/laticínios preferem lanches
+            }
+            // Evita concentrar ovos no almoço se já houver carne/peixe e o café da manhã estiver sem proteína
+            const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe/i.test(it.foodName || ''));
+            if (hasMeatInMeal && r === 'PRIMARY') {
+              cost += 25.0 * (alloc.ratio || 1.0);
+            }
           }
         }
-        // Se a divisão é entre duas refeições principais (ex: Almoço e Jantar), isenta de penalidade de split
-        if (cand.isSplit && cand.allocations.length === 2) {
+
+        // Se carne/frango/peixe é dividida entre duas refeições principais (Almoço e Jantar), isenta de split e bonifica
+        if (isMeatOrFish && cand.isSplit && cand.allocations.length === 2) {
           const r1 = roles[cand.allocations[0].mealIndex];
           const r2 = roles[cand.allocations[1].mealIndex];
           if (r1 === 'PRIMARY' && r2 === 'PRIMARY') {
-            cost -= (policy.weights?.w_frag || 0.5); // Isenta penalidade de fragmentação
-            cost -= 25.0; // Bonificação por equilibrar proteína nobre no almoço e jantar
+            cost -= (policy.weights?.w_frag || 0.5);
+            cost -= 25.0; // Bonificação por equilibrar carne/peixe no almoço e jantar
+          }
+        }
+      }
+
+      // 3. Trindade de Macronutrientes: Prevenção de refeições puramente glicídicas isoladas
+      if (globalTotals.protein >= 60 && globalTotals.carbohydrate >= 80 && Array.isArray(cand.allocations)) {
+        for (let s = 0; s < cand.allocations.length; s++) {
+          const alloc = cand.allocations[s];
+          const mIdx = alloc.mealIndex;
+          const mealCarbs = tempTotals[mIdx].carbohydrate;
+          const mealProt = tempTotals[mIdx].protein;
+          if (mealCarbs >= 25 && mealProt < 4.0) {
+            cost += 20.0 * (alloc.ratio || 1.0);
           }
         }
       }
@@ -436,6 +479,66 @@ function assembleMeals(input, customPolicy = {}) {
     }
   }
 
+  // 4.2 Garantia da Trindade de Macronutrientes (Macro Trinity):
+  // Em dietas com aporte proteico adequado (>= 60g de proteína diária),
+  // refeições com carboidratos densos (>= 20g) ou energia relevante (>= 120 kcal)
+  // não devem ser consumidas isoladas sem proteína (mínimo 4g).
+  // Pareia com proteína divisível disponível (ex: ovos, queijo, atum ou frango) de refeição com abundância.
+  if (globalTotals.protein >= 60 && globalTotals.carbohydrate >= 80 && mealCount >= 3) {
+    for (let m = 0; m < workingMeals.length; m++) {
+      const meal = workingMeals[m];
+      const mCarbs = meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0);
+      const mProt = meal.items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+      const mCal = meal.items.reduce((acc, it) => acc + (it.nutrients?.calories || 0), 0);
+
+      if ((mCarbs >= 20 || mCal >= 140) && mProt < 4.0) {
+        let bestDonor = null;
+        let bestItemIdx = -1;
+        let maxDonorProt = 0;
+
+        for (let dm = 0; dm < workingMeals.length; dm++) {
+          if (dm === m) continue;
+          const dProt = workingMeals[dm].items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+          if (dProt >= 25.0) {
+            for (let itIdx = 0; itIdx < workingMeals[dm].items.length; itIdx++) {
+              const it = workingMeals[dm].items[itIdx];
+              const isProteinSource = /ovo|ovos|clara|frango|carne|patinho|peixe|queijo|iogurte|atum/i.test(it.foodName || '');
+              if (isProteinSource && it.grams >= 50.0 && (it.nutrients?.protein || 0) >= 8.0) {
+                if (dProt > maxDonorProt) {
+                  maxDonorProt = dProt;
+                  bestDonor = workingMeals[dm];
+                  bestItemIdx = itIdx;
+                }
+              }
+            }
+          }
+        }
+
+        if (bestDonor && bestItemIdx >= 0) {
+          const fullItem = bestDonor.items[bestItemIdx];
+          const halfGrams = roundTo(fullItem.grams / 2, 1);
+          bestDonor.items[bestItemIdx] = {
+            ...fullItem,
+            grams: roundTo(fullItem.grams - halfGrams, 1),
+            nutrients: {
+              calories: roundTo(fullItem.nutrients.calories / 2, 2),
+              protein: roundTo(fullItem.nutrients.protein / 2, 2),
+              carbohydrate: roundTo(fullItem.nutrients.carbohydrate / 2, 2),
+              lipid: roundTo(fullItem.nutrients.lipid / 2, 2),
+              fiber: roundTo(fullItem.nutrients.fiber / 2, 2),
+              sodium: fullItem.nutrients.sodium != null ? roundTo(fullItem.nutrients.sodium / 2, 2) : null
+            }
+          };
+          meal.items.push({
+            ...fullItem,
+            grams: halfGrams,
+            nutrients: { ...bestDonor.items[bestItemIdx].nutrients }
+          });
+        }
+      }
+    }
+  }
+
   // 5. Ordenação canônica dos itens dentro de cada refeição (foodId lexicográfico)
   workingMeals.forEach(meal => {
     meal.items.sort((a, b) => String(a.foodId).localeCompare(String(b.foodId)));
@@ -449,6 +552,7 @@ function assembleMeals(input, customPolicy = {}) {
       protein: roundTo(items.reduce((acc, it) => acc + (it.nutrients.protein || 0), 0), 2),
       carbohydrate: roundTo(items.reduce((acc, it) => acc + (it.nutrients.carbohydrate || 0), 0), 2),
       fat: roundTo(items.reduce((acc, it) => acc + (it.nutrients.lipid !== undefined ? it.nutrients.lipid : (it.nutrients.fat || 0)), 0), 2),
+      lipid: roundTo(items.reduce((acc, it) => acc + (it.nutrients.lipid !== undefined ? it.nutrients.lipid : (it.nutrients.fat || 0)), 0), 2),
       fiber: roundTo(items.reduce((acc, it) => acc + (it.nutrients.fiber || 0), 0), 2),
       sodium: allHaveSodium ? roundTo(items.reduce((acc, it) => acc + (it.nutrients.sodium || 0), 0), 2) : null
     };

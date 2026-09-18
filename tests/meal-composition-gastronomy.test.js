@@ -19,7 +19,8 @@ const assert = require('node:assert/strict');
 
 const { executePrescriptionPipelineSync } = require('../domain/orchestration/prescriptionOrchestrator');
 const { createNutritionPrescriptionContextDTO } = require('../domain/contracts/NutritionPrescriptionContextDTO');
-const { COMPREHENSIVE_TACO_TBCA_FOODS, CANONICAL_DIET_FOODS } = require('../foodsData');
+const { COMPREHENSIVE_TACO_TBCA_FOODS } = require('../foodsData');
+const { CANONICAL_DIET_FOODS } = require('../math');
 
 let fullFoodCatalog = COMPREHENSIVE_TACO_TBCA_FOODS || [];
 if (CANONICAL_DIET_FOODS && typeof CANONICAL_DIET_FOODS === 'object') {

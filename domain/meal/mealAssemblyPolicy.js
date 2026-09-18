@@ -289,6 +289,57 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
   return 0;
 }
 
+/**
+ * Calcula penalidade culinária para combinações incompatíveis no mesmo prato.
+ * Exemplo: abacate com manteiga, aveia com azeite, arroz com iogurte/whey.
+ * 
+ * @param {Array<string>} existingFoodNames Nomes dos alimentos já presentes na refeição
+ * @param {string} candidateFoodName Nome do alimento sendo avaliado para adição
+ * @returns {number} Penalidade a ser somada ao custo de alocação (0 = combinação harmônica)
+ */
+function calculateMealCulinaryClashPenalty(existingFoodNames, candidateFoodName) {
+  if (!Array.isArray(existingFoodNames) || existingFoodNames.length === 0 || !candidateFoodName) return 0;
+  const cand = String(candidateFoodName).toLowerCase();
+  let penalty = 0;
+
+  for (let i = 0; i < existingFoodNames.length; i++) {
+    const exist = String(existingFoodNames[i]).toLowerCase();
+
+    // 1. Aberração de gorduras: Abacate + Manteiga (+500.0)
+    const hasAvocado = /abacate/i.test(exist) || /abacate/i.test(cand);
+    const hasButter = /(^|[^\w])manteiga/i.test(exist) || /(^|[^\w])manteiga/i.test(cand);
+    if (hasAvocado && hasButter) {
+      penalty += 500.0;
+    }
+
+    // 2. Azeite com Aveia / Granola (+500.0)
+    const hasOliveOil = /azeite/i.test(exist) || /azeite/i.test(cand);
+    const hasOats = /aveia|granola/i.test(exist) || /aveia|granola/i.test(cand);
+    if (hasOliveOil && hasOats) {
+      penalty += 500.0;
+    }
+
+    // 3. Arroz ou Feijão com Iogurte / Whey (+500.0)
+    const hasRiceOrBeans = /arroz|feij[aã]o/i.test(exist) || /arroz|feij[aã]o/i.test(cand);
+    const hasDairySweet = /iogurte|whey|leite\s+em\s+p[oó]/i.test(exist) || /iogurte|whey|leite\s+em\s+p[oó]/i.test(cand);
+    if (hasRiceOrBeans && hasDairySweet) {
+      penalty += 500.0;
+    }
+
+    // 4. Azeite com Abacate (+150.0) — evita misturar duas gorduras densas de origens díspares
+    if (hasOliveOil && hasAvocado) {
+      penalty += 150.0;
+    }
+
+    // 5. Azeite com Manteiga (+100.0) — redundância de gorduras puras adicionadas no mesmo prato
+    if (hasOliveOil && hasButter) {
+      penalty += 100.0;
+    }
+  }
+
+  return penalty;
+}
+
 module.exports = deepFreeze({
   ROLE_ARCHETYPES,
   ROLE_ENERGY_WEIGHTS,
@@ -298,5 +349,6 @@ module.exports = deepFreeze({
   resolveMealRoles,
   calculateTargetRatios,
   calculateAssemblyCost,
-  calculateFoodMealAffinityPenalty
+  calculateFoodMealAffinityPenalty,
+  calculateMealCulinaryClashPenalty
 });

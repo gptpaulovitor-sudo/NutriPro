@@ -587,6 +587,10 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
     if (targets.protein >= 160) {
       addFood(findId('canon_patinho_grelhado') || findName(/patinho.*grelhado/i) || findName(/patinho|alcatra|til[aá]pia|peixe/i));
     }
+    const mealCountPref = (options && options.mealCount) || (policy.searchBounds && policy.searchBounds.targetItemCountMin) || 4;
+    if (mealCountPref >= 5 || targets.protein >= 130) {
+      addFood(findId('canon_queijo_minas') || findName(/queijo.*(minas|cottage|ricota|mussarela)|iogurte.*natural/i) || findName(/atum/i));
+    }
 
     // Carboidratos modulados por estilo e meta glicídica
     if (!isKeto) {
