@@ -3020,94 +3020,57 @@ function renderPrescriptionTotals() {
 
 // =========================================================================
 // 5.4 MOTOR IA: GERAÇÃO AUTOMÁTICA DE DIETA & VALIDAÇÃO CLÍNICA
+// Motor Inteligente de Prescrição com Análise Clínica Integrada
+// Analisa: Recordatório, Exames Clínicos, Objetivos Futuros,
+// Antropometria, Histórico de Prescrições, Treino e Rotina.
 // =========================================================================
 
+// --- Compatibilidade retroativa: openAIPrescriptionModal abre o motor inteligente ---
 function openAIPrescriptionModal() {
-  const modal = document.getElementById("aiPrescriptionModal");
-  if (!modal) return;
-
-  const canonicalTargets = resolveCanonicalPrescriptionTargets(
-    activePatientData,
-    typeof lastEval !== 'undefined' ? lastEval : null,
-    currentPrescriptionMeta
-  );
-
-  const obj = document.getElementById("anamneseObjective")?.value || "Perda de peso";
-
-  if (document.getElementById("aiModalGoalBadge")) document.getElementById("aiModalGoalBadge").innerText = obj;
-  if (document.getElementById("aiModalKcalTarget")) document.getElementById("aiModalKcalTarget").innerText = canonicalTargets.caloricTargetKcal ?? '--';
-  if (document.getElementById("aiModalProtTarget")) document.getElementById("aiModalProtTarget").innerText = canonicalTargets.proteinTargetG != null ? `${canonicalTargets.proteinTargetG}g` : '--g';
-  if (document.getElementById("aiModalCarbTarget")) document.getElementById("aiModalCarbTarget").innerText = canonicalTargets.carbohydrateTargetG != null ? `${canonicalTargets.carbohydrateTargetG}g` : '--g';
-  if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = canonicalTargets.fatTargetG != null ? `${canonicalTargets.fatTargetG}g` : '--g';
-
-  modal.classList.remove("hidden");
-  if (typeof updateAIModalTargetsPreview === 'function') {
-    updateAIModalTargetsPreview();
-  }
-  if (window.lucide) window.lucide.createIcons();
+  openSmartPrescriptionModal();
 }
 
+function closeAIPrescriptionModal() {
+  const smartModal = document.getElementById('smart-prescription-modal');
+  if (smartModal) smartModal.remove();
+}
+
+// Funções legacy de preview do modal antigo (mantidas para compatibilidade)
 function onAIDietaryStyleChanged() {
   const styleSelect = document.getElementById("aiDietaryStyleSelect");
   const cycleContainer = document.getElementById("aiDietaryCycleContainer");
   const cycleSelect = document.getElementById("aiDietaryCycleSelect");
   if (!styleSelect || !cycleContainer || !cycleSelect) return;
-
   const style = styleSelect.value;
   cycleSelect.innerHTML = "";
-
   if (style === "lowcarb") {
     cycleContainer.classList.remove("hidden");
-    cycleSelect.innerHTML = `
-      <option value="lowcarb_moderada" selected>Low Carb Moderada (100g - 130g Carbs)</option>
-      <option value="lowcarb_restrita">Low Carb Restrita / Indução (50g - 80g Carbs)</option>
-    `;
+    cycleSelect.innerHTML = '<option value="lowcarb_moderada" selected>Low Carb Moderada</option><option value="lowcarb_restrita">Low Carb Restrita</option>';
   } else if (style === "cetogenica") {
     cycleContainer.classList.remove("hidden");
-    cycleSelect.innerHTML = `
-      <option value="keto_padrao" selected>Cetogênica Padrão - SKD (&lt; 30g Carbs, 70-75% Lipídios)</option>
-      <option value="keto_ciclica_keto">Cetogênica Cíclica - CKD (Dia Cetogênico Estrito)</option>
-      <option value="keto_ciclica_refeed">Cetogênica Cíclica - CKD (Dia de Recarga / Carb Refeed)</option>
-      <option value="keto_direcionada">Cetogênica Direcionada - TKD (Carb Peri-Treino)</option>
-    `;
+    cycleSelect.innerHTML = '<option value="keto_padrao" selected>SKD Padrão</option><option value="keto_ciclica_keto">CKD Cetogênico</option><option value="keto_ciclica_refeed">CKD Recarga</option><option value="keto_direcionada">TKD Peri-Treino</option>';
   } else if (style === "dukan") {
     cycleContainer.classList.remove("hidden");
-    cycleSelect.innerHTML = `
-      <option value="dukan_ataque" selected>Fase 1: Ataque (PP - Proteína Pura, sem vegetais nem frutas)</option>
-      <option value="dukan_cruzeiro_pl">Fase 2: Cruzeiro (PL - Proteínas e Legumes permitidos)</option>
-      <option value="dukan_cruzeiro_pp">Fase 2: Cruzeiro (PP - Dia de Proteína Pura alternada)</option>
-      <option value="dukan_consolidacao">Fase 3: Consolidação (Frutas e pão integral reintroduzidos)</option>
-    `;
+    cycleSelect.innerHTML = '<option value="dukan_ataque" selected>Fase Ataque</option><option value="dukan_cruzeiro_pl">Fase Cruzeiro PL</option><option value="dukan_cruzeiro_pp">Fase Cruzeiro PP</option><option value="dukan_consolidacao">Fase Consolidação</option>';
   } else if (style === "whole30") {
     cycleContainer.classList.remove("hidden");
-    cycleSelect.innerHTML = `
-      <option value="whole30_eliminacao" selected>Fase de Eliminação (Dias 1-30: Sem grãos, leguminosas, laticínios)</option>
-      <option value="whole30_reintroducao">Fase de Reintrodução (Pós-30 dias: Teste gradual de grupos)</option>
-    `;
+    cycleSelect.innerHTML = '<option value="whole30_eliminacao" selected>Eliminação (Dias 1-30)</option><option value="whole30_reintroducao">Reintrodução</option>';
   } else {
     cycleContainer.classList.add("hidden");
-    cycleSelect.innerHTML = "";
   }
-
-  updateAIModalTargetsPreview();
+  if (typeof updateAIModalTargetsPreview === 'function') updateAIModalTargetsPreview();
 }
 
 function onAIDietaryCycleChanged() {
-  updateAIModalTargetsPreview();
+  if (typeof updateAIModalTargetsPreview === 'function') updateAIModalTargetsPreview();
 }
 
 function updateAIModalTargetsPreview() {
   const styleSelect = document.getElementById("aiDietaryStyleSelect");
   const cycleSelect = document.getElementById("aiDietaryCycleSelect");
-  const style = styleSelect?.value || "tradicional";
-  const cycle = cycleSelect?.value || "";
-
-  const canonicalTargets = resolveCanonicalPrescriptionTargets(
-    activePatientData,
-    typeof lastEval !== 'undefined' ? lastEval : null,
-    currentPrescriptionMeta
-  );
-
+  const style = styleSelect ? styleSelect.value : "tradicional";
+  const cycle = cycleSelect ? cycleSelect.value : "";
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(activePatientData, typeof lastEval !== 'undefined' ? lastEval : null, currentPrescriptionMeta);
   const p = activePatientData || {};
   const ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
   const weightKg = Number(ev.weight || p.currentWeight || p.weight || 70.0);
@@ -3115,52 +3078,25 @@ function updateAIModalTargetsPreview() {
   let pTarget = canonicalTargets.proteinTargetG;
   let cTarget = canonicalTargets.carbohydrateTargetG;
   let fTarget = canonicalTargets.fatTargetG;
-
   if (style === "cetogenica") {
     if (cycle === "keto_ciclica_refeed") {
-      pTarget = Math.round(weightKg * 1.8);
-      fTarget = Math.max(25, Math.round((calTarget * 0.15) / 9));
-      cTarget = Math.max(50, Math.round((calTarget - (pTarget * 4) - (fTarget * 9)) / 4));
-    } else {
-      pTarget = Math.round(weightKg * 1.8);
-      cTarget = 25;
-      fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
-    }
+      pTarget = Math.round(weightKg * 1.8); fTarget = Math.max(25, Math.round((calTarget * 0.15) / 9)); cTarget = Math.max(50, Math.round((calTarget - (pTarget * 4) - (fTarget * 9)) / 4));
+    } else { pTarget = Math.round(weightKg * 1.8); cTarget = 25; fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9)); }
   } else if (style === "lowcarb") {
-    if (cycle === "lowcarb_restrita") {
-      pTarget = Math.round(weightKg * 2.0);
-      cTarget = 70;
-      fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
-    } else {
-      pTarget = Math.round(weightKg * 1.8);
-      cTarget = 120;
-      fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
-    }
+    if (cycle === "lowcarb_restrita") { pTarget = Math.round(weightKg * 2.0); cTarget = 70; fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9)); }
+    else { pTarget = Math.round(weightKg * 1.8); cTarget = 120; fTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9)); }
   } else if (style === "dukan") {
-    if (cycle === "dukan_cruzeiro_pl") {
-      pTarget = Math.round(weightKg * 2.1);
-      cTarget = 40;
-      fTarget = Math.max(25, Math.round(weightKg * 0.40));
-    } else if (cycle === "dukan_consolidacao") {
-      pTarget = Math.round(weightKg * 2.0);
-      cTarget = 90;
-      fTarget = Math.max(25, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9));
-    } else {
-      pTarget = Math.round(weightKg * 2.3);
-      cTarget = 15;
-      fTarget = Math.max(20, Math.round(weightKg * 0.35));
-    }
+    if (cycle === "dukan_cruzeiro_pl") { pTarget = Math.round(weightKg * 2.1); cTarget = 40; fTarget = Math.max(25, Math.round(weightKg * 0.40)); }
+    else if (cycle === "dukan_consolidacao") { pTarget = Math.round(weightKg * 2.0); cTarget = 90; fTarget = Math.max(25, Math.round((calTarget - (pTarget * 4) - (cTarget * 4)) / 9)); }
+    else { pTarget = Math.round(weightKg * 2.3); cTarget = 15; fTarget = Math.max(20, Math.round(weightKg * 0.35)); }
     calTarget = (pTarget * 4) + (cTarget * 4) + (fTarget * 9);
   } else if (style === "whole30") {
-    pTarget = Math.round(weightKg * 2.0);
-    fTarget = Math.max(30, Math.round((calTarget * 0.35) / 9));
-    cTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (fTarget * 9)) / 4));
+    pTarget = Math.round(weightKg * 2.0); fTarget = Math.max(30, Math.round((calTarget * 0.35) / 9)); cTarget = Math.max(30, Math.round((calTarget - (pTarget * 4) - (fTarget * 9)) / 4));
   }
-
-  if (document.getElementById("aiModalKcalTarget")) document.getElementById("aiModalKcalTarget").innerText = calTarget ?? '--';
-  if (document.getElementById("aiModalProtTarget")) document.getElementById("aiModalProtTarget").innerText = pTarget != null ? `${pTarget}g` : '--g';
-  if (document.getElementById("aiModalCarbTarget")) document.getElementById("aiModalCarbTarget").innerText = cTarget != null ? `${cTarget}g` : '--g';
-  if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = fTarget != null ? `${fTarget}g` : '--g';
+  if (document.getElementById("aiModalKcalTarget")) document.getElementById("aiModalKcalTarget").innerText = calTarget != null ? calTarget : '--';
+  if (document.getElementById("aiModalProtTarget")) document.getElementById("aiModalProtTarget").innerText = pTarget != null ? pTarget + 'g' : '--g';
+  if (document.getElementById("aiModalCarbTarget")) document.getElementById("aiModalCarbTarget").innerText = cTarget != null ? cTarget + 'g' : '--g';
+  if (document.getElementById("aiModalLipTarget")) document.getElementById("aiModalLipTarget").innerText = fTarget != null ? fTarget + 'g' : '--g';
 }
 
 if (typeof window !== 'undefined') {
@@ -3169,254 +3105,908 @@ if (typeof window !== 'undefined') {
   window.updateAIModalTargetsPreview = updateAIModalTargetsPreview;
 }
 
-function closeAIPrescriptionModal() {
-  const modal = document.getElementById("aiPrescriptionModal");
-  if (modal) modal.classList.add("hidden");
-}
+// =========================================================================
+// 5.4.1 ANÁLISE CLÍNICA: Exames → Políticas de Macronutrientes
+// =========================================================================
 
-async function executeAIPrescriptionGeneration() {
-  // ── Estado de Carregamento (N3.7.5) ────────────────────────────────────────
-  // Mostra feedback imediato ao nutricionista e desabilita o botão de geração
-  // para evitar duplo-clique. O finally garante a restauração em qualquer caso.
-  const generateBtn = document.getElementById('btnGenerateAIPrescription') ||
-                      document.querySelector('[onclick*="executeAIPrescription"]');
-  const originalBtnHTML = generateBtn ? generateBtn.innerHTML : null;
-  if (generateBtn) {
-    generateBtn.disabled = true;
-    generateBtn.innerHTML = `<span class="inline-flex items-center gap-2"><svg class="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Gerando Dieta Canônica...</span>`;
+/**
+ * Mapeia exames clínicos para ajustes de política de macronutrientes.
+ * @param {Array} exams - Array de exames do paciente do DB
+ * @returns {{ adjustments: Object[], flags: string[], clinicalNotes: string[] }}
+ */
+function resolveClinicPoliciesFromExams(exams) {
+  const adjustments = [], flags = [], clinicalNotes = [];
+  if (!Array.isArray(exams) || exams.length === 0) return { adjustments, flags, clinicalNotes };
+
+  for (const exam of exams) {
+    const name = String(exam.examName || exam.name || '').toLowerCase();
+    const value = parseFloat(exam.value || exam.result || 0);
+
+    // Glicemia em jejum
+    if ((name.includes('glicemia') || name.includes('glicose')) && name.includes('jejum')) {
+      if (value >= 126) {
+        flags.push('DIABETES_MELLITUS');
+        adjustments.push({ target: 'carbohydrate', direction: 'reduce', magnitude: 'high', reason: 'Glicemia ' + value + ' mg/dL (DM2)' });
+        clinicalNotes.push('🔴 Glicemia ' + value + ' mg/dL (DM2): Reduzir CHO simples. CHO baixo IG + fibras ≥30g/dia.');
+      } else if (value >= 100) {
+        flags.push('PRE_DIABETES');
+        adjustments.push({ target: 'carbohydrate', direction: 'reduce', magnitude: 'moderate', reason: 'Glicemia ' + value + ' mg/dL (pré-DM)' });
+        clinicalNotes.push('⚠️ Pré-diabetes (' + value + ' mg/dL): Moderar CHO simples e refinados.');
+      }
+    }
+
+    // HbA1c
+    if (name.includes('hba1c') || name.includes('hemoglobina glicada') || name.includes('a1c')) {
+      if (value >= 6.5) {
+        flags.push('DIABETES_HBA1C');
+        adjustments.push({ target: 'carbohydrate', direction: 'reduce', magnitude: 'high', reason: 'HbA1c ' + value + '% (DM2)' });
+        clinicalNotes.push('🔴 HbA1c ' + value + '%: DM2 confirmado. Controle rigoroso de CHO.');
+      } else if (value >= 5.7) {
+        flags.push('PRE_DIABETES_HBA1C');
+        clinicalNotes.push('⚠️ HbA1c ' + value + '% (pré-DM): Moderação de CHO refinado.');
+      }
+    }
+
+    // Colesterol total
+    if (name === 'colesterol total' || name.includes('colesterol total') || name === 'cholesterol total') {
+      if (value >= 240) {
+        flags.push('HIPERCOLESTEROLEMIA_ALTA');
+        adjustments.push({ target: 'saturatedFat', direction: 'reduce', magnitude: 'high', reason: 'Colesterol Total ' + value + ' mg/dL' });
+        clinicalNotes.push('🔴 Colesterol Total ' + value + ' mg/dL: Reduzir gorduras saturadas <7% VCT. Priorizar Ômega-3.');
+      } else if (value >= 200) {
+        flags.push('HIPERCOLESTEROLEMIA_MODERADA');
+        clinicalNotes.push('⚠️ Colesterol Total ' + value + ' mg/dL: Limitar gorduras saturadas. Aumentar fibras solúveis.');
+      }
+    }
+
+    // LDL
+    if (name.includes('ldl') || name.includes('l.d.l')) {
+      if (value >= 160) {
+        flags.push('LDL_ELEVADO');
+        adjustments.push({ target: 'saturatedFat', direction: 'reduce', magnitude: 'high', reason: 'LDL ' + value + ' mg/dL' });
+        clinicalNotes.push('🔴 LDL ' + value + ' mg/dL: Reduzir gorduras saturadas e trans. Priorizar fontes vegetais.');
+      } else if (value >= 130) {
+        flags.push('LDL_LIMITROFE');
+        clinicalNotes.push('⚠️ LDL ' + value + ' mg/dL: Moderação de gorduras saturadas.');
+      }
+    }
+
+    // Triglicerídeos
+    if (name.includes('triglicerídeo') || name.includes('triglicerideos') || name.includes('triglyceride') || (name === 'tg') || name.startsWith('tg ')) {
+      if (value >= 500) {
+        flags.push('HIPERTRIGLICERIDEMIA_GRAVE');
+        adjustments.push({ target: 'carbohydrate', direction: 'reduce', magnitude: 'very_high', reason: 'TG ' + value + ' mg/dL (risco pancreatite)' });
+        clinicalNotes.push('🔴 Triglicerídeos ' + value + ' mg/dL (GRAVE): Restrição drástica de CHO simples, álcool e frutose.');
+      } else if (value >= 200) {
+        flags.push('HIPERTRIGLICERIDEMIA_ALTA');
+        adjustments.push({ target: 'carbohydrate', direction: 'reduce', magnitude: 'high', reason: 'TG ' + value + ' mg/dL' });
+        clinicalNotes.push('⚠️ Triglicerídeos ' + value + ' mg/dL: Reduzir significativamente CHO simples.');
+      } else if (value >= 150) {
+        flags.push('HIPERTRIGLICERIDEMIA_LIMITROFE');
+        clinicalNotes.push('⚠️ Triglicerídeos ' + value + ' mg/dL: Moderar açúcares simples e carboidratos refinados.');
+      }
+    }
+
+    // Ácido úrico
+    if (name.includes('ácido úrico') || name.includes('acido urico') || name.includes('uric acid') || name.includes('uric')) {
+      const pData = activePatientData || {};
+      const isFem = String(pData.gender || pData.sex || '').toLowerCase().includes('fem');
+      const threshold = isFem ? 6.0 : 7.0;
+      if (value >= threshold) {
+        flags.push('HIPERURICEMIA');
+        adjustments.push({ target: 'purineRichFoods', direction: 'avoid', magnitude: 'high', reason: 'Ácido Úrico ' + value + ' mg/dL' });
+        clinicalNotes.push('🔴 Ácido Úrico ' + value + ' mg/dL: Evitar carnes vermelhas, vísceras, frutos do mar. Aumentar hidratação.');
+      }
+    }
+
+    // Creatinina
+    if (name.includes('creatinina') || name.includes('creatinine')) {
+      const pData = activePatientData || {};
+      const isFem = String(pData.gender || pData.sex || '').toLowerCase().includes('fem');
+      const normalMax = isFem ? 1.1 : 1.3;
+      if (value > normalMax * 1.5) {
+        flags.push('FUNCAO_RENAL_REDUZIDA');
+        adjustments.push({ target: 'protein', direction: 'reduce', magnitude: 'high', reason: 'Creatinina ' + value + ' (função renal reduzida)' });
+        clinicalNotes.push('🔴 Creatinina ' + value + ': Função renal reduzida. Restringir proteína a 0.6–0.8 g/kg. Acompanhamento nefrológico.');
+      } else if (value > normalMax) {
+        flags.push('FUNCAO_RENAL_LIMITROFE');
+        clinicalNotes.push('⚠️ Creatinina ' + value + ' (limítrofe): Moderação de proteína e suplementação.');
+      }
+    }
+
+    // TSH
+    if (name.includes('tsh') || name.includes('tireoide estimulante')) {
+      if (value > 4.5) {
+        flags.push('HIPOTIREOIDISMO_SUSPEITA');
+        clinicalNotes.push('⚠️ TSH ' + value + ' mUI/L (elevado): Cautela com déficit calórico excessivo. Priorizar iodo e selênio.');
+      }
+    }
   }
 
-  try {
+  return { adjustments, flags, clinicalNotes };
+}
+
+// =========================================================================
+// 5.4.2 ESTRATÉGIA ENERGÉTICA: Objetivo Futuro → Déficit/Superávit
+// =========================================================================
+
+/**
+ * Calcula a estratégia energética com base no objetivo antropométrico futuro.
+ * @param {Object} currentAnthro - { weightKg, bodyFatPercent }
+ * @param {Object} futureGoal - { targetWeightKg, targetBodyFatPercent, timeframeWeeks }
+ * @param {number} getKcal - Gasto energético total atual
+ * @returns {{ strategy: string, dailyDelta: number, weeklyChange: number, rationale: string }}
+ */
+function computeEnergeticStrategy(currentAnthro, futureGoal, getKcal) {
+  const currentWeight = Number((currentAnthro || {}).weightKg || 70);
+  const currentFat = Number((currentAnthro || {}).bodyFatPercent || 20);
+  const targetWeight = Number((futureGoal || {}).targetWeightKg || currentWeight);
+  const targetFat = Number((futureGoal || {}).targetBodyFatPercent || currentFat);
+  const weeks = Number((futureGoal || {}).timeframeWeeks || 12);
+  const weightDiff = targetWeight - currentWeight;
+  const fatDiff = targetFat - currentFat;
+
+  if (Math.abs(weightDiff) < 0.5 && Math.abs(fatDiff) < 1.0) {
+    return { strategy: 'maintenance', dailyDelta: 0, weeklyChange: 0, rationale: 'Objetivo: manutenção do peso e composição corporal atual.' };
+  }
+  if (Math.abs(weightDiff) <= 0.5 && fatDiff < -1.0) {
+    return { strategy: 'recomposition', dailyDelta: -150, weeklyChange: 0, rationale: 'Recomposição corporal: leve déficit (-150 kcal/dia) para perda de gordura com manutenção de massa magra. Meta: ' + currentFat.toFixed(1) + '% → ' + targetFat.toFixed(1) + '% de gordura.' };
+  }
+  if (weightDiff < -0.5) {
+    const weeklyLossKg = weeks > 0 ? Math.min(Math.abs(weightDiff) / weeks, 1.0) : 0.5;
+    const safeDeficit = Math.min(Math.max(Math.round(weeklyLossKg * 7700 / 7), 200), 750);
+    return { strategy: 'deficit', dailyDelta: -safeDeficit, weeklyChange: -weeklyLossKg, rationale: 'Déficit de ' + safeDeficit + ' kcal/dia para perda de ~' + weeklyLossKg.toFixed(2) + 'kg/semana. Meta: ' + targetWeight + 'kg em ' + weeks + ' semanas.' };
+  }
+  if (weightDiff > 0.5) {
+    const weeklyGainKg = weeks > 0 ? Math.min(weightDiff / weeks, 0.5) : 0.25;
+    const safeSurplus = Math.min(Math.max(Math.round(weeklyGainKg * 7700 / 7), 150), 500);
+    return { strategy: 'surplus', dailyDelta: safeSurplus, weeklyChange: weeklyGainKg, rationale: 'Superávit de ' + safeSurplus + ' kcal/dia para ganho de ~' + weeklyGainKg.toFixed(2) + 'kg/semana. Meta: ' + targetWeight + 'kg em ' + weeks + ' semanas.' };
+  }
+  return { strategy: 'maintenance', dailyDelta: 0, weeklyChange: 0, rationale: 'Objetivo indeterminado → manutenção por segurança.' };
+}
+
+// =========================================================================
+// 5.4.3 ANÁLISE COMPLETA DO PACIENTE
+// Lê: DB, recordatório, exames, avaliações, prescrição anterior, treino
+// =========================================================================
+
+/**
+ * Função principal de análise clínica integrada do paciente.
+ * @returns {Promise<Object>} análise clínica completa
+ */
+async function analyzePatientContextForPrescription() {
   const p = activePatientData || {};
   const ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
-  const pWeight = Number(ev.weight || p.currentWeight || p.weight || document.getElementById("evalWeight")?.value || 70.0);
-  const rawH = ev.height || p.height || document.getElementById("evalHeight")?.value || 175;
+  const patientId = activePatientId;
+
+  const analysis = {
+    patient: {},
+    anthropometry: { current: {}, history: [], hasData: false },
+    objective: { current: null, clinical: null, targetWeight: null, targetBodyFat: null, timeframeWeeks: null },
+    energetics: { tmb: null, get: null, caloricTarget: null, strategy: null },
+    macroTargets: { protein: null, carbohydrate: null, fat: null, fiber: null },
+    dietaryRecall: { hasRecall: false, mealTimes: [], mealNames: [], itemCount: 0, frequentFoods: [], _rawItems: [] },
+    clinicalExams: { exams: [], flags: [], adjustments: [], clinicalNotes: [] },
+    training: { hasTraining: false, workoutTime: null, wakeUpTime: null, bedTime: null },
+    fasting: { hasProtocol: false, type: null },
+    previousPrescription: { hasPrevious: false, kcal: null },
+    alerts: [],
+    warnings: [],
+    dataQuality: { score: 0, missingCritical: [], missingOptional: [] }
+  };
+
+  // Dados básicos
+  const weightKg = Number(ev.weight || p.currentWeight || p.weight || 0);
+  const rawH = ev.height || p.height || 0;
   const numH = Number(rawH);
-  const pHeight = (numH > 0 && numH < 3.0) ? Math.round(numH * 100) : (numH || 175);
-  const obj = p.objective || ev.objective || document.getElementById("anamneseObjective")?.value || "Perda de peso";
-  const patType = p.patientType || p.activityLevel || document.getElementById("anamnesePatientType")?.value || "Praticante recreativo";
+  const heightCm = (numH > 0 && numH < 3.0) ? Math.round(numH * 100) : (numH || 0);
+  const bodyFatPercent = ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null);
+  const leanMassKg = ev.leanMass != null ? Number(ev.leanMass) : null;
 
-  const canonicalTargets = resolveCanonicalPrescriptionTargets(
-    activePatientData,
-    typeof lastEval !== 'undefined' ? lastEval : null,
-    currentPrescriptionMeta
-  );
+  analysis.patient = { weightKg, heightCm, bodyFatPercent, leanMassKg, age: Number(p.age || 0), sex: String(p.gender || p.sex || 'Masculino'), objective: p.objective || 'Manutenção' };
+  analysis.anthropometry.current = { weightKg, heightCm, bodyFatPercent, leanMassKg };
+  analysis.anthropometry.hasData = weightKg > 0 && heightCm > 0;
+  if (weightKg <= 0) analysis.dataQuality.missingCritical.push('Peso corporal');
+  if (heightCm <= 0) analysis.dataQuality.missingCritical.push('Altura');
 
-  // Validação estrita sem fallback clínico arbitrário (Fase N3.7.4 - GAP 2 / GAP 5)
-  if (!canonicalTargets || !Number.isFinite(canonicalTargets.caloricTargetKcal) || canonicalTargets.caloricTargetKcal <= 0 || !Number.isFinite(canonicalTargets.getKcal)) {
-    alert("Metas clínicas canônicas não puderam ser resolvidas. Verifique os dados antropométricos, objetivo clínico e avaliação do paciente.");
-    return;
-  }
+  analysis.objective = {
+    current: p.objective || 'Manutenção',
+    clinical: p.clinicalObjective || p.objective || 'Manutenção',
+    targetWeight: p.targetWeight != null ? Number(p.targetWeight) : null,
+    targetBodyFat: p.targetBodyFat != null ? Number(p.targetBodyFat) : null,
+    timeframeWeeks: p.timeframeWeeks != null ? Number(p.timeframeWeeks) : null
+  };
 
-  const getKcal = canonicalTargets.getKcal;
-  const tmbKcal = canonicalTargets.tmbKcal;
+  // Metas canônicas
+  const canonicalTargets = resolveCanonicalPrescriptionTargets(p, ev, currentPrescriptionMeta);
+  analysis.energetics = { tmb: canonicalTargets.tmbKcal, get: canonicalTargets.getKcal, caloricTarget: canonicalTargets.caloricTargetKcal };
+  analysis.macroTargets = { protein: canonicalTargets.proteinTargetG, carbohydrate: canonicalTargets.carbohydrateTargetG, fat: canonicalTargets.fatTargetG, fiber: canonicalTargets.fiberTargetG || 25 };
+  if (!analysis.energetics.caloricTarget) analysis.dataQuality.missingCritical.push('Meta energética canônica');
 
-  const mealCount = parseInt(document.getElementById("aiMealCountSelect")?.value || "4", 10);
-  const dietaryStyle = document.getElementById("aiDietaryStyleSelect")?.value || "tradicional";
-  const dietaryCycle = document.getElementById("aiDietaryCycleSelect")?.value || "";
-  const includeSupplements = document.getElementById("aiIncludeSupplementsCheck")?.checked !== false;
-
-  const orchestrator = getCanonicalPrescriptionOrchestrator();
-  const adapters = getCanonicalPrescriptionAdapters();
-
-  if (!orchestrator || typeof orchestrator.executePrescriptionPipeline !== 'function' || !adapters) {
-    alert("Pipeline Canônico de Prescrição (N3.7.1 / N3.7.2) indisponível.");
-    return;
-  }
-
-  let foodCatalog = [];
-  if (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== 'undefined' && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS)) {
-    foodCatalog = COMPREHENSIVE_TACO_TBCA_FOODS;
-  } else if (typeof window !== 'undefined' && Array.isArray(window.COMPREHENSIVE_TACO_TBCA_FOODS)) {
-    foodCatalog = window.COMPREHENSIVE_TACO_TBCA_FOODS;
-  } else if (typeof require !== 'undefined') {
-    try {
-      foodCatalog = require('./foodsData').COMPREHENSIVE_TACO_TBCA_FOODS || [];
-    } catch (_) {}
-  }
-
-  // Prepend canonical staple foods if available
-  const canonicalFoodsSource = (typeof CANONICAL_DIET_FOODS !== 'undefined' ? CANONICAL_DIET_FOODS : (typeof window !== 'undefined' ? window.CANONICAL_DIET_FOODS : null));
-  if (canonicalFoodsSource && typeof canonicalFoodsSource === 'object') {
-    const canonicalFoodList = Object.entries(canonicalFoodsSource).map(([key, f]) => ({
-      id: `canon_${key}`,
-      foodId: `canon_${key}`,
-      name: f.name,
-      calories: f.calories,
-      protein: f.protein,
-      carbohydrate: f.carbohydrate,
-      lipid: f.lipid,
-      fiber: f.fiber || 0,
-      sodium: f.sodium || 0,
-      unit: f.defaultUnit || 'g',
-      gramPerUnit: f.gramPerUnit || 100,
-      source: f.source || 'TACO',
-      prepState: f.prepState || null,
-      category: f.category || 'Geral'
-    }));
-    foodCatalog = [...canonicalFoodList, ...foodCatalog];
-  }
-
-  // Prepara input via prescriptionInputAdapter
-  const inputPrep = adapters.buildCanonicalPrescriptionInput({
-    patientData: {
-      patientId: activePatientId || 'patient_active',
-      name: (activePatientData && activePatientData.name) || 'Paciente',
-      weightKg: pWeight,
-      heightCm: pHeight,
-      bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null),
-      leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null,
-      objective: obj,
-      patientType: patType,
-      tmbKcal: tmbKcal,
-      getKcal: getKcal,
-      caloricTargetKcal: canonicalTargets.caloricTargetKcal,
-      mealsPerDay: mealCount,
-      mealCount: mealCount,
-      preferences: {
-        mealFrequency: mealCount
-      },
-      routine: {
-        wakeUpTime: document.getElementById("routineWakeUp")?.value || "07:00",
-        bedTime: document.getElementById("routineBedTime")?.value || "23:00",
-        workoutTime: document.getElementById("routineWorkoutTime")?.value || null,
-        mealsPerDay: mealCount,
-        mealCount: mealCount
-      },
-      weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : []
-    },
-    foodCatalog: foodCatalog,
-    options: {
-      mealCount: mealCount,
-      dietaryStyle: dietaryStyle,
-      dietaryCycle: dietaryCycle,
-      includeSupplements: includeSupplements
-    }
-  });
-
-  if (!inputPrep.isValid) {
-    alert(`Erro na validação de entrada do pipeline:\n• ${inputPrep.errors.join('\n• ')}`);
-    return;
-  }
-
-  // Execução do pipeline sequencial canônico N1.1 -> N3.6
-  const pipelineResult = await orchestrator.executePrescriptionPipeline(inputPrep.canonicalInput);
-
-  // Tradução de saída pura via prescriptionOutputAdapter (timestamp fornecido pelo runtime)
-  const currentTimestamp = new Date().toISOString();
-  const adaptedOutput = adapters.adaptPrescriptionPipelineOutput(pipelineResult, {
-    generatedAt: currentTimestamp,
-    isClinicallyValidated: false,
-    isStale: false
-  });
-
-  // N3.7.5 / N3.7.6: Tratamento explícito de SEARCH_LIMIT_REACHED
-  // Este status é distinto de BLOCKED genérico: indica limite computacional, não erro clínico.
-  const solverResult = pipelineResult.foodSolverResult;
-  if (pipelineResult.status === 'BLOCKED' && solverResult && solverResult.status === 'SEARCH_LIMIT_REACHED') {
-    const diags = (solverResult.solverDiagnostics || []).join('\n  ');
-    alert(
-      `⚡ Limite Computacional do Solver Atingido (SEARCH_LIMIT_REACHED)\n\n` +
-      `O solver interrompeu a busca após testar ${solverResult.solverDiagnostics?.find(d => d.includes('Combinações')) || 'várias'} combinações.\n\n` +
-      `❌ Nenhuma dieta foi salva. Esta não é uma falha clínica — é uma limitação computacional do ambiente.\n\n` +
-      `✅ Diagnóstico:\n  ${diags}\n\n` +
-      `Possíveis soluções:\n` +
-      `  • Reduza o número de alimentos elegíveis no catálogo (ver aba Alimentos)\n` +
-      `  • O valor das metas clínicas permanece intacto e correto`
+  if (analysis.energetics.get) {
+    analysis.energetics.strategy = computeEnergeticStrategy(
+      analysis.anthropometry.current,
+      { targetWeightKg: analysis.objective.targetWeight, targetBodyFatPercent: analysis.objective.targetBodyFat, timeframeWeeks: analysis.objective.timeframeWeeks },
+      analysis.energetics.get
     );
-    return;
   }
 
-  if (pipelineResult.status === 'BLOCKED') {
-    alert(`🚫 Prescrição BLOQUEADA pelo Portão Clínico Canônico N3.6!\n\nMotivos do Bloqueio:\n• ${pipelineResult.blockingReasons.join('\n• ')}\n\n⚠️ Esta dieta NÃO PODE ser validada, assinada ou sincronizada.`);
-    return;
-  }
-
-  // Persistência com firewall (preserva meta e rastreabilidade N3.6)
-  await savePrescriptionWithFirewall(activePatientId, adaptedOutput.items, adaptedOutput.meta);
-
-  closeAIPrescriptionModal();
-  updateAIPrescriptionBanner();
-  renderPrescriptionTotals();
-  renderMealItems();
-
-  if (pipelineResult.status === 'WARNING') {
-    const warns = (pipelineResult.warnings || []).slice(0, 3).join('\n• ');
-    alert(`⚡ Dieta Gerada com Alertas Clínicos (Status: WARNING)!\n• Refeições: ${mealCount}\n• Status Canônico N3.6: WARNING\n• Alertas:\n• ${warns || 'Revisão clínica necessária'}\n\n⚠️ REQUER VALIDAÇÃO E ASSINATURA CLÍNICA.`);
-    return;
-  }
-
-  alert(`⚡ Dieta Canônica Gerada com Sucesso (Status: PASS)!\n• Refeições: ${mealCount}\n• Status N3.6: PASS (100% de conformidade com todos os portões clínicos)\n\n⚠️ STATUS: REQUER VALIDAÇÃO E ASSINATURA CLÍNICA.`);
-
-  } catch (err) {
-    // N3.7.5: Tratamento de erros inesperados — sempre informa o nutricionista
-    // e nunca trava a UI silenciosamente.
-    console.error('[executeAIPrescriptionGeneration] Erro inesperado:', err);
-    alert(`❌ Erro inesperado durante a geração da dieta:\n${err && err.message ? err.message : String(err)}\n\nNenhuma dieta foi salva. Tente novamente ou verifique o console.`);
-  } finally {
-    // N3.7.5: Sempre restaura o botão, independente do resultado (PASS, BLOCKED, erro).
-    if (generateBtn && originalBtnHTML !== null) {
-      generateBtn.disabled = false;
-      generateBtn.innerHTML = originalBtnHTML;
+  // Recordatório alimentar
+  try {
+    if (typeof db !== 'undefined' && db && db.dietaryRecall && patientId) {
+      const recallItems = await db.dietaryRecall.where('patientId').equals(patientId).toArray();
+      if (Array.isArray(recallItems) && recallItems.length > 0) {
+        analysis.dietaryRecall.hasRecall = true;
+        analysis.dietaryRecall.itemCount = recallItems.length;
+        analysis.dietaryRecall._rawItems = recallItems;
+        const mealTimesSet = new Set(), mealNamesSet = new Set(), foodFreq = {};
+        for (const item of recallItems) {
+          if (item.mealTime) mealTimesSet.add(item.mealTime);
+          if (item.mealName) mealNamesSet.add(item.mealName);
+          const fname = String(item.foodName || '').trim().toLowerCase();
+          if (fname) foodFreq[fname] = (foodFreq[fname] || 0) + 1;
+        }
+        analysis.dietaryRecall.mealTimes = Array.from(mealTimesSet).sort();
+        analysis.dietaryRecall.mealNames = Array.from(mealNamesSet);
+        analysis.dietaryRecall.frequentFoods = Object.entries(foodFreq).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({ name, count }));
+      } else {
+        analysis.dataQuality.missingOptional.push('Recordatório alimentar');
+      }
+    } else {
+      analysis.dataQuality.missingOptional.push('Recordatório alimentar');
     }
+  } catch (e) {
+    analysis.dataQuality.missingOptional.push('Recordatório alimentar (erro)');
+  }
+
+  // Exames clínicos
+  try {
+    if (typeof db !== 'undefined' && db && db.clinicalExams && patientId) {
+      const exams = await db.clinicalExams.where('patientId').equals(patientId).toArray();
+      if (Array.isArray(exams) && exams.length > 0) {
+        analysis.clinicalExams.exams = exams;
+        const examAnalysis = resolveClinicPoliciesFromExams(exams);
+        analysis.clinicalExams.flags = examAnalysis.flags;
+        analysis.clinicalExams.adjustments = examAnalysis.adjustments;
+        analysis.clinicalExams.clinicalNotes = examAnalysis.clinicalNotes;
+      } else {
+        analysis.dataQuality.missingOptional.push('Exames clínicos');
+      }
+    }
+  } catch (e) {
+    analysis.dataQuality.missingOptional.push('Exames clínicos (erro)');
+  }
+
+  // Histórico de avaliações
+  try {
+    if (typeof db !== 'undefined' && db && db.assessments && patientId) {
+      const assessments = await db.assessments.where('patientId').equals(patientId).toArray();
+      if (Array.isArray(assessments) && assessments.length > 1) {
+        const sorted = assessments.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        analysis.anthropometry.history = sorted.slice(0, 4).map(a => ({ date: a.date, weight: a.weight || a.weightKg, fatPercent: a.fatPercent || a.bodyFat }));
+        if (sorted.length >= 2) {
+          const newest = Number(sorted[0].weight || sorted[0].weightKg || 0);
+          const oldest = Number(sorted[sorted.length - 1].weight || sorted[sorted.length - 1].weightKg || 0);
+          if (newest > 0 && oldest > 0) {
+            const trend = newest - oldest;
+            if (trend > 2) analysis.alerts.push('📈 Tendência de ganho: +' + trend.toFixed(1) + 'kg nas últimas avaliações.');
+            else if (trend < -2) analysis.alerts.push('📉 Tendência de perda: ' + trend.toFixed(1) + 'kg nas últimas avaliações.');
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Prescrição anterior
+  try {
+    if (typeof db !== 'undefined' && db && db.prescriptions && patientId) {
+      const prev = await db.prescriptions.get(patientId);
+      if (prev && Array.isArray(prev.items) && prev.items.length > 0) {
+        analysis.previousPrescription.hasPrevious = true;
+        const prevKcal = prev.items.reduce((s, i) => s + (i.kcal || 0), 0);
+        analysis.previousPrescription.kcal = Math.round(prevKcal);
+        if (analysis.energetics.caloricTarget && Math.abs(prevKcal - analysis.energetics.caloricTarget) > 200) {
+          const delta = Math.round(analysis.energetics.caloricTarget - prevKcal);
+          analysis.alerts.push('🔄 Anterior: ' + Math.round(prevKcal) + ' kcal → Meta: ' + analysis.energetics.caloricTarget + ' kcal (Δ' + (delta > 0 ? '+' : '') + delta + ' kcal).');
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Treino e rotina
+  const wakeUp = (document.getElementById('routineWakeUp') || {}).value || p.wakeUpTime || null;
+  const bedTime = (document.getElementById('routineBedTime') || {}).value || p.bedTime || null;
+  const workoutTime = (document.getElementById('routineWorkoutTime') || {}).value || p.workoutTime || null;
+  analysis.training = {
+    hasTraining: !!(workoutTime || (typeof perfWeeklySchedule !== 'undefined' && perfWeeklySchedule && perfWeeklySchedule.some(function(d) { return d.training; }))),
+    workoutTime, wakeUpTime: wakeUp, bedTime
+  };
+  if (!workoutTime) analysis.dataQuality.missingOptional.push('Horário de treino');
+
+  // Protocolo de jejum
+  try {
+    if (typeof db !== 'undefined' && db && db.fastingProtocols && patientId) {
+      const fastings = await db.fastingProtocols.where('patientId').equals(patientId).toArray();
+      const active = fastings.find(function(f) { return f.status === 'ACTIVE' || f.isActive; });
+      if (active) analysis.fasting = { hasProtocol: true, type: active.protocolType || active.type || 'Jejum Intermitente', feedingWindows: active.feedingWindows || null };
+    }
+  } catch (e) {}
+
+  const criticalCount = analysis.dataQuality.missingCritical.length;
+  const optionalCount = analysis.dataQuality.missingOptional.length;
+  analysis.dataQuality.score = Math.max(0, Math.round(((10 - criticalCount - Math.min(optionalCount, 5)) / 10) * 100));
+
+  return analysis;
+}
+
+// =========================================================================
+// 5.4.4 MODAL INTELIGENTE DE PRESCRIÇÃO
+// =========================================================================
+
+/**
+ * Abre o modal inteligente de prescrição com análise clínica completa.
+ * Cria dinamicamente via DOM, executa análise e preenche os painéis.
+ */
+async function openSmartPrescriptionModal() {
+  if (!activePatientId || !activePatientData) {
+    alert('Selecione um paciente antes de gerar a prescrição.');
+    return;
+  }
+  const existing = document.getElementById('smart-prescription-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'smart-prescription-modal';
+  modal.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto';
+  modal.innerHTML = [
+    '<div class="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-3xl my-4" id="smart-presc-inner">',
+    '<div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">',
+    '<div class="flex items-center gap-3">',
+    '<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center shadow-lg">',
+    '<svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    '</div><div><h2 class="text-white font-bold text-base leading-tight">Motor de Prescrição Inteligente</h2>',
+    '<p class="text-zinc-400 text-xs">Análise Clínica Integrada — NutriAx Pro</p></div></div>',
+    '<button onclick="document.getElementById(\'smart-prescription-modal\').remove()" class="text-zinc-500 hover:text-white transition-colors rounded-lg p-1.5 hover:bg-zinc-800">',
+    '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div>',
+    '<div class="flex border-b border-zinc-800 px-6">',
+    '<button onclick="switchSmartPrescTab(\'analysis\')" id="tab-analysis" class="text-sm font-semibold py-3 px-4 border-b-2 border-emerald-500 text-emerald-400">🔍 Análise Clínica</button>',
+    '<button onclick="switchSmartPrescTab(\'config\')" id="tab-config" class="text-sm font-semibold py-3 px-4 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200">⚙️ Configurações</button>',
+    '</div>',
+    '<div id="panel-analysis" class="p-6">',
+    '<div class="flex items-center justify-center py-10"><div class="text-center space-y-3">',
+    '<svg class="w-8 h-8 animate-spin text-emerald-500 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>',
+    '<p class="text-zinc-400 text-sm">Analisando contexto clínico do paciente...</p></div></div></div>',
+    '<div id="panel-config" class="p-6 hidden"></div>',
+    '</div>'
+  ].join('');
+
+  document.body.appendChild(modal);
+
+  let analysis;
+  try {
+    analysis = await analyzePatientContextForPrescription();
+  } catch (e) {
+    console.error('[SmartPrescription] Erro na análise:', e);
+    analysis = {
+      dataQuality: { score: 0, missingCritical: ['Erro ao analisar paciente'], missingOptional: [] },
+      alerts: [], warnings: [],
+      objective: {}, energetics: {}, macroTargets: {},
+      anthropometry: { current: {} },
+      dietaryRecall: { hasRecall: false, mealTimes: [], mealNames: [], itemCount: 0, frequentFoods: [] },
+      clinicalExams: { exams: [], flags: [], adjustments: [], clinicalNotes: [] },
+      training: {}, previousPrescription: {}
+    };
+  }
+
+  const panelAnalysis = document.getElementById('panel-analysis');
+  const panelConfig = document.getElementById('panel-config');
+  if (!panelAnalysis || !panelConfig) return;
+
+  panelAnalysis.innerHTML = renderSmartPrescAnalysisPanel(analysis);
+  panelConfig.innerHTML = renderSmartPrescConfigPanel(analysis);
+  window._smartPrescAnalysis = analysis;
+}
+
+function switchSmartPrescTab(tab) {
+  var ta = document.getElementById('tab-analysis');
+  var tc = document.getElementById('tab-config');
+  var pa = document.getElementById('panel-analysis');
+  var pc = document.getElementById('panel-config');
+  if (!ta || !tc || !pa || !pc) return;
+  if (tab === 'analysis') {
+    ta.className = 'text-sm font-semibold py-3 px-4 border-b-2 border-emerald-500 text-emerald-400';
+    tc.className = 'text-sm font-semibold py-3 px-4 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200';
+    pa.classList.remove('hidden'); pc.classList.add('hidden');
+  } else {
+    tc.className = 'text-sm font-semibold py-3 px-4 border-b-2 border-emerald-500 text-emerald-400';
+    ta.className = 'text-sm font-semibold py-3 px-4 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200';
+    pc.classList.remove('hidden'); pa.classList.add('hidden');
   }
 }
 
-function updateAIPrescriptionBanner() {
-  const banner = document.getElementById("prescribedAIGeneratedBanner");
-  const badge = document.getElementById("aiPrescriptionStatusBadge");
-  const btnApprove = document.getElementById("btnApproveAIPrescription");
-  if (!banner) return;
+function renderSmartPrescAnalysisPanel(a) {
+  var scoreColor = a.dataQuality.score >= 80 ? 'text-emerald-400' : a.dataQuality.score >= 50 ? 'text-amber-400' : 'text-red-400';
+  var scoreBg = a.dataQuality.score >= 80 ? 'bg-emerald-950/50 border-emerald-800/50' : a.dataQuality.score >= 50 ? 'bg-amber-950/50 border-amber-800/50' : 'bg-red-950/50 border-red-800/50';
+  var ac = a.anthropometry.current || {};
+  var mt = a.macroTargets || {};
+  var dr = a.dietaryRecall || {};
+  var ce = a.clinicalExams || { exams: [], flags: [], clinicalNotes: [] };
+  var obj = a.objective || {};
+  var en = a.energetics || {};
+  var strat = en.strategy || {};
+  var stratIcon = strat.strategy === 'deficit' ? '📉' : strat.strategy === 'surplus' ? '📈' : strat.strategy === 'recomposition' ? '🔄' : '⚖️';
+  var stratLabel = strat.strategy === 'deficit' ? 'Déficit Calórico' : strat.strategy === 'surplus' ? 'Superávit Calórico' : strat.strategy === 'recomposition' ? 'Recomposição Corporal' : 'Manutenção';
 
-  if (currentPrescriptionMeta && currentPrescriptionMeta.isAIGenerated) {
-    banner.classList.remove("hidden");
+  var html = '<div class="space-y-4">';
 
-    if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || currentPrescriptionMeta.validationReport?.status === 'BLOCKED') {
-      if (badge) {
-        badge.className = "bg-red-950 text-red-300 border border-red-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = "🚫 Status: Bloqueado (Violou Portões Clínicos N3.6)";
-      }
-      if (btnApprove) {
-        btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed";
-        btnApprove.disabled = true;
-        btnApprove.innerHTML = `<i data-lucide="shield-alert" class="w-4 h-4 text-red-400"></i> <span>Aprovação Bloqueada</span>`;
-      }
-    } else if (currentPrescriptionMeta.isStale) {
-      if (badge) {
-        badge.className = "bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = `⚠️ Status: Modificado / Desatualizado (${currentPrescriptionMeta.staleReason || 'Edição Detectada'})`;
-      }
-      if (btnApprove) {
-        btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed";
-        btnApprove.disabled = true;
-        btnApprove.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i> <span>Revalidação Necessária</span>`;
-      }
-    } else if (currentPrescriptionMeta.isClinicallyValidated) {
-      if (badge) {
-        const vStatus = currentPrescriptionMeta.validationStatus || 'PASS';
-        badge.className = "bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = `✅ Status: Validado e Assinado pelo Nutricionista (N3.6: ${vStatus})`;
-      }
-      if (btnApprove) {
-        btnApprove.className = "bg-zinc-800 text-zinc-400 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-default";
-        btnApprove.disabled = true;
-        btnApprove.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> <span>Prescrição Validada</span>`;
-      }
-    } else {
-      const vStatus = currentPrescriptionMeta.validationStatus || 'PASS';
-      if (badge) {
-        badge.className = vStatus === 'WARNING'
-          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"
-          : "bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = `⚠️ Status: Requer Validação Clínica (N3.6: ${vStatus})`;
-      }
-      if (btnApprove) {
-        btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer";
-        btnApprove.disabled = false;
-        btnApprove.innerHTML = `<i data-lucide="check-check" class="w-4 h-4"></i> <span>Validar e Assinar Prescrição</span>`;
-      }
+  // Score
+  html += '<div class="' + scoreBg + ' border rounded-xl p-3 flex items-center justify-between">';
+  html += '<div><p class="text-zinc-300 text-xs font-semibold">Completude dos Dados Clínicos</p>';
+  html += '<p class="text-zinc-500 text-xs mt-0.5">' + (a.dataQuality.missingOptional.length > 0 ? 'Ausentes: ' + a.dataQuality.missingOptional.slice(0, 3).join(', ') : 'Todos os dados disponíveis foram analisados.') + '</p></div>';
+  html += '<div class="text-right ml-4 shrink-0"><div class="' + scoreColor + ' font-black text-2xl">' + a.dataQuality.score + '%</div><div class="text-zinc-500 text-xs">qualidade</div></div></div>';
+
+  // Dados ausentes críticos
+  if (a.dataQuality.missingCritical.length > 0) {
+    html += '<div class="bg-red-950/30 border border-red-800/40 rounded-xl p-3"><h3 class="text-red-400 font-semibold text-xs uppercase tracking-widest mb-1">🔴 Dados Críticos Ausentes</h3>';
+    a.dataQuality.missingCritical.forEach(function(m) { html += '<p class="text-red-200 text-xs">• ' + m + '</p>'; });
+    html += '</div>';
+  }
+
+  // Alertas
+  if (a.alerts.length > 0) {
+    html += '<div class="bg-amber-950/30 border border-amber-800/40 rounded-xl p-3 space-y-1"><h3 class="text-amber-400 font-semibold text-xs uppercase tracking-widest mb-1">⚡ Alertas</h3>';
+    a.alerts.forEach(function(al) { html += '<p class="text-amber-200 text-xs">' + al + '</p>'; });
+    html += '</div>';
+  }
+
+  // Antropometria
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest mb-3">📏 Dados Antropométricos</h3><div class="grid grid-cols-4 gap-2">';
+  html += ac.weightKg > 0 ? '<div class="text-center"><div class="text-emerald-400 font-bold text-lg">' + ac.weightKg + 'kg</div><div class="text-zinc-500 text-xs">Peso</div></div>' : '<div class="text-center"><div class="text-red-400 font-bold text-lg">--</div><div class="text-zinc-500 text-xs">Peso (ausente)</div></div>';
+  html += ac.heightCm > 0 ? '<div class="text-center"><div class="text-emerald-400 font-bold text-lg">' + ac.heightCm + 'cm</div><div class="text-zinc-500 text-xs">Altura</div></div>' : '<div class="text-center"><div class="text-red-400 font-bold text-lg">--</div><div class="text-zinc-500 text-xs">Altura (ausente)</div></div>';
+  html += ac.bodyFatPercent != null ? '<div class="text-center"><div class="text-emerald-400 font-bold text-lg">' + Number(ac.bodyFatPercent).toFixed(1) + '%</div><div class="text-zinc-500 text-xs">% Gordura</div></div>' : '<div class="text-center"><div class="text-zinc-500 font-bold text-lg">--</div><div class="text-zinc-500 text-xs">% Gordura</div></div>';
+  html += ac.leanMassKg != null ? '<div class="text-center"><div class="text-emerald-400 font-bold text-lg">' + Number(ac.leanMassKg).toFixed(1) + 'kg</div><div class="text-zinc-500 text-xs">Massa Magra</div></div>' : '<div class="text-center"><div class="text-zinc-500 font-bold text-lg">--</div><div class="text-zinc-500 text-xs">Massa Magra</div></div>';
+  html += '</div></div>';
+
+  // Objetivos e estratégia
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest mb-3">🎯 Objetivos e Estratégia Energética</h3><div class="space-y-1.5">';
+  html += '<div class="flex justify-between text-sm"><span class="text-zinc-400">Objetivo clínico:</span><span class="text-white font-semibold">' + (obj.current || '--') + '</span></div>';
+  if (obj.targetWeight != null) html += '<div class="flex justify-between text-sm"><span class="text-zinc-400">Peso-alvo:</span><span class="text-violet-300 font-semibold">' + obj.targetWeight + 'kg</span></div>';
+  if (obj.targetBodyFat != null) html += '<div class="flex justify-between text-sm"><span class="text-zinc-400">% Gordura-alvo:</span><span class="text-violet-300 font-semibold">' + obj.targetBodyFat + '%</span></div>';
+  if (obj.timeframeWeeks != null) html += '<div class="flex justify-between text-sm"><span class="text-zinc-400">Prazo:</span><span class="text-violet-300 font-semibold">' + obj.timeframeWeeks + ' semanas</span></div>';
+  if (strat.rationale) {
+    html += '<div class="mt-2 p-3 bg-zinc-800/60 rounded-lg border border-zinc-700/50">';
+    html += '<div class="flex items-center gap-2 mb-1"><span>' + stratIcon + '</span><span class="text-white font-bold text-sm">' + stratLabel + '</span>';
+    if (strat.dailyDelta) html += '<span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full ' + (strat.dailyDelta < 0 ? 'bg-red-900/60 text-red-300' : 'bg-green-900/60 text-green-300') + '">' + (strat.dailyDelta > 0 ? '+' : '') + strat.dailyDelta + ' kcal/dia</span>';
+    html += '</div><p class="text-zinc-400 text-xs">' + strat.rationale + '</p></div>';
+  }
+  html += '</div></div>';
+
+  // Metas canônicas
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest mb-3">🔥 Metas Canônicas (Pipeline N2.1/N2.2)</h3><div class="grid grid-cols-5 gap-2">';
+  html += '<div class="text-center p-2 bg-orange-950/30 border border-orange-800/30 rounded-lg"><div class="text-orange-300 font-bold text-sm">' + (en.caloricTarget != null ? en.caloricTarget : '--') + '</div><div class="text-zinc-500 text-xs">kcal</div></div>';
+  html += '<div class="text-center p-2 bg-red-950/30 border border-red-800/30 rounded-lg"><div class="text-red-300 font-bold text-sm">' + (mt.protein != null ? mt.protein + 'g' : '--') + '</div><div class="text-zinc-500 text-xs">Prot</div></div>';
+  html += '<div class="text-center p-2 bg-yellow-950/30 border border-yellow-800/30 rounded-lg"><div class="text-yellow-300 font-bold text-sm">' + (mt.carbohydrate != null ? mt.carbohydrate + 'g' : '--') + '</div><div class="text-zinc-500 text-xs">Carb</div></div>';
+  html += '<div class="text-center p-2 bg-purple-950/30 border border-purple-800/30 rounded-lg"><div class="text-purple-300 font-bold text-sm">' + (mt.fat != null ? mt.fat + 'g' : '--') + '</div><div class="text-zinc-500 text-xs">Gord</div></div>';
+  html += '<div class="text-center p-2 bg-green-950/30 border border-green-800/30 rounded-lg"><div class="text-green-300 font-bold text-sm">' + (mt.fiber != null ? '>=' + mt.fiber + 'g' : '--') + '</div><div class="text-zinc-500 text-xs">Fibras</div></div>';
+  html += '</div>';
+  if (en.get) html += '<p class="text-zinc-500 text-xs mt-2 text-center">GET: ' + en.get + ' kcal/dia | TMB: ' + (en.tmb || '--') + ' kcal/dia</p>';
+  html += '</div>';
+
+  // Recordatório
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div class="flex items-center justify-between mb-3"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest">📋 Recordatório Alimentar</h3>';
+  html += dr.hasRecall ? '<span class="text-xs bg-emerald-900/50 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-full">' + dr.itemCount + ' itens</span>' : '<span class="text-xs bg-zinc-800 text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full">Sem recordatório</span>';
+  html += '</div>';
+  if (dr.hasRecall) {
+    if (dr.mealTimes.length > 0) {
+      html += '<div class="mb-2"><p class="text-zinc-500 text-xs mb-1">Horários habituais (usados no solver):</p><div class="flex flex-wrap gap-1.5">';
+      dr.mealTimes.forEach(function(t) { html += '<span class="text-xs bg-teal-900/40 text-teal-300 border border-teal-800/40 px-2 py-0.5 rounded-full">' + t + '</span>'; });
+      html += '</div></div>';
+    }
+    if (dr.frequentFoods.length > 0) {
+      html += '<div><p class="text-zinc-500 text-xs mb-1">Alimentos frequentes (priorizados):</p><div class="flex flex-wrap gap-1.5">';
+      dr.frequentFoods.slice(0, 6).forEach(function(f) { html += '<span class="text-xs bg-zinc-800 text-zinc-300 border border-zinc-700 px-2 py-0.5 rounded-full">' + f.name + '</span>'; });
+      html += '</div></div>';
+    }
+  } else {
+    html += '<p class="text-zinc-500 text-xs">Sem recordatório registrado. Horários distribuídos automaticamente.</p>';
+  }
+  html += '</div>';
+
+  // Exames clínicos
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div class="flex items-center justify-between mb-3"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest">🩺 Exames Clínicos e Ajustes de Política</h3>';
+  if (ce.exams.length > 0) {
+    html += ce.flags.length > 0 ? '<span class="text-xs bg-amber-900/50 text-amber-400 border border-amber-800/50 px-2 py-0.5 rounded-full">' + ce.flags.length + ' flag(s) clínico(s)</span>' : '<span class="text-xs bg-emerald-900/50 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-full">' + ce.exams.length + ' exames sem alertas</span>';
+  } else {
+    html += '<span class="text-xs bg-zinc-800 text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full">Sem exames</span>';
+  }
+  html += '</div>';
+  if (ce.clinicalNotes.length > 0) {
+    html += '<div class="space-y-1.5">';
+    ce.clinicalNotes.forEach(function(n) { html += '<p class="text-xs text-zinc-300">' + n + '</p>'; });
+    html += '</div>';
+  } else if (ce.exams.length > 0) {
+    html += '<p class="text-zinc-500 text-xs">Todos os exames dentro dos parâmetros de referência.</p>';
+  } else {
+    html += '<p class="text-zinc-500 text-xs">Sem exames registrados. Políticas seguirão o objetivo clínico.</p>';
+  }
+  html += '</div>';
+
+  // Botão ir para configurações
+  html += '<div class="flex justify-end pt-2"><button onclick="switchSmartPrescTab(\'config\')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-lg transition-all flex items-center gap-2">Configurar e Gerar Dieta <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button></div>';
+  html += '</div>';
+  return html;
+}
+
+function renderSmartPrescConfigPanel(a) {
+  var flags = (a.clinicalExams || {}).flags || [];
+  var strategy = ((a.energetics || {}).strategy || {}).strategy || 'maintenance';
+  var dr = a.dietaryRecall || {};
+  var obj = a.objective || {};
+  var en = a.energetics || {};
+  var strat = en.strategy || {};
+
+  var recommendedStyle = 'tradicional', styleNote = '';
+  if (flags.indexOf('DIABETES_MELLITUS') >= 0 || flags.indexOf('DIABETES_HBA1C') >= 0 || flags.indexOf('PRE_DIABETES') >= 0 || flags.indexOf('HIPERTRIGLICERIDEMIA_ALTA') >= 0) {
+    recommendedStyle = 'lowcarb'; styleNote = '⚠️ Recomendado: Low Carb (exames clínicos indicam).';
+  } else if (flags.indexOf('HIPERURICEMIA') >= 0) {
+    styleNote = '⚠️ Evitar dietas muito proteicas (hiperuricemia confirmada).';
+  } else if (strategy === 'deficit') {
+    styleNote = '💡 Sugestão: Tradicional ou Low Carb para déficit mais eficiente.';
+  } else if (strategy === 'surplus') {
+    styleNote = '💡 Sugestão: Estilo tradicional ou hipercalórico para superávit.';
+  }
+
+  var mealCountDefault = dr.mealNames && dr.mealNames.length > 2 ? Math.min(Math.max(dr.mealNames.length, 3), 6) : 4;
+
+  var html = '<div class="space-y-5">';
+
+  // Parâmetros principais
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest">Parâmetros da Dieta</h3>';
+
+  // Número de refeições
+  html += '<div><label class="text-zinc-300 text-sm font-semibold block mb-2">Número de Refeições/dia';
+  if (dr.mealNames && dr.mealNames.length > 0) html += ' <span class="ml-1 text-xs font-normal text-teal-400">(recordatório: ' + dr.mealNames.length + ' ref.)</span>';
+  html += '</label><select id="sp-meal-count" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500">';
+  [3, 4, 5, 6].forEach(function(n) { html += '<option value="' + n + '"' + (n === mealCountDefault ? ' selected' : '') + '>' + n + ' refeições</option>'; });
+  html += '</select></div>';
+
+  // Estilo dietético
+  html += '<div><label class="text-zinc-300 text-sm font-semibold block mb-1">Estilo Dietético</label>';
+  if (styleNote) html += '<p class="text-zinc-500 text-xs mb-2">' + styleNote + '</p>';
+  html += '<select id="sp-dietary-style" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500" onchange="onSpDietaryStyleChanged()">';
+  var dietStyles = [['tradicional', 'Tradicional Brasileiro'], ['lowcarb', 'Low Carb'], ['cetogenica', 'Cetogênica'], ['dukan', 'Dukan'], ['whole30', 'Whole30'], ['mediterranea', 'Mediterrânea'], ['vegetariana', 'Vegetariana'], ['vegana', 'Vegana']];
+  dietStyles.forEach(function(s) { html += '<option value="' + s[0] + '"' + (s[0] === recommendedStyle ? ' selected' : '') + '>' + s[1] + '</option>'; });
+  html += '</select></div>';
+
+  // Ciclo/variante
+  html += '<div id="sp-cycle-container" class="hidden"><label class="text-zinc-300 text-sm font-semibold block mb-2">Variante / Ciclo</label><select id="sp-dietary-cycle" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500"></select></div>';
+
+  // Suplementos
+  html += '<div class="flex items-center justify-between"><div><label class="text-zinc-300 text-sm font-semibold">Incluir suplementos</label><p class="text-zinc-500 text-xs mt-0.5">Whey, creatina, albumina, etc.</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="sp-include-supplements" class="sr-only peer" checked><div class="w-11 h-6 bg-zinc-700 rounded-full peer peer-checked:after:translate-x-full after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div></label></div>';
+  html += '</div>';
+
+  // Objetivos futuros
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3"><h3 class="text-zinc-300 font-semibold text-xs uppercase tracking-widest">Objetivos Antropométricos Futuros</h3><div class="grid grid-cols-3 gap-3">';
+  html += '<div><label class="text-zinc-400 text-xs block mb-1">Peso-alvo (kg)</label><input type="number" id="sp-target-weight" value="' + (obj.targetWeight != null ? obj.targetWeight : '') + '" min="30" max="300" step="0.5" placeholder="Ex: 75" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"></div>';
+  html += '<div><label class="text-zinc-400 text-xs block mb-1">% Gordura-alvo</label><input type="number" id="sp-target-fat" value="' + (obj.targetBodyFat != null ? obj.targetBodyFat : '') + '" min="3" max="50" step="0.5" placeholder="Ex: 15" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"></div>';
+  html += '<div><label class="text-zinc-400 text-xs block mb-1">Prazo (semanas)</label><input type="number" id="sp-timeframe-weeks" value="' + (obj.timeframeWeeks != null ? obj.timeframeWeeks : '') + '" min="1" max="104" step="1" placeholder="Ex: 12" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"></div>';
+  html += '</div><p class="text-zinc-600 text-xs">Influenciam o déficit/superávit calórico. Deixe em branco para manutenção.</p></div>';
+
+  // Notas clínicas
+  html += '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><label class="text-zinc-300 text-sm font-semibold block mb-2">Observações Clínicas (opcional)</label><textarea id="sp-clinical-notes" rows="2" placeholder="Notas específicas para esta prescrição..." class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-500 resize-none"></textarea></div>';
+
+  // Resumo estratégia
+  if (strat.rationale) {
+    html += '<div class="bg-zinc-800/60 border border-zinc-700/50 rounded-xl p-3"><p class="text-zinc-400 text-xs font-semibold mb-1">Estratégia energética calculada:</p><p class="text-zinc-300 text-xs">' + strat.rationale + '</p></div>';
+  }
+
+  // Botões
+  html += '<div class="flex gap-3 pt-2">';
+  html += '<button onclick="switchSmartPrescTab(\'analysis\')" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-5 py-3 rounded-xl text-sm transition-all flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Ver Análise</button>';
+  html += '<button id="sp-generate-btn" onclick="executeSmartPrescriptionGeneration()" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 px-6 rounded-xl text-sm shadow-xl transition-all flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Gerar Dieta Canônica</button>';
+  html += '</div></div>';
+  return html;
+}
+
+function onSpDietaryStyleChanged() {
+  var styleSelect = document.getElementById('sp-dietary-style');
+  var cycleContainer = document.getElementById('sp-cycle-container');
+  var cycleSelect = document.getElementById('sp-dietary-cycle');
+  if (!styleSelect || !cycleContainer || !cycleSelect) return;
+  var style = styleSelect.value;
+  cycleSelect.innerHTML = '';
+  if (style === 'lowcarb') {
+    cycleContainer.classList.remove('hidden');
+    cycleSelect.innerHTML = '<option value="lowcarb_moderada" selected>Low Carb Moderada (100–130g Carbs)</option><option value="lowcarb_restrita">Low Carb Restrita (50–80g Carbs)</option>';
+  } else if (style === 'cetogenica') {
+    cycleContainer.classList.remove('hidden');
+    cycleSelect.innerHTML = '<option value="keto_padrao" selected>SKD Padrão (&lt;30g Carbs)</option><option value="keto_ciclica_keto">CKD Cetogênico</option><option value="keto_ciclica_refeed">CKD Recarga (Carb Refeed)</option><option value="keto_direcionada">TKD Peri-Treino</option>';
+  } else if (style === 'dukan') {
+    cycleContainer.classList.remove('hidden');
+    cycleSelect.innerHTML = '<option value="dukan_ataque" selected>Fase 1: Ataque</option><option value="dukan_cruzeiro_pl">Fase 2: Cruzeiro PL</option><option value="dukan_cruzeiro_pp">Fase 2: Cruzeiro PP</option><option value="dukan_consolidacao">Fase 3: Consolidação</option>';
+  } else if (style === 'whole30') {
+    cycleContainer.classList.remove('hidden');
+    cycleSelect.innerHTML = '<option value="whole30_eliminacao" selected>Eliminação (Dias 1–30)</option><option value="whole30_reintroducao">Reintrodução (Pós-30 dias)</option>';
+  } else {
+    cycleContainer.classList.add('hidden');
+  }
+}
+
+// =========================================================================
+// 5.4.5 EXECUÇÃO DO PIPELINE COM CONTEXTO CLÍNICO COMPLETO
+// =========================================================================
+
+async function executeSmartPrescriptionGeneration() {
+  var generateBtn = document.getElementById('sp-generate-btn');
+  var originalBtnHTML = generateBtn ? generateBtn.innerHTML : null;
+  if (generateBtn) {
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg><span>Gerando...</span>';
+  }
+  try {
+    var p = activePatientData || {};
+    var ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
+    var mealCount = parseInt((document.getElementById('sp-meal-count') || {}).value || '4', 10);
+    var dietaryStyle = (document.getElementById('sp-dietary-style') || {}).value || 'tradicional';
+    var dietaryCycle = (document.getElementById('sp-dietary-cycle') || {}).value || '';
+    var includeSupplements = (document.getElementById('sp-include-supplements') || { checked: true }).checked !== false;
+    var targetWeight = parseFloat((document.getElementById('sp-target-weight') || {}).value) || null;
+    var targetFat = parseFloat((document.getElementById('sp-target-fat') || {}).value) || null;
+    var timeframeWeeks = parseInt((document.getElementById('sp-timeframe-weeks') || {}).value) || null;
+    var analysis = window._smartPrescAnalysis || {};
+    var pWeight = Number(ev.weight || p.currentWeight || p.weight || 70);
+    var rawH = ev.height || p.height || 175;
+    var numH = Number(rawH);
+    var pHeight = (numH > 0 && numH < 3.0) ? Math.round(numH * 100) : (numH || 175);
+    var obj = p.objective || ev.objective || 'Manutenção';
+    var patType = p.patientType || p.activityLevel || 'Praticante recreativo';
+    var canonicalTargets = resolveCanonicalPrescriptionTargets(p, ev, currentPrescriptionMeta);
+    if (!canonicalTargets || !Number.isFinite(canonicalTargets.caloricTargetKcal) || canonicalTargets.caloricTargetKcal <= 0 || !Number.isFinite(canonicalTargets.getKcal)) {
+      renderSmartPrescError('Metas clínicas canônicas não calculadas. Verifique antropometria e avaliação do paciente.');
+      return;
     }
 
+    var adjustedCaloricTarget = canonicalTargets.caloricTargetKcal;
+    if (targetWeight || targetFat || timeframeWeeks) {
+      var stratFuture = computeEnergeticStrategy(
+        { weightKg: pWeight, bodyFatPercent: ev.fatPercent || p.bodyFat },
+        { targetWeightKg: targetWeight, targetBodyFatPercent: targetFat, timeframeWeeks: timeframeWeeks },
+        canonicalTargets.getKcal
+      );
+      if (stratFuture.dailyDelta !== 0) adjustedCaloricTarget = Math.round(canonicalTargets.getKcal + stratFuture.dailyDelta);
+    }
+
+    var orchestrator = getCanonicalPrescriptionOrchestrator();
+    var adapters = getCanonicalPrescriptionAdapters();
+    if (!orchestrator || typeof orchestrator.executePrescriptionPipeline !== 'function' || !adapters) {
+      renderSmartPrescError('Pipeline Canônico (N3.7.1) indisponível. Verifique se todos os módulos de domínio estão carregados.');
+      return;
+    }
+
+    var foodCatalog = [];
+    if (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== 'undefined' && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS)) foodCatalog = COMPREHENSIVE_TACO_TBCA_FOODS;
+    else if (typeof window !== 'undefined' && Array.isArray(window.COMPREHENSIVE_TACO_TBCA_FOODS)) foodCatalog = window.COMPREHENSIVE_TACO_TBCA_FOODS;
+    else if (typeof require !== 'undefined') { try { foodCatalog = require('./foodsData').COMPREHENSIVE_TACO_TBCA_FOODS || []; } catch (_) {} }
+    var cfsrc = (typeof CANONICAL_DIET_FOODS !== 'undefined' ? CANONICAL_DIET_FOODS : (typeof window !== 'undefined' ? window.CANONICAL_DIET_FOODS : null));
+    if (cfsrc && typeof cfsrc === 'object') {
+      var cfl = Object.entries(cfsrc).map(function(entry) {
+        var k = entry[0], f = entry[1];
+        return { id: 'canon_' + k, foodId: 'canon_' + k, name: f.name, calories: f.calories, protein: f.protein, carbohydrate: f.carbohydrate, lipid: f.lipid, fiber: f.fiber || 0, sodium: f.sodium || 0, unit: f.defaultUnit || 'g', gramPerUnit: f.gramPerUnit || 100, source: f.source || 'TACO', prepState: f.prepState || null, category: f.category || 'Geral' };
+      });
+      foodCatalog = cfl.concat(foodCatalog);
+    }
+
+    var dr = analysis.dietaryRecall || {};
+    var trainingData = analysis.training || {};
+    var inputPrep = adapters.buildCanonicalPrescriptionInput({
+      patientData: {
+        patientId: activePatientId || 'patient_active',
+        name: p.name || 'Paciente',
+        weightKg: pWeight, heightCm: pHeight,
+        bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null),
+        leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null,
+        objective: obj, patientType: patType,
+        tmbKcal: canonicalTargets.tmbKcal, getKcal: canonicalTargets.getKcal,
+        caloricTargetKcal: adjustedCaloricTarget,
+        mealsPerDay: mealCount, mealCount: mealCount,
+        preferences: { mealFrequency: mealCount },
+        routine: {
+          wakeUpTime: trainingData.wakeUpTime || (document.getElementById('routineWakeUp') || {}).value || '07:00',
+          bedTime: trainingData.bedTime || (document.getElementById('routineBedTime') || {}).value || '23:00',
+          workoutTime: trainingData.workoutTime || (document.getElementById('routineWorkoutTime') || {}).value || null,
+          mealsPerDay: mealCount, mealCount: mealCount
+        },
+        weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : [],
+        dietaryRecall: { hasRecall: dr.hasRecall || false, itemsCount: dr.itemCount || 0, typicalMealTimes: dr.mealTimes || [], items: dr._rawItems || [] },
+        clinical: { exams: (analysis.clinicalExams || {}).exams || [], latestExamDate: null }
+      },
+      foodCatalog: foodCatalog,
+      options: { mealCount: mealCount, dietaryStyle: dietaryStyle, dietaryCycle: dietaryCycle, includeSupplements: includeSupplements }
+    });
+
+    if (!inputPrep.isValid) { renderSmartPrescError('Erro na validação de entrada:\n• ' + inputPrep.errors.join('\n• ')); return; }
+
+    var pipelineResult = await orchestrator.executePrescriptionPipeline(inputPrep.canonicalInput);
+    var adaptedOutput = adapters.adaptPrescriptionPipelineOutput(pipelineResult, { generatedAt: new Date().toISOString(), isClinicallyValidated: false, isStale: false });
+
+    if (pipelineResult.status === 'BLOCKED' && pipelineResult.foodSolverResult && pipelineResult.foodSolverResult.status === 'SEARCH_LIMIT_REACHED') {
+      renderSmartPrescError('Limite computacional do solver atingido (SEARCH_LIMIT_REACHED).\n\nNenhuma dieta foi salva. Reduza o catálogo ou o número de refeições e tente novamente.');
+      return;
+    }
+    if (pipelineResult.status === 'BLOCKED') { renderSmartPrescBlocked(pipelineResult); return; }
+
+    await savePrescriptionWithFirewall(activePatientId, adaptedOutput.items, adaptedOutput.meta);
+    renderSmartPrescSuccess(pipelineResult, adaptedOutput, mealCount, analysis);
+    updateAIPrescriptionBanner();
+    renderPrescriptionTotals();
+    renderMealItems();
+
+  } catch (err) {
+    console.error('[executeSmartPrescriptionGeneration]', err);
+    renderSmartPrescError('Erro inesperado: ' + (err && err.message ? err.message : String(err)) + '\n\nNenhuma dieta foi salva.');
+  } finally {
+    if (generateBtn && originalBtnHTML !== null) { generateBtn.disabled = false; generateBtn.innerHTML = originalBtnHTML; }
+  }
+}
+
+function renderSmartPrescSuccess(pipelineResult, adaptedOutput, mealCount, analysis) {
+  var inner = document.getElementById('smart-presc-inner');
+  if (!inner) return;
+  var warnings = pipelineResult.warnings || [];
+  var status = pipelineResult.status || 'PASS';
+  var gates = ((pipelineResult.globalValidationResult || {}).gateResults || []);
+  var passedGates = gates.filter(function(g) { return g.status === 'PASS'; }).length;
+  var items = adaptedOutput.items || [];
+  var totalKcal = Math.round(items.reduce(function(s, i) { return s + (i.kcal || 0); }, 0));
+  var totalProt = Math.round(items.reduce(function(s, i) { return s + (i.protein || 0); }, 0));
+  var totalCarb = Math.round(items.reduce(function(s, i) { return s + (i.carb || i.carbohydrate || 0); }, 0));
+  var totalLip = Math.round(items.reduce(function(s, i) { return s + (i.lipid || i.fat || 0); }, 0));
+  var prevKcal = (analysis.previousPrescription || {}).kcal;
+  var deltaKcal = prevKcal != null ? totalKcal - prevKcal : null;
+
+  inner.innerHTML = [
+    '<div class="p-6 space-y-5">',
+    '<div class="flex items-center gap-4">',
+    '<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shrink-0">',
+    '<svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>',
+    '<div class="flex-1"><h2 class="text-white font-black text-lg">Dieta Canônica Gerada com Sucesso</h2>',
+    '<p class="text-zinc-400 text-sm">Status N3.6: <span class="font-bold ' + (status === 'PASS' ? 'text-emerald-400' : 'text-amber-400') + '">' + status + '</span>' + (gates.length > 0 ? ' • ' + passedGates + '/' + gates.length + ' portões aprovados' : '') + '</p></div>',
+    '<button onclick="document.getElementById(\'smart-prescription-modal\').remove()" class="text-zinc-500 hover:text-white p-1.5 hover:bg-zinc-800 rounded-lg shrink-0"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div>',
+    '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-3">Composição Nutricional</h3>',
+    '<div class="grid grid-cols-4 gap-2 mb-2">',
+    '<div class="text-center p-2 bg-orange-950/40 border border-orange-800/30 rounded-lg"><div class="text-orange-300 font-black text-xl">' + totalKcal + '</div><div class="text-zinc-500 text-xs">kcal</div></div>',
+    '<div class="text-center p-2 bg-red-950/40 border border-red-800/30 rounded-lg"><div class="text-red-300 font-black text-xl">' + totalProt + 'g</div><div class="text-zinc-500 text-xs">Proteína</div></div>',
+    '<div class="text-center p-2 bg-yellow-950/40 border border-yellow-800/30 rounded-lg"><div class="text-yellow-300 font-black text-xl">' + totalCarb + 'g</div><div class="text-zinc-500 text-xs">Carb</div></div>',
+    '<div class="text-center p-2 bg-purple-950/40 border border-purple-800/30 rounded-lg"><div class="text-purple-300 font-black text-xl">' + totalLip + 'g</div><div class="text-zinc-500 text-xs">Gordura</div></div>',
+    '</div>',
+    (deltaKcal != null ? '<p class="text-center text-zinc-500 text-xs">vs anterior: ' + (deltaKcal > 0 ? '+' : '') + deltaKcal + ' kcal</p>' : ''),
+    '<p class="text-center text-zinc-500 text-xs mt-1">' + mealCount + ' refeições • ' + items.length + ' alimentos selecionados</p></div>',
+    (warnings.length > 0 ? '<div class="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4"><h3 class="text-amber-400 font-semibold text-xs uppercase tracking-widest mb-2">⚡ Alertas Clínicos</h3><div class="space-y-1 max-h-28 overflow-y-auto">' + warnings.slice(0, 5).map(function(w) { return '<p class="text-amber-200 text-xs">' + w + '</p>'; }).join('') + (warnings.length > 5 ? '<p class="text-amber-500 text-xs">+ ' + (warnings.length - 5) + ' alertas</p>' : '') + '</div></div>' : ''),
+    '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-300 font-semibold text-sm mb-2">⚠️ Próximos Passos</h3><ul class="space-y-1 text-xs text-zinc-400"><li class="flex gap-2"><span class="text-amber-400">1.</span>Revise os alimentos na aba Prescrição</li><li class="flex gap-2"><span class="text-amber-400">2.</span>Clique em <strong class="text-white">"Validar e Assinar Prescrição"</strong></li><li class="flex gap-2"><span class="text-amber-400">3.</span>Envie via WhatsApp ou exporte PDF</li></ul></div>',
+    '<div class="flex gap-3 pt-1">',
+    '<button onclick="document.getElementById(\'smart-prescription-modal\').remove()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 px-4 rounded-xl text-sm">Ver Prescrição</button>',
+    '<button onclick="approveAIPrescription(); document.getElementById(\'smart-prescription-modal\').remove();" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 px-4 rounded-xl text-sm shadow-xl">✅ Validar e Assinar</button>',
+    '</div></div>'
+  ].join('');
+}
+
+function renderSmartPrescBlocked(pipelineResult) {
+  var inner = document.getElementById('smart-presc-inner');
+  if (!inner) return;
+  var reasons = pipelineResult.blockingReasons || ['Portão clínico bloqueante violado.'];
+  inner.innerHTML = [
+    '<div class="p-6 space-y-5">',
+    '<div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center shadow-lg shrink-0">',
+    '<svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></div>',
+    '<div><h2 class="text-white font-black text-lg">Prescrição Bloqueada</h2><p class="text-red-400 text-sm">Portão clínico N3.6 reprovado</p></div></div>',
+    '<div class="bg-red-950/40 border border-red-800/50 rounded-xl p-4 space-y-2"><h3 class="text-red-400 font-semibold text-xs uppercase tracking-widest mb-1">Motivos do Bloqueio</h3>',
+    reasons.map(function(r) { return '<p class="text-red-200 text-sm">• ' + r + '</p>'; }).join(''),
+    '</div><div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><p class="text-zinc-400 text-xs">Esta dieta <strong class="text-white">NÃO FOI SALVA</strong>. Revise os dados do paciente e tente novamente.</p></div>',
+    '<div class="flex gap-3">',
+    '<button onclick="document.getElementById(\'smart-prescription-modal\').remove()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 rounded-xl text-sm">Fechar</button>',
+    '<button onclick="openSmartPrescriptionModal()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-3 rounded-xl text-sm">Tentar Novamente</button>',
+    '</div></div>'
+  ].join('');
+}
+
+function renderSmartPrescError(message) {
+  var inner = document.getElementById('smart-presc-inner');
+  if (inner) {
+    inner.innerHTML = [
+      '<div class="p-6 space-y-4">',
+      '<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-amber-900/60 flex items-center justify-center shrink-0">',
+      '<svg class="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>',
+      '<h2 class="text-white font-bold text-base">Erro na Geração</h2></div>',
+      '<div class="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4"><p class="text-amber-200 text-sm whitespace-pre-line">' + (message || 'Erro desconhecido') + '</p></div>',
+      '<div class="flex gap-3">',
+      '<button onclick="document.getElementById(\'smart-prescription-modal\').remove()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 rounded-xl text-sm">Fechar</button>',
+      '<button onclick="openSmartPrescriptionModal()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-3 rounded-xl text-sm">Tentar Novamente</button>',
+      '</div></div>'
+    ].join('');
+  } else {
+    alert('Erro: ' + message);
+  }
+}
+
+// =========================================================================
+// 5.4.6 COMPATIBILIDADE LEGACY: executeAIPrescriptionGeneration
+// Mantido para compatibilidade com o modal antigo aiPrescriptionModal
+// =========================================================================
+
+async function executeAIPrescriptionGeneration() {
+  var generateBtn = document.getElementById('btnGenerateAIPrescription') || document.querySelector('[onclick*="executeAIPrescription"]');
+  var originalBtnHTML = generateBtn ? generateBtn.innerHTML : null;
+  if (generateBtn) { generateBtn.disabled = true; generateBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Gerando...</span>'; }
+  try {
+    var p = activePatientData || {};
+    var ev = (typeof lastEval !== 'undefined' && lastEval) ? lastEval : {};
+    var pWeight = Number(ev.weight || p.currentWeight || p.weight || (document.getElementById("evalWeight") || {}).value || 70.0);
+    var rawH = ev.height || p.height || (document.getElementById("evalHeight") || {}).value || 175;
+    var numH = Number(rawH);
+    var pHeight = (numH > 0 && numH < 3.0) ? Math.round(numH * 100) : (numH || 175);
+    var obj = p.objective || ev.objective || (document.getElementById("anamneseObjective") || {}).value || "Perda de peso";
+    var patType = p.patientType || p.activityLevel || (document.getElementById("anamnesePatientType") || {}).value || "Praticante recreativo";
+    var canonicalTargets = resolveCanonicalPrescriptionTargets(activePatientData, typeof lastEval !== 'undefined' ? lastEval : null, currentPrescriptionMeta);
+    if (!canonicalTargets || !Number.isFinite(canonicalTargets.caloricTargetKcal) || canonicalTargets.caloricTargetKcal <= 0 || !Number.isFinite(canonicalTargets.getKcal)) { alert("Metas clínicas canônicas não puderam ser resolvidas. Verifique dados do paciente."); return; }
+    var mealCount = parseInt((document.getElementById("aiMealCountSelect") || {}).value || "4", 10);
+    var dietaryStyle = (document.getElementById("aiDietaryStyleSelect") || {}).value || "tradicional";
+    var dietaryCycle = (document.getElementById("aiDietaryCycleSelect") || {}).value || "";
+    var includeSupplements = (document.getElementById("aiIncludeSupplementsCheck") || { checked: true }).checked !== false;
+    var orchestrator = getCanonicalPrescriptionOrchestrator();
+    var adapters = getCanonicalPrescriptionAdapters();
+    if (!orchestrator || typeof orchestrator.executePrescriptionPipeline !== 'function' || !adapters) { alert("Pipeline Canônico indisponível."); return; }
+    var foodCatalog = [];
+    if (typeof COMPREHENSIVE_TACO_TBCA_FOODS !== 'undefined' && Array.isArray(COMPREHENSIVE_TACO_TBCA_FOODS)) foodCatalog = COMPREHENSIVE_TACO_TBCA_FOODS;
+    else if (typeof window !== 'undefined' && Array.isArray(window.COMPREHENSIVE_TACO_TBCA_FOODS)) foodCatalog = window.COMPREHENSIVE_TACO_TBCA_FOODS;
+    else if (typeof require !== 'undefined') { try { foodCatalog = require('./foodsData').COMPREHENSIVE_TACO_TBCA_FOODS || []; } catch (_) {} }
+    var cfs2 = (typeof CANONICAL_DIET_FOODS !== 'undefined' ? CANONICAL_DIET_FOODS : (typeof window !== 'undefined' ? window.CANONICAL_DIET_FOODS : null));
+    if (cfs2 && typeof cfs2 === 'object') { var cfl2 = Object.entries(cfs2).map(function(entry) { var k = entry[0], f = entry[1]; return { id: 'canon_' + k, foodId: 'canon_' + k, name: f.name, calories: f.calories, protein: f.protein, carbohydrate: f.carbohydrate, lipid: f.lipid, fiber: f.fiber || 0, sodium: f.sodium || 0, unit: f.defaultUnit || 'g', gramPerUnit: f.gramPerUnit || 100, source: f.source || 'TACO', prepState: f.prepState || null, category: f.category || 'Geral' }; }); foodCatalog = cfl2.concat(foodCatalog); }
+    var inputPrep = adapters.buildCanonicalPrescriptionInput({ patientData: { patientId: activePatientId || 'patient_active', name: (activePatientData && activePatientData.name) || 'Paciente', weightKg: pWeight, heightCm: pHeight, bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null), leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null, objective: obj, patientType: patType, tmbKcal: canonicalTargets.tmbKcal, getKcal: canonicalTargets.getKcal, caloricTargetKcal: canonicalTargets.caloricTargetKcal, mealsPerDay: mealCount, mealCount: mealCount, preferences: { mealFrequency: mealCount }, routine: { wakeUpTime: (document.getElementById("routineWakeUp") || {}).value || "07:00", bedTime: (document.getElementById("routineBedTime") || {}).value || "23:00", workoutTime: (document.getElementById("routineWorkoutTime") || {}).value || null, mealsPerDay: mealCount, mealCount: mealCount }, weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : [] }, foodCatalog: foodCatalog, options: { mealCount: mealCount, dietaryStyle: dietaryStyle, dietaryCycle: dietaryCycle, includeSupplements: includeSupplements } });
+    if (!inputPrep.isValid) { alert('Erro de validação:\n• ' + inputPrep.errors.join('\n• ')); return; }
+    var pipelineResult = await orchestrator.executePrescriptionPipeline(inputPrep.canonicalInput);
+    var adaptedOutput = adapters.adaptPrescriptionPipelineOutput(pipelineResult, { generatedAt: new Date().toISOString(), isClinicallyValidated: false, isStale: false });
+    var solverResult = pipelineResult.foodSolverResult;
+    if (pipelineResult.status === 'BLOCKED' && solverResult && solverResult.status === 'SEARCH_LIMIT_REACHED') { alert('Limite Computacional (SEARCH_LIMIT_REACHED). Nenhuma dieta salva.'); return; }
+    if (pipelineResult.status === 'BLOCKED') { alert('Prescrição BLOQUEADA (N3.6)!\n• ' + pipelineResult.blockingReasons.join('\n• ')); return; }
+    await savePrescriptionWithFirewall(activePatientId, adaptedOutput.items, adaptedOutput.meta);
+    closeAIPrescriptionModal(); updateAIPrescriptionBanner(); renderPrescriptionTotals(); renderMealItems();
+    if (pipelineResult.status === 'WARNING') { alert('Dieta gerada com alertas (WARNING). Requer validação clínica.'); return; }
+    alert('Dieta Canônica Gerada (PASS). Requer validação e assinatura clínica.');
+  } catch (err) {
+    console.error('[executeAIPrescriptionGeneration]', err);
+    alert('Erro inesperado: ' + (err && err.message ? err.message : String(err)));
+  } finally {
+    if (generateBtn && originalBtnHTML !== null) { generateBtn.disabled = false; generateBtn.innerHTML = originalBtnHTML; }
+  }
+}
+
+// =========================================================================
+// 5.4.7 BANNER DE STATUS E APROVAÇÃO CLÍNICA
+// =========================================================================
+
+function updateAIPrescriptionBanner() {
+  var banner = document.getElementById("prescribedAIGeneratedBanner");
+  var badge = document.getElementById("aiPrescriptionStatusBadge");
+  var btnApprove = document.getElementById("btnApproveAIPrescription");
+  if (!banner) return;
+  if (currentPrescriptionMeta && currentPrescriptionMeta.isAIGenerated) {
+    banner.classList.remove("hidden");
+    var vReport = currentPrescriptionMeta.validationReport || {};
+    if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || vReport.status === 'BLOCKED') {
+      if (badge) { badge.className = "bg-red-950 text-red-300 border border-red-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = "🚫 Status: Bloqueado (Violou Portões Clínicos N3.6)"; }
+      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="shield-alert" class="w-4 h-4 text-red-400"></i> <span>Aprovação Bloqueada</span>'; }
+    } else if (currentPrescriptionMeta.isStale) {
+      if (badge) { badge.className = "bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = '⚠️ Modificado (' + (currentPrescriptionMeta.staleReason || 'Edição') + ')'; }
+      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i> <span>Revalidação Necessária</span>'; }
+    } else if (currentPrescriptionMeta.isClinicallyValidated) {
+      var vS = currentPrescriptionMeta.validationStatus || 'PASS';
+      if (badge) { badge.className = "bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = '✅ Validado e Assinado (N3.6: ' + vS + ')'; }
+      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-400 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-default"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> <span>Prescrição Validada</span>'; }
+    } else {
+      var vS2 = currentPrescriptionMeta.validationStatus || 'PASS';
+      if (badge) { badge.className = vS2 === 'WARNING' ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider" : "bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = '⚠️ Requer Validação Clínica (N3.6: ' + vS2 + ')'; }
+      if (btnApprove) { btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer"; btnApprove.disabled = false; btnApprove.innerHTML = '<i data-lucide="check-check" class="w-4 h-4"></i> <span>Validar e Assinar Prescrição</span>'; }
+    }
     if (window.lucide) window.lucide.createIcons();
   } else {
     banner.classList.add("hidden");
@@ -3424,51 +4014,43 @@ function updateAIPrescriptionBanner() {
 }
 
 async function approveAIPrescription() {
-  if (!currentPrescriptionItems || currentPrescriptionItems.length === 0) {
-    alert("Não é possível validar uma prescrição sem alimentos.");
-    return;
-  }
-
-  if (!currentPrescriptionMeta) {
-    alert("Metadados da prescrição ausentes.");
-    return;
-  }
-
-  if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || currentPrescriptionMeta.validationReport?.status === 'BLOCKED') {
-    alert("🚫 Prescrição BLOQUEADA pelo N3.6!\nNão é permitido aprovar uma prescrição que violou portões clínicos bloqueantes.");
-    return;
-  }
-
-  if (currentPrescriptionMeta.isStale === true) {
-    alert(`⚠️ Prescrição Obsoleta (${currentPrescriptionMeta.staleReason || 'EDIÇÃO_MANUAL'})!\nA prescrição sofreu alterações manuais materiais e perdeu a validação anterior. É necessária nova geração/validação.`);
-    return;
-  }
-
-  // N3.7 Integridade de Validação: verificação de Content Fingerprint antes da assinatura clínica
-  const expectedFingerprint = currentPrescriptionMeta.validatedContentFingerprint ||
-    (currentPrescriptionMeta.validationReport && currentPrescriptionMeta.validationReport.validatedContentFingerprint);
-  if (!expectedFingerprint || typeof expectedFingerprint !== 'string') {
-    alert("🚫 Falha de Integridade!\nA prescrição não possui fingerprint de validação canônica N3.6. É necessária nova validação antes da aprovação clínica.");
-    return;
-  }
-
-  const currentFingerprint = computePrescriptionContentFingerprint(currentPrescriptionItems);
-  if (currentFingerprint !== expectedFingerprint) {
-    alert("🚫 Violação de Integridade Clínica!\nO conteúdo atual dos alimentos difere do conteúdo que foi validado pelo N3.6. É necessária nova validação.");
-    return;
-  }
-
+  if (!currentPrescriptionItems || currentPrescriptionItems.length === 0) { alert("Não é possível validar uma prescrição sem alimentos."); return; }
+  if (!currentPrescriptionMeta) { alert("Metadados da prescrição ausentes."); return; }
+  var vReport = currentPrescriptionMeta.validationReport || {};
+  if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || vReport.status === 'BLOCKED') { alert("🚫 Prescrição BLOQUEADA pelo N3.6! Aprovação impossível."); return; }
+  if (currentPrescriptionMeta.isStale === true) { alert('⚠️ Prescrição Obsoleta (' + (currentPrescriptionMeta.staleReason || 'EDIÇÃO_MANUAL') + ')! Gere novamente.'); return; }
+  var expectedFP = currentPrescriptionMeta.validatedContentFingerprint || (vReport && vReport.validatedContentFingerprint);
+  if (!expectedFP || typeof expectedFP !== 'string') { alert("🚫 Sem fingerprint de validação N3.6. Gere novamente."); return; }
+  var currentFP = computePrescriptionContentFingerprint(currentPrescriptionItems);
+  if (currentFP !== expectedFP) { alert("🚫 Violação de Integridade! Conteúdo alterado desde a validação. Gere novamente."); return; }
   currentPrescriptionMeta.isClinicallyValidated = true;
   currentPrescriptionMeta.validatedAt = new Date().toISOString();
   currentPrescriptionMeta.isStale = false;
   currentPrescriptionMeta.staleReason = null;
-  currentPrescriptionMeta.validatedContentFingerprint = expectedFingerprint;
-
+  currentPrescriptionMeta.validatedContentFingerprint = expectedFP;
   await savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
-
   updateAIPrescriptionBanner();
-  alert("✅ Prescrição Clínica Aprovada e Validada com Sucesso!\nStatus atualizado para os relatórios clínicos e habilitada para sincronização.");
+  alert("✅ Prescrição Clínica Aprovada e Validada com Sucesso!\nStatus atualizado para relatórios clínicos e sincronização.");
 }
+
+// Exportar para escopo global
+if (typeof window !== 'undefined') {
+  window.openAIPrescriptionModal = openAIPrescriptionModal;
+  window.closeAIPrescriptionModal = closeAIPrescriptionModal;
+  window.openSmartPrescriptionModal = openSmartPrescriptionModal;
+  window.switchSmartPrescTab = switchSmartPrescTab;
+  window.onSpDietaryStyleChanged = onSpDietaryStyleChanged;
+  window.executeSmartPrescriptionGeneration = executeSmartPrescriptionGeneration;
+  window.executeAIPrescriptionGeneration = executeAIPrescriptionGeneration;
+  window.analyzePatientContextForPrescription = analyzePatientContextForPrescription;
+  window.resolveClinicPoliciesFromExams = resolveClinicPoliciesFromExams;
+  window.computeEnergeticStrategy = computeEnergeticStrategy;
+  window.renderSmartPrescSuccess = renderSmartPrescSuccess;
+  window.renderSmartPrescBlocked = renderSmartPrescBlocked;
+  window.renderSmartPrescError = renderSmartPrescError;
+}
+
+
 
 // =========================================================================
 // 5.5 ENVIO DA PRESCRIÇÃO VIA WHATSAPP COM MENSAGEM PADRONIZADA
