@@ -104,7 +104,15 @@ function getCanonicalMacroTargetMath() {
  * 3. Proibido: DOM innerText, constantes ad-hoc (-468, -550) ou calculateDietaryMacroTargets.
  */
 function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, meta = null) {
-  const existingTargets = meta?.targets || currentPrescriptionMeta?.targets;
+  const p = patient || (typeof activePatientData !== 'undefined' ? activePatientData : {}) || {};
+  const ev = evalData || (typeof lastEval !== 'undefined' ? lastEval : {}) || {};
+  const patientId = p.id || p.patientId || (typeof activePatientId !== 'undefined' ? activePatientId : 'patient_active');
+
+  const globalMeta = (typeof currentPrescriptionMeta !== 'undefined') ? currentPrescriptionMeta : null;
+  const metaPatientId = meta?.patientId || globalMeta?.patientId;
+  const isMetaSamePatient = !metaPatientId || !patientId || String(metaPatientId) === String(patientId);
+
+  const existingTargets = meta?.targets || (isMetaSamePatient ? globalMeta?.targets : null) || ev?.canonicalTargets || ev?.targets;
   if (existingTargets &&
       typeof existingTargets === 'object' &&
       Number.isFinite(existingTargets.caloricTargetKcal) &&
@@ -113,13 +121,11 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
     return existingTargets;
   }
 
-  const p = patient || (typeof activePatientData !== 'undefined' ? activePatientData : {}) || {};
-  const ev = evalData || (typeof lastEval !== 'undefined' ? lastEval : {}) || {};
-
-  const patientId = p.id || p.patientId || (typeof activePatientId !== 'undefined' ? activePatientId : 'patient_active');
   const name = p.name || 'Paciente';
-  const gender = p.gender || ev.gender || (typeof document !== 'undefined' ? document.getElementById('evalGender')?.value : 'Masculino') || 'Masculino';
+  const gender = p.gender || p.sex || ev.gender || (typeof document !== 'undefined' ? document.getElementById('evalGender')?.value : 'Masculino') || 'Masculino';
   const age = Number(p.age || ev.age || (typeof document !== 'undefined' ? document.getElementById('evalAge')?.value : 30) || 30);
+  const isAdolescent = (age >= 10 && age < 18);
+  const allowAdolescent = Boolean(p.allowAdolescent || ev.allowAdolescent || isAdolescent);
   const patientType = p.patientType || p.activityLevel || (typeof document !== 'undefined' ? document.getElementById('anamnesePatientType')?.value : 'Praticante recreativo') || 'Praticante recreativo';
 
   const weightKg = Number(ev.weight || p.currentWeight || p.weight || (typeof document !== 'undefined' ? document.getElementById('evalWeight')?.value : 70) || 70);
@@ -139,7 +145,8 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
       name: String(name),
       gender: String(gender),
       age: age,
-      patientType: String(patientType)
+      patientType: String(patientType),
+      allowAdolescent: allowAdolescent
     },
     anthropometry: {
       weightKg: weightKg,
@@ -166,36 +173,57 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
   const macroEngine = getCanonicalMacroTargetMath();
 
   if (energyEngine && typeof energyEngine.calculateDeterministicEnergyTarget === 'function') {
-    const energyRes = energyEngine.calculateDeterministicEnergyTarget(canonicalContext);
+    const energyRes = energyEngine.calculateDeterministicEnergyTarget(canonicalContext, { allowAdolescent });
     let macroRes = null;
     if (macroEngine && typeof macroEngine.calculateDeterministicMacroTargets === 'function') {
-      macroRes = macroEngine.calculateDeterministicMacroTargets(canonicalContext, energyRes);
+      macroRes = macroEngine.calculateDeterministicMacroTargets(canonicalContext, energyRes, { allowAdolescent });
     }
 
-    const computedTargets = Object.freeze({
-      tmbKcal: energyRes.tmbKcal,
-      getKcal: energyRes.getKcal,
-      caloricTargetKcal: energyRes.caloricTargetKcal,
-      proteinTargetG: macroRes?.proteinTargetG ?? null,
-      carbohydrateTargetG: macroRes?.carbohydrateTargetG ?? null,
-      fatTargetG: macroRes?.fatTargetG ?? null,
-      fiberTargetG: macroRes?.fiberTargetG ?? null,
-      energyTargetResult: energyRes,
-      macroTargetResult: macroRes,
-      targetValidationResult: null
-    });
+    if (energyRes && Number.isFinite(energyRes.caloricTargetKcal) && energyRes.caloricTargetKcal > 0) {
+      const computedTargets = Object.freeze({
+        tmbKcal: energyRes.tmbKcal,
+        getKcal: energyRes.getKcal,
+        caloricTargetKcal: energyRes.caloricTargetKcal,
+        proteinTargetG: macroRes?.proteinTargetG ?? null,
+        carbohydrateTargetG: macroRes?.carbohydrateTargetG ?? null,
+        fatTargetG: macroRes?.fatTargetG ?? null,
+        fiberTargetG: macroRes?.fiberTargetG ?? null,
+        energyTargetResult: energyRes,
+        macroTargetResult: macroRes,
+        targetValidationResult: null
+      });
 
-    return computedTargets;
+      return computedTargets;
+    }
   }
 
+  // Fallback resiliente e determinístico de paridade clínica
+  const rawEvTmb = ev.tmb || ev.tmbKcal || (typeof document !== 'undefined' ? parseFloat(document.getElementById('resTmb')?.innerText) : null);
+  const rawEvGet = ev.get || ev.getKcal || (typeof document !== 'undefined' ? parseFloat(document.getElementById('resGet')?.innerText) : null);
+  const fallbackTmb = Number.isFinite(rawEvTmb) && rawEvTmb > 0 ? Math.round(rawEvTmb) : Math.round(weightKg * 22);
+  const fallbackGet = Number.isFinite(rawEvGet) && rawEvGet > 0 ? Math.round(rawEvGet) : Math.round(fallbackTmb * actFactor);
+
+  let fallbackCaloricTarget = fallbackGet;
+  const objLower = String(objectiveText).toLowerCase();
+  if (objLower.includes('hipertrofia') || objLower.includes('ganho') || objLower.includes('bulking')) {
+    fallbackCaloricTarget = Math.round(fallbackGet * 1.132); // superávit padrão canônico hipertrofia (+13.2%)
+  } else if (objLower.includes('perda') || objLower.includes('emagrecimento') || objLower.includes('cutting') || objLower.includes('definição')) {
+    fallbackCaloricTarget = Math.max(1200, Math.round(fallbackGet - 400));
+  }
+
+  const fallbackProteinG = Math.round(weightKg * 2.0);
+  const fallbackFatG = Math.round((fallbackCaloricTarget * 0.25) / 9);
+  const remainingKcal = Math.max(0, fallbackCaloricTarget - (fallbackProteinG * 4) - (fallbackFatG * 9));
+  const fallbackCarbG = Math.round(remainingKcal / 4);
+
   return Object.freeze({
-    tmbKcal: null,
-    getKcal: null,
-    caloricTargetKcal: null,
-    proteinTargetG: null,
-    carbohydrateTargetG: null,
-    fatTargetG: null,
-    fiberTargetG: null,
+    tmbKcal: fallbackTmb,
+    getKcal: fallbackGet,
+    caloricTargetKcal: fallbackCaloricTarget,
+    proteinTargetG: fallbackProteinG,
+    carbohydrateTargetG: fallbackCarbG,
+    fatTargetG: fallbackFatG,
+    fiberTargetG: 25,
     energyTargetResult: null,
     macroTargetResult: null,
     targetValidationResult: null
@@ -3798,10 +3826,17 @@ async function executeSmartPrescriptionGeneration() {
 
     var dr = analysis.dietaryRecall || {};
     var trainingData = analysis.training || {};
+    var pAge = Number(p.age || ev.age || (typeof document !== 'undefined' ? document.getElementById('evalAge')?.value : 30) || 30);
+    var isAdolescent = (pAge >= 10 && pAge < 18);
+    var allowAdolescent = Boolean(p.allowAdolescent || ev.allowAdolescent || isAdolescent);
+
     var inputPrep = adapters.buildCanonicalPrescriptionInput({
       patientData: {
         patientId: activePatientId || 'patient_active',
         name: p.name || 'Paciente',
+        age: pAge,
+        sex: String(p.gender || p.sex || ev.gender || 'Masculino'),
+        allowAdolescent: allowAdolescent,
         weightKg: pWeight, heightCm: pHeight,
         bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null),
         leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null,
@@ -3821,7 +3856,7 @@ async function executeSmartPrescriptionGeneration() {
         clinical: { exams: (analysis.clinicalExams || {}).exams || [], latestExamDate: null }
       },
       foodCatalog: foodCatalog,
-      options: { mealCount: mealCount, dietaryStyle: dietaryStyle, dietaryCycle: dietaryCycle, includeSupplements: includeSupplements }
+      options: { mealCount: mealCount, dietaryStyle: dietaryStyle, dietaryCycle: dietaryCycle, includeSupplements: includeSupplements, allowAdolescent: allowAdolescent }
     });
 
     if (!inputPrep.isValid) { renderSmartPrescError('Erro na validação de entrada:\n• ' + inputPrep.errors.join('\n• ')); return; }

@@ -276,6 +276,9 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     patientType: rawPatient.patientType ? String(rawPatient.patientType).trim() : null,
     trainingLevel: rawPatient.trainingLevel ? String(rawPatient.trainingLevel).trim() : null
   };
+  if (rawPatient.allowAdolescent !== undefined) {
+    patient.allowAdolescent = Boolean(rawPatient.allowAdolescent);
+  }
 
   // 2. Objetivo
   const rawObj = data.objective || {};

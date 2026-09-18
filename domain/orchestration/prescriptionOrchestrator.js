@@ -238,9 +238,17 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   // ═══════════════════════════════════════════════════════════════════════════
   // ETAPA 2: N2.1 — DETERMINISTIC ENERGY TARGET
   // ═══════════════════════════════════════════════════════════════════════════
+  const allowAdolescent = Boolean(
+    options.allowAdolescent ||
+    policies.allowAdolescent ||
+    currentContext?.patient?.allowAdolescent
+  );
+
   try {
     energyTargetResult = calculateDeterministicEnergyTarget(currentContext, {
-      policy: policies.energyPolicy
+      policy: policies.energyPolicy,
+      allowAdolescent,
+      ...(options || {})
     });
   } catch (err) {
     const reasons = [err.message || 'Erro inesperado no cálculo da meta energética N2.1.'];
@@ -302,6 +310,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       policy: policies.macroPolicy,
       dietaryStyle: options.dietaryStyle || currentContext.options?.dietaryStyle,
       dietaryCycle: options.dietaryCycle || currentContext.options?.dietaryCycle,
+      allowAdolescent,
       ...(options || {})
     });
   } catch (err) {
@@ -373,7 +382,10 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       currentContext,
       effectiveEnergyTarget,
       macroTargetResult,
-      nutritionValidationOptions
+      {
+        ...nutritionValidationOptions,
+        allowAdolescent
+      }
     );
   } catch (err) {
     const reasons = [err.message || 'Erro inesperado na validação de metas N2.3.'];

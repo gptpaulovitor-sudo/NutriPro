@@ -466,8 +466,11 @@ function adaptPatientContext(rawPatientData) {
     energy: { source: 'runtime_energy_calc', recordId: null, reliability: 'CANONICAL' }
   };
 
+  const isAdolescent = (typeof age === 'number' && age >= 10 && age < 18);
+  const allowAdolescent = Boolean(rawPatientData.allowAdolescent || (rawPatientData.patient && rawPatientData.patient.allowAdolescent) || isAdolescent);
+
   const contextData = {
-    patient: { patientId, name, age, sex, trainingLevel, patientType },
+    patient: { patientId, name, age, sex, trainingLevel, patientType, allowAdolescent },
     anthropometry: { weightKg, heightCm, bodyFatPercent, leanMassKg, hasRecentAssessment: true },
     objective,
     energy,
@@ -580,12 +583,21 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
   // GAP 1: Janela peri-treino canônica (150 min por padrão N3.5)
   const periWorkoutWindowMinutes = Number(rawOptions.periWorkoutWindowMinutes) || CANONICAL_PERI_WORKOUT_WINDOW_MINUTES;
 
+  const isAdolescentPatient = Boolean(
+    (typeof resolvedContext?.patient?.age === 'number' && resolvedContext.patient.age >= 10 && resolvedContext.patient.age < 18) ||
+    resolvedContext?.patient?.allowAdolescent ||
+    rawOptions.allowAdolescent ||
+    rawInput.allowAdolescent
+  );
+  const allowAdolescent = Boolean(rawOptions.allowAdolescent || rawInput.allowAdolescent || resolvedContext?.patient?.allowAdolescent || isAdolescentPatient);
+
   const canonicalOptions = {
     mealCount: mealCountRes.mealCount,
     dietaryStyle: String(rawOptions.dietaryStyle || 'tradicional').trim(),
     dietaryCycle: String(rawOptions.dietaryCycle || '').trim(),
     includeSupplements: rawOptions.includeSupplements !== false,
-    periWorkoutWindowMinutes
+    periWorkoutWindowMinutes,
+    allowAdolescent
   };
 
   // 4. Políticas canônicas

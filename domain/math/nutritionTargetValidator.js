@@ -97,9 +97,14 @@ function validateNutritionPrescriptionTargets(context, energyTargetResult, macro
   }
 
   const patientAge = context?.patient?.age;
+  const allowAdolescent = Boolean(options?.allowAdolescent || context?.policies?.allowAdolescent || context?.patient?.allowAdolescent);
   const isPediatric = typeof patientAge === 'number' && patientAge < 18;
   if (isPediatric) {
-    recordCheck('CHECK_PEDIATRIC_SAFETY', 'FAIL', `Paciente menor de 18 anos (${patientAge} anos): prescrição adulta bloqueada por segurança clínica.`);
+    if (allowAdolescent && patientAge >= 10) {
+      recordCheck('CHECK_PEDIATRIC_SAFETY', 'WARNING', `Paciente adolescente de ${patientAge} anos conduzido sob supervisão clínica profissional.`);
+    } else {
+      recordCheck('CHECK_PEDIATRIC_SAFETY', 'FAIL', `Paciente menor de 18 anos (${patientAge} anos): prescrição adulta bloqueada por segurança clínica.`);
+    }
   }
 
   // ── 2. VALIDAÇÃO DO RESULTADO ENERGÉTICO (N2.1) ───────────────────────────

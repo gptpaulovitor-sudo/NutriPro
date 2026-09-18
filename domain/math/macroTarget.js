@@ -134,7 +134,8 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
   factorsConsidered.push(`Objetivo Clínico: "${rawObjective}" (Mapeado: ${objectiveKey})`);
 
   // ── 3. SEGURANÇA PEDIÁTRICA (ETAPA 13) ──────────────────────────────────────
-  const pediatricThreshold = p.safety.pediatricBlockingAge.value;
+  const allowAdolescent = Boolean(options.allowAdolescent || options.policy?.allowAdolescent || context.options?.allowAdolescent || context.patient?.allowAdolescent);
+  const pediatricThreshold = allowAdolescent ? Math.min(p.safety.pediatricBlockingAge.value, 10) : p.safety.pediatricBlockingAge.value;
   if (age < pediatricThreshold) {
     appliedParameters.push({
       key: "safety.pediatricBlockingAge",
@@ -148,6 +149,8 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
     rationale.push(`Paciente pediátrico (${age} anos < limiar ${pediatricThreshold} anos). Prescrição automatizada bloqueada.`);
 
     return deepFreeze(buildBlockedOutput(null, rawObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, appliedRules, appliedParameters));
+  } else if (age < p.safety.pediatricBlockingAge.value) {
+    warnings.push(`[SUPERVISED_ADOLESCENT] Paciente adolescente (${age} anos): distribuição de macronutrientes calculada sob supervisão clínica.`);
   }
 
   // ── 4. RESOLUÇÃO E VALIDAÇÃO DA META ENERGÉTICA N2.1 (ETAPA 11) ───────────

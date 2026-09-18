@@ -1762,6 +1762,9 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     patientType: rawPatient.patientType ? String(rawPatient.patientType).trim() : null,
     trainingLevel: rawPatient.trainingLevel ? String(rawPatient.trainingLevel).trim() : null
   };
+  if (rawPatient.allowAdolescent !== undefined) {
+    patient.allowAdolescent = Boolean(rawPatient.allowAdolescent);
+  }
 
   // 2. Objetivo
   const rawObj = data.objective || {};
@@ -6203,8 +6206,11 @@ function adaptPatientContext(rawPatientData) {
     energy: { source: 'runtime_energy_calc', recordId: null, reliability: 'CANONICAL' }
   };
 
+  const isAdolescent = (typeof age === 'number' && age >= 10 && age < 18);
+  const allowAdolescent = Boolean(rawPatientData.allowAdolescent || (rawPatientData.patient && rawPatientData.patient.allowAdolescent) || isAdolescent);
+
   const contextData = {
-    patient: { patientId, name, age, sex, trainingLevel, patientType },
+    patient: { patientId, name, age, sex, trainingLevel, patientType, allowAdolescent },
     anthropometry: { weightKg, heightCm, bodyFatPercent, leanMassKg, hasRecentAssessment: true },
     objective,
     energy,
@@ -6317,12 +6323,21 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
   // GAP 1: Janela peri-treino canônica (150 min por padrão N3.5)
   const periWorkoutWindowMinutes = Number(rawOptions.periWorkoutWindowMinutes) || CANONICAL_PERI_WORKOUT_WINDOW_MINUTES;
 
+  const isAdolescentPatient = Boolean(
+    (typeof resolvedContext?.patient?.age === 'number' && resolvedContext.patient.age >= 10 && resolvedContext.patient.age < 18) ||
+    resolvedContext?.patient?.allowAdolescent ||
+    rawOptions.allowAdolescent ||
+    rawInput.allowAdolescent
+  );
+  const allowAdolescent = Boolean(rawOptions.allowAdolescent || rawInput.allowAdolescent || resolvedContext?.patient?.allowAdolescent || isAdolescentPatient);
+
   const canonicalOptions = {
     mealCount: mealCountRes.mealCount,
     dietaryStyle: String(rawOptions.dietaryStyle || 'tradicional').trim(),
     dietaryCycle: String(rawOptions.dietaryCycle || '').trim(),
     includeSupplements: rawOptions.includeSupplements !== false,
-    periWorkoutWindowMinutes
+    periWorkoutWindowMinutes,
+    allowAdolescent
   };
 
   // 4. Políticas canônicas
@@ -7924,7 +7939,8 @@ function calculateDeterministicEnergyTarget(context, options = {}) {
   factorsConsidered.push("Objetivo Clínico");
 
   // ── 3. GUARDA-CORPO DE SEGURANÇA PEDIÁTRICA (REGRA OBRIGATÓRIA SEÇÃO 7) ─────
-  const pediatricThreshold = p.safety.pediatricBlockingAge.value;
+  const allowAdolescent = Boolean(options.allowAdolescent || options.policy?.allowAdolescent || context.options?.allowAdolescent || context.patient?.allowAdolescent);
+  const pediatricThreshold = allowAdolescent ? Math.min(p.safety.pediatricBlockingAge.value, 10) : p.safety.pediatricBlockingAge.value;
   if (age < pediatricThreshold) {
     appliedParameters.push({
       key: "safety.pediatricBlockingAge",
@@ -7939,6 +7955,8 @@ function calculateDeterministicEnergyTarget(context, options = {}) {
     rationale.push("Cálculo automático de meta energética adulta bloqueado por protocolo de segurança clínica pediátrica.");
 
     return deepFreeze(buildBlockedOutput(null, null, clinicalObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, "PEDIATRIC_SAFETY_BLOCK", appliedParameters));
+  } else if (age < p.safety.pediatricBlockingAge.value) {
+    warnings.push(`[SUPERVISED_ADOLESCENT] Paciente adolescente (${age} anos) sob prescrição e supervisão clínica profissional.`);
   }
 
   // ── 4. RESOLUÇÃO MATEMÁTICA CANÔNICA DE TMB E GET (SEÇÃO 3) ────────────────
@@ -9036,7 +9054,8 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
   factorsConsidered.push(`Objetivo Clínico: "${rawObjective}" (Mapeado: ${objectiveKey})`);
 
   // ── 3. SEGURANÇA PEDIÁTRICA (ETAPA 13) ──────────────────────────────────────
-  const pediatricThreshold = p.safety.pediatricBlockingAge.value;
+  const allowAdolescent = Boolean(options.allowAdolescent || options.policy?.allowAdolescent || context.options?.allowAdolescent || context.patient?.allowAdolescent);
+  const pediatricThreshold = allowAdolescent ? Math.min(p.safety.pediatricBlockingAge.value, 10) : p.safety.pediatricBlockingAge.value;
   if (age < pediatricThreshold) {
     appliedParameters.push({
       key: "safety.pediatricBlockingAge",
@@ -9050,6 +9069,8 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
     rationale.push(`Paciente pediátrico (${age} anos < limiar ${pediatricThreshold} anos). Prescrição automatizada bloqueada.`);
 
     return deepFreeze(buildBlockedOutput(null, rawObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, appliedRules, appliedParameters));
+  } else if (age < p.safety.pediatricBlockingAge.value) {
+    warnings.push(`[SUPERVISED_ADOLESCENT] Paciente adolescente (${age} anos): distribuição de macronutrientes calculada sob supervisão clínica.`);
   }
 
   // ── 4. RESOLUÇÃO E VALIDAÇÃO DA META ENERGÉTICA N2.1 (ETAPA 11) ───────────
@@ -9762,9 +9783,14 @@ function validateNutritionPrescriptionTargets(context, energyTargetResult, macro
   }
 
   const patientAge = context?.patient?.age;
+  const allowAdolescent = Boolean(options?.allowAdolescent || context?.policies?.allowAdolescent || context?.patient?.allowAdolescent);
   const isPediatric = typeof patientAge === 'number' && patientAge < 18;
   if (isPediatric) {
-    recordCheck('CHECK_PEDIATRIC_SAFETY', 'FAIL', `Paciente menor de 18 anos (${patientAge} anos): prescrição adulta bloqueada por segurança clínica.`);
+    if (allowAdolescent && patientAge >= 10) {
+      recordCheck('CHECK_PEDIATRIC_SAFETY', 'WARNING', `Paciente adolescente de ${patientAge} anos conduzido sob supervisão clínica profissional.`);
+    } else {
+      recordCheck('CHECK_PEDIATRIC_SAFETY', 'FAIL', `Paciente menor de 18 anos (${patientAge} anos): prescrição adulta bloqueada por segurança clínica.`);
+    }
   }
 
   // ── 2. VALIDAÇÃO DO RESULTADO ENERGÉTICO (N2.1) ───────────────────────────
@@ -17005,9 +17031,17 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   // ═══════════════════════════════════════════════════════════════════════════
   // ETAPA 2: N2.1 — DETERMINISTIC ENERGY TARGET
   // ═══════════════════════════════════════════════════════════════════════════
+  const allowAdolescent = Boolean(
+    options.allowAdolescent ||
+    policies.allowAdolescent ||
+    currentContext?.patient?.allowAdolescent
+  );
+
   try {
     energyTargetResult = calculateDeterministicEnergyTarget(currentContext, {
-      policy: policies.energyPolicy
+      policy: policies.energyPolicy,
+      allowAdolescent,
+      ...(options || {})
     });
   } catch (err) {
     const reasons = [err.message || 'Erro inesperado no cálculo da meta energética N2.1.'];
@@ -17069,6 +17103,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       policy: policies.macroPolicy,
       dietaryStyle: options.dietaryStyle || currentContext.options?.dietaryStyle,
       dietaryCycle: options.dietaryCycle || currentContext.options?.dietaryCycle,
+      allowAdolescent,
       ...(options || {})
     });
   } catch (err) {
@@ -17140,7 +17175,10 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
       currentContext,
       effectiveEnergyTarget,
       macroTargetResult,
-      nutritionValidationOptions
+      {
+        ...nutritionValidationOptions,
+        allowAdolescent
+      }
     );
   } catch (err) {
     const reasons = [err.message || 'Erro inesperado na validação de metas N2.3.'];

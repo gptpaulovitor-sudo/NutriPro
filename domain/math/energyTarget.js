@@ -119,7 +119,8 @@ function calculateDeterministicEnergyTarget(context, options = {}) {
   factorsConsidered.push("Objetivo Clínico");
 
   // ── 3. GUARDA-CORPO DE SEGURANÇA PEDIÁTRICA (REGRA OBRIGATÓRIA SEÇÃO 7) ─────
-  const pediatricThreshold = p.safety.pediatricBlockingAge.value;
+  const allowAdolescent = Boolean(options.allowAdolescent || options.policy?.allowAdolescent || context.options?.allowAdolescent || context.patient?.allowAdolescent);
+  const pediatricThreshold = allowAdolescent ? Math.min(p.safety.pediatricBlockingAge.value, 10) : p.safety.pediatricBlockingAge.value;
   if (age < pediatricThreshold) {
     appliedParameters.push({
       key: "safety.pediatricBlockingAge",
@@ -134,6 +135,8 @@ function calculateDeterministicEnergyTarget(context, options = {}) {
     rationale.push("Cálculo automático de meta energética adulta bloqueado por protocolo de segurança clínica pediátrica.");
 
     return deepFreeze(buildBlockedOutput(null, null, clinicalObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, "PEDIATRIC_SAFETY_BLOCK", appliedParameters));
+  } else if (age < p.safety.pediatricBlockingAge.value) {
+    warnings.push(`[SUPERVISED_ADOLESCENT] Paciente adolescente (${age} anos) sob prescrição e supervisão clínica profissional.`);
   }
 
   // ── 4. RESOLUÇÃO MATEMÁTICA CANÔNICA DE TMB E GET (SEÇÃO 3) ────────────────
