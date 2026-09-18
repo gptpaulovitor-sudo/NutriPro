@@ -96,6 +96,8 @@ export default function PrescriptionPage() {
     let delta = 0;
     if (objective === "emagrecimento") delta = -450;
     if (objective === "hipertrofia") delta = +350;
+    if (objective === "cetogenica") delta = -300;
+    if (objective === "lowcarb") delta = -350;
     if (objective === "recomposicao") delta = -150;
     if (objective === "performance") delta = +150;
 
@@ -470,6 +472,8 @@ export default function PrescriptionPage() {
               >
                 <option value="hipertrofia">Hipertrofia (+350 kcal)</option>
                 <option value="emagrecimento">Emagrecimento / Cutting (-450 kcal)</option>
+                <option value="cetogenica">Cetogênica / Keto (-300 kcal, gordura alta)</option>
+                <option value="lowcarb">Low Carb (-350 kcal, carbo baixo)</option>
                 <option value="recomposicao">Recomposição Corporal (-150 kcal)</option>
                 <option value="manutencao">Manutenção Isocalórica (0 kcal)</option>
                 <option value="performance">Performance Esportiva (+150 kcal)</option>

@@ -49,7 +49,13 @@ export type ObjetivoClinico =
   | 'hipertrofia'
   | 'manutencao'
   | 'recomposicao'
-  | 'performance';
+  | 'performance'
+  | 'lowcarb'
+  | 'cetogenica';
+
+export type ContextoRefeicao = 'cafe' | 'almoco' | 'lanche' | 'jantar' | 'ceia';
+export type PerfilSabor = 'salgado' | 'doce' | 'neutro';
+export type TipoGordura = 'adicionada_pura' | 'oleaginosa_fruta' | 'intrinseca';
 
 export type NivelAtividade =
   | 'sedentario'
@@ -133,6 +139,11 @@ export interface Alimento extends Macronutrientes {
   baseQuantidade: number; // padrão 100 (g ou ml)
   source?: string;        // TACO, TBCA, Rótulo
   tags?: string[];        // ex: ["sem-lactose", "sem-gluten", "vegano"]
+  contextos?: ContextoRefeicao[]; // Refeições onde é culinariamente apropriado
+  perfilSabor?: PerfilSabor;       // 'salgado' | 'doce' | 'neutro'
+  tipoGordura?: TipoGordura;       // 'adicionada_pura' | 'oleaginosa_fruta' | 'intrinseca'
+  porcaoMaximaG?: number;          // Limite máximo culinário realista por refeição (ex: 15g para azeite/manteiga)
+  porcaoMinimaG?: number;          // Limite mínimo para viabilidade
 }
 
 // ============================================================================
