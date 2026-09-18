@@ -816,7 +816,15 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   const totalDailyCarbs = (macroTargetResult && typeof macroTargetResult.carbohydrateTargetG === 'number')
     ? macroTargetResult.carbohydrateTargetG
     : (finalNutrients.carbohydrate || 0);
-  const isKetoOrVeryLowCarb = totalDailyCarbs < 80;
+
+  const activeStyle = (
+    (context && (context.dietaryStyle || context.options?.dietaryStyle)) ||
+    (input && (input.options?.dietaryStyle || input.dietaryStyle)) ||
+    ''
+  ).toLowerCase();
+
+  const isKetoOrVeryLowCarb = totalDailyCarbs < 80 || ['cetogenica', 'dukan', 'whole30'].includes(activeStyle);
+  const isLowCarbProtocol = isKetoOrVeryLowCarb || totalDailyCarbs <= 130 || activeStyle === 'lowcarb';
 
   if (finalMeals.length > 0) {
     finalMeals.forEach(meal => {
@@ -825,18 +833,21 @@ function validateGlobalPrescription(input, customPolicy = {}) {
         ? meal.totals.carbohydrate
         : (Array.isArray(meal.items) ? meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0) : 0);
 
-      // Verificação de aporte mínimo de carboidratos em refeições principais
-      if (isMainMeal && !isKetoOrVeryLowCarb) {
+      // Verificação de aporte mínimo de carboidratos em refeições principais (apenas para estilos com carboidrato livre/tradicional)
+      if (isMainMeal && !isLowCarbProtocol) {
         if (mealCarbs < policy.minMainMealCarbsGrams) {
           mealMacroFailures.push(`Refeição principal "${meal.mealName || meal.mealId}" possui apenas ${mealCarbs.toFixed(1)}g de carboidrato (mínimo exigido: ${policy.minMainMealCarbsGrams}g).`);
         }
       }
 
-      // Verificação de hiperconcentração de carboidratos em uma única refeição (quando há >= 3 refeições)
-      if (finalMeals.length >= 3 && totalDailyCarbs > 0) {
+      // Verificação de hiperconcentração de carboidratos em uma única refeição (quando há >= 3 refeições e aporte diário relevante)
+      if (finalMeals.length >= 3 && totalDailyCarbs >= 80) {
+        const allowedRatio = isLowCarbProtocol
+          ? (finalMeals.length <= 3 ? 0.75 : Math.max(policy.maxSingleMealCarbRatio, 0.65))
+          : policy.maxSingleMealCarbRatio;
         const carbRatio = mealCarbs / totalDailyCarbs;
-        if (carbRatio > policy.maxSingleMealCarbRatio) {
-          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(policy.maxSingleMealCarbRatio * 100).toFixed(0)}%).`);
+        if (carbRatio > allowedRatio) {
+          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(allowedRatio * 100).toFixed(0)}%).`);
         }
       }
     });

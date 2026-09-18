@@ -11372,6 +11372,12 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
     return false;
   }
 
+  const rawStyle = (options.dietaryStyle || '').toLowerCase();
+  const rawCycle = (options.dietaryCycle || '').toLowerCase();
+  const isKeto = rawStyle === 'cetogenica' || rawCycle.startsWith('keto') || targets.carbohydrate < 50;
+  const isLowCarb = rawStyle === 'lowcarb' || rawCycle.startsWith('lowcarb') || targets.carbohydrate <= 130;
+  const isHighFat = targets.fat >= 90 || isKeto || isLowCarb;
+
   if (strategy === 'A') {
     // Alimentos canônicos de base in natura limpos e universais
     addFood(findId('canon_frango_grelhado') || findName(/peito.*frango.*grelhado/i) || findName(/frango/i));
@@ -11379,16 +11385,44 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
     if (targets.protein >= 160) {
       addFood(findId('canon_patinho_grelhado') || findName(/patinho.*grelhado/i) || findName(/patinho|alcatra|til[aá]pia|peixe/i));
     }
-    addFood(findId('canon_arroz_branco') || findId('canon_arroz_integral') || findName(/arroz.*cozido/i));
-    if (targets.carbohydrate >= 100) {
-      addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
+
+    // Carboidratos modulados por estilo e meta glicídica
+    if (!isKeto) {
+      if (!isLowCarb) {
+        addFood(findId('canon_arroz_branco') || findId('canon_arroz_integral') || findName(/arroz.*cozido/i));
+        if (targets.carbohydrate >= 100) {
+          addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
+        }
+        addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia|p[aã]o.*integral/i));
+        if (targets.carbohydrate >= 200) {
+          addFood(findId('canon_banana_prata') || findName(/banana/i));
+        }
+        addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+      } else {
+        // Low Carb: aporte moderado e controlado de carboidratos complexos
+        if (targets.carbohydrate >= 70) {
+          addFood(findId('canon_batata_doce') || findName(/batata.*doce/i) || findId('canon_arroz_integral') || findName(/arroz/i));
+        }
+        if (targets.carbohydrate >= 90) {
+          addFood(findId('canon_aveia_flocos') || findName(/aveia/i) || findId('canon_feijao_carioca') || findName(/feij[aã]o/i));
+        }
+        if (targets.carbohydrate >= 110) {
+          addFood(findId('canon_banana_prata') || findName(/banana|morango|ma[cç][aã]/i));
+        }
+      }
     }
-    addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia|p[aã]o.*integral/i));
-    if (targets.carbohydrate >= 200) {
-      addFood(findId('canon_banana_prata') || findName(/banana/i));
-    }
-    addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+
+    // Fontes de gordura pura e lipídios essenciais
     addFood(findId('canon_azeite_oliva') || findName(/azeite.*oliva/i));
+    if (isHighFat) {
+      addFood(findId('canon_castanha_para') || findName(/castanha.*par[aá]|amendoim|nozes|pasta.*amendoim/i));
+      addFood(findName(/abacate/i) || findName(/queijo.*mussarela|queijo.*prato|queijo/i));
+      if (targets.fat >= 140) {
+        addFood(findName(/queijo|manteiga|iogurte.*natural/i) || findId('canon_castanha_para'));
+      }
+    }
+
+    // Vegetais e Fibras
     addFood(findId('canon_brocolis_cozido') || findName(/br[oó]colis|salada|alface/i));
   } else if (strategy === 'B') {
     // Seleção ordenada por Search Roles com preferência a alimentos canônicos e maior afinidade
@@ -11416,13 +11450,22 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
     });
 
     const proteinCount = targets.protein >= 180 ? 3 : 2;
-    const carbCount = targets.carbohydrate >= 180 ? 3 : 2;
+    let carbCount = 2;
+    if (isKeto) carbCount = 0;
+    else if (targets.carbohydrate < 80) carbCount = 1;
+    else if (targets.carbohydrate >= 180) carbCount = 3;
+
+    let fatCount = 1;
+    if (targets.fat >= 140) fatCount = 3;
+    else if (targets.fat >= 90) fatCount = 2;
 
     sortRole(roleBuckets[SEARCH_ROLES.ROLE_PROTEIN_DENSE]).slice(0, proteinCount).forEach(addFood);
-    sortRole(roleBuckets[SEARCH_ROLES.ROLE_CARB_DENSE]).slice(0, carbCount).forEach(addFood);
-    sortRole(roleBuckets[SEARCH_ROLES.ROLE_BALANCED]).slice(0, 1).forEach(addFood);
-    sortRole(roleBuckets[SEARCH_ROLES.ROLE_FAT_DENSE]).slice(0, 1).forEach(addFood);
-    sortRole(roleBuckets[SEARCH_ROLES.ROLE_FIBER_VOLUME]).slice(0, 1).forEach(addFood);
+    if (carbCount > 0) {
+      sortRole(roleBuckets[SEARCH_ROLES.ROLE_CARB_DENSE]).slice(0, carbCount).forEach(addFood);
+    }
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_BALANCED]).slice(0, isKeto ? 2 : 1).forEach(addFood);
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_FAT_DENSE]).slice(0, fatCount).forEach(addFood);
+    sortRole(roleBuckets[SEARCH_ROLES.ROLE_FIBER_VOLUME]).slice(0, isKeto ? 2 : 1).forEach(addFood);
   } else if (strategy === 'C') {
     // Montagem dinâmica por cobertura proporcional de papéis
     const sorted = [...eligibleFoods].sort((a, b) => {
@@ -11431,7 +11474,7 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
       if (Math.abs(scoreB - scoreA) > 1e-4) return scoreB - scoreA;
       return String(a.id || a.foodId).localeCompare(String(b.id || b.foodId));
     });
-    sorted.slice(0, Math.min(8, sorted.length)).forEach(addFood);
+    sorted.slice(0, Math.min(isHighFat ? 10 : 8, sorted.length)).forEach(addFood);
   }
 
   return basket;
@@ -16371,7 +16414,15 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   const totalDailyCarbs = (macroTargetResult && typeof macroTargetResult.carbohydrateTargetG === 'number')
     ? macroTargetResult.carbohydrateTargetG
     : (finalNutrients.carbohydrate || 0);
-  const isKetoOrVeryLowCarb = totalDailyCarbs < 80;
+
+  const activeStyle = (
+    (context && (context.dietaryStyle || context.options?.dietaryStyle)) ||
+    (input && (input.options?.dietaryStyle || input.dietaryStyle)) ||
+    ''
+  ).toLowerCase();
+
+  const isKetoOrVeryLowCarb = totalDailyCarbs < 80 || ['cetogenica', 'dukan', 'whole30'].includes(activeStyle);
+  const isLowCarbProtocol = isKetoOrVeryLowCarb || totalDailyCarbs <= 130 || activeStyle === 'lowcarb';
 
   if (finalMeals.length > 0) {
     finalMeals.forEach(meal => {
@@ -16380,18 +16431,21 @@ function validateGlobalPrescription(input, customPolicy = {}) {
         ? meal.totals.carbohydrate
         : (Array.isArray(meal.items) ? meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0) : 0);
 
-      // Verificação de aporte mínimo de carboidratos em refeições principais
-      if (isMainMeal && !isKetoOrVeryLowCarb) {
+      // Verificação de aporte mínimo de carboidratos em refeições principais (apenas para estilos com carboidrato livre/tradicional)
+      if (isMainMeal && !isLowCarbProtocol) {
         if (mealCarbs < policy.minMainMealCarbsGrams) {
           mealMacroFailures.push(`Refeição principal "${meal.mealName || meal.mealId}" possui apenas ${mealCarbs.toFixed(1)}g de carboidrato (mínimo exigido: ${policy.minMainMealCarbsGrams}g).`);
         }
       }
 
-      // Verificação de hiperconcentração de carboidratos em uma única refeição (quando há >= 3 refeições)
-      if (finalMeals.length >= 3 && totalDailyCarbs > 0) {
+      // Verificação de hiperconcentração de carboidratos em uma única refeição (quando há >= 3 refeições e aporte diário relevante)
+      if (finalMeals.length >= 3 && totalDailyCarbs >= 80) {
+        const allowedRatio = isLowCarbProtocol
+          ? (finalMeals.length <= 3 ? 0.75 : Math.max(policy.maxSingleMealCarbRatio, 0.65))
+          : policy.maxSingleMealCarbRatio;
         const carbRatio = mealCarbs / totalDailyCarbs;
-        if (carbRatio > policy.maxSingleMealCarbRatio) {
-          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(policy.maxSingleMealCarbRatio * 100).toFixed(0)}%).`);
+        if (carbRatio > allowedRatio) {
+          mealMacroFailures.push(`Refeição "${meal.mealName || meal.mealId}" concentra ${(carbRatio * 100).toFixed(1)}% dos carboidratos diários (${mealCarbs.toFixed(1)}g de ${totalDailyCarbs}g; máximo permitido: ${(allowedRatio * 100).toFixed(0)}%).`);
         }
       }
     });
