@@ -56,6 +56,7 @@ export type ObjetivoClinico =
 export type ContextoRefeicao = 'cafe' | 'almoco' | 'lanche' | 'jantar' | 'ceia';
 export type PerfilSabor = 'salgado' | 'doce' | 'neutro';
 export type TipoGordura = 'adicionada_pura' | 'oleaginosa_fruta' | 'intrinseca';
+export type SubgrupoCarboidrato = 'cereais_paes' | 'raizes' | 'frutas' | 'leguminosas';
 
 export type NivelAtividade =
   | 'sedentario'
@@ -142,6 +143,7 @@ export interface Alimento extends Macronutrientes {
   contextos?: ContextoRefeicao[]; // Refeições onde é culinariamente apropriado
   perfilSabor?: PerfilSabor;       // 'salgado' | 'doce' | 'neutro'
   tipoGordura?: TipoGordura;       // 'adicionada_pura' | 'oleaginosa_fruta' | 'intrinseca'
+  subgrupoCarbo?: SubgrupoCarboidrato; // 'cereais_paes' | 'raizes' | 'frutas' | 'leguminosas'
   porcaoMaximaG?: number;          // Limite máximo culinário realista por refeição (ex: 15g para azeite/manteiga)
   porcaoMinimaG?: number;          // Limite mínimo para viabilidade
 }
