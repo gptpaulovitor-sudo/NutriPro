@@ -2231,6 +2231,17 @@ async function onEvaluationPatientInput() {
 
     await db.patients.put(p);
 
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('nutriax_bidirectional_sync');
+      bc.postMessage({
+        type: 'PATIENT_PREFERENCES_UPDATED',
+        patientId: p.id,
+        preferences: accessibilityPreferences
+      });
+    }
+  } catch (_) { }
+
     // Atualiza cabeçalho do paciente ativo
     const hInfo = document.getElementById("headerPatientInfo");
     if (hInfo) hInfo.innerText = `${p.age} anos • ${p.height} m • ${p.currentWeight} kg`;
@@ -3844,7 +3855,12 @@ async function executeSmartPrescriptionGeneration() {
         tmbKcal: canonicalTargets.tmbKcal, getKcal: canonicalTargets.getKcal,
         caloricTargetKcal: adjustedCaloricTarget,
         mealsPerDay: mealCount, mealCount: mealCount,
-        preferences: { mealFrequency: mealCount },
+        preferences: {
+          mealFrequency: mealCount,
+          accessibilityPreferences: p.accessibilityPreferences || (typeof _readAccessibilityPreferences === 'function' ? _readAccessibilityPreferences() : null)
+        },
+        accessibilityPreferences: p.accessibilityPreferences || (typeof _readAccessibilityPreferences === 'function' ? _readAccessibilityPreferences() : null),
+        questionarioAcessibilidade: p.accessibilityPreferences || p.questionarioAcessibilidade || (typeof _readAccessibilityPreferences === 'function' ? _readAccessibilityPreferences() : null),
         routine: {
           wakeUpTime: trainingData.wakeUpTime || (document.getElementById('routineWakeUp') || {}).value || '07:00',
           bedTime: trainingData.bedTime || (document.getElementById('routineBedTime') || {}).value || '23:00',
@@ -5749,6 +5765,173 @@ if (typeof window !== 'undefined') {
   window._restoreCardioPreferencesToForm = _restoreCardioPreferencesToForm;
 }
 
+// ─── Preferencias de Acessibilidade & Cesta Basica do Paciente (Secao 5) ───────────────
+var _activeProFoodAffinity = {
+  p_frango: 'alta_disponibilidade',
+  p_sobrecoxa: 'alta_disponibilidade',
+  p_ovo_inteiro: 'alta_disponibilidade',
+  p_sardinha: 'alta_disponibilidade',
+  c_arroz_branco: 'alta_disponibilidade',
+  c_feijao: 'alta_disponibilidade',
+  c_aveia: 'alta_disponibilidade',
+  c_batata_inglesa: 'alta_disponibilidade',
+  f_banana: 'alta_disponibilidade'
+};
+
+var _PRO_ACCESSIBILITY_FOODS = [
+  { id: 'p_frango', nome: 'Peito de Frango' },
+  { id: 'p_sobrecoxa', nome: 'Sobrecoxa de Frango' },
+  { id: 'p_ovo_inteiro', nome: 'Ovos Inteiros' },
+  { id: 'p_sardinha', nome: 'Sardinha (Lata/Fresca)' },
+  { id: 'p_patinho', nome: 'Patinho Bovino' },
+  { id: 'p_atum', nome: 'Atum Ralado' },
+  { id: 'p_salmao', nome: 'Salmao Fresco' },
+  { id: 'p_contrafile', nome: 'Contrafile Bovino' },
+  { id: 'p_albumina', nome: 'Albumina em Po' },
+  { id: 'p_whey', nome: 'Whey Protein' },
+  { id: 'l_leite_desnatado_po', nome: 'Leite em Po' },
+  { id: 'l_iogurte', nome: 'Iogurte Natural' },
+  { id: 'l_queijo_minas', nome: 'Queijo Minas / Ricota' },
+  { id: 'c_arroz_branco', nome: 'Arroz Branco' },
+  { id: 'c_feijao', nome: 'Feijao Carioca / Preto' },
+  { id: 'c_aveia', nome: 'Aveia em Flocos' },
+  { id: 'c_batata_inglesa', nome: 'Batata Inglesa' },
+  { id: 'c_batata_doce', nome: 'Batata Doce' },
+  { id: 'c_mandioca', nome: 'Mandioca / Aipim' },
+  { id: 'c_pao_integral', nome: 'Pao de Forma' },
+  { id: 'f_banana', nome: 'Banana Prata' },
+  { id: 'f_maca', nome: 'Maca Nacional' },
+  { id: 'g_pasta_amendoim', nome: 'Pasta de Amendoim' },
+  { id: 'g_azeite', nome: 'Azeite de Oliva' }
+];
+
+function renderProFoodPills() {
+  var container = document.getElementById('proFoodAffinityContainer');
+  if (!container) return;
+  container.innerHTML = _PRO_ACCESSIBILITY_FOODS.map(function(item) {
+    var st = _activeProFoodAffinity[item.id] || 'tolerado';
+    var cls = 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-zinc-500';
+    var icon = 'o';
+    if (st === 'alta_disponibilidade') {
+      cls = 'bg-emerald-950/90 border-emerald-500 text-emerald-300 font-bold shadow-sm';
+      icon = '★';
+    } else if (st === 'baixo_acesso') {
+      cls = 'bg-red-950/80 border-red-700 text-red-300 line-through opacity-75 font-semibold';
+      icon = '✕';
+    }
+    return '<button type="button" onclick="_toggleAccessibilityFoodStatus(\'' + item.id + '\')" ' +
+      'class="px-2.5 py-1.5 rounded-xl text-xs border transition-all flex items-center gap-1.5 ' + cls + '">' +
+      '<span class="font-bold">' + icon + '</span>' +
+      '<span>' + item.nome + '</span>' +
+      '</button>';
+  }).join('');
+}
+
+function _toggleAccessibilityFoodStatus(foodId) {
+  var cur = _activeProFoodAffinity[foodId] || 'tolerado';
+  var next = cur === 'alta_disponibilidade' ? 'baixo_acesso' : (cur === 'baixo_acesso' ? 'tolerado' : 'alta_disponibilidade');
+  _activeProFoodAffinity[foodId] = next;
+  renderProFoodPills();
+  _scheduleAnamneseSave();
+}
+
+function _applyAccessibilityPreset(presetType) {
+  if (presetType === 'cesta_basica') {
+    var bEl = document.getElementById('anamneseBudget'); if (bEl) bEl.value = 'economico';
+    var eEl = document.getElementById('anamneseConsumptionEnv'); if (eEl) eEl.value = 'com_geladeira_microondas';
+    var sEl = document.getElementById('anamneseAcceptsSupplements'); if (sEl) sEl.value = 'true';
+    _activeProFoodAffinity = {
+      p_frango: 'alta_disponibilidade',
+      p_sobrecoxa: 'alta_disponibilidade',
+      p_ovo_inteiro: 'alta_disponibilidade',
+      p_sardinha: 'alta_disponibilidade',
+      c_arroz_branco: 'alta_disponibilidade',
+      c_feijao: 'alta_disponibilidade',
+      c_aveia: 'alta_disponibilidade',
+      c_batata_inglesa: 'alta_disponibilidade',
+      f_banana: 'alta_disponibilidade',
+      p_salmao: 'baixo_acesso',
+      p_contrafile: 'baixo_acesso',
+      l_queijo_minas: 'baixo_acesso'
+    };
+  } else if (presetType === 'sem_geladeira') {
+    var bEl = document.getElementById('anamneseBudget'); if (bEl) bEl.value = 'moderado';
+    var eEl = document.getElementById('anamneseConsumptionEnv'); if (eEl) eEl.value = 'sem_refrigeracao';
+    var sEl = document.getElementById('anamneseAcceptsSupplements'); if (sEl) sEl.value = 'false';
+    _activeProFoodAffinity = {
+      p_ovo_inteiro: 'alta_disponibilidade',
+      c_aveia: 'alta_disponibilidade',
+      f_banana: 'alta_disponibilidade',
+      c_pao_integral: 'alta_disponibilidade',
+      g_pasta_amendoim: 'alta_disponibilidade',
+      l_iogurte: 'baixo_acesso'
+    };
+  } else if (presetType === 'livre') {
+    var bEl = document.getElementById('anamneseBudget'); if (bEl) bEl.value = 'livre';
+    var eEl = document.getElementById('anamneseConsumptionEnv'); if (eEl) eEl.value = 'com_geladeira_microondas';
+    var sEl = document.getElementById('anamneseAcceptsSupplements'); if (sEl) sEl.value = 'true';
+    _activeProFoodAffinity = {
+      p_frango: 'alta_disponibilidade',
+      p_patinho: 'alta_disponibilidade',
+      p_salmao: 'alta_disponibilidade',
+      p_contrafile: 'alta_disponibilidade',
+      p_whey: 'alta_disponibilidade',
+      c_arroz_branco: 'alta_disponibilidade',
+      c_batata_doce: 'alta_disponibilidade'
+    };
+  }
+  renderProFoodPills();
+  _scheduleAnamneseSave();
+}
+
+function _readAccessibilityPreferences() {
+  var bEl = document.getElementById('anamneseBudget');
+  var eEl = document.getElementById('anamneseConsumptionEnv');
+  var sEl = document.getElementById('anamneseAcceptsSupplements');
+  return {
+    orcamento: bEl ? bEl.value : 'economico',
+    ambienteConsumo: eEl ? eEl.value : 'com_geladeira_microondas',
+    aceitaSuplementos: sEl ? (sEl.value === 'true') : true,
+    alimentosAcessibilidade: Object.assign({}, _activeProFoodAffinity)
+  };
+}
+
+function _restoreAccessibilityPreferencesToForm(prefs) {
+  var p = prefs || {};
+  var bEl = document.getElementById('anamneseBudget');
+  if (bEl) bEl.value = p.orcamento || 'economico';
+  var eEl = document.getElementById('anamneseConsumptionEnv');
+  if (eEl) eEl.value = p.ambienteConsumo || 'com_geladeira_microondas';
+  var sEl = document.getElementById('anamneseAcceptsSupplements');
+  if (sEl) sEl.value = (p.aceitaSuplementos === false) ? 'false' : 'true';
+
+  if (p.alimentosAcessibilidade && typeof p.alimentosAcessibilidade === 'object') {
+    _activeProFoodAffinity = Object.assign({}, p.alimentosAcessibilidade);
+  } else {
+    _activeProFoodAffinity = {
+      p_frango: 'alta_disponibilidade',
+      p_sobrecoxa: 'alta_disponibilidade',
+      p_ovo_inteiro: 'alta_disponibilidade',
+      p_sardinha: 'alta_disponibilidade',
+      c_arroz_branco: 'alta_disponibilidade',
+      c_feijao: 'alta_disponibilidade',
+      c_aveia: 'alta_disponibilidade',
+      c_batata_inglesa: 'alta_disponibilidade',
+      f_banana: 'alta_disponibilidade'
+    };
+  }
+  renderProFoodPills();
+}
+
+if (typeof window !== 'undefined') {
+  window._readAccessibilityPreferences = _readAccessibilityPreferences;
+  window._restoreAccessibilityPreferencesToForm = _restoreAccessibilityPreferencesToForm;
+  window._applyAccessibilityPreset = _applyAccessibilityPreset;
+  window._toggleAccessibilityFoodStatus = _toggleAccessibilityFoodStatus;
+  window.renderProFoodPills = renderProFoodPills;
+}
+
+
 
 
 // Helper para selecionar valores em <select> com correspondência robusta
@@ -5913,6 +6096,11 @@ async function loadPatientAnamnese(patientId) {
     // ─── Seção 3.b: Preferências Cardiovasculares (F7) ───────────────────────────────
     if (typeof _restoreCardioPreferencesToForm === 'function') {
       _restoreCardioPreferencesToForm(p.cardioPreferences || null);
+    }
+
+    // ─── Secao 5: Preferencias de Acessibilidade & Cesta Basica ───────────────────
+    if (typeof _restoreAccessibilityPreferencesToForm === 'function') {
+      _restoreAccessibilityPreferencesToForm(p.accessibilityPreferences || p.questionarioAcessibilidade || null);
     }
 
   } finally {
@@ -6105,6 +6293,11 @@ async function autoSaveAnamnese(shouldSyncCloud = false) {
     ? _readCardioPreferences()
     : (p.cardioPreferences || { preferredModalities: [], preferredFrequency: null, preferredDurationMinutes: null, preferredIntensity: null, preferredDays: [], availableEquipment: [] });
 
+  // ─── Preferencias de Acessibilidade (Fase Cesta Basica) ─────────────────────
+  const accessibilityPreferences = (typeof _readAccessibilityPreferences === 'function')
+    ? _readAccessibilityPreferences()
+    : (p.accessibilityPreferences || null);
+
   const sleepHours = parseFloat(_getField("anamneseSleepHours")) || p.sleepHours || 7.5;
   const sleepQuality = _getField("anamneseSleepQuality") || p.sleepQuality || "Boa";
   const stressLevel = _getField("anamneseStressLevel") || p.stressLevel || "Moderado";
@@ -6131,7 +6324,9 @@ async function autoSaveAnamnese(shouldSyncCloud = false) {
     workoutFrequency, workoutDuration, workoutIntensity, workoutTime,
     sleepHours, sleepQuality, stressLevel,
     activityFactor: fa,
-    cardioPreferences
+    cardioPreferences,
+    accessibilityPreferences,
+    questionarioAcessibilidade: accessibilityPreferences
   });
 
   await db.patients.put(p);
@@ -11645,7 +11840,8 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
           event.data.type === 'PATIENT_DISCIPLINE_UPDATED' ||
           event.data.type === 'SYNC_UPDATED' ||
           event.data.type === 'FASTING_PROTOCOL_UPDATED' ||
-          event.data.type === 'FASTING_LOG_UPDATED'
+          event.data.type === 'FASTING_LOG_UPDATED' ||
+          event.data.type === 'PATIENT_PREFERENCES_UPDATED'
         )) {
           const discSec = document.getElementById('tab-discipline');
           if (discSec && !discSec.classList.contains('hidden')) {

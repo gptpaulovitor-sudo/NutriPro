@@ -2345,6 +2345,95 @@
               </p>
             </div>
           </div>
+
+          <!-- 5. Questionário de Acessibilidade & Cesta Básica do Paciente -->
+          <div class="hud-card p-6 space-y-4 text-xs text-white border border-emerald-800/60 bg-gradient-to-br from-zinc-900/90 to-black/90">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+              <h2 class="font-black text-white text-sm flex items-center gap-2">
+                <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+                <span>5. Acessibilidade, Cesta Básica &amp; Preferências do Paciente</span>
+              </h2>
+
+              <!-- Presets Rápidos -->
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-bold text-zinc-400 mr-1 uppercase font-mono">Presets Rápidos:</span>
+                <button type="button" onclick="_applyAccessibilityPreset('cesta_basica')"
+                  class="text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700">
+                  🟢 Cesta Básica
+                </button>
+                <button type="button" onclick="_applyAccessibilityPreset('sem_geladeira')"
+                  class="text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-700">
+                  🎒 Sem Geladeira
+                </button>
+                <button type="button" onclick="_applyAccessibilityPreset('livre')"
+                  class="text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all bg-blue-950/80 hover:bg-blue-900 text-blue-300 border border-blue-700">
+                  🔵 Orçamento Livre
+                </button>
+              </div>
+            </div>
+
+            <p class="text-zinc-400 text-xs leading-relaxed">
+              Preferências sincronizadas com o <strong>App do Paciente (NutriAx Disciplina)</strong>. Alimenta diretamente as restrições econômicas e substituições no motor inteligente de prescrição.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <div>
+                <label class="block font-bold text-zinc-300 mb-1 text-[11px] uppercase tracking-wider flex items-center gap-1">
+                  <i data-lucide="wallet" class="w-3.5 h-3.5 text-emerald-400"></i> Faixa de Orçamento
+                </label>
+                <select id="anamneseBudget" onchange="_scheduleAnamneseSave()"
+                  class="w-full p-2.5 bg-zinc-950 border border-zinc-700 rounded-xl font-bold text-white focus:border-emerald-500 outline-none">
+                  <option value="economico" selected>🟢 Econômico (Cesta Básica / Baixo Custo)</option>
+                  <option value="moderado">🟡 Moderado (Padrão de Mercado)</option>
+                  <option value="livre">🔵 Livre (Variado / Cortes Nobres)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-zinc-300 mb-1 text-[11px] uppercase tracking-wider flex items-center gap-1">
+                  <i data-lucide="briefcase" class="w-3.5 h-3.5 text-amber-400"></i> Ambiente no Trabalho / Rotina
+                </label>
+                <select id="anamneseConsumptionEnv" onchange="_scheduleAnamneseSave()"
+                  class="w-full p-2.5 bg-zinc-950 border border-zinc-700 rounded-xl font-bold text-white focus:border-amber-500 outline-none">
+                  <option value="com_geladeira_microondas" selected>🏢 Completo (Geladeira + Micro-ondas)</option>
+                  <option value="sem_refrigeracao">🎒 Sem Geladeira (Marmita Seca / Rua)</option>
+                  <option value="marmita_pronta">🍱 Marmita Congelada Pré-preparada</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-zinc-300 mb-1 text-[11px] uppercase tracking-wider flex items-center gap-1">
+                  <i data-lucide="leaf" class="w-3.5 h-3.5 text-blue-400"></i> Aceita Suplementos
+                </label>
+                <select id="anamneseAcceptsSupplements" onchange="_scheduleAnamneseSave()"
+                  class="w-full p-2.5 bg-zinc-950 border border-zinc-700 rounded-xl font-bold text-white focus:border-blue-500 outline-none">
+                  <option value="true" selected>Sim (Whey, Albumina, Creatina)</option>
+                  <option value="false">Apenas Comida de Verdade</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Matriz de Afinidade e Disponibilidade de Alimentos -->
+            <div class="space-y-2 pt-2 border-t border-zinc-800">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <span class="font-bold text-zinc-300 text-xs flex items-center gap-1.5">
+                  <i data-lucide="shopping-bag" class="w-3.5 h-3.5 text-zinc-400"></i>
+                  <span>Matriz de Alimentos Apontados pelo Paciente</span>
+                  <span class="text-[10px] text-zinc-500 font-normal">(clique para alternar)</span>
+                </span>
+
+                <div class="flex items-center gap-2.5 text-[10px] font-semibold">
+                  <span class="text-emerald-400 flex items-center gap-1">⭐ Favorito / Alta Disponibilidade</span>
+                  <span class="text-zinc-400 flex items-center gap-1">○ Tolerado</span>
+                  <span class="text-red-400 flex items-center gap-1">🚫 Difícil Acesso / Aversão</span>
+                </div>
+              </div>
+
+              <div id="proFoodAffinityContainer" class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 bg-zinc-950 rounded-2xl border border-zinc-800">
+                <!-- Injetado dinamicamente via renderProFoodPills() -->
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

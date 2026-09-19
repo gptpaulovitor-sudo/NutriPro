@@ -2094,6 +2094,295 @@
 
 
 
+// ===========================================================
+    // MODULO DE PREFERENCIAS ALIMENTARES, CESTA BASICA & ROTINA
+    // ===========================================================
+    window.COMMON_ACCESSIBILITY_FOODS = [
+      { id: 'p_frango', nome: 'Peito de Frango' },
+      { id: 'p_sobrecoxa', nome: 'Sobrecoxa de Frango' },
+      { id: 'p_ovo_inteiro', nome: 'Ovos Inteiros' },
+      { id: 'p_sardinha', nome: 'Sardinha (Lata/Fresca)' },
+      { id: 'p_patinho', nome: 'Patinho Bovino' },
+      { id: 'p_atum', nome: 'Atum Ralado' },
+      { id: 'p_salmao', nome: 'Salmao Fresco' },
+      { id: 'p_contrafile', nome: 'Contrafile Bovino' },
+      { id: 'p_albumina', nome: 'Albumina em Po' },
+      { id: 'p_whey', nome: 'Whey Protein' },
+      { id: 'l_leite_desnatado_po', nome: 'Leite em Po' },
+      { id: 'l_iogurte', nome: 'Iogurte Natural' },
+      { id: 'l_queijo_minas', nome: 'Queijo Minas / Ricota' },
+      { id: 'c_arroz_branco', nome: 'Arroz Branco' },
+      { id: 'c_feijao', nome: 'Feijao Carioca / Preto' },
+      { id: 'c_aveia', nome: 'Aveia em Flocos' },
+      { id: 'c_batata_inglesa', nome: 'Batata Inglesa' },
+      { id: 'c_batata_doce', nome: 'Batata Doce' },
+      { id: 'c_mandioca', nome: 'Mandioca / Aipim' },
+      { id: 'c_pao_integral', nome: 'Pao de Forma' },
+      { id: 'f_banana', nome: 'Banana Prata' },
+      { id: 'f_maca', nome: 'Maca Nacional' },
+      { id: 'g_pasta_amendoim', nome: 'Pasta de Amendoim' },
+      { id: 'g_azeite', nome: 'Azeite de Oliva' }
+    ];
+
+    window.patientAccessibilityPrefs = {
+      orcamento: 'economico',
+      ambienteConsumo: 'com_geladeira_microondas',
+      aceitaSuplementos: true,
+      alimentosAcessibilidade: {
+        p_frango: 'alta_disponibilidade',
+        p_sobrecoxa: 'alta_disponibilidade',
+        p_ovo_inteiro: 'alta_disponibilidade',
+        p_sardinha: 'alta_disponibilidade',
+        c_arroz_branco: 'alta_disponibilidade',
+        c_feijao: 'alta_disponibilidade',
+        c_aveia: 'alta_disponibilidade',
+        c_batata_inglesa: 'alta_disponibilidade',
+        f_banana: 'alta_disponibilidade'
+      }
+    };
+
+    window.openPatientPreferencesModal = function() {
+      loadPatientPreferences();
+      updatePreferenceModalUI();
+      renderPatientFoodPills();
+      var modal = document.getElementById('patientPreferencesModal');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    window.closePatientPreferencesModal = function() {
+      var modal = document.getElementById('patientPreferencesModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.setPreferenceBudget = function(val) {
+      window.patientAccessibilityPrefs.orcamento = val;
+      updatePreferenceModalUI();
+    };
+
+    window.setPreferenceEnv = function(val) {
+      window.patientAccessibilityPrefs.ambienteConsumo = val;
+      updatePreferenceModalUI();
+    };
+
+    window.setPreferenceSupplements = function(val) {
+      window.patientAccessibilityPrefs.aceitaSuplementos = Boolean(val);
+      updatePreferenceModalUI();
+    };
+
+    window.togglePreferenceFood = function(foodId) {
+      var current = window.patientAccessibilityPrefs.alimentosAcessibilidade[foodId] || 'tolerado';
+      var next = current === 'alta_disponibilidade'
+        ? 'baixo_acesso'
+        : (current === 'baixo_acesso' ? 'tolerado' : 'alta_disponibilidade');
+      window.patientAccessibilityPrefs.alimentosAcessibilidade[foodId] = next;
+      renderPatientFoodPills();
+    };
+
+    function updatePreferenceModalUI() {
+      var prefs = window.patientAccessibilityPrefs;
+      var mapBudget = {
+        'economico': 'prefBtnOrcamentoEco',
+        'moderado': 'prefBtnOrcamentoMod',
+        'livre': 'prefBtnOrcamentoLiv'
+      };
+
+      ['economico', 'moderado', 'livre'].forEach(function(k) {
+        var btn = document.getElementById(mapBudget[k]);
+        if (!btn) return;
+        if (prefs.orcamento === k) {
+          btn.className = 'pref-budget-btn p-2.5 rounded-xl border text-center transition-all bg-emerald-950/80 border-emerald-500 text-white shadow-sm';
+        } else {
+          btn.className = 'pref-budget-btn p-2.5 rounded-xl border text-center transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:border-zinc-700';
+        }
+      });
+
+      var btnGel = document.getElementById('prefBtnEnvGeladeira');
+      var btnRua = document.getElementById('prefBtnEnvRua');
+      if (btnGel && btnRua) {
+        if (prefs.ambienteConsumo === 'com_geladeira_microondas') {
+          btnGel.className = 'pref-env-btn p-2.5 rounded-xl border text-left text-xs font-semibold transition-all bg-emerald-950/80 border-emerald-500 text-white';
+          btnRua.className = 'pref-env-btn p-2.5 rounded-xl border text-left text-xs font-semibold transition-all bg-[#08090A] border-[#272C31] text-zinc-400';
+        } else {
+          btnGel.className = 'pref-env-btn p-2.5 rounded-xl border text-left text-xs font-semibold transition-all bg-[#08090A] border-[#272C31] text-zinc-400';
+          btnRua.className = 'pref-env-btn p-2.5 rounded-xl border text-left text-xs font-semibold transition-all bg-amber-950/80 border-amber-500 text-white';
+        }
+      }
+
+      var btnSupY = document.getElementById('prefBtnSuppYes');
+      var btnSupN = document.getElementById('prefBtnSuppNo');
+      if (btnSupY && btnSupN) {
+        if (prefs.aceitaSuplementos) {
+          btnSupY.className = 'pref-supp-btn p-2 rounded-xl border text-center text-xs font-bold transition-all bg-blue-950/80 border-blue-500 text-white';
+          btnSupN.className = 'pref-supp-btn p-2 rounded-xl border text-center text-xs font-bold transition-all bg-[#08090A] border-[#272C31] text-zinc-400';
+        } else {
+          btnSupY.className = 'pref-supp-btn p-2 rounded-xl border text-center text-xs font-bold transition-all bg-[#08090A] border-[#272C31] text-zinc-400';
+          btnSupN.className = 'pref-supp-btn p-2 rounded-xl border text-center text-xs font-bold transition-all bg-emerald-950/80 border-emerald-500 text-white';
+        }
+      }
+    }
+
+    function renderPatientFoodPills() {
+      var container = document.getElementById('patientFoodAffinityPillsContainer');
+      if (!container) return;
+      var statusMap = window.patientAccessibilityPrefs.alimentosAcessibilidade || {};
+
+      container.innerHTML = window.COMMON_ACCESSIBILITY_FOODS.map(function(item) {
+        var st = statusMap[item.id] || 'tolerado';
+        var cls = 'bg-[#121518] border-[#272C31] text-zinc-400 hover:border-zinc-600';
+        var icon = 'o';
+        if (st === 'alta_disponibilidade') {
+          cls = 'bg-emerald-950/90 border-emerald-500 text-emerald-300 font-bold shadow-sm';
+          icon = '★';
+        } else if (st === 'baixo_acesso') {
+          cls = 'bg-red-950/80 border-red-700 text-red-300 line-through opacity-75 font-semibold';
+          icon = '✕';
+        }
+
+        return '<button type="button" onclick="togglePreferenceFood(\'' + item.id + '\')" ' +
+          'class="px-2.5 py-1.5 rounded-xl text-xs border transition-all flex items-center gap-1.5 active:scale-95 ' + cls + '">' +
+          '<span class="font-bold">' + icon + '</span>' +
+          '<span>' + item.nome + '</span>' +
+          '</button>';
+      }).join('');
+    }
+
+    window.savePatientPreferences = async function() {
+      var btn = document.getElementById('btnSavePatientPreferences');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Salvando...</span>';
+      }
+
+      var pId = (typeof getActivePatientId === 'function' ? getActivePatientId() : null) ||
+                (typeof _authorizedPatientId !== 'undefined' && _authorizedPatientId) ||
+                localStorage.getItem('nutriax_active_patient_id') || 'paulo-vitor';
+
+      var dataToSave = JSON.parse(JSON.stringify(window.patientAccessibilityPrefs));
+
+      try {
+        localStorage.setItem('nutriax_patient_preferences_' + pId, JSON.stringify(dataToSave));
+        localStorage.setItem('nutriax_patient_preferences_default', JSON.stringify(dataToSave));
+
+        if (window.db && window.db.patients) {
+          try {
+            var p = await window.db.patients.get(pId);
+            if (p) {
+              p.accessibilityPreferences = dataToSave;
+              p.questionarioAcessibilidade = dataToSave;
+              await window.db.patients.put(p);
+            }
+          } catch (dexErr) {
+            console.warn('[NutriAx Prefs] Aviso ao gravar no Dexie:', dexErr);
+          }
+        }
+
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            var bc = new BroadcastChannel('nutriax_bidirectional_sync');
+            bc.postMessage({
+              type: 'PATIENT_PREFERENCES_UPDATED',
+              patientId: pId,
+              preferences: dataToSave
+            });
+          }
+        } catch (_) { }
+
+        updatePreferenceBadges();
+
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 30, spread: 60, origin: { y: 0.6 } });
+        }
+
+        var toast = document.getElementById('syncToastNotification');
+        if (toast) {
+          var tTitle = document.getElementById('syncToastTitle');
+          var tMsg = document.getElementById('syncToastMessage');
+          if (tTitle) tTitle.textContent = 'Preferencias Atualizadas';
+          if (tMsg) tMsg.textContent = 'Cesta basica e rotina salvas com sucesso!';
+          toast.classList.remove('opacity-0', '-translate-y-20');
+          toast.classList.add('opacity-100', 'translate-y-0');
+          setTimeout(function() {
+            toast.classList.remove('opacity-100', 'translate-y-0');
+            toast.classList.add('opacity-0', '-translate-y-20');
+          }, 2500);
+        }
+
+        setTimeout(function() {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Salvar Preferencias</span>';
+          }
+          closePatientPreferencesModal();
+          if (window.lucide) window.lucide.createIcons();
+        }, 600);
+
+      } catch (e) {
+        console.error('[savePatientPreferences] Erro:', e);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Tentar Novamente</span>';
+        }
+      }
+    };
+
+    window.loadPatientPreferences = function() {
+      var pId = (typeof getActivePatientId === 'function' ? getActivePatientId() : null) ||
+                (typeof _authorizedPatientId !== 'undefined' && _authorizedPatientId) ||
+                localStorage.getItem('nutriax_active_patient_id') || 'paulo-vitor';
+
+      var saved = localStorage.getItem('nutriax_patient_preferences_' + pId) ||
+                  localStorage.getItem('nutriax_patient_preferences_default');
+
+      if (saved) {
+        try {
+          var parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            window.patientAccessibilityPrefs = {
+              orcamento: parsed.orcamento || 'economico',
+              ambienteConsumo: parsed.ambienteConsumo || 'com_geladeira_microondas',
+              aceitaSuplementos: parsed.aceitaSuplementos !== false,
+              alimentosAcessibilidade: parsed.alimentosAcessibilidade || {}
+            };
+          }
+        } catch (e) {
+          console.warn('[loadPatientPreferences] Erro parse:', e);
+        }
+      }
+      updatePreferenceBadges();
+    };
+
+    function updatePreferenceBadges() {
+      var prefs = window.patientAccessibilityPrefs;
+      var budgetLabels = {
+        'economico': 'Economico (Cesta)',
+        'moderado': 'Moderado (Padrao)',
+        'livre': 'Livre (Variado)'
+      };
+      var label = budgetLabels[prefs.orcamento] || 'Economico';
+
+      var bNutri = document.getElementById('patientPrefsBudgetBadge');
+      if (bNutri) bNutri.textContent = label;
+
+      var bHoje = document.getElementById('patientPrefsBudgetBadgeHoje');
+      if (bHoje) bHoje.textContent = label;
+
+      var sub = document.getElementById('patientPrefsSummarySubtitle');
+      if (sub) {
+        var envLabel = prefs.ambienteConsumo === 'sem_refrigeracao' ? '🎒 Sem geladeira' : '🏢 Com geladeira';
+        var suppLabel = prefs.aceitaSuplementos ? 'Suplementos OK' : 'Apenas comida';
+        sub.textContent = label + ' • ' + envLabel + ' • ' + suppLabel;
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        loadPatientPreferences();
+      });
+    } else {
+      loadPatientPreferences();
+    }
+
     // 1. BANCO DE DADOS DE TODAS AS ROTINAS DE TREINO (A, B, C, D, E, F, CARDIO, OFF)
     const WORKOUT_DATABASE = {
       'A': {
@@ -6135,6 +6424,10 @@
             }
             if (typeof renderPatientFastingCard === 'function') {
               renderPatientFastingCard();
+            }
+          } else if (event.data.type === 'PATIENT_PREFERENCES_UPDATED') {
+            if (typeof loadPatientPreferences === 'function') {
+              loadPatientPreferences();
             }
           }
         };
