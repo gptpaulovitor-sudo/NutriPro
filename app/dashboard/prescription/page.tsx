@@ -29,8 +29,13 @@ import {
   Save,
   Printer,
   Sliders,
+  Wallet,
+  Briefcase,
+  ShoppingBag,
+  Leaf,
+  Check,
 } from "lucide-react";
-import { prescribeDietAction } from "@/actions/prescribeDiet";
+import { prescribeDietAction } from "@/app/actions/prescribeDiet";
 import {
   ObjetivoClinico,
   NivelAtividade,
@@ -39,6 +44,10 @@ import {
   Refeicao,
   ItemRefeicao,
   Alimento,
+  FaixaOrcamento,
+  AmbienteConsumo,
+  StatusAcessibilidadeAlimento,
+  QuestionarioAcessibilidadePaciente,
 } from "@/utils/nutritionTypes";
 import {
   calculateTMB,
@@ -67,6 +76,73 @@ export default function PrescriptionPage() {
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [aversionInput, setAversionInput] = useState("");
   const [aversionsList, setAversionsList] = useState<string[]>([]);
+
+  // Perfil Socioeconômico & Questionário de Acessibilidade do Paciente
+  const [orcamento, setOrcamento] = useState<FaixaOrcamento>("economico");
+  const [ambienteConsumo, setAmbienteConsumo] = useState<AmbienteConsumo>("com_geladeira_microondas");
+  const [aceitaSuplementos, setAceitaSuplementos] = useState(true);
+  const [alimentosAcessibilidade, setAlimentosAcessibilidade] = useState<Record<string, StatusAcessibilidadeAlimento>>({
+    p_frango: "alta_disponibilidade",
+    p_ovo_inteiro: "alta_disponibilidade",
+    p_sardinha: "alta_disponibilidade",
+    c_arroz_branco: "alta_disponibilidade",
+    c_feijao: "alta_disponibilidade",
+    c_aveia: "alta_disponibilidade",
+    f_banana: "alta_disponibilidade",
+    c_batata_inglesa: "alta_disponibilidade",
+  });
+
+  const toggleStatusAlimento = (id: string) => {
+    setAlimentosAcessibilidade((prev) => {
+      const atual = prev[id] || "tolerado";
+      const proximo: StatusAcessibilidadeAlimento =
+        atual === "alta_disponibilidade"
+          ? "baixo_acesso"
+          : atual === "baixo_acesso"
+          ? "tolerado"
+          : "alta_disponibilidade";
+      return { ...prev, [id]: proximo };
+    });
+  };
+
+  const aplicarPresetAcessibilidade = (tipo: "cesta_basica" | "sem_geladeira" | "livre") => {
+    if (tipo === "cesta_basica") {
+      setOrcamento("economico");
+      setAmbienteConsumo("com_geladeira_microondas");
+      setAceitaSuplementos(true);
+      setAlimentosAcessibilidade({
+        p_frango: "alta_disponibilidade",
+        p_sobrecoxa: "alta_disponibilidade",
+        p_ovo_inteiro: "alta_disponibilidade",
+        p_sardinha: "alta_disponibilidade",
+        c_arroz_branco: "alta_disponibilidade",
+        c_feijao: "alta_disponibilidade",
+        c_aveia: "alta_disponibilidade",
+        c_batata_inglesa: "alta_disponibilidade",
+        f_banana: "alta_disponibilidade",
+        p_salmao: "baixo_acesso",
+        p_contrafile: "baixo_acesso",
+        l_queijo_minas: "baixo_acesso",
+      });
+    } else if (tipo === "sem_geladeira") {
+      setOrcamento("moderado");
+      setAmbienteConsumo("sem_refrigeracao");
+      setAceitaSuplementos(false);
+      setAlimentosAcessibilidade({
+        p_ovo_inteiro: "alta_disponibilidade",
+        c_aveia: "alta_disponibilidade",
+        f_banana: "alta_disponibilidade",
+        c_pao_integral: "alta_disponibilidade",
+        g_pasta_amendoim: "alta_disponibilidade",
+        l_iogurte: "baixo_acesso",
+      });
+    } else if (tipo === "livre") {
+      setOrcamento("livre");
+      setAmbienteConsumo("com_geladeira_microondas");
+      setAceitaSuplementos(true);
+      setAlimentosAcessibilidade({});
+    }
+  };
 
   // Plano Gerado e Feedbacks
   const [planoAlimentar, setPlanoAlimentar] = useState<PlanoAlimentar | null>(null);
@@ -131,6 +207,16 @@ export default function PrescriptionPage() {
     setStatusMessage(null);
     startTransition(async () => {
       try {
+        const questionarioFormatado: QuestionarioAcessibilidadePaciente = {
+          orcamento,
+          ambienteConsumo,
+          aceitaSuplementos,
+          alimentosAcessiveis: Object.entries(alimentosAcessibilidade).map(([alimentoId, status]) => ({
+            alimentoId,
+            status,
+          })),
+        };
+
         const res = await prescribeDietAction({
           nomePaciente: patientName,
           biometria: {
@@ -150,7 +236,9 @@ export default function PrescriptionPage() {
               aversoes: aversionsList,
               estiloAlimentar: dietaryStyle,
             },
+            questionarioAcessibilidade: questionarioFormatado,
           },
+          questionarioAcessibilidade: questionarioFormatado,
           salvarNoBanco: true,
         });
 
@@ -609,6 +697,193 @@ export default function PrescriptionPage() {
             </div>
           </div>
 
+          {/* =============================================================== */}
+          {/* QUESTIONÁRIO DE ACESSIBILIDADE & LOGÍSTICA REAL DO PACIENTE      */}
+          {/* =============================================================== */}
+          <div className="pt-4 border-t border-zinc-800/80 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                  Questionário de Acessibilidade & Realidade do Paciente
+                </h3>
+              </div>
+
+              {/* Presets Rápidos */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-zinc-400 mr-1">Presets Rápidos:</span>
+                <button
+                  type="button"
+                  onClick={() => aplicarPresetAcessibilidade("cesta_basica")}
+                  className={`text-[11px] px-2.5 py-1 rounded-md font-bold transition-all ${
+                    orcamento === "economico" && ambienteConsumo === "com_geladeira_microondas"
+                      ? "bg-emerald-950 border border-emerald-600 text-emerald-300"
+                      : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  🟢 Cesta Básica Econômica
+                </button>
+                <button
+                  type="button"
+                  onClick={() => aplicarPresetAcessibilidade("sem_geladeira")}
+                  className={`text-[11px] px-2.5 py-1 rounded-md font-bold transition-all ${
+                    ambienteConsumo === "sem_refrigeracao"
+                      ? "bg-amber-950 border border-amber-600 text-amber-300"
+                      : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  🎒 Sem Geladeira / Rua
+                </button>
+                <button
+                  type="button"
+                  onClick={() => aplicarPresetAcessibilidade("livre")}
+                  className={`text-[11px] px-2.5 py-1 rounded-md font-bold transition-all ${
+                    orcamento === "livre"
+                      ? "bg-blue-950 border border-blue-600 text-blue-300"
+                      : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  🔵 Orçamento Livre
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-black/40 p-4 rounded-xl border border-zinc-800/80">
+              {/* Orçamento */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1.5 flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-emerald-400" /> Faixa de Orçamento
+                </label>
+                <select
+                  value={orcamento}
+                  onChange={(e) => setOrcamento(e.target.value as FaixaOrcamento)}
+                  className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-xs font-bold text-white focus:border-emerald-500 outline-none"
+                >
+                  <option value="economico">🟢 Econômico (Cesta Básica, Max Rendimento)</option>
+                  <option value="moderado">🟡 Moderado (Padrão de Mercado)</option>
+                  <option value="livre">🔵 Livre (Salmão, Cortes Nobres, etc.)</option>
+                </select>
+              </div>
+
+              {/* Ambiente de Consumo */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1.5 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-amber-400" /> Ambiente no Trabalho / Rotina
+                </label>
+                <select
+                  value={ambienteConsumo}
+                  onChange={(e) => setAmbienteConsumo(e.target.value as AmbienteConsumo)}
+                  className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-xs font-bold text-white focus:border-amber-500 outline-none"
+                >
+                  <option value="com_geladeira_microondas">🏢 Completo (Geladeira + Micro-ondas)</option>
+                  <option value="sem_refrigeracao">🎒 Sem Geladeira (Marmita Seca / Rua)</option>
+                  <option value="marmita_pronta">🍱 Marmita Congelada Pré-preparada</option>
+                </select>
+              </div>
+
+              {/* Suplementação */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1.5 flex items-center gap-1.5">
+                  <Leaf className="w-3.5 h-3.5 text-blue-400" /> Uso de Suplementos
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAceitaSuplementos(true)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${
+                      aceitaSuplementos
+                        ? "bg-blue-950/80 border-blue-600 text-blue-300"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    Aceita Suplementos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAceitaSuplementos(false)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${
+                      !aceitaSuplementos
+                        ? "bg-emerald-950/80 border-emerald-600 text-emerald-300"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    Apenas Comida
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Matriz de Disponibilidade de Alimentos (Clique para Alternar) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                  <ShoppingBag className="w-3.5 h-3.5 text-zinc-400" /> Matriz de Alimentos Apontados pelo Paciente
+                  <span className="text-[11px] font-normal text-zinc-500">(clique para alternar afinidade)</span>
+                </span>
+
+                <div className="flex items-center gap-2 text-[10px]">
+                  <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" /> Favorito / Acessível
+                  </span>
+                  <span className="flex items-center gap-1 text-zinc-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-zinc-600" /> Tolerado
+                  </span>
+                  <span className="flex items-center gap-1 text-red-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-red-400" /> Difícil / Evitar
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-black/40 rounded-xl border border-zinc-800/80">
+                {[
+                  { id: "p_frango", nome: "Peito de Frango" },
+                  { id: "p_sobrecoxa", nome: "Sobrecoxa" },
+                  { id: "p_ovo_inteiro", nome: "Ovos Inteiros" },
+                  { id: "p_sardinha", nome: "Sardinha" },
+                  { id: "p_patinho", nome: "Patinho Moído" },
+                  { id: "p_salmao", nome: "Salmão" },
+                  { id: "p_contrafile", nome: "Contrafilé" },
+                  { id: "p_albumina", nome: "Albumina" },
+                  { id: "p_whey", nome: "Whey Protein" },
+                  { id: "l_leite_desnatado_po", nome: "Leite em Pó" },
+                  { id: "l_iogurte", nome: "Iogurte Natural" },
+                  { id: "l_queijo_minas", nome: "Queijo Minas" },
+                  { id: "c_arroz_branco", nome: "Arroz Branco" },
+                  { id: "c_feijao", nome: "Feijão" },
+                  { id: "c_aveia", nome: "Aveia" },
+                  { id: "c_batata_inglesa", nome: "Batata Inglesa" },
+                  { id: "c_batata_doce", nome: "Batata Doce" },
+                  { id: "c_mandioca", nome: "Mandioca" },
+                  { id: "c_pao_integral", nome: "Pão Integral" },
+                  { id: "f_banana", nome: "Banana" },
+                  { id: "f_maca", nome: "Maçã" },
+                  { id: "g_pasta_amendoim", nome: "Pasta de Amendoim" },
+                  { id: "g_azeite", nome: "Azeite" },
+                ].map((item) => {
+                  const status = alimentosAcessibilidade[item.id] || "tolerado";
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => toggleStatusAlimento(item.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                        status === "alta_disponibilidade"
+                          ? "bg-emerald-950/80 border-emerald-600 text-emerald-300 shadow-sm"
+                          : status === "baixo_acesso"
+                          ? "bg-red-950/80 border-red-700 text-red-300 line-through opacity-75"
+                          : "bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      {status === "alta_disponibilidade" && "⭐"}
+                      {status === "baixo_acesso" && "🚫"}
+                      {item.nome}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Botão de Geração */}
           <div className="pt-4 border-t border-zinc-800 flex justify-end">
             <button
@@ -645,7 +920,18 @@ export default function PrescriptionPage() {
               </h2>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-mono">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              {planoAlimentar.indiceAcessibilidadePercentual !== undefined && (
+                <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-700 text-emerald-300 font-bold rounded-lg flex items-center gap-1">
+                  <Wallet className="w-3.5 h-3.5" />
+                  {planoAlimentar.indiceAcessibilidadePercentual}% Acessibilidade Cesta Básica
+                </span>
+              )}
+              {planoAlimentar.orcamentoEstimado && (
+                <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 capitalize">
+                  Orçamento: {planoAlimentar.orcamentoEstimado}
+                </span>
+              )}
               <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300">
                 TMB: {planoAlimentar.balancoEnergetico.tmb} kcal
               </span>

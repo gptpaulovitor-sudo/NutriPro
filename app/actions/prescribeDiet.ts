@@ -147,7 +147,9 @@ export async function prescribeDietAction(
       catalogoAlimentos = input.alimentosCustomizados || CATALOGO_ALIMENTOS_BASE;
     }
 
-    // 2. Executar Motor Lógico Puro
+    // 2. Executar Motor Lógico Puro com Questionário de Acessibilidade
+    const questAcessibilidade = input.questionarioAcessibilidade || anamnese.questionarioAcessibilidade;
+
     const plano: PlanoAlimentar = executarGeradorDietas({
       pacienteId: input.pacienteId,
       biometria,
@@ -161,8 +163,10 @@ export async function prescribeDietAction(
           aversoes: [],
           estiloAlimentar: "onivoro",
         },
+        questionarioAcessibilidade: questAcessibilidade,
       },
-      catalogoAlimentos,
+      questionarioAcessibilidade: questAcessibilidade,
+      catalogoAlimentos: CATALOGO_ALIMENTOS_BASE,
     });
 
     // 3. Persistência Atômica no Prisma (Nested Writes) se solicitado

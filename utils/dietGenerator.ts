@@ -29,6 +29,10 @@ import {
   ItemRefeicao,
   TotaisNutricionais,
   ContextoRefeicao,
+  Anamnese,
+  QuestionarioAcessibilidadePaciente,
+  FaixaOrcamento,
+  AmbienteConsumo,
 } from './nutritionTypes';
 
 // ============================================================================
@@ -54,6 +58,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 220,
     tags: ['sem-lactose', 'sem-gluten', 'proteina-magra'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
   {
     id: 'p_sobrecoxa',
@@ -72,6 +79,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 200,
     tags: ['sem-lactose', 'sem-gluten', 'low-carb', 'keto'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
   {
     id: 'p_patinho',
@@ -90,6 +100,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 200,
     tags: ['sem-lactose', 'sem-gluten', 'carne-vermelha'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
   {
     id: 'p_contrafile',
@@ -108,6 +121,30 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 190,
     tags: ['sem-lactose', 'sem-gluten', 'carne-vermelha', 'low-carb', 'keto'],
+    custoRelativo: 'alto',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: false,
+  },
+  {
+    id: 'p_sardinha',
+    nome: 'Sardinha Grelhada ou em Conserva Drenada',
+    categoria: 'Peixes e Frutos do Mar',
+    baseQuantidade: 100,
+    calorias: 164,
+    proteina: 24.6,
+    carboidrato: 0,
+    gordura: 7.2,
+    fibra: 0,
+    sodio: 110,
+    contextos: ['almoco', 'jantar'],
+    perfilSabor: 'salgado',
+    tipoGordura: 'intrinseca',
+    porcaoMinimaG: 80,
+    porcaoMaximaG: 220,
+    tags: ['peixe', 'sem-lactose', 'sem-gluten', 'omega-3', 'proteina-magra'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'p_tilapia',
@@ -126,6 +163,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 100,
     porcaoMaximaG: 250,
     tags: ['peixe', 'sem-lactose', 'sem-gluten', 'proteina-magra'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: false,
   },
   {
     id: 'p_salmao',
@@ -144,6 +184,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 180,
     tags: ['peixe', 'sem-lactose', 'sem-gluten', 'omega-3', 'low-carb', 'keto'],
+    custoRelativo: 'alto',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: false,
   },
   {
     id: 'p_ovo_inteiro',
@@ -162,6 +205,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 50,  // ~1 ovo
     porcaoMaximaG: 180, // ~3-4 ovos
     tags: ['ovo', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
   {
     id: 'p_clara',
@@ -180,6 +226,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 180,
     tags: ['ovo', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
 
   // ── SUPLEMENTOS E LATICÍNIOS PROTEICOS (Para Lanches, Pré-treino e Ceia) ──
@@ -200,6 +249,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 25,
     porcaoMaximaG: 40,
     tags: ['vegetariano', 'sem-gluten', 'suplemento', 'mps-ouro'],
+    custoRelativo: 'alto',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'p_albumina',
@@ -218,6 +270,30 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 25,
     porcaoMaximaG: 40,
     tags: ['ovo', 'suplemento', 'sem-lactose', 'sem-gluten', 'mps-ouro'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
+  },
+  {
+    id: 'l_leite_desnatado_po',
+    nome: 'Leite em Pó Desnatado',
+    categoria: 'Laticínios',
+    baseQuantidade: 100,
+    calorias: 355,
+    proteina: 35.0,
+    carboidrato: 52.0,
+    gordura: 1.0,
+    fibra: 0,
+    sodio: 500,
+    contextos: ['cafe', 'lanche', 'ceia'],
+    perfilSabor: 'doce',
+    tipoGordura: 'intrinseca',
+    porcaoMinimaG: 20,
+    porcaoMaximaG: 45,
+    tags: ['laticinio', 'vegetariano', 'contem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'l_iogurte',
@@ -236,6 +312,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 120,
     porcaoMaximaG: 200,
     tags: ['laticinio', 'vegetariano', 'contem-lactose', 'sem-gluten'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false, // Azeda se ficar sem refrigeração
   },
   {
     id: 'l_queijo_minas',
@@ -254,6 +333,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 25,
     porcaoMaximaG: 50,
     tags: ['laticinio', 'vegetariano', 'contem-lactose', 'sem-gluten', 'low-carb', 'keto'],
+    custoRelativo: 'alto',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false,
   },
   {
     id: 'p_tofu',
@@ -272,6 +354,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 200,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
 
   // ── CARBOIDRATOS: SUBGRUPO CEREAIS & PÃES ────────────────────────────────
@@ -292,6 +377,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 250,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'cozimento_longo',
+    portabilidadeMarmita: true,
   },
   {
     id: 'c_arroz_integral',
@@ -310,6 +398,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 250,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'cozimento_longo',
+    portabilidadeMarmita: true,
   },
   {
     id: 'c_pao_integral',
@@ -328,6 +419,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 25,
     porcaoMaximaG: 100, // HARD CAP: Máximo de 100g (~2 a 3 fatias)
     tags: ['vegetariano', 'contem-gluten'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'c_aveia',
@@ -346,9 +440,33 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 20,
     porcaoMaximaG: 60, // HARD CAP: Máximo 60g por refeição
     tags: ['vegano', 'vegetariano', 'sem-lactose'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
 
   // ── CARBOIDRATOS: SUBGRUPO RAÍZES (Incompatível com Cereais/Pães) ─────────
+  {
+    id: 'c_batata_inglesa',
+    nome: 'Batata Inglesa Cozida',
+    categoria: 'Carboidratos',
+    baseQuantidade: 100,
+    calorias: 87,
+    proteina: 1.9,
+    carboidrato: 20.1,
+    gordura: 0.1,
+    fibra: 1.8,
+    sodio: 6,
+    contextos: ['almoco', 'lanche', 'jantar', 'cafe'],
+    perfilSabor: 'salgado',
+    subgrupoCarbo: 'raizes',
+    porcaoMinimaG: 80,
+    porcaoMaximaG: 250,
+    tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
+  },
   {
     id: 'c_batata_doce',
     nome: 'Batata Doce Cozida',
@@ -366,6 +484,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 220,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
   {
     id: 'c_mandioca',
@@ -384,6 +505,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 200,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'cozimento_longo',
+    portabilidadeMarmita: true,
   },
 
   // ── CARBOIDRATOS: SUBGRUPO LEGUMINOSAS ───────────────────────────────────
@@ -404,6 +528,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 160,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'cozimento_longo',
+    portabilidadeMarmita: true,
   },
 
   // ── CARBOIDRATOS: SUBGRUPO FRUTAS ────────────────────────────────────────
@@ -424,6 +551,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 130,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'f_maca',
@@ -442,6 +572,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 80,
     porcaoMaximaG: 150,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'f_morango',
@@ -460,6 +593,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 150,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten', 'low-carb', 'keto'],
+    custoRelativo: 'alto',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false,
   },
 
   // ── GORDURAS BOAS & OLEAGINOSAS (Com Trava Rígida de 15g para Gorduras Puras) ──
@@ -480,6 +616,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 5,
     porcaoMaximaG: 15, // HARD CAP RIGOROSO: NUNCA PASSAR DE 15g!
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten', 'gordura-pura'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'g_manteiga',
@@ -498,6 +637,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 5,
     porcaoMaximaG: 15, // HARD CAP RIGOROSO: NUNCA PASSAR DE 15g!
     tags: ['vegetariano', 'contem-lactose', 'sem-gluten', 'gordura-pura'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false,
   },
   {
     id: 'g_pasta_amendoim',
@@ -516,6 +658,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 15,
     porcaoMaximaG: 30,
     tags: ['amendoim', 'vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
   {
     id: 'g_abacate',
@@ -534,6 +679,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 40,
     porcaoMaximaG: 100,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false,
   },
   {
     id: 'g_castanha',
@@ -552,6 +700,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 10,
     porcaoMaximaG: 30,
     tags: ['oleaginosas', 'vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'alto',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: true,
   },
 
   // ── VEGETAIS E HORTALIÇAS ────────────────────────────────────────────────
@@ -571,6 +722,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 60,
     porcaoMaximaG: 150,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'medio',
+    praticidadePreparo: 'rapido',
+    portabilidadeMarmita: true,
   },
   {
     id: 'v_tomate',
@@ -588,6 +742,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 40,
     porcaoMaximaG: 100,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false,
   },
   {
     id: 'v_alface',
@@ -605,6 +762,9 @@ export const CATALOGO_ALIMENTOS_BASE: Alimento[] = [
     porcaoMinimaG: 40,
     porcaoMaximaG: 80,
     tags: ['vegano', 'vegetariano', 'sem-lactose', 'sem-gluten'],
+    custoRelativo: 'baixo',
+    praticidadePreparo: 'imediato',
+    portabilidadeMarmita: false,
   },
 ];
 
@@ -913,19 +1073,72 @@ function obterTemplatesRefeicoes(qtd: number): TemplateRefeicaoEsportiva[] {
 }
 
 // ============================================================================
-// 6. MOTOR DE MONTAGEM E REGRAS DE OURO (Golden Rules Engine)
+// 6. SCORING DE ACESSIBILIDADE E ROTINA (Orquestrador Inteligente)
 // ============================================================================
+
+/**
+ * Calcula a nota de prioridade de um alimento ponderando o Questionário do Paciente,
+ * a faixa de orçamento (cesta básica vs livre) e o ambiente de consumo (marmita/sem geladeira).
+ */
+export function calcularScoreAlimento(
+  alimento: Alimento,
+  contexto: ContextoRefeicao,
+  questionario?: QuestionarioAcessibilidadePaciente
+): number {
+  let score = 50; // Base neutra
+
+  // 1. Resposta declarada pelo paciente no Questionário
+  if (questionario?.alimentosAcessiveis && questionario.alimentosAcessiveis.length > 0) {
+    const itemDeclarado = questionario.alimentosAcessiveis.find(
+      (i) => i.alimentoId === alimento.id || alimento.nome.toLowerCase().includes(i.alimentoId.toLowerCase())
+    );
+    if (itemDeclarado) {
+      if (itemDeclarado.status === 'alta_disponibilidade') score += 70; // Bônus prioritário
+      else if (itemDeclarado.status === 'tolerado') score += 15;
+      else if (itemDeclarado.status === 'baixo_acesso') score -= 90; // Forte penalização
+    }
+  }
+
+  // 2. Faixa de Orçamento
+  const orcamento = questionario?.orcamento || 'moderado';
+  if (orcamento === 'economico') {
+    if (alimento.custoRelativo === 'baixo') score += 45;
+    else if (alimento.custoRelativo === 'medio') score += 5;
+    else if (alimento.custoRelativo === 'alto') score -= 65; // Descarte virtual de salmão, queijos e carnes nobres
+  } else if (orcamento === 'moderado') {
+    if (alimento.custoRelativo === 'baixo') score += 25;
+    else if (alimento.custoRelativo === 'medio') score += 20;
+    else if (alimento.custoRelativo === 'alto') score -= 15;
+  } else if (orcamento === 'livre') {
+    if (alimento.custoRelativo === 'alto') score += 30; // Variedade e pratos nobres
+  }
+
+  // 3. Ambiente de Consumo / Logística (Trabalho sem geladeira / rua)
+  const ambiente = questionario?.ambienteConsumo || 'com_geladeira_microondas';
+  if (ambiente === 'sem_refrigeracao' && (contexto === 'lanche' || contexto === 'cafe')) {
+    if (alimento.portabilidadeMarmita) score += 35;
+    else score -= 75; // Alimentos perecíveis sem frio azedam
+  }
+
+  // 4. Suplementos vs Comida de Verdade
+  if (alimento.categoria === 'Suplementos') {
+    if (questionario?.aceitaSuplementos === false) {
+      score -= 250; // Totalmente eliminado
+    } else if (orcamento === 'economico') {
+      if (alimento.id === 'p_albumina') score += 40; // Rainha do custo x benefício
+      if (alimento.id === 'p_whey') score -= 30;
+    }
+  }
+
+  return score;
+}
 
 export interface ConfigGeradorDieta {
   pacienteId?: string;
   biometria: BiometriaPaciente;
-  anamnese: {
-    objetivo: ObjetivoClinico;
-    nivelAtividade: NivelAtividade;
-    numeroRefeicoesDia: number;
-    restricoes: RestricoesAlimentares;
-  };
+  anamnese: Anamnese;
   catalogoAlimentos?: Alimento[];
+  questionarioAcessibilidade?: QuestionarioAcessibilidadePaciente;
 }
 
 export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimentar {
@@ -961,6 +1174,8 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     sodio: 0,
   };
 
+  const quest = config.questionarioAcessibilidade || anamnese.questionarioAcessibilidade;
+
   // 4. Montagem com Regras de Ouro
   templates.forEach((tpl, idx) => {
     const alimentosCtx = porContexto(tpl.contexto);
@@ -991,23 +1206,36 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
       }
 
       if (carnesDisponiveis.length > 0) {
-        carnePrincipalEscolhida = carnesDisponiveis[(idx * 2) % carnesDisponiveis.length];
+        // Ordena por score de acessibilidade, custo e preferência do paciente
+        carnesDisponiveis.sort((a, b) => calcularScoreAlimento(b, tpl.contexto, quest) - calcularScoreAlimento(a, tpl.contexto, quest));
+        const idxVariacao = idx % Math.min(carnesDisponiveis.length, 2);
+        carnePrincipalEscolhida = carnesDisponiveis[idxVariacao];
         const itemCarne = escalonarAlimentoParaMacro(carnePrincipalEscolhida, metaRefProteina, 'proteina');
         itensRefeicao.push(itemCarne);
       }
     } else if (tpl.papel === 'pre_treino' || tpl.papel === 'lanche_manha') {
-      // Prioridade: Whey Protein ou Albumina combinados com Iogurte
-      const whey = alimentosCtx.find((a) => a.id === 'p_whey');
-      const albumina = alimentosCtx.find((a) => a.id === 'p_albumina');
-      const iogurte = alimentosCtx.find((a) => a.id === 'l_iogurte');
+      const semGeladeira = quest?.ambienteConsumo === 'sem_refrigeracao';
+      const aceitaSupl = quest?.aceitaSuplementos !== false;
+      const orcamentoEco = quest?.orcamento === 'economico';
+
+      const whey = aceitaSupl ? alimentosCtx.find((a) => a.id === 'p_whey') : null;
+      const albumina = aceitaSupl ? alimentosCtx.find((a) => a.id === 'p_albumina') : null;
+      const leitePo = alimentosCtx.find((a) => a.id === 'l_leite_desnatado_po');
+      const iogurte = !semGeladeira ? alimentosCtx.find((a) => a.id === 'l_iogurte') : null;
       const ovos = alimentosCtx.find((a) => a.id === 'p_ovo_inteiro');
 
-      if (whey) {
-        // Whey garante 25g a 30g de proteína pura instantânea
+      if (orcamentoEco && albumina) {
+        itensRefeicao.push(escalonarAlimentoParaMacro(albumina, metaRefProteina * 0.85, 'proteina', 35));
+        temProteinaLiquidaOuPo = true;
+      } else if (whey) {
         itensRefeicao.push(escalonarAlimentoParaMacro(whey, metaRefProteina * 0.85, 'proteina', 35));
         temProteinaLiquidaOuPo = true;
       } else if (albumina) {
         itensRefeicao.push(escalonarAlimentoParaMacro(albumina, metaRefProteina * 0.85, 'proteina', 35));
+        temProteinaLiquidaOuPo = true;
+      } else if (leitePo && ovos) {
+        itensRefeicao.push(escalonarAlimentoParaMacro(leitePo, 12, 'proteina', 40));
+        itensRefeicao.push(escalonarAlimentoParaMacro(ovos, metaRefProteina - 12, 'proteina'));
         temProteinaLiquidaOuPo = true;
       } else if (iogurte && ovos) {
         itensRefeicao.push(escalonarAlimentoParaMacro(iogurte, 10, 'proteina', 170));
@@ -1016,13 +1244,18 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
         itensRefeicao.push(escalonarAlimentoParaMacro(ovos, metaRefProteina, 'proteina'));
       }
     } else if (tpl.papel === 'ceia') {
-      // Ceia: Albumina (absorção gradual noturna) ou Whey ou Ovos ou Queijo
-      const albumina = alimentosCtx.find((a) => a.id === 'p_albumina');
-      const whey = alimentosCtx.find((a) => a.id === 'p_whey');
-      const queijo = alimentosCtx.find((a) => a.id === 'l_queijo_minas');
+      const aceitaSupl = quest?.aceitaSuplementos !== false;
+      const orcamentoEco = quest?.orcamento === 'economico';
+
+      const albumina = aceitaSupl ? alimentosCtx.find((a) => a.id === 'p_albumina') : null;
+      const whey = aceitaSupl ? alimentosCtx.find((a) => a.id === 'p_whey') : null;
+      const queijo = !orcamentoEco ? alimentosCtx.find((a) => a.id === 'l_queijo_minas') : null;
       const ovos = alimentosCtx.find((a) => a.id === 'p_ovo_inteiro');
 
-      if (albumina) {
+      if (orcamentoEco && albumina) {
+        itensRefeicao.push(escalonarAlimentoParaMacro(albumina, metaRefProteina * 0.85, 'proteina', 35));
+        temProteinaLiquidaOuPo = true;
+      } else if (albumina) {
         itensRefeicao.push(escalonarAlimentoParaMacro(albumina, metaRefProteina * 0.85, 'proteina', 35));
         temProteinaLiquidaOuPo = true;
       } else if (whey) {
@@ -1034,17 +1267,21 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
         itensRefeicao.push(escalonarAlimentoParaMacro(queijo, metaRefProteina * 0.6, 'proteina'));
       }
     } else {
-      // Café da manhã: Ovos inteiros (e claras opcionais se meta for alta) ou Queijo / Whey
+      const orcamentoEco = quest?.orcamento === 'economico';
+      const aceitaSupl = quest?.aceitaSuplementos !== false;
       const ovos = alimentosCtx.find((a) => a.id === 'p_ovo_inteiro');
-      const queijo = alimentosCtx.find((a) => a.id === 'l_queijo_minas');
-      const whey = alimentosCtx.find((a) => a.id === 'p_whey');
+      const queijo = !orcamentoEco ? alimentosCtx.find((a) => a.id === 'l_queijo_minas') : null;
+      const claras = alimentosCtx.find((a) => a.id === 'p_clara');
+      const whey = aceitaSupl ? alimentosCtx.find((a) => a.id === 'p_whey') : null;
 
       if (ovos) {
-        // Garante no mínimo 2 a 3 ovos inteiros para começar batendo ~18g a 24g de proteína
         itensRefeicao.push(escalonarAlimentoParaMacro(ovos, metaRefProteina * 0.75, 'proteina', 180));
-        // Se a meta de proteína matinal for muito alta (ex: > 35g), adiciona Queijo ou Claras para fechar sem sobrecarregar gordura
-        if (metaRefProteina > 32 && queijo) {
-          itensRefeicao.push(escalonarAlimentoParaMacro(queijo, 10, 'proteina', 40));
+        if (metaRefProteina > 32) {
+          if (queijo) {
+            itensRefeicao.push(escalonarAlimentoParaMacro(queijo, 10, 'proteina', 40));
+          } else if (claras) {
+            itensRefeicao.push(escalonarAlimentoParaMacro(claras, 10, 'proteina', 120));
+          }
         }
       } else if (whey) {
         itensRefeicao.push(escalonarAlimentoParaMacro(whey, metaRefProteina, 'proteina', 35));
@@ -1066,8 +1303,6 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     // ────────────────────────────────────────────────────────────────────────
     if (!isKetoOrLowCarb && saldoCarbo > 8) {
       if (tpl.contexto === 'almoco' || tpl.contexto === 'jantar') {
-        // Decisão estrita: Arroz + Feijão OU Raízes (Batata Doce/Mandioca). NUNCA os dois juntos!
-        // No almoço usa Cereais (Arroz + Feijão). No jantar alterna para Raízes ou Arroz.
         const usarArroz = (tpl.contexto === 'almoco') || (idx % 2 === 0);
 
         if (usarArroz) {
@@ -1076,7 +1311,6 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
           const feijao = alimentosCtx.find((a) => a.id === 'c_feijao');
 
           if (arroz) {
-            // Se tiver feijão, 70% do carbo vai para o arroz e 30% para o feijão
             const carboArrozAlvo = feijao ? saldoCarbo * 0.70 : saldoCarbo;
             itensRefeicao.push(escalonarAlimentoParaMacro(arroz, carboArrozAlvo, 'carboidrato', 250));
           }
@@ -1084,49 +1318,43 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
             itensRefeicao.push(escalonarAlimentoParaMacro(feijao, saldoCarbo * 0.30, 'carboidrato', 140));
           }
         } else {
-          // Utiliza Raízes (Batata Doce ou Mandioca) — NUNCA com arroz ou aveia!
+          // Utiliza Raízes ordenadas por score de acessibilidade
           tipoCarboPrincipal = 'raizes';
-          const raiz = alimentosCtx.find((a) => a.id === 'c_batata_doce') || alimentosCtx.find((a) => a.id === 'c_mandioca');
+          const raizesDisponiveis = alimentosCtx.filter((a) => a.subgrupoCarbo === 'raizes');
+          raizesDisponiveis.sort((a, b) => calcularScoreAlimento(b, tpl.contexto, quest) - calcularScoreAlimento(a, tpl.contexto, quest));
+          const raiz = raizesDisponiveis[0] || alimentosCtx.find((a) => a.id === 'c_batata_doce');
           if (raiz) {
-            itensRefeicao.push(escalonarAlimentoParaMacro(raiz, saldoCarbo, 'carboidrato', 220));
+            itensRefeicao.push(escalonarAlimentoParaMacro(raiz, saldoCarbo, 'carboidrato', 230));
           }
         }
       } else if (temProteinaLiquidaOuPo) {
-        // Se a proteína for Whey, Albumina ou Iogurte: Pareia exclusivamente com AVEIA e/ou FRUTA!
-        // REGRA: JAMAIS colocar Batata Doce ou Pão aqui!
         tipoCarboPrincipal = 'cereais_paes';
         const aveia = alimentosCtx.find((a) => a.id === 'c_aveia');
         const banana = alimentosCtx.find((a) => a.id === 'f_banana');
         const morango = alimentosCtx.find((a) => a.id === 'f_morango');
 
         if (aveia) {
-          // Aveia limitada rigidamente a 60g
           itensRefeicao.push(escalonarAlimentoParaMacro(aveia, Math.min(saldoCarbo * 0.6, 40), 'carboidrato', 60));
         }
 
         const carboAposAveia = itensRefeicao.reduce((sum, it) => sum + it.carboidrato, 0);
         const restanteFruta = Math.max(0, metaRefCarbo - carboAposAveia);
 
-        // Se sobrar carboidrato na meta (especialmente em dietas de alta caloria), completa com Fruta!
         if (restanteFruta >= 10 && banana) {
           itensRefeicao.push(escalonarAlimentoParaMacro(banana, restanteFruta, 'carboidrato', 130));
         } else if (restanteFruta >= 6 && morango) {
           itensRefeicao.push(escalonarAlimentoParaMacro(morango, restanteFruta, 'carboidrato', 120));
         }
       } else if (tpl.contexto === 'cafe' || tpl.contexto === 'lanche') {
-        // Café da manhã ou lanche com OVOS:
-        // Pode ser Pão Integral (Cereais) OU Batata Doce (Raízes). NUNCA OS DOIS JUNTOS!
         const usarPao = idx % 2 === 0;
 
         if (usarPao) {
           tipoCarboPrincipal = 'cereais_paes';
           const pao = alimentosCtx.find((a) => a.id === 'c_pao_integral');
           if (pao) {
-            // REGRA: Hard cap de 100g para pão (2 a 3 fatias)
             itensRefeicao.push(escalonarAlimentoParaMacro(pao, saldoCarbo * 0.7, 'carboidrato', 100));
           }
 
-          // Se a meta de carbo for muito alta, completa o restante com FRUTA (ex: Banana), NUNCA com batata doce!
           const carboAposPao = itensRefeicao.reduce((sum, it) => sum + it.carboidrato, 0);
           const restanteCarbo = Math.max(0, metaRefCarbo - carboAposPao);
           const banana = alimentosCtx.find((a) => a.id === 'f_banana');
@@ -1135,15 +1363,15 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
           }
         } else {
           tipoCarboPrincipal = 'raizes';
-          const batata = alimentosCtx.find((a) => a.id === 'c_batata_doce');
+          const raizesDisponiveis = alimentosCtx.filter((a) => a.subgrupoCarbo === 'raizes');
+          raizesDisponiveis.sort((a, b) => calcularScoreAlimento(b, tpl.contexto, quest) - calcularScoreAlimento(a, tpl.contexto, quest));
+          const batata = raizesDisponiveis[0] || alimentosCtx.find((a) => a.id === 'c_batata_doce');
           if (batata) {
-            // Ovos com Batata Doce: combinação clássica do fisiculturismo! NUNCA adicionar aveia ou pão aqui.
             itensRefeicao.push(escalonarAlimentoParaMacro(batata, saldoCarbo, 'carboidrato', 220));
           }
         }
       }
     } else if (isKetoOrLowCarb && (tpl.contexto === 'cafe' || tpl.contexto === 'lanche')) {
-      // Em Cetogênica/Low Carb: apenas pequenas frutas vermelhas de baixo carbo
       const morango = alimentosCtx.find((a) => a.id === 'f_morango');
       if (morango && saldoCarbo >= 4) {
         itensRefeicao.push(escalonarAlimentoParaMacro(morango, 6, 'carboidrato', 100));
@@ -1168,19 +1396,15 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     const saldoGorduraReal = Math.max(0, metaRefGordura - gorduraAtual);
 
     if (tpl.contexto === 'almoco' || tpl.contexto === 'jantar') {
-      // No almoço/jantar: Azeite Extra Virgem com trava rígida de 15g!
       const carneGorda = carnePrincipalEscolhida && carnePrincipalEscolhida.gordura >= 8;
 
       if (!carneGorda && saldoGorduraReal >= 4) {
         const azeite = alimentosCtx.find((a) => a.id === 'g_azeite');
         if (azeite) {
-          // REGRA 3: Hard cap inegociável de 15g
           itensRefeicao.push(escalonarAlimentoParaMacro(azeite, saldoGorduraReal, 'gordura', 15));
         }
       }
     } else if (tpl.contexto === 'cafe' || tpl.contexto === 'lanche' || tpl.contexto === 'ceia') {
-      // No café/lanche/ceia:
-      // Se tiver Whey ou Aveia ou Fruta: Oleaginosas (Pasta de Amendoim 20-30g ou Castanhas)
       if (temProteinaLiquidaOuPo && saldoGorduraReal >= 6) {
         const pasta = alimentosCtx.find((a) => a.id === 'g_pasta_amendoim');
         const castanha = alimentosCtx.find((a) => a.id === 'g_castanha');
@@ -1191,13 +1415,11 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
           itensRefeicao.push(escalonarAlimentoParaMacro(castanha, saldoGorduraReal, 'gordura', 25));
         }
       } else if (tpl.contexto === 'cafe' && tipoCarboPrincipal === 'cereais_paes' && saldoGorduraReal >= 4) {
-        // Pão com Ovos: se faltar gordura, adiciona uma pontinha de manteiga com HARD CAP de 15g (NUNCA 70g!)
         const manteiga = alimentosCtx.find((a) => a.id === 'g_manteiga');
         if (manteiga) {
           itensRefeicao.push(escalonarAlimentoParaMacro(manteiga, saldoGorduraReal, 'gordura', 15));
         }
       } else if (saldoGorduraReal >= 8) {
-        // Oleaginosa de apoio (Castanhas)
         const castanha = alimentosCtx.find((a) => a.id === 'g_castanha');
         if (castanha) {
           itensRefeicao.push(escalonarAlimentoParaMacro(castanha, saldoGorduraReal, 'gordura', 25));
@@ -1257,6 +1479,28 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
   totaisGerais.fibra = Number(totaisGerais.fibra.toFixed(1));
   totaisGerais.sodio = Math.round(totaisGerais.sodio);
 
+  // Cálculo do Índice de Acessibilidade Econômica
+  let itensAcessiveis = 0;
+  let totalItensContados = 0;
+  refeicoesMontadas.forEach((ref) => {
+    ref.itens.forEach((it) => {
+      totalItensContados++;
+      const alim = catalogo.find((a) => a.id === it.alimentoId || a.nome === it.nome);
+      const declarado = quest?.alimentosAcessiveis?.find((a) => a.alimentoId === it.alimentoId);
+      if (
+        alim?.custoRelativo === 'baixo' ||
+        declarado?.status === 'alta_disponibilidade' ||
+        declarado?.status === 'tolerado'
+      ) {
+        itensAcessiveis++;
+      }
+    });
+  });
+
+  const indiceAcessibilidadePercentual = totalItensContados > 0
+    ? Math.round((itensAcessiveis / totalItensContados) * 100)
+    : 100;
+
   return {
     id: `diet_plan_${Date.now()}`,
     pacienteId,
@@ -1267,5 +1511,7 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     metasGlobais,
     totaisAlcancados: totaisGerais,
     refeicoes: refeicoesMontadas,
+    indiceAcessibilidadePercentual,
+    orcamentoEstimado: quest?.orcamento || 'moderado',
   };
 }

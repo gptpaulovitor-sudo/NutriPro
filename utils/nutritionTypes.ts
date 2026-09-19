@@ -89,6 +89,32 @@ export interface Anamnese {
   restricoes: RestricoesAlimentares;
   horarioTreino?: string; // ex: "17:30"
   observacoesClinicas?: string;
+  questionarioAcessibilidade?: QuestionarioAcessibilidadePaciente;
+}
+
+// ----------------------------------------------------------------------------
+// 2.1 QUESTIONÁRIO DE ACESSIBILIDADE E ROTINA (Logística e Cesta Básica)
+// ----------------------------------------------------------------------------
+
+export type FaixaOrcamento = 'economico' | 'moderado' | 'livre';
+export type AmbienteConsumo = 'com_geladeira_microondas' | 'sem_refrigeracao' | 'marmita_pronta';
+export type StatusAcessibilidadeAlimento =
+  | 'alta_disponibilidade' // Paciente compra com facilidade, baixo custo e adora
+  | 'tolerado'            // Consome se necessário, custo aceitável
+  | 'baixo_acesso';       // Muito caro, difícil de achar ou desfavorável
+
+export interface ItemAcessibilidadePaciente {
+  alimentoId: string;
+  status: StatusAcessibilidadeAlimento;
+}
+
+export interface QuestionarioAcessibilidadePaciente {
+  orcamento: FaixaOrcamento;
+  ambienteConsumo: AmbienteConsumo;
+  tempoPreparoRefeicoesMin?: number;
+  aceitaSuplementos?: boolean;
+  alimentosAcessiveis: ItemAcessibilidadePaciente[];
+  observacoesAcesso?: string;
 }
 
 // ============================================================================
@@ -130,6 +156,9 @@ export interface Macronutrientes {
   gordura: number;      // gramas (lipídeos)
 }
 
+export type CustoRelativo = 'baixo' | 'medio' | 'alto';
+export type PraticidadePreparo = 'imediato' | 'rapido' | 'cozimento_longo';
+
 export interface Alimento extends Macronutrientes {
   id: string;
   nome: string;
@@ -146,6 +175,9 @@ export interface Alimento extends Macronutrientes {
   subgrupoCarbo?: SubgrupoCarboidrato; // 'cereais_paes' | 'raizes' | 'frutas' | 'leguminosas'
   porcaoMaximaG?: number;          // Limite máximo culinário realista por refeição (ex: 15g para azeite/manteiga)
   porcaoMinimaG?: number;          // Limite mínimo para viabilidade
+  custoRelativo?: CustoRelativo;   // 'baixo' (cesta básica/econômico), 'medio', 'alto' (nobre/caro)
+  praticidadePreparo?: PraticidadePreparo; // imediato (frutas/pão), rápido (ovos/frango grelhado), longo (grãos crus)
+  portabilidadeMarmita?: boolean;  // Resiste bem sem refrigeração imediata ou transporte diário
 }
 
 // ============================================================================
@@ -212,6 +244,8 @@ export interface PlanoAlimentar {
   totaisAlcancados: TotaisNutricionais;
   refeicoes: Refeicao[];
   persistedId?: string; // ID salvo no banco se persistido
+  indiceAcessibilidadePercentual?: number; // % de alimentos provenientes da cesta de alta disponibilidade/baixo custo
+  orcamentoEstimado?: FaixaOrcamento;
 }
 
 // ============================================================================
@@ -223,6 +257,7 @@ export interface PrescribeDietInput {
   nomePaciente?: string;
   biometria: BiometriaPaciente;
   anamnese: Anamnese;
+  questionarioAcessibilidade?: QuestionarioAcessibilidadePaciente;
   alimentosCustomizados?: Alimento[];
   salvarNoBanco?: boolean;
 }

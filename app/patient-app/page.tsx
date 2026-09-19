@@ -15,6 +15,11 @@ import {
   Meh,
   Utensils,
   X,
+  Wallet,
+  ShoppingBag,
+  Leaf,
+  Briefcase,
+  Check,
 } from "lucide-react";
 
 interface PatientMeal {
@@ -45,6 +50,44 @@ export default function PatientAppPage() {
 
   // Substitution modal state
   const [activeSwapMeal, setActiveSwapMeal] = useState<PatientMeal | null>(null);
+
+  // Questionário de Acessibilidade & Cesta Básica do Paciente
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [orcamento, setOrcamento] = useState<"economico" | "moderado" | "livre">("economico");
+  const [ambiente, setAmbiente] = useState<"com_geladeira_microondas" | "sem_refrigeracao" | "marmita_pronta">("com_geladeira_microondas");
+  const [suplementos, setSuplementos] = useState(true);
+  const [alimentosStatus, setAlimentosStatus] = useState<Record<string, "alta_disponibilidade" | "tolerado" | "baixo_acesso">>({
+    p_frango: "alta_disponibilidade",
+    p_ovo_inteiro: "alta_disponibilidade",
+    p_sardinha: "alta_disponibilidade",
+    c_arroz_branco: "alta_disponibilidade",
+    c_feijao: "alta_disponibilidade",
+    c_aveia: "alta_disponibilidade",
+    f_banana: "alta_disponibilidade",
+    c_batata_inglesa: "alta_disponibilidade",
+  });
+
+  const toggleFood = (id: string) => {
+    setAlimentosStatus((prev) => {
+      const atual = prev[id] || "tolerado";
+      const proximo =
+        atual === "alta_disponibilidade"
+          ? "baixo_acesso"
+          : atual === "baixo_acesso"
+          ? "tolerado"
+          : "alta_disponibilidade";
+      return { ...prev, [id]: proximo };
+    });
+  };
+
+  const handleSaveQuestionnaire = () => {
+    setSavedSuccess(true);
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setShowQuestionnaire(false);
+    }, 1500);
+  };
 
   const toggleMeal = (id: string) => {
     setMeals(
@@ -128,6 +171,32 @@ export default function PatientAppPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Banner do Questionário de Acessibilidade */}
+        <div className="px-4">
+          <button
+            type="button"
+            onClick={() => setShowQuestionnaire(true)}
+            className="w-full bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-850 p-3.5 rounded-2xl border border-emerald-800/60 shadow-lg text-left flex items-center justify-between group transition-all hover:border-emerald-500"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-white block">
+                  Minha Cesta & Orçamento
+                </span>
+                <span className="text-[10px] text-emerald-400 font-medium">
+                  Alimentos baratos e rotina do seu dia a dia
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-400 group-hover:translate-x-0.5 transition-transform">
+              Editar →
+            </span>
+          </button>
         </div>
 
         {/* Daily Meals Timeline */}
@@ -345,6 +414,192 @@ export default function PatientAppPage() {
             >
               Confirmar Troca
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Questionnaire Drawer / Modal */}
+      {showQuestionnaire && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-5 space-y-4 text-slate-100 shadow-2xl my-auto">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">Minha Cesta & Rotina</h3>
+                  <span className="text-[11px] text-slate-400">Personalize os alimentos mais fáceis para você</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowQuestionnaire(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pergunta 1: Orçamento */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 block">
+                Quanto você pretende investir na alimentação mensal?
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: "economico", label: "Econômico", desc: "Cesta Básica" },
+                  { key: "moderado", label: "Moderado", desc: "Padrão" },
+                  { key: "livre", label: "Livre", desc: "Variado" },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setOrcamento(item.key as any)}
+                    className={`p-2.5 rounded-xl border text-center transition-all ${
+                      orcamento === item.key
+                        ? "bg-emerald-950/80 border-emerald-500 text-white"
+                        : "bg-slate-800/60 border-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">{item.label}</span>
+                    <span className="text-[10px] opacity-75">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pergunta 2: Logística no Trabalho / Rua */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 block">
+                Onde você consome suas refeições durante o dia?
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAmbiente("com_geladeira_microondas")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition-all ${
+                    ambiente === "com_geladeira_microondas"
+                      ? "bg-emerald-950/80 border-emerald-500 text-white"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  🏢 Tenho geladeira e micro-ondas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmbiente("sem_refrigeracao")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition-all ${
+                    ambiente === "sem_refrigeracao"
+                      ? "bg-amber-950/80 border-amber-500 text-white"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  🎒 Sem geladeira / Na rua
+                </button>
+              </div>
+            </div>
+
+            {/* Pergunta 3: Suplementos */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 block">
+                Prefere usar suplementos proteicos (Whey/Albumina)?
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSuplementos(true)}
+                  className={`p-2 rounded-xl border text-center text-xs font-bold transition-all ${
+                    suplementos
+                      ? "bg-blue-950/80 border-blue-500 text-white"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  Sim, aceito suplementos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSuplementos(false)}
+                  className={`p-2 rounded-xl border text-center text-xs font-bold transition-all ${
+                    !suplementos
+                      ? "bg-emerald-950/80 border-emerald-500 text-white"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  Apenas comida de verdade
+                </button>
+              </div>
+            </div>
+
+            {/* Pergunta 4: Alimentos mais fáceis para você */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-slate-300">
+                  Alimentos de maior facilidade para você:
+                </label>
+                <span className="text-[10px] text-emerald-400 font-medium">Toque para alternar</span>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-950 rounded-2xl border border-slate-800">
+                {[
+                  { id: "p_frango", nome: "Peito de Frango" },
+                  { id: "p_ovo_inteiro", nome: "Ovos Inteiros" },
+                  { id: "p_sardinha", nome: "Sardinha" },
+                  { id: "c_arroz_branco", nome: "Arroz Branco" },
+                  { id: "c_feijao", nome: "Feijão" },
+                  { id: "c_aveia", nome: "Aveia em Flocos" },
+                  { id: "f_banana", nome: "Banana" },
+                  { id: "c_batata_inglesa", nome: "Batata Inglesa" },
+                  { id: "c_batata_doce", nome: "Batata Doce" },
+                  { id: "c_pao_integral", nome: "Pão de Forma" },
+                  { id: "p_albumina", nome: "Albumina" },
+                  { id: "g_pasta_amendoim", nome: "Pasta de Amendoim" },
+                  { id: "l_leite_desnatado_po", nome: "Leite em Pó" },
+                ].map((item) => {
+                  const status = alimentosStatus[item.id] || "tolerado";
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => toggleFood(item.id)}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 ${
+                        status === "alta_disponibilidade"
+                          ? "bg-emerald-950/90 border-emerald-500 text-emerald-300 shadow-sm"
+                          : status === "baixo_acesso"
+                          ? "bg-red-950/80 border-red-700 text-red-300 line-through opacity-70"
+                          : "bg-slate-800 border-slate-700 text-slate-400"
+                      }`}
+                    >
+                      {status === "alta_disponibilidade" && "⭐"}
+                      {status === "baixo_acesso" && "🚫"}
+                      {item.nome}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Botão de Salvar */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleSaveQuestionnaire}
+                disabled={savedSuccess}
+                className={`w-full py-3 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all ${
+                  savedSuccess
+                    ? "bg-emerald-500 text-slate-950"
+                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950"
+                }`}
+              >
+                {savedSuccess ? (
+                  <>
+                    <Check className="w-5 h-5 stroke-[3]" />
+                    <span>Salvo com Sucesso!</span>
+                  </>
+                ) : (
+                  <span>Salvar Preferências Alimentares</span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
