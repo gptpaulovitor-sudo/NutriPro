@@ -1661,6 +1661,7 @@ if (typeof module !== "undefined" && module.exports) {
     validateBromatology,
     calculateBromatologicalPortion,
     calculateMacroPortion,
+    calculateMacrosPerKg,
     convertFoodUnitToGrams,
     foodUnitWeights,
     auditDietBromatology,
@@ -1674,6 +1675,7 @@ if (typeof module !== "undefined" && module.exports) {
 if (typeof window !== "undefined") {
   window.classifyRCEst = classifyRCEst;
   window.calculateAnthropometricIndices = calculateAnthropometricIndices;
+  window.calculateMacrosPerKg = calculateMacrosPerKg;
 }
 
 

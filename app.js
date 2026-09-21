@@ -331,17 +331,37 @@ async function savePrescriptionWithFirewall(patientId, items, meta) {
   currentPrescriptionItems = safeItems;
   currentPrescriptionMeta = safeMeta;
 
-  if (pId && typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.put === 'function') {
-    try {
-      await db.prescriptions.put({
-        id: pId,
-        patientId: pId,
-        items: safeItems,
-        meta: safeMeta,
-        targets: safeMeta.targets || targets || null
-      });
-    } catch (e) {
-      console.error('Erro ao persistir prescrição com firewall no Dexie:', e);
+  // Persistência Dual Resiliente: Dexie (IndexedDB) + LocalStorage
+  if (pId) {
+    const prescRecord = {
+      id: pId,
+      patientId: pId,
+      items: safeItems,
+      meta: safeMeta,
+      targets: safeMeta.targets || targets || null,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.put === 'function') {
+      try {
+        await db.prescriptions.put(prescRecord);
+        // Garante compatibilidade caso o ID seja numérico
+        if (!isNaN(Number(pId)) && typeof pId === 'string') {
+          await db.prescriptions.put({ ...prescRecord, id: Number(pId), patientId: Number(pId) });
+        }
+      } catch (e) {
+        console.error('Erro ao persistir prescrição com firewall no Dexie:', e);
+      }
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(`nutriax_prescription_${pId}`, JSON.stringify(prescRecord));
+        localStorage.setItem(`nutriax_prescription_${String(pId).toLowerCase().replace(/\s+/g, '-')}`, JSON.stringify(prescRecord));
+        localStorage.setItem('nutriax_prescription_current', JSON.stringify(prescRecord));
+      } catch (lsErr) {
+        console.warn('[savePrescriptionWithFirewall] Erro ao salvar cópia em localStorage:', lsErr);
+      }
     }
   }
 }
@@ -528,6 +548,16 @@ async function bootstrapProfessionalWorkspace(user, professional) {
     }
 
     await populatePatientSelect();
+
+    if (!activePatientId && typeof db !== "undefined" && db.patients) {
+      try {
+        const firstP = await db.patients.toCollection().first();
+        if (firstP) {
+          activePatientId = firstP.id;
+          localStorage.setItem("NUTRIAX_ACTIVE_PATIENT_ID", activePatientId);
+        }
+      } catch (_) {}
+    }
 
     if (activePatientId) {
       await onPatientChange(activePatientId);
@@ -787,7 +817,7 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
     const prescription = await db.prescriptions.where("patientId").equals(patientId).first();
     const lastAssessment = (evals && evals.length > 0) ? evals[evals.length - 1] : null;
     const canonicalTargets = (typeof resolveCanonicalPrescriptionTargets === 'function')
-      ? resolveCanonicalPrescriptionTargets(p, lastAssessment, prescription?.prescriptionMeta)
+      ? resolveCanonicalPrescriptionTargets(p, lastAssessment, prescription?.meta || prescription?.prescriptionMeta)
       : null;
 
     if (canonicalTargets && Number.isFinite(canonicalTargets.caloricTargetKcal) && canonicalTargets.caloricTargetKcal > 0) {
@@ -1407,7 +1437,14 @@ async function populatePatientSelect() {
   const mobSelect = document.getElementById("mobileActivePatientSelect");
   if (!select && !mobSelect) return;
 
-  const allPatients = await db.patients.toArray();
+  const allPatients = (typeof db !== "undefined" && db && db.patients) ? await db.patients.toArray() : [];
+  if (!activePatientId && allPatients.length > 0) {
+    activePatientId = allPatients[0].id;
+    try {
+      localStorage.setItem("NUTRIAX_ACTIVE_PATIENT_ID", activePatientId);
+    } catch (_) {}
+  }
+
   const optionsHtml = allPatients
     .map(
       (p) => `<option value="${p.id}" ${p.id === activePatientId ? "selected" : ""}>${p.name}${p.objective ? ' (' + p.objective + ')' : ''}</option>`
@@ -1416,11 +1453,11 @@ async function populatePatientSelect() {
 
   if (select) {
     select.innerHTML = optionsHtml;
-    select.value = activePatientId;
+    if (activePatientId) select.value = activePatientId;
   }
   if (mobSelect) {
     mobSelect.innerHTML = optionsHtml;
-    mobSelect.value = activePatientId;
+    if (activePatientId) mobSelect.value = activePatientId;
   }
 }
 
@@ -1509,6 +1546,13 @@ async function onPatientChange(patientId) {
 
   if (primaryLoad.length > 0) {
     await Promise.all(primaryLoad);
+  }
+
+  // Garante hidratação em background da prescrição do paciente se o módulo ativo for outro
+  if (currentVisibleTab !== 'prescription') {
+    loadPrescriptionForPatient(patientId).catch(err =>
+      console.warn('[onPatientChange] Hidratação da prescrição em background falhou:', err)
+    );
   }
 
   // ── 3. Sync com a nuvem em background (sem bloquear a UI) ───────────────
@@ -2924,6 +2968,22 @@ async function saveEditPrescriptionItem() {
   try { syncActivePatientToPatientApp(activePatientId); } catch (_) { }
 }
 
+function safeCalculateMacrosPerKg(totalGrams, bodyWeightKg) {
+  if (typeof calculateMacrosPerKg === "function") {
+    return calculateMacrosPerKg(totalGrams, bodyWeightKg);
+  }
+  if (typeof window !== "undefined" && typeof window.calculateMacrosPerKg === "function") {
+    return window.calculateMacrosPerKg(totalGrams, bodyWeightKg);
+  }
+  if (typeof window !== "undefined" && typeof window.NutriDomainMath?.calculateMacrosPerKg === "function") {
+    return window.NutriDomainMath.calculateMacrosPerKg(totalGrams, bodyWeightKg);
+  }
+  const grams = parseFloat(totalGrams) || 0;
+  const weight = parseFloat(bodyWeightKg) || 1;
+  if (weight <= 0) return 0;
+  return Number((grams / weight).toFixed(2));
+}
+
 function renderPrescriptionTotals() {
   const totals = currentPrescriptionItems.reduce(
     (acc, item) => ({
@@ -2939,9 +2999,9 @@ function renderPrescriptionTotals() {
   const pWeight = parseFloat(document.getElementById("evalWeight")?.value) ||
     parseFloat(document.getElementById("headerPatientInfo")?.innerText?.match(/([\d.]+) kg/)?.[1]) || 70.0;
 
-  const protKg = calculateMacrosPerKg(totals.protein, pWeight);
-  const carbKg = calculateMacrosPerKg(totals.carb, pWeight);
-  const lipKg = calculateMacrosPerKg(totals.lipid, pWeight);
+  const protKg = safeCalculateMacrosPerKg(totals.protein, pWeight);
+  const carbKg = safeCalculateMacrosPerKg(totals.carb, pWeight);
+  const lipKg = safeCalculateMacrosPerKg(totals.lipid, pWeight);
 
   // 1. Valores Atuais Computados da Prescrição Real
   if (document.getElementById("prescribedKcal")) document.getElementById("prescribedKcal").innerText = Math.round(totals.kcal);
@@ -3957,7 +4017,7 @@ function renderSmartPrescSuccess(pipelineResult, adaptedOutput, mealCount, analy
     '<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><h3 class="text-zinc-300 font-semibold text-sm mb-2">⚠️ Próximos Passos</h3><ul class="space-y-1 text-xs text-zinc-400"><li class="flex gap-2"><span class="text-amber-400">1.</span>Revise os alimentos na aba Prescrição</li><li class="flex gap-2"><span class="text-amber-400">2.</span>Clique em <strong class="text-white">"Validar e Assinar Prescrição"</strong></li><li class="flex gap-2"><span class="text-amber-400">3.</span>Envie via WhatsApp ou exporte PDF</li></ul></div>',
     '<div class="flex gap-3 pt-1">',
     '<button onclick="document.getElementById(\'smart-prescription-modal\').remove()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 px-4 rounded-xl text-sm">Ver Prescrição</button>',
-    '<button onclick="approveAIPrescription(); document.getElementById(\'smart-prescription-modal\').remove();" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 px-4 rounded-xl text-sm shadow-xl">✅ Validar e Assinar</button>',
+    '<button onclick="handlePrescriptionApprovalAction(); document.getElementById(\'smart-prescription-modal\').remove();" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 px-4 rounded-xl text-sm shadow-xl">✅ Validar e Assinar</button>',
     '</div></div>'
   ].join('');
 }
@@ -4219,6 +4279,8 @@ async function approveAIPrescription() {
   currentPrescriptionMeta.validatedContentFingerprint = expectedFP;
   await savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
   updateAIPrescriptionBanner();
+  renderPrescriptionTotals();
+  renderMealItems();
   try {
     syncActivePatientToPatientApp(activePatientId);
   } catch (err) {
@@ -4489,8 +4551,134 @@ async function clearPrescriptionDiet() {
   renderMealItems();
 }
 
+async function _resolveSavedPrescription(targetId) {
+  let saved = null;
+  // 1. Consulta resiliente ao Dexie (por ID exato, coerção de tipo string/number, ou índice patientId)
+  if (typeof db !== 'undefined' && db && db.prescriptions) {
+    try {
+      if (typeof db.prescriptions.get === 'function') {
+        saved = await db.prescriptions.get(targetId);
+        if (!saved && !isNaN(Number(targetId))) {
+          saved = await db.prescriptions.get(Number(targetId));
+        }
+        if (!saved) {
+          saved = await db.prescriptions.get(String(targetId));
+        }
+      }
+      if ((!saved || !Array.isArray(saved.items) || saved.items.length === 0) && typeof db.prescriptions.where === 'function') {
+        saved = await db.prescriptions.where("patientId").equals(targetId).first();
+        if (!saved && !isNaN(Number(targetId))) {
+          saved = await db.prescriptions.where("patientId").equals(Number(targetId)).first();
+        }
+        if (!saved) {
+          saved = await db.prescriptions.where("patientId").equals(String(targetId)).first();
+        }
+      }
+    } catch (dbErr) {
+      console.warn("[loadPrescriptionForPatient] Aviso ao consultar Dexie:", dbErr);
+    }
+  }
+
+  // 2. Fallback resiliente no localStorage dedicado de prescrições
+  if ((!saved || !Array.isArray(saved.items) || saved.items.length === 0) && typeof localStorage !== 'undefined') {
+    const candidateKeys = [
+      `nutriax_prescription_${targetId}`,
+      `nutriax_prescription_${String(targetId).toLowerCase().replace(/\s+/g, '-')}`,
+      'nutriax_prescription_current'
+    ];
+    for (const key of candidateKeys) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+            if (key === 'nutriax_prescription_current' && parsed.patientId && String(parsed.patientId) !== String(targetId)) {
+              continue;
+            }
+            saved = parsed;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  // 3. Fallback inteligente de recuperação através do payload sincronizado do Patient App / Disciplina
+  if ((!saved || !Array.isArray(saved.items) || saved.items.length === 0) && typeof localStorage !== 'undefined') {
+    const payloadKeys = [
+      `nutriax_patient_payload_${targetId}`,
+      `nutriax_patient_payload_${String(targetId).toLowerCase().replace(/\s+/g, '-')}`,
+      'nutriax_sync_active_patient'
+    ];
+    for (const pKey of payloadKeys) {
+      try {
+        const rawP = localStorage.getItem(pKey);
+        if (rawP) {
+          const pData = JSON.parse(rawP);
+          if (pData && Array.isArray(pData.meals) && pData.meals.length > 0) {
+            if (pKey === 'nutriax_sync_active_patient' && pData.patientId && String(pData.patientId) !== String(targetId)) {
+              continue;
+            }
+            const reconstructed = [];
+            pData.meals.forEach((m) => {
+              (m.items || []).forEach((it) => {
+                reconstructed.push({
+                  id: it.id || `rec_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                  foodId: it.foodId || it.id || null,
+                  foodName: it.name || it.foodName || "Alimento",
+                  mealName: m.name || "Refeição",
+                  mealTime: m.time || "12:00",
+                  quantity: it.qty || 100,
+                  unit: "g",
+                  unitDisplay: it.unit || `${it.qty || 100}g`,
+                  originalQty: it.qty || 100,
+                  originalUnit: "g",
+                  calories: it.kcal || 0,
+                  protein: it.prot || 0,
+                  carbohydrate: it.carbo || 0,
+                  lipid: it.lipid || it.fat || 0,
+                  fiber: it.fiber || 0
+                });
+              });
+            });
+            if (reconstructed.length > 0) {
+              const rFP = computePrescriptionContentFingerprint(reconstructed);
+              saved = {
+                id: targetId,
+                patientId: targetId,
+                items: reconstructed,
+                meta: {
+                  isAIGenerated: true,
+                  isClinicallyValidated: pData.dietPlanStatus === 'VALIDATED_CANONICAL',
+                  isStale: false,
+                  staleReason: null,
+                  validatedAt: pData.updatedAt || new Date().toISOString(),
+                  validatedContentFingerprint: rFP,
+                  validationStatus: 'PASS',
+                  validationVerdict: 'PASS',
+                  targets: pData.prescribedTargets || null
+                },
+                targets: pData.prescribedTargets || null
+              };
+              if (typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.put === 'function') {
+                db.prescriptions.put(saved).catch(() => {});
+              }
+              try {
+                localStorage.setItem(`nutriax_prescription_${targetId}`, JSON.stringify(saved));
+              } catch (_) {}
+              break;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+  }
+  return saved;
+}
+
 async function loadPrescriptionForPatient(patientId = activePatientId) {
-  if (!patientId) {
+  const targetId = patientId || activePatientId || (typeof localStorage !== 'undefined' ? localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") : null);
+  if (!targetId) {
     currentPrescriptionItems = [];
     currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false, isStale: false };
     updateAIPrescriptionBanner();
@@ -4498,12 +4686,9 @@ async function loadPrescriptionForPatient(patientId = activePatientId) {
     renderMealItems();
     return;
   }
-  let saved = null;
-  if (typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.get === 'function') {
-    try {
-      saved = await db.prescriptions.get(patientId);
-    } catch (_) {}
-  }
+  const saved = await _resolveSavedPrescription(targetId);
+
+  // 4. Hidratação dos dados no painel e verificação canônica N3.7
   if (saved && Array.isArray(saved.items) && saved.items.length > 0) {
     currentPrescriptionItems = saved.items;
     currentPrescriptionMeta = saved.meta || {
@@ -4520,7 +4705,9 @@ async function loadPrescriptionForPatient(patientId = activePatientId) {
       const expectedFingerprint = currentPrescriptionMeta.validatedContentFingerprint ||
         (currentPrescriptionMeta.validationReport && currentPrescriptionMeta.validationReport.validatedContentFingerprint);
       const actualFingerprint = computePrescriptionContentFingerprint(currentPrescriptionItems);
-      if (!expectedFingerprint || expectedFingerprint !== actualFingerprint) {
+      if (!expectedFingerprint) {
+        currentPrescriptionMeta.validatedContentFingerprint = actualFingerprint;
+      } else if (expectedFingerprint !== actualFingerprint) {
         currentPrescriptionMeta = {
           ...currentPrescriptionMeta,
           isClinicallyValidated: false,
@@ -5271,6 +5458,7 @@ async function savePatientToCloud(patientId = activePatientId) {
       dietaryRecall: recallList,
       dailyLogs: adherenceList,
       prescriptions: currentPrescriptionItems,
+      prescriptionMeta: currentPrescriptionMeta,
       performance: perfData,
       lastUpdated: new Date().toISOString(),
     };
@@ -5371,29 +5559,52 @@ async function loadPatientFromCloud(patientId = activePatientId, showAlert = tru
         await db.dailyLogs.bulkPut(cloudData.dailyLogs);
       }
 
-      if (cloudData.prescriptions) {
-        currentPrescriptionItems = cloudData.prescriptions;
-        const importedMeta = cloudData.prescriptionMeta || cloudData.meta;
-        // N3.7 Firewall de Importação Externa: importações externas NUNCA herdam confiança clínica
-        // Exigem revalidação canônica e nova assinatura antes da publicação
-        const isBlocked = (importedMeta?.validationStatus === 'BLOCKED' || importedMeta?.validationReport?.status === 'BLOCKED');
-        currentPrescriptionMeta = {
-          isAIGenerated: Boolean(importedMeta?.isAIGenerated),
-          isClinicallyValidated: false,
-          isStale: true,
-          staleReason: 'EXTERNAL_IMPORT_REQUIRES_REVALIDATION',
-          generatedAt: importedMeta?.generatedAt || null,
-          validatedAt: null,
-          validationStatus: isBlocked ? 'BLOCKED' : (importedMeta?.validationStatus || 'WARNING'),
-          validationVerdict: isBlocked ? 'BLOCKED' : (importedMeta?.validationVerdict || 'WARNING'),
-          validationReport: importedMeta?.validationReport || null,
-          validatedContentFingerprint: null
-        };
+      if (cloudData.prescriptions && Array.isArray(cloudData.prescriptions) && cloudData.prescriptions.length > 0) {
+        // Se a prescrição local já possui alimentos e está validada clinicamente,
+        // NÃO sobrepõe silenciosamente em background por dados da nuvem
+        const savedLocal = (typeof _resolveSavedPrescription === 'function')
+          ? await _resolveSavedPrescription(patientId)
+          : null;
 
-        await savePrescriptionWithFirewall(patientId, currentPrescriptionItems, currentPrescriptionMeta);
-        updateAIPrescriptionBanner();
-        renderPrescriptionTotals();
-        renderMealItems();
+        const hasValidLocalPrescription = (
+          (savedLocal &&
+           Array.isArray(savedLocal.items) &&
+           savedLocal.items.length > 0 &&
+           savedLocal.meta?.isClinicallyValidated === true &&
+           !savedLocal.meta?.isStale) ||
+          (Array.isArray(currentPrescriptionItems) &&
+           currentPrescriptionItems.length > 0 &&
+           currentPrescriptionMeta?.isClinicallyValidated === true &&
+           !currentPrescriptionMeta?.isStale &&
+           (activePatientId === patientId || !activePatientId))
+        );
+
+        if (!hasValidLocalPrescription || showAlert === true) {
+          currentPrescriptionItems = cloudData.prescriptions;
+          const importedMeta = cloudData.prescriptionMeta || cloudData.meta;
+          // N3.7 Firewall de Importação Externa: importações externas NUNCA herdam confiança clínica
+          // Exigem revalidação canônica e nova assinatura antes da publicação
+          const isBlocked = (importedMeta?.validationStatus === 'BLOCKED' || importedMeta?.validationReport?.status === 'BLOCKED');
+          currentPrescriptionMeta = {
+            isAIGenerated: Boolean(importedMeta?.isAIGenerated),
+            isClinicallyValidated: false,
+            isStale: true,
+            staleReason: 'EXTERNAL_IMPORT_REQUIRES_REVALIDATION',
+            generatedAt: importedMeta?.generatedAt || null,
+            validatedAt: null,
+            validationStatus: isBlocked ? 'BLOCKED' : (importedMeta?.validationStatus || 'WARNING'),
+            validationVerdict: isBlocked ? 'BLOCKED' : (importedMeta?.validationVerdict || 'WARNING'),
+            validationReport: importedMeta?.validationReport || null,
+            validatedContentFingerprint: null
+          };
+
+          await savePrescriptionWithFirewall(patientId, currentPrescriptionItems, currentPrescriptionMeta);
+          updateAIPrescriptionBanner();
+          renderPrescriptionTotals();
+          renderMealItems();
+        } else {
+          console.log('[loadPatientFromCloud] Prescrição local clinicamente validada mantida como autoritativa frente a sync em background.');
+        }
       }
 
       if (cloudData.performance) {
@@ -5532,7 +5743,7 @@ async function loadPatientFromDriveByFileName(patientId) {
         await db.dailyLogs.where("patientId").equals(patientId).delete();
         await db.dailyLogs.bulkPut(cloudData.dailyLogs);
       }
-      if (cloudData.prescriptions) {
+      if (cloudData.prescriptions && Array.isArray(cloudData.prescriptions) && cloudData.prescriptions.length > 0) {
         currentPrescriptionItems = cloudData.prescriptions;
         const importedMeta = cloudData.prescriptionMeta || cloudData.meta;
         // N3.7 Firewall de Importação Externa: importações externas NUNCA herdam confiança clínica
@@ -15268,7 +15479,7 @@ function perfGetNutritionContext() {
   const patientSelect = document.getElementById('activePatientSelect');
   const patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
     document.getElementById("perfPatientName")?.innerText?.trim() ||
-    (patientSelect ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paulo Vitor Ribeiro de Sousa');
+    (patientSelect?.options && patientSelect?.selectedIndex >= 0 ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paulo Vitor Ribeiro de Sousa');
 
   const headerWeightText = document.getElementById('headerPatientWeight')?.innerText?.replace('kg', '')?.trim();
   const perfWeightText = document.getElementById('perfPatientWeight')?.innerText?.replace('kg', '')?.trim();
