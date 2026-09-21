@@ -3144,23 +3144,125 @@
       if (modalAv) modalAv.textContent = initials;
     }
 
+    function isDefaultMockMeals(meals) {
+      if (!Array.isArray(meals) || meals.length !== 4) return false;
+      const ids = meals.map(m => m.id);
+      return ids[0] === 'm1' && ids[1] === 'm2' && ids[2] === 'm3' && ids[3] === 'm4' &&
+        meals[0]?.name === 'Café da Manhã' &&
+        meals[0]?.items?.[0]?.name === 'Ovos de galinha mexidos';
+    }
+
+    function _convertPrescriptionItemsToPatientMeals(items) {
+      if (!Array.isArray(items) || items.length === 0) return [];
+      const mealsMap = {};
+      items.forEach((item, itemIdx) => {
+        const mName = item.mealName || "Refeição";
+        if (!mealsMap[mName]) {
+          mealsMap[mName] = {
+            name: mName,
+            time: item.mealTime || "12:00",
+            items: [],
+            kcal: 0,
+            prot: 0,
+            carbo: 0,
+            lipid: 0
+          };
+        }
+        const itKcal = Math.round(item.calories || 0);
+        const itProt = Math.round((item.protein || 0) * 10) / 10;
+        const itCarbo = Math.round((item.carbohydrate || 0) * 10) / 10;
+        const itLipid = Math.round((item.lipid || 0) * 10) / 10;
+        const stableItemId = item.id || `f_${item.foodId || itemIdx + 1}`;
+        mealsMap[mName].items.push({
+          id: stableItemId,
+          name: item.foodName,
+          qty: item.quantity,
+          unit: item.unitDisplay || `${item.quantity}g`,
+          kcal: itKcal,
+          prot: itProt,
+          carbo: itCarbo,
+          lipid: itLipid
+        });
+        mealsMap[mName].kcal += (item.calories || 0);
+        mealsMap[mName].prot += (item.protein || 0);
+        mealsMap[mName].carbo += (item.carbohydrate || 0);
+        mealsMap[mName].lipid += (item.lipid || 0);
+      });
+
+      return Object.values(mealsMap).map((m, idx) => ({
+        id: `m_${idx + 1}`,
+        time: m.time,
+        name: m.name,
+        detail: m.items.map(it => `${it.unit && it.unit !== `${it.qty}g` ? `${it.unit} (${it.qty}g)` : `${it.qty}g`} ${it.name}`).join(" + "),
+        items: m.items,
+        kcal: Math.round(m.kcal),
+        prot: Math.round(m.prot),
+        carbo: Math.round(m.carbo),
+        fat: Math.round(m.lipid),
+        done: false
+      }));
+    }
+
     function checkIndexedDbPatient(patientId) {
       if (!patientId || typeof indexedDB === 'undefined') return;
       try {
         const req = indexedDB.open('NutriAxProDB');
         req.onsuccess = (e) => {
           const idb = e.target.result;
-          if (!idb || !idb.objectStoreNames || !idb.objectStoreNames.contains('patients')) return;
-          const tx = idb.transaction('patients', 'readonly');
-          const store = tx.objectStore('patients');
-          const getReq = store.get(patientId);
-          getReq.onsuccess = () => {
-            const p = getReq.result;
-            if (p && p.name) {
-              patientState.name = p.name;
-              updatePatientVisuals();
-            }
-          };
+          if (!idb || !idb.objectStoreNames) return;
+
+          // 1. Carrega nome do paciente se ausente
+          if (idb.objectStoreNames.contains('patients')) {
+            try {
+              const tx = idb.transaction('patients', 'readonly');
+              const store = tx.objectStore('patients');
+              const getReq = store.get(patientId);
+              getReq.onsuccess = () => {
+                const p = getReq.result;
+                if (p && p.name && (!patientState.name || patientState.name === 'Paciente')) {
+                  patientState.name = p.name;
+                  updatePatientVisuals();
+                }
+              };
+            } catch (_) {}
+          }
+
+          // 2. Fallback resiliente para prescrição salva no IndexedDB caso ainda tenhamos refeições mock
+          if (idb.objectStoreNames.contains('prescriptions') &&
+              (!patientState.meals || patientState.meals.length === 0 || isDefaultMockMeals(patientState.meals))) {
+            try {
+              const txP = idb.transaction('prescriptions', 'readonly');
+              const storeP = txP.objectStore('prescriptions');
+              const pIdNum = !isNaN(Number(patientId)) ? Number(patientId) : null;
+              const reqP = storeP.get(patientId);
+              reqP.onsuccess = () => {
+                let presc = reqP.result;
+                const tryApply = (p) => {
+                  if (p && Array.isArray(p.items) && p.items.length > 0) {
+                    const converted = _convertPrescriptionItemsToPatientMeals(p.items);
+                    if (converted.length > 0) {
+                      applyPrescriptionPayload({
+                        patientId: patientId,
+                        meals: converted,
+                        prescribedTargets: p.targets || null,
+                        updatedAt: p.updatedAt || new Date().toISOString()
+                      });
+                      if (typeof renderAll === 'function') renderAll();
+                    }
+                  }
+                };
+
+                if (presc) {
+                  tryApply(presc);
+                } else if (pIdNum !== null) {
+                  const reqPNum = storeP.get(pIdNum);
+                  reqPNum.onsuccess = () => {
+                    if (reqPNum.result) tryApply(reqPNum.result);
+                  };
+                }
+              };
+            } catch (_) {}
+          }
         };
       } catch (_) { }
     }
@@ -3500,6 +3602,26 @@
       });
     }
 
+    function shouldAcceptPrescriptionUpdate(incoming, current) {
+      if (!incoming) return false;
+      // Se incoming não tem refeições válidas mas já temos refeições válidas locais, rejeita perda de refeições
+      const currentHasMeals = (Array.isArray(patientState.meals) && patientState.meals.length > 0 && !isDefaultMockMeals(patientState.meals)) ||
+                              (current && Array.isArray(current.meals) && current.meals.length > 0 && !isDefaultMockMeals(current.meals));
+      const incomingHasMeals = Array.isArray(incoming.meals) && incoming.meals.length > 0;
+      if (!incomingHasMeals && currentHasMeals) {
+        return false;
+      }
+      // Se ambos tiverem data de atualização, rejeita se a versão incoming for estritamente mais antiga que a local
+      if (incoming.updatedAt && current && current.updatedAt) {
+        const incomingTime = new Date(incoming.updatedAt).getTime();
+        const currentTime = new Date(current.updatedAt).getTime();
+        if (!isNaN(incomingTime) && !isNaN(currentTime) && incomingTime < currentTime) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     async function activateAuthorizedPatient(patientId, user, patientUser) {
       try {
         _authorizedPatientId = String(patientId).trim();
@@ -3514,15 +3636,25 @@
         // 1. Carrega cache local estritamente compatível com o patientId autorizado (INVARIANTE 12)
         loadState();
 
-        // 2. Se houver link legado com #data=, processa APENAS se o patientId coincidir com o autorizado (INVARIANTE 5)
+        // 2. Se houver link com #data= (ou hash pendente salvo em sessionStorage pelo login), processa (INVARIANTE 5)
         try {
-          const _hash = window.location.hash;
-          if (_hash && _hash.startsWith('#data=')) {
-            const _b64 = _hash.slice(6);
+          let _hash = window.location.hash;
+          if (!_hash || !_hash.includes('#data=')) {
+            const pendingHash = sessionStorage.getItem('nutriax_pending_hash_data');
+            if (pendingHash && pendingHash.includes('#data=')) {
+              _hash = pendingHash;
+            }
+          }
+          if (_hash && _hash.includes('#data=')) {
+            const dataIdx = _hash.indexOf('#data=');
+            const _b64 = _hash.slice(dataIdx + 6);
             const _payload = JSON.parse(decodeURIComponent(escape(atob(_b64))));
-            if (_payload && _payload.patientId === _authorizedPatientId) {
+            const pIdPayload = _payload && _payload.patientId ? String(_payload.patientId).trim().toLowerCase() : '';
+            const pIdAuth = _authorizedPatientId ? String(_authorizedPatientId).trim().toLowerCase() : '';
+            if (pIdPayload && (pIdPayload === pIdAuth || !pIdAuth)) {
               console.info('[NutriAx AuthGate] Payload do link legado compatível com paciente autorizado.');
               applyPrescriptionPayload(_payload);
+              try { sessionStorage.removeItem('nutriax_pending_hash_data'); } catch (_) {}
             } else {
               console.warn('[NutriAx AuthGate] Payload do link legado rejeitado: pertence a outro paciente.');
             }
@@ -3532,12 +3664,22 @@
           console.warn('[NutriAx AuthGate] Erro ao inspecionar #data:', e);
         }
 
-        // 3. Hidrata Prescrição da Nuvem
+        // 3. Hidrata Prescrição da Nuvem protegendo o estado local
         if (window.NutriProFirebase?.prescription?.loadFromCloud) {
           try {
             const cloudPrescription = await window.NutriProFirebase.prescription.loadFromCloud(_authorizedPatientId);
             if (cloudPrescription) {
-              applyPrescriptionPayload(cloudPrescription);
+              const currentLocalPayload = (() => {
+                try {
+                  const r = localStorage.getItem(`nutriax_patient_payload_${_authorizedPatientId}`);
+                  return r ? JSON.parse(r) : null;
+                } catch (_) { return null; }
+              })();
+              if (shouldAcceptPrescriptionUpdate(cloudPrescription, currentLocalPayload)) {
+                applyPrescriptionPayload(cloudPrescription);
+              } else {
+                console.info('[NutriAx AuthGate] Prescrição local preservada (mais recente/completa que a nuvem).');
+              }
             }
           } catch (e) {
             console.warn('[NutriAx AuthGate] Aviso ao carregar prescrição da nuvem:', e);
@@ -3568,15 +3710,23 @@
           }
         }
 
-        // 6. Configura Listeners em Tempo Real
+        // 6. Configura Listeners em Tempo Real protegendo o estado local
         if (window.NutriProFirebase?.prescription?.subscribe) {
           if (typeof _activeCloudUnsubscribe === 'function') {
             _activeCloudUnsubscribe();
           }
           _activeCloudUnsubscribe = window.NutriProFirebase.prescription.subscribe(_authorizedPatientId, (updatedP) => {
             if (updatedP) {
-              applyPrescriptionPayload(updatedP);
-              renderAll();
+              const currentLocalPayload = (() => {
+                try {
+                  const r = localStorage.getItem(`nutriax_patient_payload_${_authorizedPatientId}`);
+                  return r ? JSON.parse(r) : null;
+                } catch (_) { return null; }
+              })();
+              if (shouldAcceptPrescriptionUpdate(updatedP, currentLocalPayload)) {
+                applyPrescriptionPayload(updatedP);
+                renderAll();
+              }
             }
           });
         }
@@ -3781,6 +3931,29 @@
 
     function applyPrescriptionPayload(dataPayload) {
       if (!dataPayload) return;
+
+      // Proteção local-first: se o payload recebido não trouxer refeições válidas, preserva as refeições já existentes localmente
+      if (!Array.isArray(dataPayload.meals) || dataPayload.meals.length === 0) {
+        let existingMeals = null;
+        if (Array.isArray(patientState.meals) && patientState.meals.length > 0 && !isDefaultMockMeals(patientState.meals)) {
+          existingMeals = patientState.meals;
+        } else {
+          try {
+            const raw = localStorage.getItem(`nutriax_patient_payload_${_authorizedPatientId}`) ||
+                        localStorage.getItem('nutriax_sync_active_patient');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed.meals) && parsed.meals.length > 0 && !isDefaultMockMeals(parsed.meals)) {
+                existingMeals = parsed.meals;
+              }
+            }
+          } catch (_) {}
+        }
+        if (existingMeals) {
+          dataPayload = { ...dataPayload, meals: existingMeals };
+        }
+      }
+
       try {
         if (_authorizedPatientId) {
           localStorage.setItem(`nutriax_patient_payload_${_authorizedPatientId}`, JSON.stringify(dataPayload));
@@ -3804,6 +3977,7 @@
       if (dataPayload.actualDietTotals) patientState.actualDietTotals = dataPayload.actualDietTotals;
 
       // Aplica refeições prescritas (preservando status `done` de hoje se já marcado)
+      let appliedMeals = false;
       if (Array.isArray(dataPayload.meals) && dataPayload.meals.length > 0) {
         const doneMap = {};
         if (Array.isArray(patientState.meals)) {
@@ -3813,6 +3987,7 @@
           ...m,
           done: doneMap[m.id] !== undefined ? !!doneMap[m.id] : false
         }));
+        appliedMeals = true;
       }
 
       // Aplica banco de treinos do paciente preservando rotinas de OFF e Cardio
@@ -3869,6 +4044,13 @@
         const _firstRoutine = _normalized.find(d => d.routineKey && d.routineKey !== 'OFF') || _normalized[0];
         if (_firstRoutine && !selectedRoutineKey) selectedRoutineKey = _firstRoutine.routineKey;
       }
+
+      // Salva imediatamente no estado persistente local (INVARIANTE 12)
+      if (appliedMeals && _authorizedPatientId) {
+        try {
+          saveState();
+        } catch (_) {}
+      }
     }
 
     function loadState() {
@@ -3878,10 +4060,73 @@
       const todayIso = getLocalDateIso();
       let dataPayload = null;
 
-      try {
-        const _raw = localStorage.getItem(`nutriax_patient_payload_${_authorizedPatientId}`);
-        if (_raw) dataPayload = JSON.parse(_raw);
-      } catch (_) { }
+      // ── A. Tenta carregar payload do plano prescrito (multi-key cascade) ──
+      const patientIdClean = String(_authorizedPatientId).trim();
+      const patientIdLower = patientIdClean.toLowerCase();
+      const patientIdSlug = patientIdLower.replace(/\s+/g, '-');
+      const patientIdNum = !isNaN(Number(patientIdClean)) ? Number(patientIdClean) : null;
+
+      const payloadKeysToTry = [
+        `nutriax_patient_payload_${patientIdClean}`,
+        `nutriax_patient_payload_${patientIdSlug}`,
+        ...(patientIdNum !== null ? [`nutriax_patient_payload_${patientIdNum}`] : []),
+        'nutriax_sync_active_patient'
+      ];
+
+      for (const k of payloadKeysToTry) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (k === 'nutriax_sync_active_patient') {
+              const pId = parsed && parsed.patientId ? String(parsed.patientId).trim().toLowerCase() : '';
+              if (pId && pId !== patientIdLower && pId !== patientIdSlug) {
+                continue;
+              }
+            }
+            if (parsed && Array.isArray(parsed.meals) && parsed.meals.length > 0) {
+              dataPayload = parsed;
+              break;
+            } else if (!dataPayload && parsed) {
+              dataPayload = parsed;
+            }
+          }
+        } catch (_) { }
+      }
+
+      // Fallback para prescrição estruturada salva em localStorage se payload não tiver refeições
+      if (!dataPayload || !Array.isArray(dataPayload.meals) || dataPayload.meals.length === 0) {
+        const prescKeysToTry = [
+          `nutriax_prescription_${patientIdClean}`,
+          `nutriax_prescription_${patientIdSlug}`,
+          ...(patientIdNum !== null ? [`nutriax_prescription_${patientIdNum}`] : []),
+          'nutriax_prescription_current'
+        ];
+        for (const pk of prescKeysToTry) {
+          try {
+            const rawP = localStorage.getItem(pk);
+            if (rawP) {
+              const parsedP = JSON.parse(rawP);
+              if (pk === 'nutriax_prescription_current') {
+                const pId = parsedP && parsedP.patientId ? String(parsedP.patientId).trim().toLowerCase() : '';
+                if (pId && pId !== patientIdLower && pId !== patientIdSlug) continue;
+              }
+              if (parsedP && Array.isArray(parsedP.items) && parsedP.items.length > 0) {
+                const convertedMeals = _convertPrescriptionItemsToPatientMeals(parsedP.items);
+                if (convertedMeals.length > 0) {
+                  dataPayload = {
+                    patientId: _authorizedPatientId,
+                    meals: convertedMeals,
+                    prescribedTargets: parsedP.targets || null,
+                    updatedAt: parsedP.updatedAt || new Date().toISOString()
+                  };
+                  break;
+                }
+              }
+            }
+          } catch (_) {}
+        }
+      }
 
       if (dataPayload) {
         applyPrescriptionPayload(dataPayload);
@@ -3889,7 +4134,8 @@
 
       if (!patientState.fastingProtocol) {
         try {
-          const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${_authorizedPatientId}`);
+          const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${patientIdClean}`) ||
+                        localStorage.getItem(`nutriax_fasting_protocol_${patientIdSlug}`);
           if (rawFp) patientState.fastingProtocol = JSON.parse(rawFp);
         } catch (_) { }
       }
@@ -3899,6 +4145,12 @@
       try {
         const storageKey = getDisciplineStorageKey();
         let saved = storageKey ? localStorage.getItem(storageKey) : null;
+        if (!saved && _authorizedPatientId) {
+          saved = localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdClean}`) ||
+                  localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdSlug}`) ||
+                  (patientIdNum !== null ? localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdNum}`) : null) ||
+                  localStorage.getItem('nutriax_patient_discipline_v3');
+        }
         if (saved) {
           const parsed = JSON.parse(saved);
 
@@ -3927,12 +4179,29 @@
           // Mescla o estado de interação SEM sobrescrever nome ou metas do plano prescrito
           const { meals: _m, name: _savedName, waterTarget: _savedWt, ...restParsed } = parsed;
           Object.assign(patientState, restParsed);
+
+          // RECUPERAÇÃO DAS REFEIÇÕES PRESCRITAS:
+          // Se dataPayload não forneceu refeições prescritas (ou se patientState.meals ainda tem os mocks padrão),
+          // mas o estado salvo no app disciplina contém as refeições prescritas reais:
+          if ((!patientState.meals || patientState.meals.length === 0 || isDefaultMockMeals(patientState.meals)) &&
+              Array.isArray(parsed.meals) && parsed.meals.length > 0 && !isDefaultMockMeals(parsed.meals)) {
+            patientState.meals = parsed.meals;
+          }
+
           // Restaura status `done` das refeições
           if (Array.isArray(patientState.meals)) {
             patientState.meals = patientState.meals.map(m => ({
               ...m,
               done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : false
             }));
+          }
+
+          // Restaura nome e waterTarget se ausentes
+          if ((!patientState.name || patientState.name === 'Paciente') && _savedName) {
+            patientState.name = _savedName;
+          }
+          if (!patientState.waterTarget && _savedWt) {
+            patientState.waterTarget = _savedWt;
           }
 
           // Restaura a rotina selecionada livremente pelo paciente (se houver salva)

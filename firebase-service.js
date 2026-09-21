@@ -83,9 +83,12 @@
       provider.addScope('email');
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // Previne erro HTTP 414 (URI Too Long) limpando hash longo de dados da URL antes de abrir o popup
+      // Previne erro HTTP 414 (URI Too Long) limpando hash longo de dados da URL antes de abrir o popup, preservando em sessionStorage
       try {
         if (typeof window !== 'undefined' && window.location.hash && window.location.hash.length > 50) {
+          try {
+            sessionStorage.setItem('nutriax_pending_hash_data', window.location.hash);
+          } catch (_) {}
           const cleanUrl = window.location.origin + window.location.pathname + window.location.search;
           window.history.replaceState(null, '', cleanUrl);
         }
