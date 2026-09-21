@@ -525,4 +525,66 @@ describe('Fase N3.7 — Suíte de Integração End-to-End e Firewalls de Prescri
     // 9. Apenas o estado íntegro, assinado e com fingerprint correspondente é aceito
     assert.strictEqual(isEligible(testItems, { isClinicallyValidated: true, isStale: false, validationStatus: 'PASS', validatedContentFingerprint: validFingerprint }), true);
   });
+
+  test('9. Fluxo de Revalidação Clínica de Ajustes Manuais: revalidateAndApprovePrescription assina prescrição modificada e sincroniza com o Patient App', async () => {
+    const { sandbox, mockDbPrescriptions } = createRuntimeSandbox();
+    sandbox.activePatientId = 'patient_revalidate_test';
+
+    // 1. Estado inicial: Dieta com itens modificados manualmente pelo nutricionista
+    sandbox.currentPrescriptionItems = [
+      { id: 'it_adj_1', foodName: 'Peito de Frango Grelhado', quantity: 150, unitDisplay: '150g', calories: 238, protein: 48, carbohydrate: 0, lipid: 3.75, mealName: 'Almoço', mealTime: '12:30' },
+      { id: 'it_adj_2', foodName: 'Arroz Branco Cozido', quantity: 120, unitDisplay: '120g', calories: 153, protein: 3, carbohydrate: 33.7, lipid: 0.24, mealName: 'Almoço', mealTime: '12:30' }
+    ];
+    sandbox.currentPrescriptionMeta = {
+      isAIGenerated: true,
+      isClinicallyValidated: false,
+      isStale: true,
+      staleReason: 'MANUAL_ITEM_EDITED',
+      validationStatus: 'PASS',
+      validatedContentFingerprint: null
+    };
+    await sandbox.savePrescriptionWithFirewall('patient_revalidate_test', sandbox.currentPrescriptionItems, sandbox.currentPrescriptionMeta);
+
+    // Antes da revalidação: publicação bloqueada
+    assert.strictEqual(sandbox.isPrescriptionEligibleForPatientPublication(sandbox.currentPrescriptionItems, sandbox.currentPrescriptionMeta), false);
+    const payloadPre = sandbox.syncActivePatientToPatientApp('patient_revalidate_test');
+    assert.strictEqual(payloadPre.meals, null);
+    assert.strictEqual(payloadPre.dietPlanStatus, 'PENDING_CLINICAL_VALIDATION');
+
+    // 2. Nutricionista aciona a revalidação clínica
+    await sandbox.revalidateAndApprovePrescription();
+
+    // 3. Verifica metadados pós-revalidação
+    assert.strictEqual(sandbox.currentPrescriptionMeta.isClinicallyValidated, true, 'Deve estar clinicamente validada');
+    assert.strictEqual(sandbox.currentPrescriptionMeta.isStale, false, 'isStale deve ser revertido para false');
+    assert.strictEqual(sandbox.currentPrescriptionMeta.staleReason, null, 'staleReason deve ser limpo');
+    assert.strictEqual(sandbox.currentPrescriptionMeta.validationStatus, 'PASS');
+
+    const expectedFp = sandbox.computePrescriptionContentFingerprint(sandbox.currentPrescriptionItems);
+    assert.strictEqual(sandbox.currentPrescriptionMeta.validatedContentFingerprint, expectedFp, 'Fingerprint deve ser recalculado para os itens modificados');
+
+    // 4. Verifica persistência no Dexie
+    const dbRecord = await mockDbPrescriptions.get('patient_revalidate_test');
+    assert.ok(dbRecord, 'Prescrição deve estar persistida no Dexie');
+    assert.strictEqual(dbRecord.meta.isClinicallyValidated, true);
+    assert.strictEqual(dbRecord.meta.isStale, false);
+    assert.strictEqual(dbRecord.meta.validatedContentFingerprint, expectedFp);
+
+    // 5. Verifica elegibilidade para publicação no Patient App
+    assert.strictEqual(sandbox.isPrescriptionEligibleForPatientPublication(sandbox.currentPrescriptionItems, sandbox.currentPrescriptionMeta), true);
+
+    // 6. Verifica sincronização do Patient App e cache de disciplina
+    const rawPatientPayload = sandbox.localStorage.getItem('nutriax_patient_payload_patient_revalidate_test');
+    assert.ok(rawPatientPayload, 'Payload do paciente deve ser gravado no localStorage');
+    const parsedPayload = JSON.parse(rawPatientPayload);
+    assert.strictEqual(parsedPayload.dietPlanStatus, 'VALIDATED_CANONICAL');
+    assert.ok(Array.isArray(parsedPayload.meals) && parsedPayload.meals.length > 0, 'Refeições devem estar presentes no payload');
+    assert.strictEqual(parsedPayload.meals[0].name, 'Almoço');
+
+    // 7. Verifica cache local de disciplina (Pilar 2 / App)
+    const rawDisc = sandbox.localStorage.getItem('nutriax_patient_discipline_v3_patient_revalidate_test');
+    assert.ok(rawDisc, 'Cache de disciplina v3 deve ser gravado');
+    const parsedDisc = JSON.parse(rawDisc);
+    assert.ok(Array.isArray(parsedDisc.meals) && parsedDisc.meals.length > 0, 'Refeições devem estar presentes na disciplina');
+  });
 });

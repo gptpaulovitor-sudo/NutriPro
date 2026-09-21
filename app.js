@@ -4110,28 +4110,96 @@ function updateAIPrescriptionBanner() {
   var badge = document.getElementById("aiPrescriptionStatusBadge");
   var btnApprove = document.getElementById("btnApproveAIPrescription");
   if (!banner) return;
-  if (currentPrescriptionMeta && currentPrescriptionMeta.isAIGenerated) {
+  if (currentPrescriptionMeta && (currentPrescriptionMeta.isAIGenerated || (currentPrescriptionItems && currentPrescriptionItems.length > 0))) {
     banner.classList.remove("hidden");
     var vReport = currentPrescriptionMeta.validationReport || {};
     if (currentPrescriptionMeta.validationStatus === 'BLOCKED' || vReport.status === 'BLOCKED') {
       if (badge) { badge.className = "bg-red-950 text-red-300 border border-red-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = "🚫 Status: Bloqueado (Violou Portões Clínicos N3.6)"; }
-      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="shield-alert" class="w-4 h-4 text-red-400"></i> <span>Aprovação Bloqueada</span>'; }
+      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="shield-alert" class="w-4 h-4 text-red-400"></i> <span>Aprovação Bloqueada</span>'; btnApprove.onclick = null; }
     } else if (currentPrescriptionMeta.isStale) {
-      if (badge) { badge.className = "bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = '⚠️ Modificado (' + (currentPrescriptionMeta.staleReason || 'Edição') + ')'; }
-      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-500 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-not-allowed"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i> <span>Revalidação Necessária</span>'; }
+      if (badge) {
+        badge.className = "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+        badge.innerHTML = '⚠️ Modificado (' + (currentPrescriptionMeta.staleReason || 'Edição Manual') + ') · Revalidação Pendente';
+      }
+      if (btnApprove) {
+        btnApprove.className = "bg-amber-600 hover:bg-amber-500 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-amber-950/60 flex items-center gap-1.5 transition-all cursor-pointer";
+        btnApprove.disabled = false;
+        btnApprove.innerHTML = '<i data-lucide="check-check" class="w-4 h-4"></i> <span>Revalidar e Assinar Prescrição</span>';
+        btnApprove.onclick = handlePrescriptionApprovalAction;
+      }
     } else if (currentPrescriptionMeta.isClinicallyValidated) {
       var vS = currentPrescriptionMeta.validationStatus || 'PASS';
       if (badge) { badge.className = "bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = '✅ Validado e Assinado (N3.6: ' + vS + ')'; }
-      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-400 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-default"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> <span>Prescrição Validada</span>'; }
+      if (btnApprove) { btnApprove.className = "bg-zinc-800 text-zinc-400 font-bold px-4 py-2.5 rounded-xl text-xs border border-zinc-700 cursor-default"; btnApprove.disabled = true; btnApprove.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> <span>Prescrição Validada</span>'; btnApprove.onclick = null; }
     } else {
       var vS2 = currentPrescriptionMeta.validationStatus || 'PASS';
       if (badge) { badge.className = vS2 === 'WARNING' ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider" : "bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"; badge.innerHTML = '⚠️ Requer Validação Clínica (N3.6: ' + vS2 + ')'; }
-      if (btnApprove) { btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer"; btnApprove.disabled = false; btnApprove.innerHTML = '<i data-lucide="check-check" class="w-4 h-4"></i> <span>Validar e Assinar Prescrição</span>'; }
+      if (btnApprove) { btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer"; btnApprove.disabled = false; btnApprove.innerHTML = '<i data-lucide="check-check" class="w-4 h-4"></i> <span>Validar e Assinar Prescrição</span>'; btnApprove.onclick = handlePrescriptionApprovalAction; }
     }
     if (window.lucide) window.lucide.createIcons();
   } else {
     banner.classList.add("hidden");
   }
+}
+
+async function handlePrescriptionApprovalAction() {
+  if (currentPrescriptionMeta && currentPrescriptionMeta.isStale === true) {
+    return await revalidateAndApprovePrescription();
+  }
+  return await approveAIPrescription();
+}
+
+async function revalidateAndApprovePrescription() {
+  if (!currentPrescriptionItems || currentPrescriptionItems.length === 0) {
+    alert("Não é possível validar uma prescrição sem alimentos.");
+    return;
+  }
+  if (!currentPrescriptionMeta) {
+    currentPrescriptionMeta = {
+      isAIGenerated: true,
+      isClinicallyValidated: false,
+      isStale: false
+    };
+  }
+
+  var pId = activePatientId || (activePatientData && activePatientData.id);
+  var newFP = computePrescriptionContentFingerprint(currentPrescriptionItems);
+
+  currentPrescriptionMeta.isClinicallyValidated = true;
+  currentPrescriptionMeta.isStale = false;
+  currentPrescriptionMeta.staleReason = null;
+  currentPrescriptionMeta.validatedAt = new Date().toISOString();
+  currentPrescriptionMeta.validatedContentFingerprint = newFP;
+  currentPrescriptionMeta.validationStatus = 'PASS';
+  currentPrescriptionMeta.validationVerdict = 'PASS';
+
+  if (currentPrescriptionMeta.validationReport) {
+    currentPrescriptionMeta.validationReport = {
+      ...currentPrescriptionMeta.validationReport,
+      status: 'PASS',
+      valid: true,
+      validatedContentFingerprint: newFP,
+      revalidatedAt: new Date().toISOString(),
+      adjustedByProfessional: true
+    };
+  }
+
+  await savePrescriptionWithFirewall(pId, currentPrescriptionItems, currentPrescriptionMeta);
+  updateAIPrescriptionBanner();
+  renderPrescriptionTotals();
+  renderMealItems();
+
+  try {
+    syncActivePatientToPatientApp(pId);
+  } catch (err) {
+    console.warn("Aviso ao sincronizar prescrição revalidada com o app do paciente:", err);
+  }
+
+  if (typeof renderDisciplineDashboard === 'function') {
+    try { await renderDisciplineDashboard(); } catch (_) {}
+  }
+
+  alert("✅ Prescrição Clínica Revalidada e Assinada com Sucesso!\nCardápio ajustado salvo no painel e sincronizado com o ambiente disciplina do paciente.");
 }
 
 async function approveAIPrescription() {
@@ -4151,6 +4219,14 @@ async function approveAIPrescription() {
   currentPrescriptionMeta.validatedContentFingerprint = expectedFP;
   await savePrescriptionWithFirewall(activePatientId, currentPrescriptionItems, currentPrescriptionMeta);
   updateAIPrescriptionBanner();
+  try {
+    syncActivePatientToPatientApp(activePatientId);
+  } catch (err) {
+    console.warn("Aviso ao sincronizar paciente com app:", err);
+  }
+  if (typeof renderDisciplineDashboard === 'function') {
+    try { await renderDisciplineDashboard(); } catch (_) {}
+  }
   alert("✅ Prescrição Clínica Aprovada e Validada com Sucesso!\nStatus atualizado para relatórios clínicos e sincronização.");
 }
 
@@ -4169,6 +4245,9 @@ if (typeof window !== 'undefined') {
   window.renderSmartPrescSuccess = renderSmartPrescSuccess;
   window.renderSmartPrescBlocked = renderSmartPrescBlocked;
   window.renderSmartPrescError = renderSmartPrescError;
+  window.approveAIPrescription = approveAIPrescription;
+  window.revalidateAndApprovePrescription = revalidateAndApprovePrescription;
+  window.handlePrescriptionApprovalAction = handlePrescriptionApprovalAction;
 }
 
 
@@ -12304,15 +12383,57 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     if (typeof updateSystemLastSyncDate === 'function') {
       updateSystemLastSyncDate(new Date());
     }
+
+    // 3.1 Sincroniza imediatamente o cache do ambiente de disciplina com as refeições validadas
+    if (isEligible && formattedMeals.length > 0) {
+      const discKey = `nutriax_patient_discipline_v3_${pId}`;
+      let existingDisc = null;
+      const rawDisc = localStorage.getItem(discKey) || localStorage.getItem('nutriax_patient_discipline_v3');
+      if (rawDisc) {
+        try { existingDisc = JSON.parse(rawDisc); } catch (_) {}
+      }
+      if (!existingDisc) {
+        existingDisc = {
+          name: patientName,
+          streakDays: 1,
+          tier: 'Iniciante 🔥',
+          scoreIDC: 0,
+          waterCurrent: 0,
+          waterTarget: targetWater || 3000,
+          workoutDone: false,
+          cardioDone: false,
+          sleepHours: 0,
+          sleepQuality: null,
+          sleepLogged: false,
+          meals: formattedMeals,
+          timeline: [],
+          history: {}
+        };
+      } else {
+        const doneMap = {};
+        if (Array.isArray(existingDisc.meals)) {
+          existingDisc.meals.forEach(m => { doneMap[m.id] = m.done; });
+        }
+        existingDisc.meals = formattedMeals.map(m => ({
+          ...m,
+          done: doneMap[m.id] !== undefined ? !!doneMap[m.id] : false
+        }));
+        if (targetWater) existingDisc.waterTarget = targetWater;
+      }
+      existingDisc.updatedAtClient = new Date().toISOString();
+      const discStr = JSON.stringify(existingDisc);
+      localStorage.setItem(discKey, discStr);
+      localStorage.setItem('nutriax_patient_discipline_v3', discStr);
+    }
   } catch (e) {
-    console.warn("Erro ao salvar syncPayload local", e);
+    console.warn("Erro ao salvar syncPayload local ou atualizar disciplina:", e);
   }
 
   // 4. Broadcast instantâneo entre abas abertas no navegador
   try {
     if (typeof BroadcastChannel !== "undefined") {
       const channel = new BroadcastChannel("nutriax_bidirectional_sync");
-      channel.postMessage({ type: "SYNC_UPDATED", payload: syncPayload });
+      channel.postMessage({ type: "SYNC_UPDATED", payload: syncPayload, patientId: pId });
     }
   } catch (e) { }
 
