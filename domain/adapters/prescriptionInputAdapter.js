@@ -481,7 +481,13 @@ function adaptPatientContext(rawPatientData) {
     objective,
     energy,
     constraints,
-    preferences,
+    dietaryStyle: String(rawPatientData.dietaryStyle || (rawPatientData.preferences && rawPatientData.preferences.dietaryStyle) || 'tradicional').trim(),
+    dietaryCycle: String(rawPatientData.dietaryCycle || (rawPatientData.preferences && rawPatientData.preferences.dietaryCycle) || '').trim(),
+    preferences: {
+      ...preferences,
+      dietaryStyle: String(rawPatientData.dietaryStyle || (rawPatientData.preferences && rawPatientData.preferences.dietaryStyle) || 'tradicional').trim(),
+      dietaryCycle: String(rawPatientData.dietaryCycle || (rawPatientData.preferences && rawPatientData.preferences.dietaryCycle) || '').trim()
+    },
     accessibilityPreferences: preferences.accessibilityPreferences || null,
     questionarioAcessibilidade: preferences.accessibilityPreferences || null,
     routine,
@@ -570,20 +576,27 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
     errors.push(`[GAP_7] ${mealCountRes.error}`);
   }
 
-  // Sincronização explícita do número de refeições no contexto canônico
-  if (resolvedContext && mealCountRes.valid) {
+  // Sincronização explícita do número de refeições e estilo dietético no contexto canônico
+  const canonicalDietaryStyle = String(rawOptions.dietaryStyle || resolvedContext?.dietaryStyle || resolvedContext?.preferences?.dietaryStyle || 'tradicional').trim();
+  const canonicalDietaryCycle = String(rawOptions.dietaryCycle || resolvedContext?.dietaryCycle || resolvedContext?.preferences?.dietaryCycle || '').trim();
+
+  if (resolvedContext) {
     resolvedContext = {
       ...resolvedContext,
-      mealsPerDay: mealCountRes.mealCount,
-      mealCount: mealCountRes.mealCount,
+      dietaryStyle: canonicalDietaryStyle,
+      dietaryCycle: canonicalDietaryCycle,
+      mealsPerDay: mealCountRes.valid ? mealCountRes.mealCount : (resolvedContext.mealsPerDay || 4),
+      mealCount: mealCountRes.valid ? mealCountRes.mealCount : (resolvedContext.mealCount || 4),
       routine: {
         ...(resolvedContext.routine || {}),
-        mealsPerDay: mealCountRes.mealCount,
-        mealCount: mealCountRes.mealCount
+        mealsPerDay: mealCountRes.valid ? mealCountRes.mealCount : (resolvedContext.mealsPerDay || 4),
+        mealCount: mealCountRes.valid ? mealCountRes.mealCount : (resolvedContext.mealCount || 4)
       },
       preferences: {
         ...(resolvedContext.preferences || {}),
-        mealFrequency: mealCountRes.mealCount
+        dietaryStyle: canonicalDietaryStyle,
+        dietaryCycle: canonicalDietaryCycle,
+        mealFrequency: mealCountRes.valid ? mealCountRes.mealCount : (resolvedContext.preferences?.mealFrequency || 4)
       }
     };
   }
@@ -601,8 +614,8 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
 
   const canonicalOptions = {
     mealCount: mealCountRes.mealCount,
-    dietaryStyle: String(rawOptions.dietaryStyle || 'tradicional').trim(),
-    dietaryCycle: String(rawOptions.dietaryCycle || '').trim(),
+    dietaryStyle: canonicalDietaryStyle,
+    dietaryCycle: canonicalDietaryCycle,
     includeSupplements: rawOptions.includeSupplements !== false,
     periWorkoutWindowMinutes,
     allowAdolescent,

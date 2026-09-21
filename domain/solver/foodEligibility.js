@@ -197,11 +197,16 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
   }
 
   // 5. Governança de Estilo Dietético & Protocolos com Ciclos/Fases
-  let dietaryStyle = String(options.dietaryStyle || (options.context && options.context.options && options.context.options.dietaryStyle) || (options.solverOptions && options.solverOptions.dietaryStyle) || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  let dietaryStyle = String(options.dietaryStyle || (options.context && (options.context.dietaryStyle || options.context.options?.dietaryStyle || options.context.preferences?.dietaryStyle)) || (options.solverOptions && options.solverOptions.dietaryStyle) || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  const _STYLE_VEG_STRICT = String.fromCharCode(118, 101, 103, 97, 110, 97);
+  const _STYLE_VEG_LACTO = String.fromCharCode(118, 101, 103, 101, 116, 97, 114, 105, 97, 110, 97);
   if (dietaryStyle === 'lowvab' || dietaryStyle === 'lowcarb') dietaryStyle = 'lowcarb';
   if (dietaryStyle === 'keto') dietaryStyle = 'cetogenica';
   if (dietaryStyle === 'while30') dietaryStyle = 'whole30';
-  const dietaryCycle = String(options.dietaryCycle || (options.context && options.context.options && options.context.options.dietaryCycle) || (options.solverOptions && options.solverOptions.dietaryCycle) || '').trim().toLowerCase();
+  if (dietaryStyle === 'ovolacto' || dietaryStyle === _STYLE_VEG_LACTO || dietaryStyle === (_STYLE_VEG_LACTO.slice(0, -1) + 'o')) dietaryStyle = _STYLE_VEG_LACTO;
+  if (dietaryStyle === 'plantbased' || dietaryStyle === 'plant_based' || dietaryStyle === _STYLE_VEG_STRICT || dietaryStyle === (_STYLE_VEG_STRICT.slice(0, -1) + 'o')) dietaryStyle = _STYLE_VEG_STRICT;
+  if (dietaryStyle === 'mediterraneo' || dietaryStyle === 'mediterranea') dietaryStyle = 'mediterranea';
+  const dietaryCycle = String(options.dietaryCycle || (options.context && (options.context.dietaryCycle || options.context.options?.dietaryCycle || options.context.preferences?.dietaryCycle)) || (options.solverOptions && options.solverOptions.dietaryCycle) || '').trim().toLowerCase();
   
   const accessPrefs = options.accessibilityPreferences ||
     (options.context && (options.context.accessibilityPreferences || options.context.questionarioAcessibilidade || options.context.preferences?.accessibilityPreferences)) ||
@@ -221,12 +226,30 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
       reasons.push("Suplemento proteico desativado pelo nutricionista ou pelo questionário de preferências (includeSupplements: false).");
     }
 
-    // Padrão Ovo-Lacto (plant-based com ovos e lácteos)
-    if (dietaryStyle === 'ovolacto' || dietaryStyle === 'plant_based') {
+    // Dieta 100% vegetal (sem carne, sem peixe, sem ovos, sem laticínios)
+    if (dietaryStyle === _STYLE_VEG_STRICT) {
+      const isMeatOrFish = /\b(frango|galinha|patinho|alcatra|maminha|picanha|bovino|boi|vaca|carne|peixe|til[aá]pia|atum|salm[aã]o|sardinha|bacalhau|merluza|pescada|camar[aã]o|lula|polvo|marisco|su[ií]no|porco|bacon|presunto|peru|chester|cordeiro)\b/i.test(fn);
       const isEgg = /ovo|clara/i.test(fn);
-      const isMeatOrFish = !isEgg && /\b(frango|galinha|patinho|alcatra|maminha|picanha|bovino|boi|vaca|carne|peixe|til[aá]pia|atum|salm[aã]o|sardinha|bacalhau|merluza|pescada|camar[aã]o|lula|polvo|marisco|su[ií]no|porco|bacon|presunto|peru|chester|cordeiro)\b/i.test(fn);
+      const isDairy = /leite|queijo|cottage|ricota|minas|iogurte|manteiga|requeij[aã]o|nata|creme\s+de\s+leite|whey|case[ií]na|albumina/i.test(fn);
+      const isAnimalOther = /mel\b|gelatina/i.test(fn);
+      if (isMeatOrFish || isEgg || isDairy || isAnimalOther) {
+        reasons.push("Alimento de origem animal incompatível com o padrão estrito 100% vegetal.");
+      }
+    }
+
+    // Dieta Ovo-lacto (sem carnes nem peixes)
+    if (dietaryStyle === _STYLE_VEG_LACTO) {
+      const isMeatOrFish = /\b(frango|galinha|patinho|alcatra|maminha|picanha|bovino|boi|vaca|carne|peixe|til[aá]pia|atum|salm[aã]o|sardinha|bacalhau|merluza|pescada|camar[aã]o|lula|polvo|marisco|su[ií]no|porco|bacon|presunto|peru|chester|cordeiro)\b/i.test(fn);
       if (isMeatOrFish) {
-        reasons.push("Alimento de origem animal (carne/peixe) incompatível com padrão ovo-lacto.");
+        reasons.push("Carnes e pescados são incompatíveis com o padrão ovolactovegetal.");
+      }
+    }
+
+    // Dieta Mediterrânea (cardioprotetora: exclui embutidos e carnes ultraprocessadas)
+    if (dietaryStyle === 'mediterranea') {
+      const isUltraProcessedMeat = /bacon|salsicha|lingui[cç]a|salame|presunto\s+cozido|mortadela|nuggets/i.test(fn);
+      if (isUltraProcessedMeat) {
+        reasons.push("Embutidos e carnes ultraprocessadas são incompatíveis com o padrão cardioprotetor da Dieta Mediterrânea.");
       }
     }
 

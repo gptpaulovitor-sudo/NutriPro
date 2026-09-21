@@ -211,9 +211,9 @@ function assembleMeals(input, customPolicy = {}) {
   // Função para classe de prioridade gastronômica determinística
   function getItemPriorityClass(it) {
     const fn = it.foodName || '';
-    if (/frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(fn)) return 1;
+    if (/frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha|tofu|tempeh|soja/i.test(fn)) return 1;
     if (/ovo\s+de\s+galinha|ovos|clara|queijo|iogurte|cottage|ricota|whey/i.test(fn)) return 2;
-    if (/arroz|feij[aã]o|batata|mandioca|aipim|aveia|p[aã]o/i.test(fn)) return 3;
+    if (/arroz|feij[aã]o|batata|mandioca|aipim|aveia|p[aã]o|gr[aã]o.*bico|lentilha/i.test(fn)) return 3;
     return 4;
   }
 

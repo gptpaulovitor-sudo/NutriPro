@@ -823,12 +823,21 @@ function validateGlobalPrescription(input, customPolicy = {}) {
     : (finalNutrients.carbohydrate || 0);
 
   const activeStyle = (
-    (context && (context.dietaryStyle || context.options?.dietaryStyle)) ||
-    (input && (input.options?.dietaryStyle || input.dietaryStyle)) ||
+    (context && (context.dietaryStyle || context.options?.dietaryStyle || context.preferences?.dietaryStyle)) ||
+    (input && (input.options?.dietaryStyle || input.dietaryStyle || input.context?.dietaryStyle || input.context?.options?.dietaryStyle || input.context?.preferences?.dietaryStyle)) ||
+    (macroTargetResult && macroTargetResult.policy?.parameters?.find(p => p.key?.startsWith('dietaryStyle'))?.key?.replace('dietaryStyle.', '')) ||
     ''
   ).toLowerCase();
 
-  const isKetoOrVeryLowCarb = totalDailyCarbs < 80 || ['cetogenica', 'dukan', 'whole30'].includes(activeStyle);
+  const activeCycle = (
+    (context && (context.dietaryCycle || context.options?.dietaryCycle || context.preferences?.dietaryCycle)) ||
+    (input && (input.options?.dietaryCycle || input.dietaryCycle || input.context?.dietaryCycle || input.context?.options?.dietaryCycle || input.context?.preferences?.dietaryCycle)) ||
+    (macroTargetResult && macroTargetResult.policy?.parameters?.find(p => p.key?.startsWith('dietaryStyle'))?.value) ||
+    ''
+  ).toLowerCase();
+
+  const isDukanProtocol = activeStyle === 'dukan' || activeCycle.includes('dukan') || activeCycle.includes('ataque') || activeCycle.includes('cruzeiro');
+  const isKetoOrVeryLowCarb = totalDailyCarbs < 80 || isDukanProtocol || ['cetogenica', 'dukan', 'whole30'].includes(activeStyle);
   const isLowCarbProtocol = isKetoOrVeryLowCarb || totalDailyCarbs <= 130 || activeStyle === 'lowcarb';
 
   if (finalMeals.length > 0) {
@@ -940,7 +949,7 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   // G23 — MEAL FOOD STRUCTURE (Estrutura de composição da refeição)
   // ─────────────────────────────────────────────────────────────────────────
   const structureFailures = [];
-  const isPureProteinProtocol = activeStyle === 'dukan' || (totalDailyCarbs < 50 && ['cetogenica', 'carnivora'].includes(activeStyle));
+  const isPureProteinProtocol = isDukanProtocol || (totalDailyCarbs < 50 && ['cetogenica', 'carnivora', 'dukan'].includes(activeStyle)) || (totalDailyCarbs < 25 && (macroTargetResult?.proteinTargetG || 0) >= 60);
   const isMainMealStructureStrict = totalAvailableDistinct >= 4 && !isPureProteinProtocol;
 
   finalMeals.forEach(meal => {

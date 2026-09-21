@@ -331,9 +331,12 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
   // 6. Preferências
   const rawPrefs = data.preferences || {};
   const accessibilityPreferences = rawPrefs.accessibilityPreferences || data.accessibilityPreferences || data.questionarioAcessibilidade || null;
+  const dietaryStyle = rawPrefs.dietaryStyle || data.dietaryStyle ? String(rawPrefs.dietaryStyle || data.dietaryStyle).trim() : null;
+  const dietaryCycle = rawPrefs.dietaryCycle || data.dietaryCycle ? String(rawPrefs.dietaryCycle || data.dietaryCycle).trim() : null;
   const preferences = {
     preferredFoods: Array.isArray(rawPrefs.preferredFoods) ? [...new Set(rawPrefs.preferredFoods.filter(Boolean).map(String))] : [],
-    dietaryStyle: rawPrefs.dietaryStyle ? String(rawPrefs.dietaryStyle).trim() : null,
+    dietaryStyle,
+    dietaryCycle,
     mealFrequency: rawPrefs.mealFrequency != null ? rawPrefs.mealFrequency : null,
     accessibilityPreferences: accessibilityPreferences ? (typeof accessibilityPreferences === 'object' ? { ...accessibilityPreferences } : accessibilityPreferences) : null
   };
@@ -504,6 +507,8 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     currentPrescription,
     mealsPerDay: (data.mealsPerDay != null && !isNaN(Number(data.mealsPerDay))) ? Number(data.mealsPerDay) : (routine.mealsPerDay ?? null),
     mealCount: (data.mealCount != null && !isNaN(Number(data.mealCount))) ? Number(data.mealCount) : (routine.mealCount ?? null),
+    dietaryStyle: preferences.dietaryStyle || null,
+    dietaryCycle: preferences.dietaryCycle || null,
     accessibilityPreferences: preferences.accessibilityPreferences || null,
     questionarioAcessibilidade: preferences.accessibilityPreferences || null,
     provenance

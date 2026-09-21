@@ -803,6 +803,7 @@ function executePipelineCore(resolvedContext, foodCatalog, policies = {}, option
   try {
     const globalValidationInput = {
       context: currentContext,
+      options: options || {},
       energyTargetResult,
       macroTargetResult,
       nutritionValidatorResult,
