@@ -403,11 +403,29 @@
 
     try {
       const sanitizedId = String(patientId).trim();
-      await firestore.collection('patient_prescriptions').doc(sanitizedId).set({
+      const docData = {
         patientId: sanitizedId,
-        prescription: prescriptionPayload,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      };
+      if (prescriptionPayload.meals || prescriptionPayload.weeklySchedule) {
+        docData.prescription = prescriptionPayload;
+      }
+      if (prescriptionPayload.rawPrescription) {
+        docData.rawPrescription = prescriptionPayload.rawPrescription;
+      } else if (prescriptionPayload.items) {
+        docData.rawPrescription = {
+          id: sanitizedId,
+          patientId: sanitizedId,
+          items: prescriptionPayload.items,
+          meta: prescriptionPayload.meta || null,
+          targets: prescriptionPayload.targets || null,
+          updatedAt: prescriptionPayload.updatedAt || new Date().toISOString()
+        };
+      } else if (!docData.prescription) {
+        docData.prescription = prescriptionPayload;
+      }
+
+      await firestore.collection('patient_prescriptions').doc(sanitizedId).set(docData, { merge: true });
 
       console.info(`[NutriPro Firebase] Prescrição do paciente "${sanitizedId}" sincronizada na nuvem!`);
       return true;
@@ -435,7 +453,18 @@
             if (doc.exists) {
               const data = doc.data();
               if (typeof onUpdateCallback === 'function') {
-                onUpdateCallback(data.prescription);
+                const res = data.prescription || {};
+                if (data.rawPrescription) {
+                  res.rawPrescription = data.rawPrescription;
+                }
+                if (data.updatedAt) {
+                  const iso = data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt;
+                  res.updatedAt = res.updatedAt || iso;
+                  if (res.rawPrescription && !res.rawPrescription.updatedAt) {
+                    res.rawPrescription.updatedAt = iso;
+                  }
+                }
+                onUpdateCallback(res);
               }
             }
           }, (error) => {
@@ -464,7 +493,18 @@
       const docRef = await firestore.collection('patient_prescriptions').doc(sanitizedId).get();
       if (docRef.exists) {
         const data = docRef.data();
-        return data.prescription || null;
+        const res = data.prescription || {};
+        if (data.rawPrescription) {
+          res.rawPrescription = data.rawPrescription;
+        }
+        if (data.updatedAt) {
+          const iso = data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt;
+          res.updatedAt = res.updatedAt || iso;
+          if (res.rawPrescription && !res.rawPrescription.updatedAt) {
+            res.rawPrescription.updatedAt = iso;
+          }
+        }
+        return res;
       }
       return null;
     } catch (error) {

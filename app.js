@@ -363,6 +363,24 @@ async function savePrescriptionWithFirewall(patientId, items, meta) {
         console.warn('[savePrescriptionWithFirewall] Erro ao salvar cópia em localStorage:', lsErr);
       }
     }
+
+    // Sincronização na Nuvem Firestore (Cross-Device Sync: PC <-> Celular)
+    if (typeof window !== 'undefined' && window.NutriProFirebase && window.NutriProFirebase.prescription && typeof window.NutriProFirebase.prescription.syncToCloud === 'function') {
+      try {
+        window.NutriProFirebase.prescription.syncToCloud(pId, {
+          patientId: pId,
+          rawPrescription: prescRecord,
+          items: safeItems,
+          meta: safeMeta,
+          targets: safeMeta.targets || targets || null,
+          updatedAt: prescRecord.updatedAt
+        }).catch(cloudErr => {
+          console.warn('[savePrescriptionWithFirewall] Erro assíncrono ao sincronizar na nuvem:', cloudErr);
+        });
+      } catch (cloudSyncErr) {
+        console.warn('[savePrescriptionWithFirewall] Erro ao sincronizar prescrição com a nuvem:', cloudSyncErr);
+      }
+    }
   }
 }
 
@@ -4551,6 +4569,209 @@ async function clearPrescriptionDiet() {
   renderMealItems();
 }
 
+function _shouldAcceptCloudPrescriptionInPro(cloudDoc, localSaved) {
+  if (!cloudDoc) return false;
+  const hasCloudItems = (cloudDoc.rawPrescription && Array.isArray(cloudDoc.rawPrescription.items) && cloudDoc.rawPrescription.items.length > 0) ||
+                        (Array.isArray(cloudDoc.items) && cloudDoc.items.length > 0) ||
+                        (Array.isArray(cloudDoc.meals) && cloudDoc.meals.length > 0);
+  if (!hasCloudItems) return false;
+  if (!localSaved || !Array.isArray(localSaved.items) || localSaved.items.length === 0) return true;
+
+  const cloudTime = new Date(
+    (cloudDoc.rawPrescription && cloudDoc.rawPrescription.updatedAt) ||
+    cloudDoc.updatedAt ||
+    0
+  ).getTime();
+
+  const localTime = new Date(
+    (localSaved.meta && (localSaved.meta.validatedAt || localSaved.meta.updatedAt)) ||
+    localSaved.updatedAt ||
+    0
+  ).getTime();
+
+  if (isNaN(localTime) || localTime === 0) return true;
+  if (isNaN(cloudTime) || cloudTime === 0) return false;
+
+  if (cloudTime > localTime) return true;
+
+  if (cloudTime === localTime) {
+    if (typeof computePrescriptionContentFingerprint === 'function') {
+      const localFp = computePrescriptionContentFingerprint(localSaved.items);
+      const cloudItems = (cloudDoc.rawPrescription && Array.isArray(cloudDoc.rawPrescription.items))
+        ? cloudDoc.rawPrescription.items
+        : (Array.isArray(cloudDoc.items) ? cloudDoc.items : null);
+      if (cloudItems) {
+        const cloudFp = computePrescriptionContentFingerprint(cloudItems);
+        return localFp !== cloudFp;
+      }
+    }
+    return false;
+  }
+
+  return false;
+}
+
+async function _applyCloudPrescriptionToPro(targetId, cloudDoc) {
+  if (!cloudDoc) return null;
+  let prescRecord = null;
+
+  if (cloudDoc.rawPrescription && Array.isArray(cloudDoc.rawPrescription.items) && cloudDoc.rawPrescription.items.length > 0) {
+    prescRecord = {
+      id: targetId,
+      patientId: targetId,
+      items: cloudDoc.rawPrescription.items,
+      meta: cloudDoc.rawPrescription.meta || {
+        isAIGenerated: true,
+        isClinicallyValidated: true,
+        isStale: false,
+        staleReason: null,
+        validatedAt: cloudDoc.rawPrescription.updatedAt || cloudDoc.updatedAt || new Date().toISOString(),
+        validationStatus: 'PASS',
+        validationVerdict: 'PASS',
+        targets: cloudDoc.rawPrescription.targets || cloudDoc.targets || null
+      },
+      targets: cloudDoc.rawPrescription.targets || cloudDoc.targets || null,
+      updatedAt: cloudDoc.rawPrescription.updatedAt || cloudDoc.updatedAt || new Date().toISOString()
+    };
+  } else if (Array.isArray(cloudDoc.items) && cloudDoc.items.length > 0) {
+    prescRecord = {
+      id: targetId,
+      patientId: targetId,
+      items: cloudDoc.items,
+      meta: cloudDoc.meta || {
+        isAIGenerated: true,
+        isClinicallyValidated: true,
+        isStale: false,
+        staleReason: null,
+        validatedAt: cloudDoc.updatedAt || new Date().toISOString(),
+        validationStatus: 'PASS',
+        validationVerdict: 'PASS',
+        targets: cloudDoc.targets || null
+      },
+      targets: cloudDoc.targets || null,
+      updatedAt: cloudDoc.updatedAt || new Date().toISOString()
+    };
+  } else if (Array.isArray(cloudDoc.meals) && cloudDoc.meals.length > 0) {
+    const reconstructed = [];
+    cloudDoc.meals.forEach((m) => {
+      (m.items || []).forEach((it) => {
+        reconstructed.push({
+          id: it.id || `rec_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          foodId: it.foodId || it.id || null,
+          foodName: it.name || it.foodName || "Alimento",
+          mealName: m.name || "Refeição",
+          mealTime: m.time || "12:00",
+          quantity: it.qty || 100,
+          unit: "g",
+          unitDisplay: it.unit || `${it.qty || 100}g`,
+          originalQty: it.qty || 100,
+          originalUnit: "g",
+          calories: it.kcal || 0,
+          protein: it.prot || 0,
+          carbohydrate: it.carbo || 0,
+          lipid: it.lipid || it.fat || 0,
+          fiber: it.fiber || 0
+        });
+      });
+    });
+    if (reconstructed.length > 0) {
+      const rFP = typeof computePrescriptionContentFingerprint === 'function'
+        ? computePrescriptionContentFingerprint(reconstructed)
+        : null;
+      prescRecord = {
+        id: targetId,
+        patientId: targetId,
+        items: reconstructed,
+        meta: {
+          isAIGenerated: true,
+          isClinicallyValidated: cloudDoc.dietPlanStatus === 'VALIDATED_CANONICAL',
+          isStale: false,
+          staleReason: null,
+          validatedAt: cloudDoc.updatedAt || new Date().toISOString(),
+          validatedContentFingerprint: rFP,
+          validationStatus: 'PASS',
+          validationVerdict: 'PASS',
+          targets: cloudDoc.prescribedTargets || null
+        },
+        targets: cloudDoc.prescribedTargets || null,
+        updatedAt: cloudDoc.updatedAt || new Date().toISOString()
+      };
+    }
+  }
+
+  if (prescRecord) {
+    if (typeof db !== 'undefined' && db && db.prescriptions && typeof db.prescriptions.put === 'function') {
+      try {
+        await db.prescriptions.put(prescRecord);
+        if (!isNaN(Number(targetId)) && typeof targetId === 'string') {
+          await db.prescriptions.put({ ...prescRecord, id: Number(targetId), patientId: Number(targetId) });
+        }
+      } catch (dbErr) {
+        console.warn('[_applyCloudPrescriptionToPro] Erro ao salvar prescrição no Dexie:', dbErr);
+      }
+    }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(`nutriax_prescription_${targetId}`, JSON.stringify(prescRecord));
+        localStorage.setItem(`nutriax_prescription_${String(targetId).toLowerCase().replace(/\s+/g, '-')}`, JSON.stringify(prescRecord));
+        localStorage.setItem('nutriax_prescription_current', JSON.stringify(prescRecord));
+      } catch (_) {}
+    }
+  }
+
+  return prescRecord;
+}
+
+let _proPrescriptionUnsubscribe = null;
+
+function _setupPrescriptionRealtimeListener(targetId) {
+  if (typeof _proPrescriptionUnsubscribe === 'function') {
+    try {
+      _proPrescriptionUnsubscribe();
+    } catch (_) {}
+    _proPrescriptionUnsubscribe = null;
+  }
+
+  if (!targetId || typeof window === 'undefined' || !window.NutriProFirebase || !window.NutriProFirebase.prescription || typeof window.NutriProFirebase.prescription.subscribe !== 'function') {
+    return;
+  }
+
+  try {
+    _proPrescriptionUnsubscribe = window.NutriProFirebase.prescription.subscribe(targetId, async (cloudDoc) => {
+      if (!cloudDoc) return;
+      const currentActiveId = activePatientId || (typeof localStorage !== 'undefined' ? localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") : null);
+      if (String(currentActiveId) !== String(targetId)) return;
+
+      const currentSnapshot = {
+        items: currentPrescriptionItems,
+        meta: currentPrescriptionMeta,
+        updatedAt: (currentPrescriptionMeta && (currentPrescriptionMeta.validatedAt || currentPrescriptionMeta.updatedAt)) || null
+      };
+
+      if (_shouldAcceptCloudPrescriptionInPro(cloudDoc, currentSnapshot)) {
+        console.info(`[Pro Realtime Listener] Nova prescrição recebida via Firestore para paciente ${targetId}. Atualizando UI...`);
+        const updatedPresc = await _applyCloudPrescriptionToPro(targetId, cloudDoc);
+        if (updatedPresc && Array.isArray(updatedPresc.items) && updatedPresc.items.length > 0) {
+          currentPrescriptionItems = updatedPresc.items;
+          currentPrescriptionMeta = updatedPresc.meta || {
+            isAIGenerated: true,
+            isClinicallyValidated: true,
+            isStale: false
+          };
+          if (updatedPresc.targets && !currentPrescriptionMeta.targets) {
+            currentPrescriptionMeta.targets = updatedPresc.targets;
+          }
+          updateAIPrescriptionBanner();
+          renderPrescriptionTotals();
+          renderMealItems();
+        }
+      }
+    });
+  } catch (subErr) {
+    console.warn('[_setupPrescriptionRealtimeListener] Erro ao subscrever prescrição em tempo real:', subErr);
+  }
+}
+
 async function _resolveSavedPrescription(targetId) {
   let saved = null;
   // 1. Consulta resiliente ao Dexie (por ID exato, coerção de tipo string/number, ou índice patientId)
@@ -4673,12 +4894,29 @@ async function _resolveSavedPrescription(targetId) {
       } catch (_) {}
     }
   }
+
+  // 4. Sincronização e hidratação da nuvem Firestore (Multi-dispositivo PC <-> Celular)
+  if (typeof window !== 'undefined' && window.NutriProFirebase && window.NutriProFirebase.prescription && typeof window.NutriProFirebase.prescription.loadFromCloud === 'function') {
+    try {
+      const cloudDoc = await window.NutriProFirebase.prescription.loadFromCloud(targetId);
+      if (cloudDoc && _shouldAcceptCloudPrescriptionInPro(cloudDoc, saved)) {
+        const cloudPresc = await _applyCloudPrescriptionToPro(targetId, cloudDoc);
+        if (cloudPresc) {
+          saved = cloudPresc;
+        }
+      }
+    } catch (cloudErr) {
+      console.warn('[_resolveSavedPrescription] Aviso ao carregar prescrição da nuvem:', cloudErr);
+    }
+  }
+
   return saved;
 }
 
 async function loadPrescriptionForPatient(patientId = activePatientId) {
   const targetId = patientId || activePatientId || (typeof localStorage !== 'undefined' ? localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") : null);
   if (!targetId) {
+    _setupPrescriptionRealtimeListener(null);
     currentPrescriptionItems = [];
     currentPrescriptionMeta = { isAIGenerated: false, isClinicallyValidated: false, isStale: false };
     updateAIPrescriptionBanner();
@@ -4723,6 +4961,7 @@ async function loadPrescriptionForPatient(patientId = activePatientId) {
   updateAIPrescriptionBanner();
   renderPrescriptionTotals();
   renderMealItems();
+  _setupPrescriptionRealtimeListener(targetId);
 }
 
 function renderMealItems() {
@@ -12651,7 +12890,18 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
   // 5. Sincronização em nuvem da prescrição para o Firebase Firestore
   try {
     if (window.NutriProFirebase && typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
-      window.NutriProFirebase.prescription.syncToCloud(pId, syncPayload);
+      const prescCloudPayload = {
+        ...syncPayload,
+        rawPrescription: {
+          id: pId,
+          patientId: pId,
+          items: Array.isArray(currentPrescriptionItems) ? currentPrescriptionItems : [],
+          meta: currentPrescriptionMeta || null,
+          targets: (currentPrescriptionMeta && currentPrescriptionMeta.targets) || targets || null,
+          updatedAt: syncPayload.updatedAt || new Date().toISOString()
+        }
+      };
+      window.NutriProFirebase.prescription.syncToCloud(pId, prescCloudPayload);
     }
   } catch (_) { }
 
@@ -26948,3 +27198,7 @@ window.approveAIPrescription = approveAIPrescription;
 window.loadPrescriptionForPatient = loadPrescriptionForPatient;
 window.clearPrescriptionDiet = clearPrescriptionDiet;
 window.computePrescriptionContentFingerprint = computePrescriptionContentFingerprint;
+window._shouldAcceptCloudPrescriptionInPro = _shouldAcceptCloudPrescriptionInPro;
+window._applyCloudPrescriptionToPro = _applyCloudPrescriptionToPro;
+window._resolveSavedPrescription = _resolveSavedPrescription;
+
