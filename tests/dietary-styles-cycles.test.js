@@ -362,4 +362,35 @@ describe('4. Resolução Completa do Solver com Dietas Especiais', () => {
     }
   });
 
+  test('Prescrição Dukan Ataque (PP): Refeições monoprotéicas puras passam no portão G23 sem bloqueio', () => {
+    const { validateGlobalPrescription } = require('../domain/validation/globalPrescriptionValidator');
+    const { createGlobalPrescriptionValidationPolicy } = require('../domain/validation/globalPrescriptionValidationPolicy');
+
+    const dukanMeals = [
+      { mealId: 'm1', mealName: 'Café da Manhã', mealRole: 'SECONDARY', items: [{ foodId: 'f1', foodName: 'Ovo de Galinha Cozido', grams: 120 }] },
+      { mealId: 'm2', mealName: 'Lanche', mealRole: 'SNACK', items: [{ foodId: 'f2', foodName: 'Iogurte Desnatado', grams: 150 }] },
+      { mealId: 'm3', mealName: 'Almoço', mealRole: 'PRIMARY', items: [{ foodId: 'f3', foodName: 'Peito de Frango Grelhado', grams: 250 }] },
+      { mealId: 'm4', mealName: 'Jantar', mealRole: 'PRIMARY', items: [{ foodId: 'f4', foodName: 'Filé de Tilápia Grelhado', grams: 250 }] }
+    ];
+
+    const val = validateGlobalPrescription({
+      context: { dietaryStyle: 'dukan', dietaryCycle: 'dukan_ataque' },
+      options: { dietaryStyle: 'dukan', dietaryCycle: 'dukan_ataque' },
+      mealAssemblyResult: { meals: dukanMeals },
+      foodSolverResult: {
+        foods: [
+          { foodId: 'f1', grams: 120 },
+          { foodId: 'f2', grams: 150 },
+          { foodId: 'f3', grams: 250 },
+          { foodId: 'f4', grams: 250 }
+        ]
+      },
+      policy: createGlobalPrescriptionValidationPolicy()
+    });
+
+    const g23 = val.gateResults.find(g => g.gateId === 'G23_MEAL_FOOD_STRUCTURE');
+    assert.strictEqual(g23.status, 'PASS', 'G23 não deve bloquear refeições monoprotéicas canônicas da Dieta Dukan');
+  });
+
 });
+

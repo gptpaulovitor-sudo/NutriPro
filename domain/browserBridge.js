@@ -16993,7 +16993,8 @@ function validateGlobalPrescription(input, customPolicy = {}) {
   // G23 — MEAL FOOD STRUCTURE (Estrutura de composição da refeição)
   // ─────────────────────────────────────────────────────────────────────────
   const structureFailures = [];
-  const isMainMealStructureStrict = totalAvailableDistinct >= 4;
+  const isPureProteinProtocol = activeStyle === 'dukan' || (totalDailyCarbs < 50 && ['cetogenica', 'carnivora'].includes(activeStyle));
+  const isMainMealStructureStrict = totalAvailableDistinct >= 4 && !isPureProteinProtocol;
 
   finalMeals.forEach(meal => {
     const isMainMeal = meal.mealRole === 'PRIMARY' || /almo[cç]o|jantar/i.test(meal.mealName || '');
