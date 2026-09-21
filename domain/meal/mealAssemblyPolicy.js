@@ -255,23 +255,24 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
 
   // 1. REFEIÇÕES PRINCIPAIS (Almoço / Jantar - PRIMARY)
   if (mealType === 'MAIN') {
-    // Alimentos matinais/lanches são proibidos em almoço e jantar tradicional
-    if (/aveia|granola|farelo\s+de\s+aveia/i.test(name)) return 500.0;
-    if (/iogurte|leite\s+em\s+p[oó]|whey/i.test(name)) return 250.0;
-    if (/caf[eé]/i.test(name)) return 50.0;
-    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 15.0;
+    // Alimentos matinais, lanches doces e cereais são incompatíveis com almoço e jantar salgado tradicional
+    if (/aveia|granola|farelo\s+de\s+aveia/i.test(name)) return 600.0;
+    if (/pasta\s+de\s+amendoim/i.test(name)) return 600.0; // NUNCA pasta de amendoim no almoço/jantar com carne/arroz/feijão
+    if (/iogurte|leite\s+em\s+p[oó]|whey/i.test(name)) return 400.0;
+    if (/caf[eé]/i.test(name)) return 100.0;
+    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 50.0;
     return 0;
   }
 
-  // 2. REFEICAO MATINAL (Café da Manhã - SECONDARY)
+  // 2. REFEIÇÃO MATINAL (Café da Manhã - SECONDARY)
   if (mealType === 'BREAKFAST') {
-    // Comida pesada de almoço/jantar é proibida no café da manhã
+    // Comida pesada de almoço/jantar é desaconselhada no café da manhã
     if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
-    if (/arroz/i.test(name)) return 300.0;
-    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 250.0;
-    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 250.0;
-    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 100.0;
-    if (/frango/i.test(name)) return 40.0;
+    if (/arroz/i.test(name)) return 400.0;
+    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o|sardinha|atum/i.test(name)) return 450.0;
+    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 350.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 150.0;
+    if (/frango/i.test(name)) return 80.0;
     if (/azeite/i.test(name)) return 20.0;
     return 0;
   }
@@ -279,10 +280,11 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
   // 3. REFEIÇÕES INTERMEDIÁRIAS (SNACK / FLEXIBLE)
   if (mealType === 'SNACK') {
     if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
-    if (/arroz/i.test(name)) return 300.0;
-    if (/br[oó]colis|couve-flor|abobrinha|chuchu|legumes/i.test(name)) return 200.0;
-    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 100.0;
-    if (/azeite/i.test(name)) return 10.0;
+    if (/arroz/i.test(name)) return 400.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|legumes/i.test(name)) return 300.0;
+    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum/i.test(name)) return 600.0; // Peixes, sardinhas e carnes pesadas NÃO pertencem a lanches da tarde
+    if (/(^|[^\w])manteiga/i.test(name)) return 300.0; // Manteiga em lanche sem torrada é bizarra
+    if (/azeite/i.test(name)) return 250.0; // Azeite sozinho em lanche
     return 0;
   }
 
@@ -291,7 +293,7 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
 
 /**
  * Calcula penalidade culinária para combinações incompatíveis no mesmo prato.
- * Exemplo: abacate com manteiga, aveia com azeite, arroz com iogurte/whey.
+ * Exemplo: abacate com manteiga, aveia com azeite, arroz com iogurte/whey, sardinha com aveia.
  * 
  * @param {Array<string>} existingFoodNames Nomes dos alimentos já presentes na refeição
  * @param {string} candidateFoodName Nome do alimento sendo avaliado para adição
@@ -305,35 +307,60 @@ function calculateMealCulinaryClashPenalty(existingFoodNames, candidateFoodName)
   for (let i = 0; i < existingFoodNames.length; i++) {
     const exist = String(existingFoodNames[i]).toLowerCase();
 
-    // 1. Aberração de gorduras: Abacate + Manteiga (+500.0)
+    // 1. Aberração de gorduras: Abacate + Manteiga (+600.0)
     const hasAvocado = /abacate/i.test(exist) || /abacate/i.test(cand);
     const hasButter = /(^|[^\w])manteiga/i.test(exist) || /(^|[^\w])manteiga/i.test(cand);
     if (hasAvocado && hasButter) {
-      penalty += 500.0;
+      penalty += 600.0;
     }
 
-    // 2. Azeite com Aveia / Granola (+500.0)
+    // 2. Azeite com Aveia / Granola (+600.0)
     const hasOliveOil = /azeite/i.test(exist) || /azeite/i.test(cand);
-    const hasOats = /aveia|granola/i.test(exist) || /aveia|granola/i.test(cand);
+    const hasOats = /aveia|granola|farelo\s+de\s+aveia/i.test(exist) || /aveia|granola|farelo\s+de\s+aveia/i.test(cand);
     if (hasOliveOil && hasOats) {
-      penalty += 500.0;
+      penalty += 600.0;
     }
 
-    // 3. Arroz ou Feijão com Iogurte / Whey (+500.0)
-    const hasRiceOrBeans = /arroz|feij[aã]o/i.test(exist) || /arroz|feij[aã]o/i.test(cand);
-    const hasDairySweet = /iogurte|whey|leite\s+em\s+p[oó]/i.test(exist) || /iogurte|whey|leite\s+em\s+p[oó]/i.test(cand);
-    if (hasRiceOrBeans && hasDairySweet) {
-      penalty += 500.0;
+    // 3. Arroz ou Leguminosas com Iogurte / Whey / Pasta de Amendoim (+800.0)
+    const hasRiceOrBeans = /arroz|feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(exist) || /arroz|feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(cand);
+    const hasDairySweetOrPB = /iogurte|whey|leite\s+em\s+p[oó]|pasta\s+de\s+amendoim/i.test(exist) || /iogurte|whey|leite\s+em\s+p[oó]|pasta\s+de\s+amendoim/i.test(cand);
+    if (hasRiceOrBeans && hasDairySweetOrPB) {
+      penalty += 800.0;
     }
 
-    // 4. Azeite com Abacate (+150.0) — evita misturar duas gorduras densas de origens díspares
+    // 4. Pasta de Amendoim com Carnes / Peixes / Aves / Brócolis (+800.0)
+    const hasPeanutButter = /pasta\s+de\s+amendoim/i.test(exist) || /pasta\s+de\s+amendoim/i.test(cand);
+    const hasSavoryMeatOrVeg = /frango|carne|patinho|alcatra|bife|peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum|br[oó]colis|couve/i.test(exist) || /frango|carne|patinho|alcatra|bife|peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum|br[oó]colis|couve/i.test(cand);
+    if (hasPeanutButter && hasSavoryMeatOrVeg) {
+      penalty += 800.0;
+    }
+
+    // 5. Pescados / Sardinha / Salmão com Aveia / Granola / Frutas / Doces (+800.0)
+    const hasFish = /peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum/i.test(exist) || /peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum/i.test(cand);
+    const hasSweetOrOats = /aveia|granola|farelo\s+de\s+aveia|banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|pasta\s+de\s+amendoim|iogurte/i.test(exist) || /aveia|granola|farelo\s+de\s+aveia|banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|pasta\s+de\s+amendoim|iogurte/i.test(cand);
+    if (hasFish && hasSweetOrOats) {
+      penalty += 800.0;
+    }
+
+    // 6. Carnes / Frango com Aveia crua / Granola (+600.0)
+    const hasMeat = /frango|patinho|alcatra|maminha|carne|bife/i.test(exist) || /frango|patinho|alcatra|maminha|carne|bife/i.test(cand);
+    if (hasMeat && hasOats) {
+      penalty += 600.0;
+    }
+
+    // 7. Azeite com Abacate (+150.0)
     if (hasOliveOil && hasAvocado) {
       penalty += 150.0;
     }
 
-    // 5. Azeite com Manteiga (+100.0) — redundância de gorduras puras adicionadas no mesmo prato
+    // 8. Azeite com Manteiga (+200.0) — redundância de gorduras puras adicionadas no mesmo prato
     if (hasOliveOil && hasButter) {
-      penalty += 100.0;
+      penalty += 200.0;
+    }
+
+    // 9. Manteiga com Aveia crua sem acompanhamento (+400.0)
+    if (hasButter && hasOats) {
+      penalty += 400.0;
     }
   }
 

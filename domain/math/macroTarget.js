@@ -220,7 +220,7 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
   if (activeStyle === 'while30') activeStyle = 'whole30';
   const activeCycle = String(options.dietaryCycle || (context.options && context.options.dietaryCycle) || (context.patient && context.patient.dietaryCycle) || '').trim().toLowerCase();
 
-  const isProtocolStyle = ['cetogenica', 'lowcarb', 'dukan', 'whole30'].includes(activeStyle);
+  const isProtocolStyle = ['cetogenica', 'lowcarb', 'dukan', 'whole30', 'mediterranea', 'vegana', 'vegetariana'].includes(activeStyle);
 
   if (isProtocolStyle) {
     factorsConsidered.push(`Protocolo Dietético Clínico: ${activeStyle.toUpperCase()} (Ciclo/Fase: ${activeCycle || 'Padrão'})`);
@@ -271,8 +271,6 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
       if (activeCycle === 'dukan_cruzeiro_pl') {
         pTarget = Math.round(weightKg * 2.1);
         cTarget = 40;
-        // Cruzeiro PL: gordura principalmente de ovos e traços de proteínas magras + legumes.
-        // Limitar para valor atingível com alimentos Dukan-elegíveis.
         fTarget = Math.max(15, Math.min(25, Math.round(weightKg * 0.20)));
         fibTarget = 15;
       } else if (activeCycle === 'dukan_consolidacao') {
@@ -287,12 +285,8 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
         fibTarget = 25;
       } else {
         // Ataque PP (Proteína Pura) ou Cruzeiro PP — ciclo padrão Dukan
-        // O protocolo clínico Dukan original especifica 2.3 g/kg para a fase de Ataque
-        // (proteína pura maciça), garantindo preservação muscular máxima e cetose rápida.
         pTarget = Math.round(weightKg * 2.3);
         cTarget = 15;
-        // Fase de Ataque: gordura provém exclusivamente de ovos e traços de proteínas magras.
-        // Limite superior de 30g para manter o perfil de gordura muito baixo conforme protocolo.
         fTarget = Math.max(10, Math.min(30, Math.round(weightKg * 0.20)));
         fibTarget = 10;
       }
@@ -310,6 +304,26 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
         cTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
         fibTarget = 28;
       }
+    } else if (activeStyle === 'mediterranea') {
+      // Dieta Mediterrânea: Rica em azeite de oliva extravirgem e ácidos graxos monoinsaturados (30-35% VET)
+      // Proteínas com ênfase em pescados e leguminosas (1.8-2.0 g/kg)
+      pTarget = Math.round(weightKg * 1.9);
+      fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.32) / 9));
+      cTarget = Math.max(40, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+      fibTarget = 30;
+    } else if (activeStyle === 'vegana') {
+      // Dieta Vegana: Proteína 100% vegetal balanceada (1.7 g/kg), gorduras saudáveis (22% VET)
+      // Carboidratos residuais abundantes para acomodar o perfil intrínseco de leguminosas e grãos integrais
+      pTarget = Math.round(weightKg * 1.7);
+      fTarget = Math.max(25, Math.round((caloricTargetKcal * 0.22) / 9));
+      cTarget = Math.max(50, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+      fibTarget = 35;
+    } else if (activeStyle === 'vegetariana') {
+      // Dieta Vegetariana (Ovolactovegetariana): P=1.8 g/kg, Gorduras saudáveis 26% VET, carboidratos residuais
+      pTarget = Math.round(weightKg * 1.8);
+      fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.26) / 9));
+      cTarget = Math.max(50, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+      fibTarget = 30;
     }
 
     const pKcal = pTarget * 4;

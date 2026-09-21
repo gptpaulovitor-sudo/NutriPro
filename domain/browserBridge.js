@@ -9175,7 +9175,7 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
   if (activeStyle === 'while30') activeStyle = 'whole30';
   const activeCycle = String(options.dietaryCycle || (context.options && context.options.dietaryCycle) || (context.patient && context.patient.dietaryCycle) || '').trim().toLowerCase();
 
-  const isProtocolStyle = ['cetogenica', 'lowcarb', 'dukan', 'whole30'].includes(activeStyle);
+  const isProtocolStyle = ['cetogenica', 'lowcarb', 'dukan', 'whole30', 'mediterranea', 'vegana', 'vegetariana'].includes(activeStyle);
 
   if (isProtocolStyle) {
     factorsConsidered.push(`Protocolo Dietético Clínico: ${activeStyle.toUpperCase()} (Ciclo/Fase: ${activeCycle || 'Padrão'})`);
@@ -9226,8 +9226,6 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
       if (activeCycle === 'dukan_cruzeiro_pl') {
         pTarget = Math.round(weightKg * 2.1);
         cTarget = 40;
-        // Cruzeiro PL: gordura principalmente de ovos e traços de proteínas magras + legumes.
-        // Limitar para valor atingível com alimentos Dukan-elegíveis.
         fTarget = Math.max(15, Math.min(25, Math.round(weightKg * 0.20)));
         fibTarget = 15;
       } else if (activeCycle === 'dukan_consolidacao') {
@@ -9242,12 +9240,8 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
         fibTarget = 25;
       } else {
         // Ataque PP (Proteína Pura) ou Cruzeiro PP — ciclo padrão Dukan
-        // O protocolo clínico Dukan original especifica 2.3 g/kg para a fase de Ataque
-        // (proteína pura maciça), garantindo preservação muscular máxima e cetose rápida.
         pTarget = Math.round(weightKg * 2.3);
         cTarget = 15;
-        // Fase de Ataque: gordura provém exclusivamente de ovos e traços de proteínas magras.
-        // Limite superior de 30g para manter o perfil de gordura muito baixo conforme protocolo.
         fTarget = Math.max(10, Math.min(30, Math.round(weightKg * 0.20)));
         fibTarget = 10;
       }
@@ -9265,6 +9259,26 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
         cTarget = Math.max(30, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
         fibTarget = 28;
       }
+    } else if (activeStyle === 'mediterranea') {
+      // Dieta Mediterrânea: Rica em azeite de oliva extravirgem e ácidos graxos monoinsaturados (30-35% VET)
+      // Proteínas com ênfase em pescados e leguminosas (1.8-2.0 g/kg)
+      pTarget = Math.round(weightKg * 1.9);
+      fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.32) / 9));
+      cTarget = Math.max(40, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+      fibTarget = 30;
+    } else if (activeStyle === 'vegana') {
+      // Dieta Vegana: Proteína 100% vegetal balanceada (1.7 g/kg), gorduras saudáveis (22% VET)
+      // Carboidratos residuais abundantes para acomodar o perfil intrínseco de leguminosas e grãos integrais
+      pTarget = Math.round(weightKg * 1.7);
+      fTarget = Math.max(25, Math.round((caloricTargetKcal * 0.22) / 9));
+      cTarget = Math.max(50, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+      fibTarget = 35;
+    } else if (activeStyle === 'vegetariana') {
+      // Dieta Vegetariana (Ovolactovegetariana): P=1.8 g/kg, Gorduras saudáveis 26% VET, carboidratos residuais
+      pTarget = Math.round(weightKg * 1.8);
+      fTarget = Math.max(30, Math.round((caloricTargetKcal * 0.26) / 9));
+      cTarget = Math.max(50, Math.round((caloricTargetKcal - (pTarget * 4) - (fTarget * 9)) / 4));
+      fibTarget = 30;
     }
 
     const pKcal = pTarget * 4;
@@ -11379,9 +11393,15 @@ function getFoodPortionBounds(food, policy, targets = null) {
   const name = String(food.name || food.foodName || '').toLowerCase();
   if (/azeite|[\s_]oleo[\s_]|manteiga/i.test(name) || (food.lipid || 0) >= 70) {
     minG = 5.0;
-    maxG = Math.min(maxG, (targets && targets.fat >= 180) ? 70.0 : 35.0);
+    maxG = Math.min(maxG, (targets && targets.fat >= 250) ? 90.0 : ((targets && targets.fat >= 180) ? 70.0 : 35.0));
+  } else if (/pasta\s+de\s+amendoim/i.test(name)) {
+    minG = 15.0;
+    maxG = Math.min(maxG, 60.0);
+  } else if (/castanha|nozes|am[eê]ndoa/i.test(name)) {
+    minG = 10.0;
+    maxG = Math.min(maxG, 35.0);
   } else if (/feij[aã]o|lentilha|gr[aã]o.*bico/i.test(name)) {
-    minG = 60.0; // Porção mínima clínica realista
+    minG = 60.0; // Porção mínima clínica realista de leguminosas
     maxG = Math.min(maxG, 280.0);
   } else if (/br[oó]colis|couve|legume|vegeta|salada/i.test(name)) {
     minG = 40.0; // Porção mínima realista de vegetais/hortaliças
@@ -11389,17 +11409,32 @@ function getFoodPortionBounds(food, policy, targets = null) {
   } else if (/aveia|farelo|granola/i.test(name)) {
     minG = 20.0;
     maxG = Math.min(maxG, (targets && targets.carbohydrate >= 300) ? 250.0 : 120.0);
-  } else if (/banana|uva|manga/i.test(name)) {
+  } else if (/banana|uva|manga|ma[cç][aã]|mam[aã]o|morango/i.test(name)) {
     minG = 50.0;
     maxG = Math.min(maxG, 220.0);
   } else if (/p[aã]o.*integral|p[aã]o/i.test(name)) {
     minG = 25.0;
     maxG = Math.min(maxG, 150.0);
-  } else if (/frango|patinho|alcatra|peixe|til[aá]pia|salm[aã]o|merluza|carne/i.test(name)) {
+  } else if (/batata|mandioca|aipim|arroz/i.test(name)) {
+    minG = 60.0; // Carboidrato base substancial (evita micro-porções como 10g batata)
+    maxG = Math.min(maxG, 450.0);
+  } else if (/ovo\s+de\s+galinha|ovos\b/i.test(name)) {
+    minG = 50.0; // Pelo menos 1 ovo inteiro (~50g)
+    maxG = Math.min(maxG, 450.0);
+  } else if (/clara\s+de\s+ovo/i.test(name)) {
+    minG = 60.0; // Pelo menos 2 claras (~60g)
+    maxG = Math.min(maxG, 450.0);
+  } else if (/queijo|cottage|ricota/i.test(name)) {
+    minG = 30.0; // Porção padrão de queijo/laticínio
+    maxG = Math.min(maxG, 350.0);
+  } else if (/tofu/i.test(name)) {
+    minG = 60.0; // Porção proteica vegetal substancial
+    maxG = Math.min(maxG, 450.0);
+  } else if (/frango|patinho|alcatra|peixe|til[aá]pia|salm[aã]o|merluza|pescada|sardinha|atum|carne/i.test(name)) {
     if (targets && targets.protein && targets.protein < 60) {
       minG = 40.0;
     } else {
-      minG = 80.0; // Prato principal substancial
+      minG = 70.0; // Prato principal substancial (peixe/carne/frango)
     }
     maxG = Math.min(maxG, 450.0);
   }
@@ -12372,7 +12407,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
     // clinicamente aceitável e promovida para WARNING (salva) em vez de ser bloqueada.
     // Um aviso explícito de rastreabilidade é sempre emitido.
     const partialResidualCost = bestSolution ? bestSolution.cost : Infinity;
-    const partialQualityThreshold = Math.max(earlyStopCost, 0.15); // Permite até 0.15 ou se estiver dentro das tolerâncias
+    const partialQualityThreshold = Math.max(earlyStopCost, 0.22); // Permite até 0.22 ou se estiver dentro das tolerâncias
     const partialIsHighQuality = partialResidualCost <= partialQualityThreshold || withinTolerances;
 
     warnings.push(
@@ -13257,23 +13292,24 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
 
   // 1. REFEIÇÕES PRINCIPAIS (Almoço / Jantar - PRIMARY)
   if (mealType === 'MAIN') {
-    // Alimentos matinais/lanches são proibidos em almoço e jantar tradicional
-    if (/aveia|granola|farelo\s+de\s+aveia/i.test(name)) return 500.0;
-    if (/iogurte|leite\s+em\s+p[oó]|whey/i.test(name)) return 250.0;
-    if (/caf[eé]/i.test(name)) return 50.0;
-    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 15.0;
+    // Alimentos matinais, lanches doces e cereais são incompatíveis com almoço e jantar salgado tradicional
+    if (/aveia|granola|farelo\s+de\s+aveia/i.test(name)) return 600.0;
+    if (/pasta\s+de\s+amendoim/i.test(name)) return 600.0; // NUNCA pasta de amendoim no almoço/jantar com carne/arroz/feijão
+    if (/iogurte|leite\s+em\s+p[oó]|whey/i.test(name)) return 400.0;
+    if (/caf[eé]/i.test(name)) return 100.0;
+    if (/banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|laranja/i.test(name)) return 50.0;
     return 0;
   }
 
-  // 2. REFEICAO MATINAL (Café da Manhã - SECONDARY)
+  // 2. REFEIÇÃO MATINAL (Café da Manhã - SECONDARY)
   if (mealType === 'BREAKFAST') {
-    // Comida pesada de almoço/jantar é proibida no café da manhã
+    // Comida pesada de almoço/jantar é desaconselhada no café da manhã
     if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
-    if (/arroz/i.test(name)) return 300.0;
-    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o/i.test(name)) return 250.0;
-    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 250.0;
-    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 100.0;
-    if (/frango/i.test(name)) return 40.0;
+    if (/arroz/i.test(name)) return 400.0;
+    if (/peixe|til[aá]pia|merluza|pescada|salm[aã]o|sardinha|atum/i.test(name)) return 450.0;
+    if (/carne|patinho|alcatra|maminha|m[uú]sculo|ac[eé]m|bife|costela|su[ií]n/i.test(name)) return 350.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|quiabo|vagem|cenoura/i.test(name)) return 150.0;
+    if (/frango/i.test(name)) return 80.0;
     if (/azeite/i.test(name)) return 20.0;
     return 0;
   }
@@ -13281,10 +13317,11 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
   // 3. REFEIÇÕES INTERMEDIÁRIAS (SNACK / FLEXIBLE)
   if (mealType === 'SNACK') {
     if (/feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(name)) return 500.0;
-    if (/arroz/i.test(name)) return 300.0;
-    if (/br[oó]colis|couve-flor|abobrinha|chuchu|legumes/i.test(name)) return 200.0;
-    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia/i.test(name)) return 100.0;
-    if (/azeite/i.test(name)) return 10.0;
+    if (/arroz/i.test(name)) return 400.0;
+    if (/br[oó]colis|couve-flor|abobrinha|chuchu|legumes/i.test(name)) return 300.0;
+    if (/carne|patinho|alcatra|maminha|bife|peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum/i.test(name)) return 600.0; // Peixes, sardinhas e carnes pesadas NÃO pertencem a lanches da tarde
+    if (/(^|[^\w])manteiga/i.test(name)) return 300.0; // Manteiga em lanche sem torrada é bizarra
+    if (/azeite/i.test(name)) return 250.0; // Azeite sozinho em lanche
     return 0;
   }
 
@@ -13293,7 +13330,7 @@ function calculateFoodMealAffinityPenalty(foodName, mealRole, mealIndex, totalMe
 
 /**
  * Calcula penalidade culinária para combinações incompatíveis no mesmo prato.
- * Exemplo: abacate com manteiga, aveia com azeite, arroz com iogurte/whey.
+ * Exemplo: abacate com manteiga, aveia com azeite, arroz com iogurte/whey, sardinha com aveia.
  * 
  * @param {Array<string>} existingFoodNames Nomes dos alimentos já presentes na refeição
  * @param {string} candidateFoodName Nome do alimento sendo avaliado para adição
@@ -13307,35 +13344,60 @@ function calculateMealCulinaryClashPenalty(existingFoodNames, candidateFoodName)
   for (let i = 0; i < existingFoodNames.length; i++) {
     const exist = String(existingFoodNames[i]).toLowerCase();
 
-    // 1. Aberração de gorduras: Abacate + Manteiga (+500.0)
+    // 1. Aberração de gorduras: Abacate + Manteiga (+600.0)
     const hasAvocado = /abacate/i.test(exist) || /abacate/i.test(cand);
     const hasButter = /(^|[^\w])manteiga/i.test(exist) || /(^|[^\w])manteiga/i.test(cand);
     if (hasAvocado && hasButter) {
-      penalty += 500.0;
+      penalty += 600.0;
     }
 
-    // 2. Azeite com Aveia / Granola (+500.0)
+    // 2. Azeite com Aveia / Granola (+600.0)
     const hasOliveOil = /azeite/i.test(exist) || /azeite/i.test(cand);
-    const hasOats = /aveia|granola/i.test(exist) || /aveia|granola/i.test(cand);
+    const hasOats = /aveia|granola|farelo\s+de\s+aveia/i.test(exist) || /aveia|granola|farelo\s+de\s+aveia/i.test(cand);
     if (hasOliveOil && hasOats) {
-      penalty += 500.0;
+      penalty += 600.0;
     }
 
-    // 3. Arroz ou Feijão com Iogurte / Whey (+500.0)
-    const hasRiceOrBeans = /arroz|feij[aã]o/i.test(exist) || /arroz|feij[aã]o/i.test(cand);
-    const hasDairySweet = /iogurte|whey|leite\s+em\s+p[oó]/i.test(exist) || /iogurte|whey|leite\s+em\s+p[oó]/i.test(cand);
-    if (hasRiceOrBeans && hasDairySweet) {
-      penalty += 500.0;
+    // 3. Arroz ou Leguminosas com Iogurte / Whey / Pasta de Amendoim (+800.0)
+    const hasRiceOrBeans = /arroz|feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(exist) || /arroz|feij[aã]o|lentilha|gr[aã]o-de-bico/i.test(cand);
+    const hasDairySweetOrPB = /iogurte|whey|leite\s+em\s+p[oó]|pasta\s+de\s+amendoim/i.test(exist) || /iogurte|whey|leite\s+em\s+p[oó]|pasta\s+de\s+amendoim/i.test(cand);
+    if (hasRiceOrBeans && hasDairySweetOrPB) {
+      penalty += 800.0;
     }
 
-    // 4. Azeite com Abacate (+150.0) — evita misturar duas gorduras densas de origens díspares
+    // 4. Pasta de Amendoim com Carnes / Peixes / Aves / Brócolis (+800.0)
+    const hasPeanutButter = /pasta\s+de\s+amendoim/i.test(exist) || /pasta\s+de\s+amendoim/i.test(cand);
+    const hasSavoryMeatOrVeg = /frango|carne|patinho|alcatra|bife|peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum|br[oó]colis|couve/i.test(exist) || /frango|carne|patinho|alcatra|bife|peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum|br[oó]colis|couve/i.test(cand);
+    if (hasPeanutButter && hasSavoryMeatOrVeg) {
+      penalty += 800.0;
+    }
+
+    // 5. Pescados / Sardinha / Salmão com Aveia / Granola / Frutas / Doces (+800.0)
+    const hasFish = /peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum/i.test(exist) || /peixe|til[aá]pia|salm[aã]o|sardinha|merluza|pescada|atum/i.test(cand);
+    const hasSweetOrOats = /aveia|granola|farelo\s+de\s+aveia|banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|pasta\s+de\s+amendoim|iogurte/i.test(exist) || /aveia|granola|farelo\s+de\s+aveia|banana|ma[cç][aã]|mam[aã]o|morango|melancia|abacaxi|uva|pasta\s+de\s+amendoim|iogurte/i.test(cand);
+    if (hasFish && hasSweetOrOats) {
+      penalty += 800.0;
+    }
+
+    // 6. Carnes / Frango com Aveia crua / Granola (+600.0)
+    const hasMeat = /frango|patinho|alcatra|maminha|carne|bife/i.test(exist) || /frango|patinho|alcatra|maminha|carne|bife/i.test(cand);
+    if (hasMeat && hasOats) {
+      penalty += 600.0;
+    }
+
+    // 7. Azeite com Abacate (+150.0)
     if (hasOliveOil && hasAvocado) {
       penalty += 150.0;
     }
 
-    // 5. Azeite com Manteiga (+100.0) — redundância de gorduras puras adicionadas no mesmo prato
+    // 8. Azeite com Manteiga (+200.0) — redundância de gorduras puras adicionadas no mesmo prato
     if (hasOliveOil && hasButter) {
-      penalty += 100.0;
+      penalty += 200.0;
+    }
+
+    // 9. Manteiga com Aveia crua sem acompanhamento (+400.0)
+    if (hasButter && hasOats) {
+      penalty += 400.0;
     }
   }
 
@@ -13931,7 +13993,9 @@ function assembleMeals(input, customPolicy = {}) {
     }
 
     // Opção B: Dividir em 2 refeições se a massa for substancial (>= minimumPreferredSplitMass)
-    const canSplit = (item.grams >= policy.minimumPreferredSplitMass) && (policy.maxSplitsPerItem >= 2) && (mealCount >= 2);
+    const isCookingFat = /azeite|[\s_]oleo[\s_]|manteiga/i.test(item.foodName || '');
+    const minSplitMass = isCookingFat ? 25.0 : policy.minimumPreferredSplitMass;
+    const canSplit = (item.grams >= minSplitMass) && (policy.maxSplitsPerItem >= 2) && (mealCount >= 2);
     if (canSplit) {
       // Testa divisão 50%/50% entre pares de refeições de base
       for (let p1 = 0; p1 < splitCandidateMeals.length; p1++) {
@@ -14001,6 +14065,7 @@ function assembleMeals(input, customPolicy = {}) {
 
       // 2. Diretriz da Literatura: Proteína Nobre e Harmonia Gastronômica
       const isMeatOrFish = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(item.foodName || '');
+      const isPlantProtein = /tofu|gr[aã]o-de-bico|lentilha/i.test(item.foodName || '');
       const isEggOrDairy = /ovo\s+de\s+galinha|ovos|clara|queijo|iogurte|cottage|ricota|whey/i.test(item.foodName || '');
       const hasAnyMeatInDiet = sourceItems.some(it => /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(it.foodName || ''));
       const meatCount = sourceItems.filter(it => /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(it.foodName || '')).length;
@@ -14013,10 +14078,22 @@ function assembleMeals(input, customPolicy = {}) {
 
           if (isMeatOrFish) {
             if (r === 'PRIMARY') {
-              cost -= 25.0 * (alloc.ratio || 1.0); // Carne/Frango/Peixe preferem almoço e jantar
+              cost -= 35.0 * (alloc.ratio || 1.0); // Carne/Frango/Peixe preferem almoço e jantar
               const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(it.foodName || ''));
               if (hasMeatInMeal) {
-                cost += 35.0 * (alloc.ratio || 1.0); // Desencoraja empilhar duas carnes/peixes diferentes na mesma refeição principal
+                cost += 60.0 * (alloc.ratio || 1.0); // Desencoraja empilhar duas carnes/peixes diferentes na mesma refeição principal
+              }
+            } else if (r === 'SNACK') {
+              cost += 200.0 * (alloc.ratio || 1.0); // Pescados e bifes não pertencem a lanche da tarde
+            }
+          }
+
+          if (isPlantProtein) {
+            if (r === 'PRIMARY') {
+              cost -= 30.0 * (alloc.ratio || 1.0); // Tofu e leguminosas preferem almoço e jantar
+              const mealProt = workingMeals[mIdx].items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+              if (mealProt < 18.0) {
+                cost -= 35.0 * (alloc.ratio || 1.0); // Ancoragem proteica primária
               }
             }
           }
@@ -14033,12 +14110,33 @@ function assembleMeals(input, customPolicy = {}) {
             }
 
             if (r === 'PRIMARY') {
-              cost += 40.0 * (alloc.ratio || 1.0); // Desencoraja ovos em refeições principais quando há carnes
-              const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe|til[aá]pia|salm[aã]o|merluza|sardinha/i.test(it.foodName || ''));
-              if (hasMeatInMeal) {
-                cost += 90.0 * (alloc.ratio || 1.0); // Proíbe/penaliza fortemente empilhar ovos com carne na mesma refeição
+              if (hasAnyMeatInDiet) {
+                cost += 40.0 * (alloc.ratio || 1.0); // Desencoraja ovos em refeições principais quando há carnes
+                const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe|til[aá]pia|salm[aã]o|merluza|sardinha/i.test(it.foodName || ''));
+                if (hasMeatInMeal) {
+                  cost += 90.0 * (alloc.ratio || 1.0); // Proíbe/penaliza fortemente empilhar ovos com carne na mesma refeição
+                }
+              } else {
+                // Dieta sem carne (Vegetariana): Ovos, claras e queijos são âncoras proteicas naturais no almoço e jantar!
+                const mealProt = workingMeals[mIdx].items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+                if (mealProt < 20.0) {
+                  cost -= 40.0 * (alloc.ratio || 1.0); // Bonificação essencial para ancorar proteína em almoço/jantar vegetariano
+                }
               }
             }
+          }
+
+          // Bonificação gastronômica para parcerias naturais (aveia + fruta / pasta de amendoim)
+          const isFruitOrPB = /banana|ma[cç][aã]|mam[aã]o|morango|uva|pasta\s+de\s+amendoim/i.test(item.foodName || '');
+          const isOatsOrCereal = /aveia|granola|farelo\s+de\s+aveia/i.test(item.foodName || '');
+          const hasOatsInMeal = workingMeals[mIdx].items.some(it => /aveia|granola|farelo/i.test(it.foodName || ''));
+          const hasFruitInMeal = workingMeals[mIdx].items.some(it => /banana|ma[cç][aã]|mam[aã]o|morango|uva/i.test(it.foodName || ''));
+
+          if (isFruitOrPB && hasOatsInMeal) {
+            cost -= 40.0 * (alloc.ratio || 1.0); // Parceria excelente: fruta/pasta de amendoim com aveia
+          }
+          if (isOatsOrCereal && hasFruitInMeal) {
+            cost -= 40.0 * (alloc.ratio || 1.0);
           }
         }
 
@@ -14160,19 +14258,17 @@ function assembleMeals(input, customPolicy = {}) {
     }
   }
 
-  // 4.2 Garantia da Trindade de Macronutrientes (Macro Trinity):
-  // Em dietas com aporte proteico adequado (>= 60g de proteína diária),
-  // refeições com carboidratos densos (>= 20g) ou energia relevante (>= 120 kcal)
-  // não devem ser consumidas isoladas sem proteína (mínimo 4g).
-  // Pareia com proteína divisível disponível (ex: ovos, queijo, atum ou frango) de refeição com abundância.
-  if (globalTotals.protein >= 60 && globalTotals.carbohydrate >= 80 && mealCount >= 3) {
+  // 4.2 Garantia da Âncora Proteica em Refeições Principais (PRIMARY - Almoço e Jantar)
+  // Em planos alimentares com aporte proteico adequado (>= 50g/dia), nenhuma refeição principal
+  // (Almoço ou Jantar) pode ficar desprovida de proteína nobre (< 18g de proteína).
+  // Se uma refeição PRIMARY estiver deficitária, equilibra com proteína divisível de refeição com abundância (>= 35g).
+  if (globalTotals.protein >= 50.0 && mealCount >= 2) {
     for (let m = 0; m < workingMeals.length; m++) {
       const meal = workingMeals[m];
-      const mCarbs = meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0);
-      const mProt = meal.items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
-      const mCal = meal.items.reduce((acc, it) => acc + (it.nutrients?.calories || 0), 0);
+      if (meal.mealRole !== 'PRIMARY') continue;
 
-      if ((mCarbs >= 20 || mCal >= 140) && mProt < 4.0) {
+      const mProt = meal.items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+      if (mProt < 18.0) {
         let bestDonor = null;
         let bestItemIdx = -1;
         let maxDonorProt = 0;
@@ -14180,12 +14276,15 @@ function assembleMeals(input, customPolicy = {}) {
         for (let dm = 0; dm < workingMeals.length; dm++) {
           if (dm === m) continue;
           const dProt = workingMeals[dm].items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
-          if (dProt >= 25.0) {
+          if (dProt >= 35.0) {
             for (let itIdx = 0; itIdx < workingMeals[dm].items.length; itIdx++) {
               const it = workingMeals[dm].items[itIdx];
-              const isProteinSource = /ovo|ovos|clara|frango|carne|patinho|peixe|queijo|iogurte|atum/i.test(it.foodName || '');
-              if (isProteinSource && it.grams >= 50.0 && (it.nutrients?.protein || 0) >= 8.0) {
-                if (dProt > maxDonorProt) {
+              const isProteinItem = /ovo|ovos|clara|frango|carne|patinho|peixe|til[aá]pia|salm[aã]o|sardinha|queijo|tofu|cottage/i.test(it.foodName || '');
+              if (isProteinItem && it.grams >= 50.0 && (it.nutrients?.protein || 0) >= 8.0) {
+                // Checa se adicionar este item em meal causaria choque culinário
+                const existingInMeal = meal.items.map(x => x.foodName);
+                const clash = calculateMealCulinaryClashPenalty(existingInMeal, it.foodName);
+                if (clash < 200.0 && dProt > maxDonorProt) {
                   maxDonorProt = dProt;
                   bestDonor = workingMeals[dm];
                   bestItemIdx = itIdx;
@@ -14215,6 +14314,134 @@ function assembleMeals(input, customPolicy = {}) {
             grams: halfGrams,
             nutrients: { ...bestDonor.items[bestItemIdx].nutrients }
           });
+        }
+      }
+    }
+  }
+
+  // 4.3 Garantia da Trindade de Macronutrientes (Macro Trinity):
+  // Refeições intermediárias ou matinais com carboidratos densos (>= 20g) ou energia relevante (>= 120 kcal)
+  // não devem ser consumidas isoladas sem proteína (mínimo 4g).
+  if (globalTotals.protein >= 60 && globalTotals.carbohydrate >= 80 && mealCount >= 3) {
+    for (let m = 0; m < workingMeals.length; m++) {
+      const meal = workingMeals[m];
+      const mCarbs = meal.items.reduce((acc, it) => acc + (it.nutrients?.carbohydrate || 0), 0);
+      const mProt = meal.items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+      const mCal = meal.items.reduce((acc, it) => acc + (it.nutrients?.calories || 0), 0);
+
+      if ((mCarbs >= 20 || mCal >= 140) && mProt < 4.0) {
+        let bestDonor = null;
+        let bestItemIdx = -1;
+        let maxDonorProt = 0;
+
+        for (let dm = 0; dm < workingMeals.length; dm++) {
+          if (dm === m) continue;
+          const dProt = workingMeals[dm].items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+          if (dProt >= 25.0) {
+            for (let itIdx = 0; itIdx < workingMeals[dm].items.length; itIdx++) {
+              const it = workingMeals[dm].items[itIdx];
+              const isProteinSource = /ovo|ovos|clara|frango|carne|patinho|peixe|queijo|iogurte|tofu|atum/i.test(it.foodName || '');
+              if (isProteinSource && it.grams >= 50.0 && (it.nutrients?.protein || 0) >= 8.0) {
+                const existingInMeal = meal.items.map(x => x.foodName);
+                const clash = calculateMealCulinaryClashPenalty(existingInMeal, it.foodName);
+                if (clash < 200.0 && dProt > maxDonorProt) {
+                  maxDonorProt = dProt;
+                  bestDonor = workingMeals[dm];
+                  bestItemIdx = itIdx;
+                }
+              }
+            }
+          }
+        }
+
+        if (bestDonor && bestItemIdx >= 0) {
+          const fullItem = bestDonor.items[bestItemIdx];
+          const halfGrams = roundTo(fullItem.grams / 2, 1);
+          bestDonor.items[bestItemIdx] = {
+            ...fullItem,
+            grams: roundTo(fullItem.grams - halfGrams, 1),
+            nutrients: {
+              calories: roundTo(fullItem.nutrients.calories / 2, 2),
+              protein: roundTo(fullItem.nutrients.protein / 2, 2),
+              carbohydrate: roundTo(fullItem.nutrients.carbohydrate / 2, 2),
+              lipid: roundTo(fullItem.nutrients.lipid / 2, 2),
+              fiber: roundTo(fullItem.nutrients.fiber / 2, 2),
+              sodium: fullItem.nutrients.sodium != null ? roundTo(fullItem.nutrients.sodium / 2, 2) : null
+            }
+          };
+          meal.items.push({
+            ...fullItem,
+            grams: halfGrams,
+            nutrients: { ...bestDonor.items[bestItemIdx].nutrients }
+          });
+        }
+      }
+    }
+  }
+
+  // 4.4 Harmonização Gastronômica de Lanches com Aveia/Cereais
+  // Nenhum lanche deve consistir exclusivamente de aveia crua seca isolada.
+  // Se uma refeição tiver aveia/granola sem fruta, laticínio ou pasta de amendoim,
+  // busca fruta divisível (>= 120g de banana/maçã) de outra refeição para harmonizar o prato.
+  for (let m = 0; m < workingMeals.length; m++) {
+    const meal = workingMeals[m];
+    const hasOats = meal.items.some(it => /aveia|granola|farelo\s+de\s+aveia/i.test(it.foodName || ''));
+    const hasCompanion = meal.items.some(it => /banana|ma[cç][aã]|mam[aã]o|morango|uva|leite|iogurte|queijo|cottage|whey|pasta\s+de\s+amendoim/i.test(it.foodName || ''));
+
+    if (hasOats && !hasCompanion) {
+      let fruitDonor = null;
+      let fruitItemIdx = -1;
+
+      for (let dm = 0; dm < workingMeals.length; dm++) {
+        if (dm === m) continue;
+        for (let itIdx = 0; itIdx < workingMeals[dm].items.length; itIdx++) {
+          const it = workingMeals[dm].items[itIdx];
+          const isFruitOrSpread = /banana|ma[cç][aã]|mam[aã]o|morango|uva|pasta\s+de\s+amendoim/i.test(it.foodName || '');
+          if (isFruitOrSpread && it.grams >= 60.0) {
+            fruitDonor = workingMeals[dm];
+            fruitItemIdx = itIdx;
+            break;
+          }
+        }
+        if (fruitDonor) break;
+      }
+
+      if (fruitDonor && fruitItemIdx >= 0) {
+        const fullItem = fruitDonor.items[fruitItemIdx];
+        const halfGrams = roundTo(fullItem.grams / 2, 1);
+        fruitDonor.items[fruitItemIdx] = {
+          ...fullItem,
+          grams: roundTo(fullItem.grams - halfGrams, 1),
+          nutrients: {
+            calories: roundTo(fullItem.nutrients.calories / 2, 2),
+            protein: roundTo(fullItem.nutrients.protein / 2, 2),
+            carbohydrate: roundTo(fullItem.nutrients.carbohydrate / 2, 2),
+            lipid: roundTo(fullItem.nutrients.lipid / 2, 2),
+            fiber: roundTo(fullItem.nutrients.fiber / 2, 2),
+            sodium: fullItem.nutrients.sodium != null ? roundTo(fullItem.nutrients.sodium / 2, 2) : null
+          }
+        };
+        meal.items.push({
+          ...fullItem,
+          grams: halfGrams,
+          nutrients: { ...fruitDonor.items[fruitItemIdx].nutrients }
+        });
+      }
+    }
+  }
+
+  // 4.5 Eliminação de Gordura Pura Isolada em Lanches (ex: manteiga sozinha em SNACK)
+  for (let m = 0; m < workingMeals.length; m++) {
+    const meal = workingMeals[m];
+    if (meal.mealRole === 'SNACK' && meal.items.length === 1) {
+      const singleItem = meal.items[0];
+      const isPureFat = /(^|[^\w])manteiga|azeite|[\s_]oleo/i.test(singleItem.foodName || '');
+      if (isPureFat) {
+        // Move para refeição principal (PRIMARY) ou café da manhã (SECONDARY) onde há cocção
+        const targetMeal = workingMeals.find(wm => wm.mealRole === 'PRIMARY') || workingMeals[0];
+        if (targetMeal && targetMeal !== meal) {
+          const [movedFat] = meal.items.splice(0, 1);
+          targetMeal.items.push(movedFat);
         }
       }
     }

@@ -401,9 +401,15 @@ function getFoodPortionBounds(food, policy, targets = null) {
   const name = String(food.name || food.foodName || '').toLowerCase();
   if (/azeite|[\s_]oleo[\s_]|manteiga/i.test(name) || (food.lipid || 0) >= 70) {
     minG = 5.0;
-    maxG = Math.min(maxG, (targets && targets.fat >= 180) ? 70.0 : 35.0);
+    maxG = Math.min(maxG, (targets && targets.fat >= 250) ? 90.0 : ((targets && targets.fat >= 180) ? 70.0 : 35.0));
+  } else if (/pasta\s+de\s+amendoim/i.test(name)) {
+    minG = 15.0;
+    maxG = Math.min(maxG, 60.0);
+  } else if (/castanha|nozes|am[eê]ndoa/i.test(name)) {
+    minG = 10.0;
+    maxG = Math.min(maxG, 35.0);
   } else if (/feij[aã]o|lentilha|gr[aã]o.*bico/i.test(name)) {
-    minG = 60.0; // Porção mínima clínica realista
+    minG = 60.0; // Porção mínima clínica realista de leguminosas
     maxG = Math.min(maxG, 280.0);
   } else if (/br[oó]colis|couve|legume|vegeta|salada/i.test(name)) {
     minG = 40.0; // Porção mínima realista de vegetais/hortaliças
@@ -411,17 +417,32 @@ function getFoodPortionBounds(food, policy, targets = null) {
   } else if (/aveia|farelo|granola/i.test(name)) {
     minG = 20.0;
     maxG = Math.min(maxG, (targets && targets.carbohydrate >= 300) ? 250.0 : 120.0);
-  } else if (/banana|uva|manga/i.test(name)) {
+  } else if (/banana|uva|manga|ma[cç][aã]|mam[aã]o|morango/i.test(name)) {
     minG = 50.0;
     maxG = Math.min(maxG, 220.0);
   } else if (/p[aã]o.*integral|p[aã]o/i.test(name)) {
     minG = 25.0;
     maxG = Math.min(maxG, 150.0);
-  } else if (/frango|patinho|alcatra|peixe|til[aá]pia|salm[aã]o|merluza|carne/i.test(name)) {
+  } else if (/batata|mandioca|aipim|arroz/i.test(name)) {
+    minG = 60.0; // Carboidrato base substancial (evita micro-porções como 10g batata)
+    maxG = Math.min(maxG, 450.0);
+  } else if (/ovo\s+de\s+galinha|ovos\b/i.test(name)) {
+    minG = 50.0; // Pelo menos 1 ovo inteiro (~50g)
+    maxG = Math.min(maxG, 450.0);
+  } else if (/clara\s+de\s+ovo/i.test(name)) {
+    minG = 60.0; // Pelo menos 2 claras (~60g)
+    maxG = Math.min(maxG, 450.0);
+  } else if (/queijo|cottage|ricota/i.test(name)) {
+    minG = 30.0; // Porção padrão de queijo/laticínio
+    maxG = Math.min(maxG, 350.0);
+  } else if (/tofu/i.test(name)) {
+    minG = 60.0; // Porção proteica vegetal substancial
+    maxG = Math.min(maxG, 450.0);
+  } else if (/frango|patinho|alcatra|peixe|til[aá]pia|salm[aã]o|merluza|pescada|sardinha|atum|carne/i.test(name)) {
     if (targets && targets.protein && targets.protein < 60) {
       minG = 40.0;
     } else {
-      minG = 80.0; // Prato principal substancial
+      minG = 70.0; // Prato principal substancial (peixe/carne/frango)
     }
     maxG = Math.min(maxG, 450.0);
   }
@@ -1394,7 +1415,7 @@ function solveNutritionDiet(input, customPolicy = {}) {
     // clinicamente aceitável e promovida para WARNING (salva) em vez de ser bloqueada.
     // Um aviso explícito de rastreabilidade é sempre emitido.
     const partialResidualCost = bestSolution ? bestSolution.cost : Infinity;
-    const partialQualityThreshold = Math.max(earlyStopCost, 0.15); // Permite até 0.15 ou se estiver dentro das tolerâncias
+    const partialQualityThreshold = Math.max(earlyStopCost, 0.22); // Permite até 0.22 ou se estiver dentro das tolerâncias
     const partialIsHighQuality = partialResidualCost <= partialQualityThreshold || withinTolerances;
 
     warnings.push(
