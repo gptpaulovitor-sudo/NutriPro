@@ -330,10 +330,12 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
 
   // 6. Preferências
   const rawPrefs = data.preferences || {};
+  const accessibilityPreferences = rawPrefs.accessibilityPreferences || data.accessibilityPreferences || data.questionarioAcessibilidade || null;
   const preferences = {
     preferredFoods: Array.isArray(rawPrefs.preferredFoods) ? [...new Set(rawPrefs.preferredFoods.filter(Boolean).map(String))] : [],
     dietaryStyle: rawPrefs.dietaryStyle ? String(rawPrefs.dietaryStyle).trim() : null,
-    mealFrequency: rawPrefs.mealFrequency != null ? rawPrefs.mealFrequency : null
+    mealFrequency: rawPrefs.mealFrequency != null ? rawPrefs.mealFrequency : null,
+    accessibilityPreferences: accessibilityPreferences ? (typeof accessibilityPreferences === 'object' ? { ...accessibilityPreferences } : accessibilityPreferences) : null
   };
 
   // 7. Rotina (Horários inexistentes permanecem estritamente null)
@@ -502,6 +504,8 @@ function createNutritionPrescriptionContextDTO(rawData = {}) {
     currentPrescription,
     mealsPerDay: (data.mealsPerDay != null && !isNaN(Number(data.mealsPerDay))) ? Number(data.mealsPerDay) : (routine.mealsPerDay ?? null),
     mealCount: (data.mealCount != null && !isNaN(Number(data.mealCount))) ? Number(data.mealCount) : (routine.mealCount ?? null),
+    accessibilityPreferences: preferences.accessibilityPreferences || null,
+    questionarioAcessibilidade: preferences.accessibilityPreferences || null,
     provenance
   };
 

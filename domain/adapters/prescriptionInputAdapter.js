@@ -425,10 +425,16 @@ function adaptPatientContext(rawPatientData) {
     ? parseInt(rawMealsPerDay, 10)
     : null;
 
+  const rawAccessPrefs = rawPatientData.accessibilityPreferences ||
+    rawPatientData.questionarioAcessibilidade ||
+    (rawPatientData.preferences && rawPatientData.preferences.accessibilityPreferences) ||
+    null;
+
   const preferences = {
     preferredFoods: Array.isArray(rawPatientData.preferredFoods) ? [...rawPatientData.preferredFoods] : [],
     dislikedFoods: Array.isArray(rawPatientData.dislikedFoods) ? [...rawPatientData.dislikedFoods] : [],
-    mealFrequency: normalizedMealsPerDay
+    mealFrequency: normalizedMealsPerDay,
+    accessibilityPreferences: rawAccessPrefs ? (typeof rawAccessPrefs === 'object' ? { ...rawAccessPrefs } : rawAccessPrefs) : null
   };
 
   const routine = {
@@ -476,6 +482,8 @@ function adaptPatientContext(rawPatientData) {
     energy,
     constraints,
     preferences,
+    accessibilityPreferences: preferences.accessibilityPreferences || null,
+    questionarioAcessibilidade: preferences.accessibilityPreferences || null,
     routine,
     mealsPerDay: normalizedMealsPerDay,
     mealCount: normalizedMealsPerDay,
@@ -597,7 +605,12 @@ function buildCanonicalPrescriptionInput(rawInput = {}) {
     dietaryCycle: String(rawOptions.dietaryCycle || '').trim(),
     includeSupplements: rawOptions.includeSupplements !== false,
     periWorkoutWindowMinutes,
-    allowAdolescent
+    allowAdolescent,
+    accessibilityPreferences: rawOptions.accessibilityPreferences ||
+      rawOptions.questionarioAcessibilidade ||
+      resolvedContext?.preferences?.accessibilityPreferences ||
+      resolvedContext?.accessibilityPreferences ||
+      null
   };
 
   // 4. Políticas canônicas

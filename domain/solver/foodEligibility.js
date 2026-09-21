@@ -48,6 +48,36 @@ const DEFAULT_ELIGIBILITY_POLICY = Object.freeze({
 });
 
 /**
+ * Mapeamento dos alimentos do Questionário de Acessibilidade e Cesta Básica
+ */
+const ACCESSIBILITY_FOOD_MATCHERS = Object.freeze([
+  { id: 'p_frango', regex: /frango|peito.*frango/i },
+  { id: 'p_sobrecoxa', regex: /sobrecoxa/i },
+  { id: 'p_ovo_inteiro', regex: /ovo\s+de\s+galinha|ovos|ovo\s+cozido/i },
+  { id: 'p_sardinha', regex: /sardinha/i },
+  { id: 'p_patinho', regex: /patinho|alcatra|maminha|carne.*mo[ií]da/i },
+  { id: 'p_atum', regex: /atum/i },
+  { id: 'p_salmao', regex: /salm[aã]o/i },
+  { id: 'p_contrafile', regex: /contrafil[eé]|picanha|bife/i },
+  { id: 'p_albumina', regex: /albumina/i },
+  { id: 'p_whey', regex: /whey/i },
+  { id: 'l_leite_desnatado_po', regex: /leite\s+em\s+p[oó]|leite\s+desnatado|leite\s+integral/i },
+  { id: 'l_iogurte', regex: /iogurte/i },
+  { id: 'l_queijo_minas', regex: /queijo.*minas|ricota|cottage/i },
+  { id: 'c_arroz_branco', regex: /arroz/i },
+  { id: 'c_feijao', regex: /feij[aã]o/i },
+  { id: 'c_aveia', regex: /aveia/i },
+  { id: 'c_batata_inglesa', regex: /batata\s+inglesa/i },
+  { id: 'c_batata_doce', regex: /batata\s+doce/i },
+  { id: 'c_mandioca', regex: /mandioca|aipim/i },
+  { id: 'c_pao_integral', regex: /p[aã]o/i },
+  { id: 'f_banana', regex: /banana/i },
+  { id: 'f_maca', regex: /ma[cç][aã]/i },
+  { id: 'g_pasta_amendoim', regex: /pasta\s+de\s+amendoim|amendoim/i },
+  { id: 'g_azeite', regex: /azeite/i }
+]);
+
+/**
  * Adapta uma coleção de registros de alimentos para CanonicalFoodDTO[]
  * @param {Array<Object>} rawCatalog 
  * @returns {Array<Object>}
@@ -172,14 +202,23 @@ function evaluateFoodEligibility(food, policy = DEFAULT_ELIGIBILITY_POLICY, opti
   if (dietaryStyle === 'keto') dietaryStyle = 'cetogenica';
   if (dietaryStyle === 'while30') dietaryStyle = 'whole30';
   const dietaryCycle = String(options.dietaryCycle || (options.context && options.context.options && options.context.options.dietaryCycle) || (options.solverOptions && options.solverOptions.dietaryCycle) || '').trim().toLowerCase();
-  const includeSupplements = options.includeSupplements !== false && (options.context?.options?.includeSupplements !== false) && (options.solverOptions?.includeSupplements !== false);
+  
+  const accessPrefs = options.accessibilityPreferences ||
+    (options.context && (options.context.accessibilityPreferences || options.context.questionarioAcessibilidade || options.context.preferences?.accessibilityPreferences)) ||
+    (options.solverOptions && options.solverOptions.accessibilityPreferences) ||
+    null;
+  const acceptsSupplementsFromPrefs = accessPrefs ? (accessPrefs.aceitaSuplementos !== false) : true;
+  const includeSupplements = options.includeSupplements !== false &&
+    (options.context?.options?.includeSupplements !== false) &&
+    (options.solverOptions?.includeSupplements !== false) &&
+    acceptsSupplementsFromPrefs;
 
   if (foodName) {
     const fn = foodName.trim();
 
-    // Suplementação desativada
+    // Suplementação desativada (por opção ou questionário de acessibilidade)
     if (!includeSupplements && /whey|suplemento|albumina\s+em\s+p[oó]|prote[ií]na\s+isolada/i.test(fn)) {
-      reasons.push("Suplemento proteico desativado pelo nutricionista (includeSupplements: false).");
+      reasons.push("Suplemento proteico desativado pelo nutricionista ou pelo questionário de preferências (includeSupplements: false).");
     }
 
     // Padrão Ovo-Lacto (plant-based com ovos e lácteos)
@@ -318,6 +357,38 @@ function filterEligibleFoods(catalog, policy = DEFAULT_ELIGIBILITY_POLICY, optio
       continue;
     }
 
+    // 3.5 Exclusão por Baixo Acesso assinalado no questionário de acessibilidade
+    const accessPrefs = options.accessibilityPreferences ||
+      (options.context && (options.context.accessibilityPreferences || options.context.questionarioAcessibilidade || options.context.preferences?.accessibilityPreferences)) ||
+      null;
+
+    if (accessPrefs && accessPrefs.alimentosAcessibilidade) {
+      const fn = String(rawFood.name || rawFood.foodName || '');
+      const fid = String(rawFood.id || rawFood.foodId || '');
+      let isBaixoAcesso = false;
+      let matchedId = '';
+
+      for (let m = 0; m < ACCESSIBILITY_FOOD_MATCHERS.length; m++) {
+        const item = ACCESSIBILITY_FOOD_MATCHERS[m];
+        if (accessPrefs.alimentosAcessibilidade[item.id] === 'baixo_acesso') {
+          const rawIdClean = item.id.replace(/^[p|l|c|f|g]_/, '');
+          if (fid === `canon_${rawIdClean}` || item.regex.test(fn)) {
+            isBaixoAcesso = true;
+            matchedId = item.id;
+            break;
+          }
+        }
+      }
+
+      if (isBaixoAcesso) {
+        ineligible.push({
+          food: rawFood,
+          reasons: [`Alimento excluído por restrição de acessibilidade ("baixo_acesso": ${matchedId}).`]
+        });
+        continue;
+      }
+    }
+
     // 3. Avaliação de elegibilidade padrão
     const evalResult = evaluateFoodEligibility(rawFood, policy, options);
 
@@ -367,6 +438,7 @@ function filterEligibleFoods(catalog, policy = DEFAULT_ELIGIBILITY_POLICY, optio
 module.exports = {
   ELIGIBILITY_STATUS,
   DEFAULT_ELIGIBILITY_POLICY,
+  ACCESSIBILITY_FOOD_MATCHERS,
   adaptCatalogToCanonical,
   evaluateFoodEligibility,
   filterEligibleFoods

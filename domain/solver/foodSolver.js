@@ -29,7 +29,8 @@ const {
 const {
   adaptCatalogToCanonical,
   filterEligibleFoods,
-  ELIGIBILITY_STATUS
+  ELIGIBILITY_STATUS,
+  ACCESSIBILITY_FOOD_MATCHERS
 } = require('./foodEligibility');
 
 const {
@@ -205,6 +206,47 @@ function calculateClinicalStapleScore(food, role, options = {}) {
   // Suplementos desativados
   if (!includeSupplements && /whey/i.test(name)) {
     score = -9999;
+  }
+
+  // 3. Modulação de Afinidade do Questionário de Acessibilidade & Cesta Básica
+  const accessPrefs = options.accessibilityPreferences ||
+    (options.context && (options.context.accessibilityPreferences || options.context.questionarioAcessibilidade || options.context.preferences?.accessibilityPreferences)) ||
+    null;
+
+  if (accessPrefs) {
+    const foodAffinity = accessPrefs.alimentosAcessibilidade || {};
+    const orcamento = accessPrefs.orcamento || 'economico';
+    const fid = String(food.id || food.foodId || '');
+
+    if (Array.isArray(ACCESSIBILITY_FOOD_MATCHERS)) {
+      for (let m = 0; m < ACCESSIBILITY_FOOD_MATCHERS.length; m++) {
+        const item = ACCESSIBILITY_FOOD_MATCHERS[m];
+        const status = foodAffinity[item.id];
+        if (status) {
+          const rawIdClean = item.id.replace(/^[p|l|c|f|g]_/, '');
+          if (fid === `canon_${rawIdClean}` || item.regex.test(name)) {
+            if (status === 'alta_disponibilidade') {
+              score += 800; // Prioridade máxima definida pelo paciente
+            } else if (status === 'baixo_acesso') {
+              score -= 5000; // Penalidade severa para evitar alimento de difícil acesso
+            }
+          }
+        }
+      }
+    }
+
+    if (orcamento === 'economico') {
+      if (/frango|ovo\s+de\s+galinha|ovos|sardinha|arroz|feij[aã]o|aveia|banana|batata\s+inglesa/i.test(name) && !isCompositeDish) {
+        score += 350;
+      }
+      if (/salm[aã]o|contrafil[eé]|maminha|castanha.*par[aá]/i.test(name)) {
+        score -= 2000;
+      }
+    }
+
+    if (accessPrefs.aceitaSuplementos === false && /whey|albumina|suplemento/i.test(name)) {
+      score = -9999;
+    }
   }
 
   return score;
@@ -581,31 +623,68 @@ function buildConstructiveBasket(eligibleFoods, targets, policy, options = {}, s
   const isHighFat = targets.fat >= 90 || isKeto || isLowCarb;
 
   if (strategy === 'A') {
+    const accessPrefs = options.accessibilityPreferences ||
+      (options.context && (options.context.accessibilityPreferences || options.context.questionarioAcessibilidade || options.context.preferences?.accessibilityPreferences)) ||
+      null;
+    const foodAffinity = accessPrefs?.alimentosAcessibilidade || {};
+    const isBudgetEco = accessPrefs?.orcamento === 'economico';
+
     // Alimentos canônicos de base in natura limpos e universais
-    addFood(findId('canon_frango_grelhado') || findName(/peito.*frango.*grelhado/i) || findName(/frango/i));
-    addFood(findId('canon_ovo_cozido') || findName(/ovo.*cozido/i) || findName(/ovo/i));
+    if (foodAffinity['p_frango'] !== 'baixo_acesso') {
+      addFood(findId('canon_frango_grelhado') || findName(/peito.*frango.*grelhado/i) || findName(/frango/i));
+    }
+    if (foodAffinity['p_ovo_inteiro'] !== 'baixo_acesso') {
+      addFood(findId('canon_ovo_cozido') || findName(/ovo.*cozido/i) || findName(/ovo/i));
+    }
     if (targets.protein >= 160) {
-      addFood(findId('canon_patinho_grelhado') || findName(/patinho.*grelhado/i) || findName(/patinho|alcatra|til[aá]pia|peixe/i));
+      const beefDisliked = foodAffinity['p_patinho'] === 'baixo_acesso' || foodAffinity['p_contrafile'] === 'baixo_acesso';
+      if (!beefDisliked && (!isBudgetEco || foodAffinity['p_patinho'] === 'alta_disponibilidade')) {
+        addFood(findId('canon_patinho_grelhado') || findName(/patinho.*grelhado/i) || findName(/patinho|alcatra|til[aá]pia|peixe/i));
+      } else if (foodAffinity['p_sardinha'] === 'alta_disponibilidade' || findName(/sardinha/i)) {
+        addFood(findId('canon_sardinha') || findName(/sardinha/i) || findName(/til[aá]pia|peixe/i));
+      }
     }
     const mealCountPref = (options && options.mealCount) || (policy.searchBounds && policy.searchBounds.targetItemCountMin) || 4;
     if (mealCountPref >= 5 || targets.protein >= 130) {
-      addFood(findId('canon_queijo_minas') || findName(/queijo.*(minas|cottage|ricota|mussarela)|iogurte.*natural/i) || findName(/atum/i));
+      if (foodAffinity['l_queijo_minas'] !== 'baixo_acesso') {
+        addFood(findId('canon_queijo_minas') || findName(/queijo.*(minas|cottage|ricota|mussarela)|iogurte.*natural/i) || findName(/atum/i));
+      }
     }
 
     // Carboidratos modulados por estilo e meta glicídica
     if (!isKeto) {
       if (!isLowCarb) {
-        addFood(findId('canon_arroz_branco') || findId('canon_arroz_integral') || findName(/arroz.*cozido/i));
+        if (foodAffinity['c_arroz_branco'] !== 'baixo_acesso') {
+          addFood(findId('canon_arroz_branco') || findId('canon_arroz_integral') || findName(/arroz.*cozido/i));
+        }
         if (targets.carbohydrate >= 100) {
-          addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
+          if (foodAffinity['c_batata_inglesa'] === 'alta_disponibilidade' && foodAffinity['c_batata_doce'] !== 'alta_disponibilidade') {
+            addFood(findId('canon_batata_inglesa') || findName(/batata.*inglesa/i) || findId('canon_batata_doce'));
+          } else if (foodAffinity['c_batata_doce'] !== 'baixo_acesso') {
+            addFood(findId('canon_batata_doce') || findId('canon_batata_inglesa') || findName(/batata.*doce|batata/i));
+          } else {
+            addFood(findId('canon_batata_inglesa') || findName(/batata.*inglesa|mandioca/i));
+          }
         }
-        addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia/i));
+        if (foodAffinity['c_aveia'] !== 'baixo_acesso') {
+          addFood(findId('canon_aveia_flocos') || findName(/aveia.*flocos/i) || findName(/aveia/i));
+        }
         if (targets.carbohydrate >= 180) {
-          addFood(findId('canon_banana_prata') || findName(/banana/i));
+          if (foodAffinity['f_banana'] !== 'baixo_acesso') {
+            addFood(findId('canon_banana_prata') || findName(/banana/i));
+          } else if (foodAffinity['f_maca'] === 'alta_disponibilidade') {
+            addFood(findId('canon_maca') || findName(/ma[cç][aã]/i));
+          }
         }
-        addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+        if (foodAffinity['c_feijao'] !== 'baixo_acesso') {
+          addFood(findId('canon_feijao_carioca') || findId('canon_feijao_preto') || findName(/feij[aã]o.*cozido/i));
+        }
         if (targets.carbohydrate >= 240) {
-          addFood(findId('canon_pao_integral') || findName(/p[aã]o.*integral/i) || findId('canon_mandioca_cozida') || findName(/mandioca|aipim/i));
+          if (foodAffinity['c_pao_integral'] !== 'baixo_acesso') {
+            addFood(findId('canon_pao_integral') || findName(/p[aã]o.*integral/i) || findId('canon_mandioca_cozida') || findName(/mandioca|aipim/i));
+          } else if (foodAffinity['c_mandioca'] === 'alta_disponibilidade') {
+            addFood(findId('canon_mandioca_cozida') || findName(/mandioca|aipim/i));
+          }
         }
       } else {
         // Low Carb: aporte moderado e controlado de carboidratos complexos

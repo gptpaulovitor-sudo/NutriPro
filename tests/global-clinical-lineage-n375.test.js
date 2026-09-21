@@ -62,7 +62,7 @@ describe('N3.7.5 — Linhagem Clínica Canônica e Matriz de Paridade Global', (
     });
 
     test('2. perfGetNutritionContext consome metas canônicas de resolveCanonicalPrescriptionTargets', () => {
-      const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+      const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
       const hasCanonInPerfContext = appJs.includes('// Resolução Canônica das Metas Clínicas (N3.7.5)\n  const canonTargets = (typeof resolveCanonicalPrescriptionTargets === \'function\')');
       assert.ok(hasCanonInPerfContext, 'perfGetNutritionContext deve derivar metas canônicas');
     });

@@ -4033,7 +4033,56 @@ async function executeAIPrescriptionGeneration() {
     else if (typeof require !== 'undefined') { try { foodCatalog = require('./foodsData').COMPREHENSIVE_TACO_TBCA_FOODS || []; } catch (_) {} }
     var cfs2 = (typeof CANONICAL_DIET_FOODS !== 'undefined' ? CANONICAL_DIET_FOODS : (typeof window !== 'undefined' ? window.CANONICAL_DIET_FOODS : null));
     if (cfs2 && typeof cfs2 === 'object') { var cfl2 = Object.entries(cfs2).map(function(entry) { var k = entry[0], f = entry[1]; return { id: 'canon_' + k, foodId: 'canon_' + k, name: f.name, calories: f.calories, protein: f.protein, carbohydrate: f.carbohydrate, lipid: f.lipid, fiber: f.fiber || 0, sodium: f.sodium || 0, unit: f.defaultUnit || 'g', gramPerUnit: f.gramPerUnit || 100, source: f.source || 'TACO', prepState: f.prepState || null, category: f.category || 'Geral' }; }); foodCatalog = cfl2.concat(foodCatalog); }
-    var inputPrep = adapters.buildCanonicalPrescriptionInput({ patientData: { patientId: activePatientId || 'patient_active', name: (activePatientData && activePatientData.name) || 'Paciente', weightKg: pWeight, heightCm: pHeight, bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null), leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null, objective: obj, patientType: patType, tmbKcal: canonicalTargets.tmbKcal, getKcal: canonicalTargets.getKcal, caloricTargetKcal: canonicalTargets.caloricTargetKcal, mealsPerDay: mealCount, mealCount: mealCount, preferences: { mealFrequency: mealCount }, routine: { wakeUpTime: (document.getElementById("routineWakeUp") || {}).value || "07:00", bedTime: (document.getElementById("routineBedTime") || {}).value || "23:00", workoutTime: (document.getElementById("routineWorkoutTime") || {}).value || null, mealsPerDay: mealCount, mealCount: mealCount }, weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : [] }, foodCatalog: foodCatalog, options: { mealCount: mealCount, dietaryStyle: dietaryStyle, dietaryCycle: dietaryCycle, includeSupplements: includeSupplements } });
+    var pPrefs = p.accessibilityPreferences ||
+      p.questionarioAcessibilidade ||
+      (typeof _readAccessibilityPreferences === 'function' ? _readAccessibilityPreferences() : null);
+
+    if ((!pPrefs || !pPrefs.alimentosAcessibilidade || Object.keys(pPrefs.alimentosAcessibilidade).length === 0) && typeof localStorage !== 'undefined') {
+      var pKey = activePatientId || (p && p.id);
+      var rawPref = (pKey ? localStorage.getItem('nutriax_patient_preferences_' + pKey) : null) ||
+                    (p && p.name ? localStorage.getItem('nutriax_patient_preferences_' + p.name.toLowerCase().replace(/\s+/g, '-')) : null) ||
+                    localStorage.getItem('nutriax_patient_preferences_default');
+      if (rawPref) {
+        try { pPrefs = JSON.parse(rawPref); } catch (_) {}
+      }
+    }
+
+    var inputPrep = adapters.buildCanonicalPrescriptionInput({
+      patientData: {
+        patientId: activePatientId || 'patient_active',
+        name: (activePatientData && activePatientData.name) || 'Paciente',
+        weightKg: pWeight,
+        heightCm: pHeight,
+        bodyFatPercent: ev.fatPercent != null ? Number(ev.fatPercent) : (p.bodyFat != null ? Number(p.bodyFat) : null),
+        leanMassKg: ev.leanMass != null ? Number(ev.leanMass) : null,
+        objective: obj,
+        patientType: patType,
+        tmbKcal: canonicalTargets.tmbKcal,
+        getKcal: canonicalTargets.getKcal,
+        caloricTargetKcal: canonicalTargets.caloricTargetKcal,
+        mealsPerDay: mealCount,
+        mealCount: mealCount,
+        preferences: { mealFrequency: mealCount, accessibilityPreferences: pPrefs },
+        accessibilityPreferences: pPrefs,
+        questionarioAcessibilidade: pPrefs,
+        routine: {
+          wakeUpTime: (document.getElementById("routineWakeUp") || {}).value || "07:00",
+          bedTime: (document.getElementById("routineBedTime") || {}).value || "23:00",
+          workoutTime: (document.getElementById("routineWorkoutTime") || {}).value || null,
+          mealsPerDay: mealCount,
+          mealCount: mealCount
+        },
+        weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : []
+      },
+      foodCatalog: foodCatalog,
+      options: {
+        mealCount: mealCount,
+        dietaryStyle: dietaryStyle,
+        dietaryCycle: dietaryCycle,
+        includeSupplements: includeSupplements,
+        accessibilityPreferences: pPrefs
+      }
+    });
     if (!inputPrep.isValid) { alert('Erro de validação:\n• ' + inputPrep.errors.join('\n• ')); return; }
     var pipelineResult = await orchestrator.executePrescriptionPipeline(inputPrep.canonicalInput);
     var adaptedOutput = adapters.adaptPrescriptionPipelineOutput(pipelineResult, { generatedAt: new Date().toISOString(), isClinicallyValidated: false, isStale: false });
@@ -5929,6 +5978,23 @@ if (typeof window !== 'undefined') {
   window._applyAccessibilityPreset = _applyAccessibilityPreset;
   window._toggleAccessibilityFoodStatus = _toggleAccessibilityFoodStatus;
   window.renderProFoodPills = renderProFoodPills;
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      var syncBC = new BroadcastChannel('nutriax_bidirectional_sync');
+      syncBC.onmessage = function(ev) {
+        if (ev && ev.data && ev.data.type === 'PATIENT_PREFERENCES_UPDATED') {
+          var pId = ev.data.patientId;
+          var prefs = ev.data.preferences;
+          if (activePatientData && (activePatientData.id === pId || !pId)) {
+            activePatientData.accessibilityPreferences = prefs;
+            activePatientData.questionarioAcessibilidade = prefs;
+            _restoreAccessibilityPreferencesToForm(prefs);
+          }
+        }
+      };
+    }
+  } catch (_) {}
 }
 
 
@@ -6100,7 +6166,20 @@ async function loadPatientAnamnese(patientId) {
 
     // ─── Secao 5: Preferencias de Acessibilidade & Cesta Basica ───────────────────
     if (typeof _restoreAccessibilityPreferencesToForm === 'function') {
-      _restoreAccessibilityPreferencesToForm(p.accessibilityPreferences || p.questionarioAcessibilidade || null);
+      var savedPref = p.accessibilityPreferences || p.questionarioAcessibilidade;
+      if (!savedPref && typeof localStorage !== 'undefined') {
+        var rawPref = (p.id ? localStorage.getItem('nutriax_patient_preferences_' + p.id) : null) ||
+                      (p.name ? localStorage.getItem('nutriax_patient_preferences_' + p.name.toLowerCase().replace(/\s+/g, '-')) : null) ||
+                      localStorage.getItem('nutriax_patient_preferences_default');
+        if (rawPref) {
+          try {
+            savedPref = JSON.parse(rawPref);
+            p.accessibilityPreferences = savedPref;
+            p.questionarioAcessibilidade = savedPref;
+          } catch (_) {}
+        }
+      }
+      _restoreAccessibilityPreferencesToForm(savedPref || null);
     }
 
   } finally {

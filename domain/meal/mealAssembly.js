@@ -208,10 +208,22 @@ function assembleMeals(input, customPolicy = {}) {
   }
 
   // 4. Algoritmo Determinístico de Distribuição (Bounded Pattern Assembly)
+  // Função para classe de prioridade gastronômica determinística
+  function getItemPriorityClass(it) {
+    const fn = it.foodName || '';
+    if (/frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(fn)) return 1;
+    if (/ovo\s+de\s+galinha|ovos|clara|queijo|iogurte|cottage|ricota|whey/i.test(fn)) return 2;
+    if (/arroz|feij[aã]o|batata|mandioca|aipim|aveia|p[aã]o/i.test(fn)) return 3;
+    return 4;
+  }
+
   // Cria cópia ordenada canônica dos itens para garantir invariância à ordem de entrada
   const sortedItems = [...sourceItems].sort((a, b) => {
+    const classA = getItemPriorityClass(a);
+    const classB = getItemPriorityClass(b);
+    if (classA !== classB) return classA - classB;
     if (Math.abs(b.grams - a.grams) > 1e-4) {
-      return b.grams - a.grams; // Mais pesados primeiro
+      return b.grams - a.grams; // Mais pesados primeiro dentro da mesma classe
     }
     return String(a.foodId).localeCompare(String(b.foodId)); // Desempate lexicográfico estável
   });
@@ -345,8 +357,10 @@ function assembleMeals(input, customPolicy = {}) {
       }
 
       // 2. Diretriz da Literatura: Proteína Nobre e Harmonia Gastronômica
-      const isMeatOrFish = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife/i.test(item.foodName || '');
-      const isEggOrDairy = /ovo\s+de\s+galinha|ovos|clara|queijo|iogurte|cottage|ricota/i.test(item.foodName || '');
+      const isMeatOrFish = /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(item.foodName || '');
+      const isEggOrDairy = /ovo\s+de\s+galinha|ovos|clara|queijo|iogurte|cottage|ricota|whey/i.test(item.foodName || '');
+      const hasAnyMeatInDiet = sourceItems.some(it => /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(it.foodName || ''));
+      const meatCount = sourceItems.filter(it => /frango|patinho|alcatra|maminha|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(it.foodName || '')).length;
 
       if (Array.isArray(cand.allocations)) {
         for (let s = 0; s < cand.allocations.length; s++) {
@@ -356,31 +370,55 @@ function assembleMeals(input, customPolicy = {}) {
 
           if (isMeatOrFish) {
             if (r === 'PRIMARY') {
-              cost -= 15.0 * (alloc.ratio || 1.0); // Carne/Frango/Peixe preferem almoço e jantar
+              cost -= 25.0 * (alloc.ratio || 1.0); // Carne/Frango/Peixe preferem almoço e jantar
+              const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe|til[aá]pia|salm[aã]o|merluza|pescada|bife|sardinha/i.test(it.foodName || ''));
+              if (hasMeatInMeal) {
+                cost += 35.0 * (alloc.ratio || 1.0); // Desencoraja empilhar duas carnes/peixes diferentes na mesma refeição principal
+              }
             }
           }
 
           if (isEggOrDairy) {
             if (r === 'SECONDARY') {
-              cost -= 25.0 * (alloc.ratio || 1.0); // Ovos/laticínios preferem refeição matinal
+              cost -= 45.0 * (alloc.ratio || 1.0); // Ovos/laticínios preferem refeição matinal
+              const breakfastProt = workingMeals[mIdx].items.reduce((acc, it) => acc + (it.nutrients?.protein || 0), 0);
+              if (breakfastProt < 20.0) {
+                cost -= 40.0 * (alloc.ratio || 1.0); // Ancoragem proteica indispensável no café da manhã
+              }
             } else if (r === 'SNACK') {
-              cost -= 15.0 * (alloc.ratio || 1.0); // Ovos/laticínios preferem lanches
+              cost -= 20.0 * (alloc.ratio || 1.0); // Ovos/laticínios preferem lanches
             }
-            // Evita concentrar ovos no almoço se já houver carne/peixe e o café da manhã estiver sem proteína
-            const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe/i.test(it.foodName || ''));
-            if (hasMeatInMeal && r === 'PRIMARY') {
-              cost += 25.0 * (alloc.ratio || 1.0);
+
+            if (r === 'PRIMARY') {
+              cost += 40.0 * (alloc.ratio || 1.0); // Desencoraja ovos em refeições principais quando há carnes
+              const hasMeatInMeal = workingMeals[mIdx].items.some(it => /frango|patinho|carne|peixe|til[aá]pia|salm[aã]o|merluza|sardinha/i.test(it.foodName || ''));
+              if (hasMeatInMeal) {
+                cost += 90.0 * (alloc.ratio || 1.0); // Proíbe/penaliza fortemente empilhar ovos com carne na mesma refeição
+              }
             }
           }
         }
 
-        // Se carne/frango/peixe é dividida entre duas refeições principais (Almoço e Jantar), isenta de split e bonifica
+        // Se carne/frango/peixe é dividida entre duas refeições principais (Almoço e Jantar)
         if (isMeatOrFish && cand.isSplit && cand.allocations.length === 2) {
           const r1 = roles[cand.allocations[0].mealIndex];
           const r2 = roles[cand.allocations[1].mealIndex];
           if (r1 === 'PRIMARY' && r2 === 'PRIMARY') {
             cost -= (policy.weights?.w_frag || 0.5);
-            cost -= 25.0; // Bonificação por equilibrar carne/peixe no almoço e jantar
+            if (meatCount <= 1) {
+              cost -= 25.0; // Bonificação por equilibrar carne única no almoço e jantar
+            } else {
+              cost += 20.0; // Desencoraja fracionar carnes quando há diversidade para almoço e jantar distintos
+            }
+          }
+        }
+
+        // Se ovos/laticínios tentam ser divididos entre duas refeições PRIMARY quando já há carnes no cardápio, penaliza severamente
+        if (isEggOrDairy && hasAnyMeatInDiet && cand.isSplit && cand.allocations.length === 2) {
+          const r1 = roles[cand.allocations[0].mealIndex];
+          const r2 = roles[cand.allocations[1].mealIndex];
+          if (r1 === 'PRIMARY' && r2 === 'PRIMARY') {
+            cost += 100.0; // Evita que ovos sejam consumidos em almoço e jantar juntos de carne
           }
         }
       }
