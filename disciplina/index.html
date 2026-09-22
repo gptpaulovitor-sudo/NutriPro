@@ -757,18 +757,14 @@
         </button>
       </div>
 
-      <!-- ROTINAS PRESCRITAS · ESCOLHA LIVRE DE TREINO -->
+      <!-- CRONOGRAMA SEMANAL PRESCRITO -->
       <div class="nax-card p-3 space-y-2.5">
         <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-          <span class="flex items-center gap-1.5 font-bold text-white"><i data-lucide="dumbbell"
-              class="w-3.5 h-3.5 text-[#E50914]"></i> Rotinas Prescritas · Escolha Livre</span>
-          <span class="text-[10px] text-zinc-400">Toque no treino que fará hoje</span>
+          <span class="flex items-center gap-1.5 font-bold text-white"><i data-lucide="calendar"
+              class="w-3.5 h-3.5 text-[#E50914]"></i> Cronograma Semanal Prescrito</span>
+          <span class="text-[10px] text-zinc-400">Siga o planejamento do seu protocolo</span>
         </div>
-        <!-- Seletor Rápido de Pílulas de Treino -->
-        <div id="quickRoutineSelectorPills" class="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          <!-- Inserido dinamicamente via renderQuickRoutinePills() -->
-        </div>
-        <!-- Carrossel Detalhado de Rotinas -->
+        <!-- Carrossel Detalhado de Rotinas (Seletor Unificado) -->
         <div id="weeklyScheduleCarousel" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           <!-- Renderizado dinamicamente via renderWeeklyCarousel() -->
         </div>
@@ -3088,8 +3084,28 @@
       { key: 'OFF', name: 'OFF · Descanso', badge: 'OFF' }
     ];
 
-    let selectedScheduleDay = 1;
-    let selectedRoutineKey = 'A';
+    function getTodayScheduleDay() {
+      const jsDay = new Date().getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+      return jsDay === 0 ? 7 : jsDay;
+    }
+
+    function resolveTodayPrescribedWorkout() {
+      const todayDay = getTodayScheduleDay();
+      if (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0) {
+        const match = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === todayDay) ||
+                      WEEKLY_SCHEDULE_DATA.find(d => d.dayKey === `d${todayDay}`) ||
+                      WEEKLY_SCHEDULE_DATA[0];
+        if (match) {
+          const rKey = match.routineKey || (match.type === 'Off' || match.type === 'off' ? 'OFF' : (match.type === 'Cardio' ? 'Cardio' : 'A'));
+          return { dayNum: match.dayNum || todayDay, routineKey: rKey };
+        }
+      }
+      return { dayNum: todayDay, routineKey: 'A' };
+    }
+
+    const _initialToday = resolveTodayPrescribedWorkout();
+    let selectedScheduleDay = _initialToday.dayNum;
+    let selectedRoutineKey = _initialToday.routineKey;
 
     // 3. IDENTIDADE E ESTADO INICIAL DOS DADOS (FASE 8.2 CANÔNICA)
     // ─── Zero autorização por URL, Hash ou LocalStorage ───────────────────────
@@ -3333,14 +3349,12 @@
         state.meals.forEach(m => { m.done = false; });
       }
 
-      // Não fixa o dia da semana: a escolha do treino é livre (paciente pode escolher Treino A hoje, Treino D amanhã)
-      if (!state.selectedRoutineKey && Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0) {
-        const firstRoutine = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey && d.routineKey !== 'OFF') || WEEKLY_SCHEDULE_DATA[0];
-        if (firstRoutine) {
-          selectedRoutineKey = firstRoutine.routineKey || 'A';
-          selectedScheduleDay = firstRoutine.dayNum || 1;
-        }
-      }
+      // Alinha automaticamente com o treino prescrito para o dia de hoje
+      const todayPrescribed = resolveTodayPrescribedWorkout();
+      selectedScheduleDay = todayPrescribed.dayNum;
+      selectedRoutineKey = todayPrescribed.routineKey;
+      state.selectedScheduleDay = selectedScheduleDay;
+      state.selectedRoutineKey = selectedRoutineKey;
     }
 
     const _todayIso = getLocalDateIso();
@@ -3351,8 +3365,8 @@
       lastActiveDate: _todayIso,
       streakDays: 1,
       tier: 'Focado 🌱',
-      selectedRoutineKey: 'A',
-      selectedScheduleDay: 1,
+      selectedRoutineKey: _initialToday.routineKey,
+      selectedScheduleDay: _initialToday.dayNum,
       completedRoutineKey: null,
       waterCurrent: 0,
       waterTarget: 4000,
@@ -4027,8 +4041,21 @@
         });
         WEEKLY_SCHEDULE_DATA.length = 0;
         _normalized.forEach(d => WEEKLY_SCHEDULE_DATA.push(d));
-        const _firstRoutine = _normalized.find(d => d.routineKey && d.routineKey !== 'OFF') || _normalized[0];
-        if (_firstRoutine && !selectedRoutineKey) selectedRoutineKey = _firstRoutine.routineKey;
+        if (!patientState.workoutDone && !patientState.completedRoutineKey) {
+          const todayPrescribed = resolveTodayPrescribedWorkout();
+          selectedScheduleDay = todayPrescribed.dayNum;
+          selectedRoutineKey = todayPrescribed.routineKey;
+          patientState.selectedScheduleDay = selectedScheduleDay;
+          patientState.selectedRoutineKey = selectedRoutineKey;
+        } else if (!selectedRoutineKey) {
+          const _firstRoutine = _normalized.find(d => d.routineKey && d.routineKey !== 'OFF') || _normalized[0];
+          if (_firstRoutine) {
+            selectedRoutineKey = _firstRoutine.routineKey;
+            selectedScheduleDay = _firstRoutine.dayNum || 1;
+            patientState.selectedScheduleDay = selectedScheduleDay;
+            patientState.selectedRoutineKey = selectedRoutineKey;
+          }
+        }
       }
 
       // Salva imediatamente no estado persistente local (INVARIANTE 12) apenas se não for carga inicial do loadState
@@ -4267,8 +4294,13 @@
       if (!Array.isArray(patientState.timeline)) patientState.timeline = [];
       if (!patientState.history) patientState.history = {};
 
-      // Sincroniza dia da agenda correspondente à rotina selecionada livremente pelo paciente
-      if (selectedRoutineKey) {
+      // Sincroniza dia e rotina da agenda semanal prescrita
+      if (selectedScheduleDay) {
+        const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+        if (curDay && curDay.routineKey) {
+          selectedRoutineKey = curDay.routineKey;
+        }
+      } else if (selectedRoutineKey) {
         const curDay = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey);
         if (curDay) {
           selectedScheduleDay = curDay.dayNum;
@@ -4537,16 +4569,20 @@
       updateDateDisplay();
       updateStreakAndTier();
 
-      // Sincroniza dia da agenda correspondente à rotina selecionada livremente pelo paciente
-      if (selectedRoutineKey) {
+      // Sincroniza dia e rotina da agenda semanal prescrita
+      if (selectedScheduleDay) {
+        const curDayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+        if (curDayData && curDayData.routineKey) {
+          selectedRoutineKey = curDayData.routineKey;
+        }
+      } else if (selectedRoutineKey) {
         const curDayData = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey);
         if (curDayData) {
           selectedScheduleDay = curDayData.dayNum;
         }
       }
 
-      // Seletor Rápido de Pílulas, Carrossel de Rotinas e Sinergia
-      renderQuickRoutinePills();
+      // Carrossel de Rotinas e Sinergia Prescrita (Seletor Unificado)
       renderWeeklyCarousel();
       updateSynergyCard();
 
@@ -5156,60 +5192,25 @@
       }
     }
 
-    // 7. ROTINAS DE TREINO & AGENDA DINÂMICA (ESCOLHA LIVRE)
+    // 7. CRONOGRAMA SEMANAL DE TREINO PRESCRITO (SELETOR UNIFICADO)
     function renderQuickRoutinePills() {
       const container = document.getElementById('quickRoutineSelectorPills');
       if (!container) return;
-
-      const availableKeys = Object.keys(WORKOUT_DATABASE);
-      if (availableKeys.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-
-      // Ordena: rotinas (A, B, C...) primeiro, depois Cardio, depois OFF
-      const sortedKeys = availableKeys.slice().sort((a, b) => {
-        if (a === 'OFF') return 1;
-        if (b === 'OFF') return -1;
-        if (a === 'Cardio') return b === 'OFF' ? -1 : 1;
-        if (b === 'Cardio') return a === 'OFF' ? 1 : -1;
-        return a.localeCompare(b);
-      });
-
-      container.innerHTML = sortedKeys.map(k => {
-        const r = WORKOUT_DATABASE[k] || {};
-        const isSelected = (k === selectedRoutineKey);
-        const badge = r.badge || k;
-        const isCompleted = (patientState.completedRoutineKey === k) || (isSelected && patientState.workoutDone);
-
-        let activeCls = 'bg-[#121518] hover:bg-[#171B1F] text-zinc-400 hover:text-white border-[#272C31]';
-        if (isSelected) {
-          activeCls = 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.5)] font-black scale-105';
-        } else if (isCompleted) {
-          activeCls = 'bg-emerald-950/70 text-emerald-300 border-emerald-700/60 font-bold';
-        }
-
-        const label = r.isOff ? '🛌 Descanso' : (r.isCardio ? `🏃 ${r.name || 'Cardio'}` : `Treino ${badge}`);
-
-        return `
-          <button type="button" onclick="selectRoutine('${k}')"
-            class="px-3 py-1.5 rounded-xl text-xs font-mono border whitespace-nowrap flex items-center gap-1.5 transition-all active:scale-95 ${activeCls}">
-            <span>${label}</span>
-            ${isCompleted ? '<span class="text-[9px]">✅</span>' : ''}
-          </button>
-        `;
-      }).join('');
+      container.innerHTML = '';
     }
 
     function renderWeeklyCarousel() {
       const container = document.getElementById('weeklyScheduleCarousel');
       if (!container) return;
 
+      const WEEKDAY_SHORT = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+      const todayDayNum = getTodayScheduleDay();
+
       const sourceList = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0)
         ? WEEKLY_SCHEDULE_DATA
         : Object.keys(WORKOUT_DATABASE).map((k, idx) => ({
           dayNum: idx + 1,
-          dayName: `TREINO ${WORKOUT_DATABASE[k].badge || k}`,
+          dayName: `DIA ${idx + 1}`,
           type: WORKOUT_DATABASE[k].isOff ? 'Off' : (WORKOUT_DATABASE[k].isCardio ? 'Cardio' : 'Treino'),
           routineKey: k,
           title: WORKOUT_DATABASE[k].name || `Treino ${k}`,
@@ -5218,41 +5219,47 @@
         }));
 
       container.innerHTML = sourceList.map(d => {
-        const isSelected = (d.routineKey === selectedRoutineKey) || (!d.routineKey && d.dayNum === selectedScheduleDay);
-        const isCompleted = (patientState.completedRoutineKey === d.routineKey) || (isSelected && patientState.workoutDone);
+        const isSelected = d.dayNum ? (d.dayNum === selectedScheduleDay) : (d.routineKey === selectedRoutineKey);
+        const isToday = (d.dayNum === todayDayNum);
+        const isCompleted = (patientState.completedRoutineKey === d.routineKey && isSelected) || (isSelected && patientState.workoutDone);
 
         const colorBorder = isSelected
           ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]'
-          : (isCompleted ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600' : 'border-zinc-800 bg-black/60 hover:border-zinc-700');
+          : (isToday
+            ? 'border-blue-700/70 bg-blue-950/30 hover:border-blue-500'
+            : (isCompleted ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600' : 'border-zinc-800 bg-black/60 hover:border-zinc-700'));
 
         const badgeColor = isCompleted
           ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-          : (isSelected
-            ? 'bg-blue-900 text-blue-200 border-blue-600'
-            : (d.type === 'Treino' ? 'bg-blue-950 text-blue-300 border-blue-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-zinc-900 text-zinc-400 border-zinc-800')));
+          : (isToday
+            ? 'bg-blue-900 text-blue-200 border-blue-500 font-bold'
+            : (d.type === 'Treino + Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : (d.type === 'Off' || d.type === 'off' ? 'bg-zinc-900 text-zinc-400 border-zinc-800' : 'bg-zinc-900 text-zinc-300 border-zinc-800'))));
 
         const badgeText = isCompleted
           ? '✅ Feito'
-          : (isSelected ? '🎯 Hoje' : d.type);
+          : (isToday ? '🎯 Hoje' : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type));
 
-        const routineBadge = d.routineKey ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)) : d.dayName;
+        const weekdayLabel = WEEKDAY_SHORT[(d.dayNum - 1) % 7] || `D${d.dayNum}`;
+        const dayBadge = `${weekdayLabel} · DIA ${d.dayNum}`;
+        const routineBadge = d.routineKey ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)) : (d.type === 'Off' ? 'DESCANSO' : 'CARDIO');
         const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
 
         return `
           <div onclick="selectRoutine('${targetRoutineKey}', ${d.dayNum})"
-            class="min-w-[145px] max-w-[175px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
+            class="min-w-[155px] max-w-[185px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
-                ${routineBadge}
+                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : (isToday ? 'bg-blue-400' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600'))}"></span>
+                ${dayBadge}
               </span>
               <span class="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border ${badgeColor}">
                 ${badgeText}
               </span>
             </div>
             <div>
-              <h4 class="text-xs font-black text-white line-clamp-1">${d.title}</h4>
-              <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub || d.dayName}</p>
+              <div class="text-[10px] font-mono font-black ${isSelected ? 'text-blue-300' : 'text-zinc-400'} uppercase">${routineBadge}</div>
+              <h4 class="text-xs font-black text-white line-clamp-1 mt-0.5">${d.title}</h4>
+              <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub || d.focus || ''}</p>
             </div>
           </div>
         `;
@@ -5276,11 +5283,13 @@
       }
 
       saveState();
-      renderQuickRoutinePills();
       renderWeeklyCarousel();
       updateSynergyCard();
       renderWorkoutExercises();
       updateWorkoutVisuals();
+      if (typeof renderWorkoutCardioBlock === 'function') {
+        renderWorkoutCardioBlock();
+      }
 
       // Feedback visual suave no quadro de treino
       const sec = document.getElementById('workoutSectionContainer');
@@ -5301,9 +5310,9 @@
     }
 
     function updateSynergyCard() {
-      // Prioriza a rotina selecionada para que a nutrição acompanhe exatamente o treino que o paciente escolheu executar
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey) ||
-        WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) ||
+      // Prioriza o dia selecionado da agenda para que a nutrição acompanhe exatamente o dia prescrito que o paciente está executando
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay) ||
+        WEEKLY_SCHEDULE_DATA.find(d => d.routineKey === selectedRoutineKey) ||
         WEEKLY_SCHEDULE_DATA[0] || {
         dayName: 'TREINO',
         title: `Treino ${selectedRoutineKey}`,
@@ -5314,7 +5323,7 @@
       const lbl = document.getElementById('synergyDayLabel');
       if (lbl) {
         const routineObj = WORKOUT_DATABASE[selectedRoutineKey];
-        const rName = routineObj ? (routineObj.name || `Treino ${routineObj.badge || selectedRoutineKey}`) : (dayData.title || `Treino ${selectedRoutineKey}`);
+        const rName = (dayData && dayData.title) ? dayData.title : (routineObj ? (routineObj.name || `Treino ${routineObj.badge || selectedRoutineKey}`) : `Treino ${selectedRoutineKey}`);
         lbl.textContent = (rName || '').toUpperCase();
       }
       const cEl = document.getElementById('synergyCarbo');
@@ -5339,15 +5348,24 @@
         exercises: []
       };
 
+      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+
       // Atualiza Header do Treino Selecionado
       const bEl = document.getElementById('workoutRoutineBadge');
-      if (bEl) bEl.textContent = routine.badge || selectedRoutineKey;
+      if (bEl) {
+        const prefix = dayData?.dayName ? `${dayData.dayName} · ` : '';
+        bEl.textContent = `${prefix}${routine.badge || selectedRoutineKey}`;
+      }
 
       const tEl = document.getElementById('workoutRoutineTitle');
-      if (tEl) tEl.textContent = routine.name || `Treino ${selectedRoutineKey}`;
+      if (tEl) {
+        tEl.textContent = dayData?.title || routine.name || `Treino ${selectedRoutineKey}`;
+      }
 
       const sEl = document.getElementById('workoutRoutineSubtitle');
-      if (sEl) sEl.textContent = routine.subtitle || '';
+      if (sEl) {
+        sEl.textContent = dayData?.sub || dayData?.focus || routine.subtitle || '';
+      }
 
       // Oculta/Exibe a diretriz de progressão dependendo do tipo
       const progEl = document.getElementById('workoutFooterProgression');
