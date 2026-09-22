@@ -10,7 +10,7 @@ const vm = require('vm');
 describe('NutriAx Disciplina - Retenção de Marcações e Checks Diários', () => {
   const html = fs.readFileSync(path.join(__dirname, '../disciplina/index.html'), 'utf8');
   const scriptMatches = [...html.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
-  const mainScript = scriptMatches[10][1];
+  const mainScript = scriptMatches.map(m => m[1]).find(s => s && s.length > 50000) || scriptMatches[scriptMatches.length - 2][1];
 
   function createSandbox(mockStorage = {}) {
     const domElements = {};

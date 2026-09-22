@@ -106,6 +106,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <script src="../firebase-service.js"></script>
   <script src="../fasting-module.js"></script>
+  <script src="../workout-cycle-module.js"></script>
 
   <style>
     html,
@@ -755,6 +756,11 @@
           class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
           Orientações
         </button>
+      </div>
+
+      <!-- CARD DO MESOCICLO: CICLO DE 4 SEMANAS & ADERÊNCIA -->
+      <div id="workoutCycleContainer" class="w-full">
+        <!-- Renderizado dinamicamente via renderWorkoutCycleCard() -->
       </div>
 
       <!-- CRONOGRAMA SEMANAL PRESCRITO -->
@@ -2125,6 +2131,158 @@
     </div>
   </div>
 
+  <!-- MODAL DE AVALIAÇÃO DE FECHAMENTO DO CICLO DE 4 SEMANAS -->
+  <div id="workoutCycleEvalModal"
+    class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div
+      class="bg-[#121518] border border-[#272C31] rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-auto">
+
+      <!-- Topo do Modal -->
+      <div class="flex items-center justify-between border-b border-[#272C31] pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-[#E50914]/20 border border-[#E50914]/50 flex items-center justify-center text-[#E50914]">
+            <i data-lucide="award" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-black text-white">Check-in de Fechamento do Ciclo</h3>
+            <p class="text-[10px] text-zinc-400 font-mono">Mesociclo de 4 semanas concluído · Calibração para novo treino</p>
+          </div>
+        </div>
+        <button onclick="closeWorkoutCycleEvaluationModal()" class="text-zinc-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Resumo do Ciclo -->
+      <div id="evalCycleSummaryCard" class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] flex items-center justify-between text-xs">
+        <div>
+          <span class="text-[9px] font-mono text-zinc-400 block uppercase">Protocolo Finalizado</span>
+          <span id="evalCycleProtocolName" class="font-black text-white">Periodização 4 Semanas</span>
+        </div>
+        <div class="text-right">
+          <span class="text-[9px] font-mono text-zinc-400 block uppercase">Aderência Final</span>
+          <span id="evalCycleAdherenceBadge" class="font-mono font-bold text-emerald-400">100% (20 treinos)</span>
+        </div>
+      </div>
+
+      <div class="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+
+        <!-- 1. Percepção Geral de Esforço (PSE/RPE) -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-zinc-200 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i data-lucide="flame" class="w-3.5 h-3.5 text-[#E50914]"></i> 1. Cansaço / Esforço Geral (PSE 1 a 10)</span>
+            <span id="evalRpeDisplay" class="font-mono text-amber-400 font-bold">8 — Intenso e Produtivo</span>
+          </label>
+          <input type="range" id="evalRpeSlider" min="1" max="10" value="8" step="1" oninput="updateEvalRpeLabel(this.value)"
+            class="w-full accent-[#E50914] bg-zinc-800 rounded-lg h-2 cursor-pointer" />
+          <div class="flex justify-between text-[9px] font-mono text-zinc-500 px-0.5">
+            <span>1 (Muito Leve)</span>
+            <span>5 (Moderado)</span>
+            <span>8 (Ideal)</span>
+            <span>10 (Exaustão)</span>
+          </div>
+        </div>
+
+        <!-- 2. Evolução de Cargas -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>2. Evolução de Cargas nos Exercícios Principais</span>
+          </label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="setEvalLoadProgression('aumentou')" id="evalProgAumentou"
+              class="eval-prog-btn p-2 rounded-xl border border-emerald-500 bg-emerald-950/80 text-white text-[11px] font-bold text-center transition-all">
+              🟢 Aumentei
+            </button>
+            <button type="button" onclick="setEvalLoadProgression('parcial')" id="evalProgParcial"
+              class="eval-prog-btn p-2 rounded-xl border border-zinc-800 bg-[#08090A] text-zinc-400 hover:text-white text-[11px] font-bold text-center transition-all">
+              🟡 Parcial
+            </button>
+            <button type="button" onclick="setEvalLoadProgression('estagnou')" id="evalProgEstagnou"
+              class="eval-prog-btn p-2 rounded-xl border border-zinc-800 bg-[#08090A] text-zinc-400 hover:text-white text-[11px] font-bold text-center transition-all">
+              🔴 Estagnou
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Desconforto / Dores Articulares -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>3. Algum incômodo ou dor articular persistente?</span>
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+            <button type="button" onclick="toggleEvalJoint('nenhum')" id="evalJointNenhum"
+              class="eval-joint-btn p-2 rounded-lg border border-emerald-500 bg-emerald-950/80 text-white font-bold transition-all text-center">
+              ✨ 100% Íntegro
+            </button>
+            <button type="button" onclick="toggleEvalJoint('ombros')" id="evalJointOmbros"
+              class="eval-joint-btn p-2 rounded-lg border border-zinc-800 bg-[#08090A] text-zinc-400 font-bold transition-all text-center">
+              Ombros
+            </button>
+            <button type="button" onclick="toggleEvalJoint('joelhos')" id="evalJointJoelhos"
+              class="eval-joint-btn p-2 rounded-lg border border-zinc-800 bg-[#08090A] text-zinc-400 font-bold transition-all text-center">
+              Joelhos
+            </button>
+            <button type="button" onclick="toggleEvalJoint('coluna')" id="evalJointColuna"
+              class="eval-joint-btn p-2 rounded-lg border border-zinc-800 bg-[#08090A] text-zinc-400 font-bold transition-all text-center">
+              Coluna / Lombar
+            </button>
+            <button type="button" onclick="toggleEvalJoint('cotovelos')" id="evalJointCotovelos"
+              class="eval-joint-btn p-2 rounded-lg border border-zinc-800 bg-[#08090A] text-zinc-400 font-bold transition-all text-center">
+              Cotovelos / Punhos
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Preferência para o Próximo Treino -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+            <i data-lucide="shuffle" class="w-3.5 h-3.5 text-blue-400"></i>
+            <span>4. Preferência para o Próximo Ciclo</span>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="setEvalSplitPreference('manter')" id="evalPrefManter"
+              class="eval-pref-btn p-2.5 rounded-xl border border-blue-500 bg-blue-950/80 text-white text-xs font-bold text-center transition-all">
+              <div>🔄 Manter Divisão</div>
+              <span class="text-[9px] font-normal text-zinc-300 block mt-0.5">Lapidar sobrecarga e volume</span>
+            </button>
+            <button type="button" onclick="setEvalSplitPreference('trocar')" id="evalPrefTrocar"
+              class="eval-pref-btn p-2.5 rounded-xl border border-zinc-800 bg-[#08090A] text-zinc-400 text-xs font-bold text-center transition-all">
+              <div>🔀 Trocar Divisão</div>
+              <span class="text-[9px] font-normal text-zinc-500 block mt-0.5">Novo estímulo motor (PPL/ABCDE)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. Comentários para o Profissional -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+            <i data-lucide="message-square" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <span>5. Observações / Feedback livre para o treinador</span>
+          </label>
+          <textarea id="evalPatientNotes" rows="2" placeholder="Ex: Senti ótimo rendimento no peitoral, mas gostaria de mais foco em posteriores de coxa..."
+            class="w-full p-2.5 rounded-xl bg-[#08090A] border border-[#272C31] text-xs text-white placeholder-zinc-500 focus:border-[#E50914] outline-none transition-colors"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Rodapé com Botões -->
+      <div class="pt-2 border-t border-[#272C31] flex gap-2">
+        <button type="button" onclick="closeWorkoutCycleEvaluationModal()"
+          class="flex-1 py-2.5 rounded-xl bg-[#171B1F] hover:bg-[#272C31] text-zinc-300 text-xs font-bold transition-colors">
+          Depois
+        </button>
+        <button type="button" id="btnSubmitWorkoutCycleEval" onclick="submitWorkoutCycleEvaluation()"
+          class="flex-1 py-2.5 rounded-xl bg-[#E50914] hover:bg-[#B80710] text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-red-950/60 active:scale-95">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>Enviar &amp; Solicitar Novo Treino</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Toast de Sincronização em Tempo Real -->
   <div id="syncToastNotification"
     class="fixed top-4 right-4 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none p-3 rounded-2xl bg-[#121518] border border-emerald-500/70 shadow-2xl flex items-center gap-2.5 max-w-xs">
@@ -3377,6 +3535,8 @@
       sleepLogged: false,
       exerciseChecks: {},
       foodItemChecks: {},
+      workoutCycle: null,
+      pastWorkoutCycles: [],
       meals: [
         {
           id: 'm1',
@@ -4058,6 +4218,27 @@
         }
       }
 
+      // Aplica ou inicializa ciclo canônico de 4 semanas (Mesociclo)
+      if (dataPayload.workoutCycle && typeof dataPayload.workoutCycle === 'object') {
+        patientState.workoutCycle = dataPayload.workoutCycle;
+      } else if (!patientState.workoutCycle) {
+        const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
+          ? window.NutriAxWorkoutCycle
+          : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+        if (cycleMod && typeof cycleMod.createWorkoutCycle === 'function') {
+          const split = dataPayload.activeSplit || 'PHAT';
+          const freq = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0
+            ? WEEKLY_SCHEDULE_DATA.filter(d => d.type && !d.type.toLowerCase().includes('off')).length
+            : 5;
+          patientState.workoutCycle = cycleMod.createWorkoutCycle({
+            patientId: _authorizedPatientId,
+            protocolName: `Periodização ${split} (4 Semanas)`,
+            split: split,
+            prescribedWeeklyFrequency: freq || 5
+          });
+        }
+      }
+
       // Salva imediatamente no estado persistente local (INVARIANTE 12) apenas se não for carga inicial do loadState
       if (appliedMeals && _authorizedPatientId && !options.skipSave) {
         try {
@@ -4152,6 +4333,12 @@
           if (parsed.selectedScheduleDay) {
             selectedScheduleDay = parsed.selectedScheduleDay;
             patientState.selectedScheduleDay = parsed.selectedScheduleDay;
+          }
+          if (parsed.workoutCycle) {
+            patientState.workoutCycle = parsed.workoutCycle;
+          }
+          if (Array.isArray(parsed.pastWorkoutCycles)) {
+            patientState.pastWorkoutCycles = parsed.pastWorkoutCycles;
           }
         } else {
           // Sem estado salvo anterior: inicializa dia zerado
@@ -4590,6 +4777,7 @@
       renderWorkoutExercises();
       updateWorkoutVisuals();
       updateCardioVisuals();
+      renderWorkoutCycleCard();
 
       // Hidratação
       document.getElementById('waterCurrentDisplay').textContent = (patientState.waterCurrent || 0).toLocaleString('pt-BR');
@@ -5191,6 +5379,389 @@
         console.warn('[NutriAx Fasting] Erro ao salvar métrica subjetiva:', err);
       }
     }
+
+    // 6.2 MÓDULO DO MESOCICLO (CICLO DE 4 SEMANAS DE TREINO & AVALIAÇÃO)
+    let _evalSelectedRpe = 8;
+    let _evalSelectedProgression = 'aumentou';
+    let _evalSelectedJoints = ['nenhum'];
+    let _evalSelectedPreference = 'manter';
+
+    function getWorkoutCycleModule() {
+      return (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
+        ? window.NutriAxWorkoutCycle
+        : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+    }
+
+    function ensureWorkoutCycleInitialized() {
+      const cycleMod = getWorkoutCycleModule();
+      if (!cycleMod) return null;
+
+      if (!patientState.workoutCycle) {
+        const split = (typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : null) || 'PHAT';
+        const freq = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0)
+          ? WEEKLY_SCHEDULE_DATA.filter(d => d.type && !d.type.toLowerCase().includes('off')).length
+          : 5;
+        patientState.workoutCycle = cycleMod.createWorkoutCycle({
+          patientId: _authorizedPatientId,
+          protocolName: `Periodização ${split} (4 Semanas)`,
+          split: split,
+          prescribedWeeklyFrequency: freq || 5
+        });
+      }
+      return patientState.workoutCycle;
+    }
+
+    function renderWorkoutCycleCard() {
+      const container = document.getElementById('workoutCycleContainer');
+      if (!container) return;
+
+      const cycleMod = getWorkoutCycleModule();
+      if (!cycleMod) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const cycle = ensureWorkoutCycleInitialized();
+      if (!cycle) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const todayIso = getLocalDateIso();
+      const metrics = cycleMod.calculateCycleMetrics(cycle, patientState.history, todayIso);
+      if (!metrics) {
+        container.innerHTML = '';
+        return;
+      }
+
+      // Se o ciclo atingiu término, atualiza status
+      if (metrics.status === 'NEEDS_EVALUATION' && cycle.status !== 'NEEDS_EVALUATION') {
+        cycle.status = 'NEEDS_EVALUATION';
+      }
+
+      const isCompleted = cycle.status === 'COMPLETED';
+      const needsEval = metrics.status === 'NEEDS_EVALUATION';
+
+      // Badge de status do topo
+      let statusBadgeHtml = '';
+      if (isCompleted) {
+        statusBadgeHtml = `
+          <span class="px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/80 text-emerald-300 font-mono font-bold text-[10px] flex items-center gap-1 shadow">
+            <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-400"></i> Ciclo Concluído
+          </span>
+        `;
+      } else if (needsEval) {
+        statusBadgeHtml = `
+          <span class="px-2.5 py-1 rounded-full bg-amber-950/90 border border-amber-500/80 text-amber-300 font-mono font-bold text-[10px] animate-pulse flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-400"></i> Avaliação Pendente
+          </span>
+        `;
+      } else {
+        statusBadgeHtml = `
+          <span class="px-2.5 py-1 rounded-full bg-blue-950/80 border border-blue-500/80 text-blue-300 font-mono font-bold text-[10px] flex items-center gap-1.5 shadow">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+            SEMANA ${metrics.currentWeek} DE ${metrics.totalWeeks}
+          </span>
+        `;
+      }
+
+      // Microciclos (4 semanas)
+      const microcyclesHtml = metrics.microcycles.map(m => {
+        let pillBorder = 'border-zinc-800 bg-[#08090A]/80 text-zinc-500';
+        let badgeIcon = '○';
+        let badgeText = `${m.workoutsDone}/${m.targetWorkouts}`;
+        let badgeColor = 'text-zinc-500';
+
+        if (m.isCompleted) {
+          pillBorder = 'border-emerald-700/60 bg-emerald-950/20 text-emerald-300';
+          badgeIcon = '✓';
+          badgeColor = 'text-emerald-400 font-bold';
+        } else if (m.isCurrent) {
+          pillBorder = 'border-blue-500 bg-blue-950/40 text-blue-200 ring-1 ring-blue-500/40';
+          badgeIcon = '▶';
+          badgeColor = 'text-blue-400 font-bold';
+        }
+
+        return `
+          <div class="p-2 rounded-xl border ${pillBorder} flex flex-col justify-between space-y-1 transition-all">
+            <div class="flex items-center justify-between text-[9px] font-mono">
+              <span class="font-bold text-white">${m.label}</span>
+              <span class="${badgeColor}">${badgeIcon} ${badgeText}</span>
+            </div>
+            <div class="text-[8px] text-zinc-400 line-clamp-1">${m.focus}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Banner de chamada para avaliação
+      let actionBannerHtml = '';
+      if (needsEval) {
+        actionBannerHtml = `
+          <div class="p-3 rounded-xl bg-gradient-to-r from-red-950/60 via-amber-950/40 to-black border border-amber-500/60 space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0">
+                <i data-lucide="award" class="w-4 h-4"></i>
+              </div>
+              <div class="text-xs">
+                <span class="font-bold text-white block">Mesociclo de 4 semanas finalizado!</span>
+                <span class="text-[10px] text-zinc-300">Faça seu check-in de 1 minuto para calibrar e gerar seu novo treino.</span>
+              </div>
+            </div>
+            <button type="button" onclick="openWorkoutCycleEvaluationModal()"
+              class="w-full py-2 px-3 rounded-lg bg-[#E50914] hover:bg-[#B80710] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>Fazer Check-in do Ciclo</span>
+            </button>
+          </div>
+        `;
+      } else if (isCompleted) {
+        actionBannerHtml = `
+          <div class="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-700/50 flex items-center justify-between text-xs text-emerald-300">
+            <span class="flex items-center gap-1.5 font-bold">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Avaliação do ciclo enviada!
+            </span>
+            <button type="button" onclick="openWorkoutCycleEvaluationModal()" class="text-[10px] font-mono text-zinc-400 underline hover:text-white">
+              Ver Feedback
+            </button>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="nax-card p-3.5 space-y-3 border border-[#272C31] bg-[#121518] shadow-lg">
+          <!-- Topo do Card -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-[#E50914]/20 border border-[#E50914]/40 flex items-center justify-center text-[#E50914] shrink-0">
+                <i data-lucide="calendar-range" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-black text-white leading-tight">${cycle.protocolName || 'Ciclo de Treino'}</h4>
+                <p class="text-[9px] font-mono text-zinc-400">
+                  ${metrics.daysRemaining > 0 ? `Faltam ${metrics.daysRemaining} dias para o fechamento` : 'Período de 28 dias completado'}
+                </p>
+              </div>
+            </div>
+            ${statusBadgeHtml}
+          </div>
+
+          <!-- Barra de Progresso de Treinos -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-[10px] font-mono">
+              <span class="text-zinc-300">
+                <strong class="text-white">${metrics.completedWorkoutsCount}</strong> de <strong class="text-white">${metrics.totalPrescribedWorkouts}</strong> treinos concluídos
+              </span>
+              <span class="font-bold ${metrics.adherencePercent >= 80 ? 'text-emerald-400' : 'text-amber-400'}">
+                Aderência: ${metrics.adherencePercent}%
+              </span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2.5 rounded-full overflow-hidden border border-zinc-800 p-0.5">
+              <div class="h-full rounded-full bg-gradient-to-r from-[#E50914] via-[#F2B84B] to-[#00C896] transition-all duration-500"
+                style="width: ${Math.min(100, Math.max(3, metrics.adherencePercent))}%"></div>
+            </div>
+          </div>
+
+          <!-- Grade de 4 Microciclos (Semanas) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            ${microcyclesHtml}
+          </div>
+
+          <!-- Banner de Ação se necessário -->
+          ${actionBannerHtml}
+        </div>
+      `;
+
+      if (window.lucide) window.lucide.createIcons({ root: container });
+    }
+
+    function openWorkoutCycleEvaluationModal() {
+      const modal = document.getElementById('workoutCycleEvalModal');
+      if (!modal) return;
+
+      const cycle = patientState.workoutCycle;
+      const cycleMod = getWorkoutCycleModule();
+      if (cycle && cycleMod) {
+        const metrics = cycleMod.calculateCycleMetrics(cycle, patientState.history, getLocalDateIso());
+        const nameEl = document.getElementById('evalCycleProtocolName');
+        if (nameEl) nameEl.textContent = cycle.protocolName || 'Periodização 4 Semanas';
+
+        const adhEl = document.getElementById('evalCycleAdherenceBadge');
+        if (adhEl && metrics) {
+          adhEl.textContent = `${metrics.adherencePercent}% (${metrics.completedWorkoutsCount} treinos feitos)`;
+        }
+
+        // Se já foi preenchido anteriormente, restaura valores
+        if (cycle.evaluation) {
+          const ev = cycle.evaluation;
+          if (ev.rpeScore) {
+            const slider = document.getElementById('evalRpeSlider');
+            if (slider) {
+              slider.value = ev.rpeScore;
+              updateEvalRpeLabel(ev.rpeScore);
+            }
+          }
+          if (ev.loadProgression) setEvalLoadProgression(ev.loadProgression);
+          if (Array.isArray(ev.jointDiscomfort)) {
+            _evalSelectedJoints = [...ev.jointDiscomfort];
+            syncEvalJointButtons();
+          }
+          if (ev.splitPreference) setEvalSplitPreference(ev.splitPreference);
+          if (ev.patientNotes) {
+            const notesEl = document.getElementById('evalPatientNotes');
+            if (notesEl) notesEl.value = ev.patientNotes;
+          }
+        }
+      }
+
+      modal.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons({ root: modal });
+    }
+
+    function closeWorkoutCycleEvaluationModal() {
+      const modal = document.getElementById('workoutCycleEvalModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function updateEvalRpeLabel(val) {
+      _evalSelectedRpe = Number(val);
+      const disp = document.getElementById('evalRpeDisplay');
+      if (!disp) return;
+
+      const n = Number(val);
+      if (n <= 3) disp.textContent = `${n} — Leve / Recuperativo`;
+      else if (n <= 6) disp.textContent = `${n} — Moderado / Confortável`;
+      else if (n <= 8) disp.textContent = `${n} — Intenso e Produtivo (Ideal)`;
+      else if (n === 9) disp.textContent = `${n} — Muito Intenso (Quase no Limite)`;
+      else disp.textContent = `${n} — Exaustão Máxima / Fadiga Extrema`;
+    }
+
+    function setEvalLoadProgression(val) {
+      _evalSelectedProgression = val;
+      const btnAum = document.getElementById('evalProgAumentou');
+      const btnPar = document.getElementById('evalProgParcial');
+      const btnEst = document.getElementById('evalProgEstagnou');
+
+      const activeClass = 'border-emerald-500 bg-emerald-950/80 text-white';
+      const inactiveClass = 'border-zinc-800 bg-[#08090A] text-zinc-400 hover:text-white';
+
+      if (btnAum) btnAum.className = `eval-prog-btn p-2 rounded-xl border text-[11px] font-bold text-center transition-all ${val === 'aumentou' ? activeClass : inactiveClass}`;
+      if (btnPar) btnPar.className = `eval-prog-btn p-2 rounded-xl border text-[11px] font-bold text-center transition-all ${val === 'parcial' ? 'border-amber-500 bg-amber-950/80 text-white' : inactiveClass}`;
+      if (btnEst) btnEst.className = `eval-prog-btn p-2 rounded-xl border text-[11px] font-bold text-center transition-all ${val === 'estagnou' ? 'border-red-500 bg-red-950/80 text-white' : inactiveClass}`;
+    }
+
+    function toggleEvalJoint(joint) {
+      if (joint === 'nenhum') {
+        _evalSelectedJoints = ['nenhum'];
+      } else {
+        _evalSelectedJoints = _evalSelectedJoints.filter(j => j !== 'nenhum');
+        const idx = _evalSelectedJoints.indexOf(joint);
+        if (idx >= 0) {
+          _evalSelectedJoints.splice(idx, 1);
+        } else {
+          _evalSelectedJoints.push(joint);
+        }
+        if (_evalSelectedJoints.length === 0) {
+          _evalSelectedJoints = ['nenhum'];
+        }
+      }
+      syncEvalJointButtons();
+    }
+
+    function syncEvalJointButtons() {
+      const joints = ['nenhum', 'ombros', 'joelhos', 'coluna', 'cotovelos'];
+      joints.forEach(j => {
+        const id = 'evalJoint' + j.charAt(0).toUpperCase() + j.slice(1);
+        const btn = document.getElementById(id);
+        if (!btn) return;
+
+        const isSel = _evalSelectedJoints.includes(j);
+        if (isSel) {
+          btn.className = `eval-joint-btn p-2 rounded-lg border text-center font-bold transition-all ${j === 'nenhum' ? 'border-emerald-500 bg-emerald-950/80 text-white' : 'border-amber-500 bg-amber-950/80 text-white'}`;
+        } else {
+          btn.className = 'eval-joint-btn p-2 rounded-lg border border-zinc-800 bg-[#08090A] text-zinc-400 font-bold transition-all text-center';
+        }
+      });
+    }
+
+    function setEvalSplitPreference(val) {
+      _evalSelectedPreference = val;
+      const btnMan = document.getElementById('evalPrefManter');
+      const btnTro = document.getElementById('evalPrefTrocar');
+
+      if (btnMan) {
+        btnMan.className = `eval-pref-btn p-2.5 rounded-xl border text-xs font-bold text-center transition-all ${val === 'manter' ? 'border-blue-500 bg-blue-950/80 text-white' : 'border-zinc-800 bg-[#08090A] text-zinc-400'}`;
+      }
+      if (btnTro) {
+        btnTro.className = `eval-pref-btn p-2.5 rounded-xl border text-xs font-bold text-center transition-all ${val === 'trocar' ? 'border-blue-500 bg-blue-950/80 text-white' : 'border-zinc-800 bg-[#08090A] text-zinc-400'}`;
+      }
+    }
+
+    function submitWorkoutCycleEvaluation() {
+      const cycleMod = getWorkoutCycleModule();
+      if (!cycleMod) return;
+
+      const cycle = ensureWorkoutCycleInitialized();
+      if (!cycle) return;
+
+      const notes = (document.getElementById('evalPatientNotes')?.value || '').trim();
+      const metrics = cycleMod.calculateCycleMetrics(cycle, patientState.history, getLocalDateIso());
+
+      const payload = {
+        rpeScore: _evalSelectedRpe,
+        loadProgression: _evalSelectedProgression,
+        jointDiscomfort: _evalSelectedJoints,
+        splitPreference: _evalSelectedPreference,
+        patientNotes: notes,
+        adherencePercent: metrics ? metrics.adherencePercent : 100,
+        completedWorkoutsCount: metrics ? metrics.completedWorkoutsCount : 20
+      };
+
+      const completedCycle = cycleMod.completeCycleEvaluation(cycle, payload);
+      patientState.workoutCycle = completedCycle;
+
+      if (!Array.isArray(patientState.pastWorkoutCycles)) {
+        patientState.pastWorkoutCycles = [];
+      }
+      patientState.pastWorkoutCycles.push(JSON.parse(JSON.stringify(completedCycle)));
+
+      logPatientActivity({
+        title: 'Mesociclo de 4 Semanas Concluído!',
+        desc: `Check-in de avaliação final registrado com ${payload.adherencePercent}% de adesão`,
+        type: 'workout',
+        icon: 'award',
+        color: 'emerald'
+      });
+
+      saveState();
+      renderAll();
+      closeWorkoutCycleEvaluationModal();
+
+      if (window.confetti) {
+        window.confetti({ particleCount: 70, spread: 80, origin: { y: 0.5 }, colors: ['#E50914', '#00C896', '#F2B84B'] });
+      }
+
+      const toast = document.getElementById('syncToastNotification');
+      if (toast) {
+        const tTitle = document.getElementById('syncToastTitle');
+        const tMsg = document.getElementById('syncToastMessage');
+        if (tTitle) tTitle.textContent = 'Check-in do Ciclo Enviado';
+        if (tMsg) tMsg.textContent = 'Feedback registrado com sucesso para o seu treinador!';
+        toast.classList.remove('opacity-0', '-translate-y-20');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(function() {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', '-translate-y-20');
+        }, 3000);
+      }
+    }
+
+    window.openWorkoutCycleEvaluationModal = openWorkoutCycleEvaluationModal;
+    window.closeWorkoutCycleEvaluationModal = closeWorkoutCycleEvaluationModal;
+    window.updateEvalRpeLabel = updateEvalRpeLabel;
+    window.setEvalLoadProgression = setEvalLoadProgression;
+    window.toggleEvalJoint = toggleEvalJoint;
+    window.setEvalSplitPreference = setEvalSplitPreference;
+    window.submitWorkoutCycleEvaluation = submitWorkoutCycleEvaluation;
 
     // 7. CRONOGRAMA SEMANAL DE TREINO PRESCRITO (SELETOR UNIFICADO)
     function renderQuickRoutinePills() {

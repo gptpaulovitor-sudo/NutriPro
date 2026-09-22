@@ -12822,6 +12822,38 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     cardioPrescription: (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription) ? perfCardioPrescription : null,
     cardioDatabase: (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB)) ? PERF_CARDIO_DB : null,
     activeSplit: typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : null,
+    workoutCycle: Object.keys(formattedWorkout).length > 0 ? (function() {
+      const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle) 
+        ? window.NutriAxWorkoutCycle 
+        : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+      const split = typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PHAT';
+      const freq = Array.isArray(normalizedSchedule) 
+        ? normalizedSchedule.filter(d => d.type && !d.type.toLowerCase().includes('off')).length 
+        : 5;
+      if (cycleMod && typeof cycleMod.createWorkoutCycle === 'function') {
+        return cycleMod.createWorkoutCycle({
+          patientId: pId,
+          protocolName: `Periodização ${split} (4 Semanas)`,
+          split: split,
+          prescribedWeeklyFrequency: freq || 5
+        });
+      }
+      return {
+        cycleId: `cycle_${Date.now()}`,
+        patientId: pId,
+        protocolName: `Periodização ${split} (4 Semanas)`,
+        split: split,
+        durationWeeks: 4,
+        durationDays: 28,
+        startDate: new Date().toISOString().slice(0, 10),
+        endDate: new Date(Date.now() + 27 * 86400000).toISOString().slice(0, 10),
+        prescribedWeeklyFrequency: freq || 5,
+        totalPrescribedWorkouts: 4 * (freq || 5),
+        status: 'ACTIVE',
+        evaluation: null,
+        createdAt: new Date().toISOString()
+      };
+    })() : null,
     fastingProtocol: (activeFastingProto && activeFastingProto.enabled === true && activeFastingProto.status === 'ACTIVE') ? activeFastingProto : null,
     updatedAt: new Date().toISOString()
   };
@@ -16593,6 +16625,7 @@ function perfSyncNutritionAudit() {
     }
     const goalDescEl = document.getElementById('perf-meta-goal-desc');
     if (goalDescEl) goalDescEl.textContent = perfAuditData.explanation;
+    if (typeof perfRenderCycleStatusCard === 'function') perfRenderCycleStatusCard();
     return;
   }
 
@@ -16614,7 +16647,196 @@ function perfSyncNutritionAudit() {
   if (ratTitle) {
     ratTitle.textContent = `Periodização ${perfActiveSplit} · Alvo: ${ctx.objective}`;
   }
+  if (typeof perfRenderCycleStatusCard === 'function') perfRenderCycleStatusCard();
 }
+
+function perfRenderCycleStatusCard() {
+  const container = document.getElementById('perf-cycle-status-container');
+  if (!container) return;
+
+  const pId = typeof activePatientId !== 'undefined' ? activePatientId : null;
+  if (!pId) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let discState = null;
+  try {
+    const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
+                localStorage.getItem(`nutriax_patient_payload_${pId}`) ||
+                localStorage.getItem('nutriax_sync_active_patient');
+    if (raw) discState = JSON.parse(raw);
+  } catch (_) {}
+
+  const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
+    ? window.NutriAxWorkoutCycle
+    : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+
+  const cycle = discState?.workoutCycle || null;
+  if (!cycleMod || !cycle) {
+    container.innerHTML = `
+      <div class="p-3 rounded-xl bg-blue-950/20 border border-blue-500/30 flex items-center justify-between text-xs my-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-blue-400"></i>
+          <div>
+            <span class="font-bold text-white block">Ciclo de 4 Semanas Pronto para Ativação</span>
+            <span class="text-[10px] text-zinc-400">Ao publicar o treino, o contador de 28 dias do paciente será inicializado automaticamente.</span>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full bg-blue-900/60 border border-blue-600/60 text-blue-200 text-[10px] font-mono">4 Semanas (28 Dias)</span>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons({ root: container });
+    return;
+  }
+
+  const metrics = cycleMod.calculateCycleMetrics(cycle, discState.history || {}, new Date().toISOString().slice(0, 10));
+  const isCompleted = cycle.status === 'COMPLETED';
+  const needsEval = metrics.status === 'NEEDS_EVALUATION';
+
+  let alertFeedbackHtml = '';
+  if (isCompleted && cycle.evaluation) {
+    const ev = cycle.evaluation;
+    alertFeedbackHtml = `
+      <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/60 space-y-2 mt-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            Check-in de Fim de Ciclo Recebido do Paciente
+          </span>
+          <span class="text-[9px] font-mono text-zinc-400">${ev.completedAt ? new Date(ev.completedAt).toLocaleDateString('pt-BR') : ''}</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+          <div class="p-2 rounded bg-black/60 border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block font-mono">PSE Geral</span>
+            <strong class="text-amber-400">${ev.rpeScore || 8}/10</strong>
+          </div>
+          <div class="p-2 rounded bg-black/60 border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block font-mono">Progressão Cargas</span>
+            <strong class="text-emerald-400 capitalize">${ev.loadProgression || 'Aumentou'}</strong>
+          </div>
+          <div class="p-2 rounded bg-black/60 border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block font-mono">Articulações</span>
+            <strong class="text-zinc-200">${Array.isArray(ev.jointDiscomfort) ? ev.jointDiscomfort.join(', ') : '100% íntegro'}</strong>
+          </div>
+          <div class="p-2 rounded bg-black/60 border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block font-mono">Preferência</span>
+            <strong class="text-blue-300 capitalize">${ev.splitPreference === 'trocar' ? 'Trocar Divisão' : 'Manter Divisão'}</strong>
+          </div>
+        </div>
+        ${ev.patientNotes ? `<div class="p-2 rounded bg-black/40 text-[11px] text-zinc-300 italic border-l-2 border-emerald-500">"${ev.patientNotes}"</div>` : ''}
+        <div class="pt-1 flex items-center justify-between">
+          <span class="text-[10px] text-zinc-400">Pronto para gerar o novo mesociclo com sobrecarga programada:</span>
+          <button type="button" onclick="perfStartNewCycle4Weeks()"
+            class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Prescrever Próximo Ciclo de 4 Semanas</span>
+          </button>
+        </div>
+      </div>
+    `;
+  } else if (needsEval) {
+    alertFeedbackHtml = `
+      <div class="p-3 rounded-xl bg-amber-950/30 border border-amber-500/60 flex items-center justify-between text-xs mt-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <div>
+            <span class="font-bold text-white block">Ciclo de 4 semanas finalizado (28 dias atingidos)</span>
+            <span class="text-[10px] text-zinc-300">Aguardando preenchimento do check-in pelo paciente no app Disciplina.</span>
+          </div>
+        </div>
+        <button type="button" onclick="perfStartNewCycle4Weeks()"
+          class="px-3 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#B80710] text-white font-bold text-xs flex items-center gap-1.5 transition-all shrink-0">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          <span>Renovar Ciclo Agora</span>
+        </button>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="hud-card p-3.5 rounded-2xl border border-zinc-800 bg-gradient-to-r from-blue-950/20 via-black to-zinc-950 space-y-2.5 my-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-[#E50914]/20 border border-[#E50914]/40 flex items-center justify-center text-[#E50914] shrink-0">
+            <i data-lucide="calendar-range" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white">${cycle.protocolName || 'Periodização 4 Semanas'} · Acompanhamento de Execução</h4>
+            <p class="text-[10px] text-zinc-400 font-mono">
+              Início: ${cycle.startDate} • Término previsto: ${cycle.endDate} • ${metrics.daysRemaining} dias restantes
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-full ${isCompleted ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-300' : 'bg-blue-950/80 border-blue-500/80 text-blue-300'} text-[10px] font-mono font-bold border">
+            ${isCompleted ? '✓ Fechado' : `Semana ${metrics.currentWeek} de ${metrics.totalWeeks}`}
+          </span>
+          <span class="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 text-[10px] font-mono">
+            ${metrics.completedWorkoutsCount}/${metrics.totalPrescribedWorkouts} treinos (${metrics.adherencePercent}%)
+          </span>
+        </div>
+      </div>
+
+      <!-- Barra de Aderência -->
+      <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+        <div class="h-full rounded-full bg-gradient-to-r from-[#E50914] via-[#F2B84B] to-[#00C896] transition-all duration-500"
+          style="width: ${Math.min(100, Math.max(3, metrics.adherencePercent))}%"></div>
+      </div>
+
+      ${alertFeedbackHtml}
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons({ root: container });
+}
+
+function perfStartNewCycle4Weeks() {
+  const pId = typeof activePatientId !== 'undefined' ? activePatientId : null;
+  if (!pId) return;
+
+  const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
+    ? window.NutriAxWorkoutCycle
+    : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+  if (!cycleMod) return;
+
+  const split = typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PHAT';
+  const freq = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
+    ? perfWeeklySchedule.filter(d => d.type && !d.type.toLowerCase().includes('off')).length
+    : 5;
+
+  const newCycle = cycleMod.createWorkoutCycle({
+    patientId: pId,
+    protocolName: `Periodização ${split} (4 Semanas)`,
+    split: split,
+    prescribedWeeklyFrequency: freq || 5
+  });
+
+  // Atualiza cache de disciplina local
+  try {
+    const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
+                localStorage.getItem(`nutriax_patient_payload_${pId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed.pastWorkoutCycles)) parsed.pastWorkoutCycles = [];
+      if (parsed.workoutCycle) {
+        parsed.pastWorkoutCycles.push(parsed.workoutCycle);
+      }
+      parsed.workoutCycle = newCycle;
+      localStorage.setItem(`nutriax_patient_discipline_v3_${pId}`, JSON.stringify(parsed));
+      localStorage.setItem(`nutriax_patient_payload_${pId}`, JSON.stringify(parsed));
+    }
+  } catch (_) {}
+
+  perfRenderCycleStatusCard();
+
+  if (typeof showSystemAlert === 'function') {
+    showSystemAlert('Novo Ciclo de 4 Semanas Prescrito e Sincronizado!', 'success');
+  } else {
+    alert('Novo Ciclo de 4 Semanas Prescrito com Sucesso!');
+  }
+}
+
 
 
 // ════════════════════════════════════════════════════════════════════════════

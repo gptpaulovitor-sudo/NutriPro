@@ -194,6 +194,8 @@
         foodItemChecks: disciplineState.foodItemChecks || {},
         timeline: Array.isArray(disciplineState.timeline) ? disciplineState.timeline.slice(0, 40) : [],
         history: disciplineState.history || {},
+        workoutCycle: disciplineState.workoutCycle || null,
+        pastWorkoutCycles: Array.isArray(disciplineState.pastWorkoutCycles) ? disciplineState.pastWorkoutCycles : [],
         updatedAtClient: new Date().toISOString(),
         serverTimestamp: firebase.firestore.FieldValue.serverTimestamp()
       };
