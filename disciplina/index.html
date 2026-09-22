@@ -3145,7 +3145,7 @@
     }
 
     function isDefaultMockMeals(meals) {
-      if (!Array.isArray(meals) || meals.length !== 4) return false;
+      if (!Array.isArray(meals) || (meals.length !== 4 && meals.length !== 5)) return false;
       const ids = meals.map(m => m.id);
       return ids[0] === 'm1' && ids[1] === 'm2' && ids[2] === 'm3' && ids[3] === 'm4' &&
         meals[0]?.name === 'Café da Manhã' &&
@@ -3281,29 +3281,15 @@
 
       // 1. Se lastActiveDate existe
       if (state.lastActiveDate) {
-        // Se a data ativa for diferente de hoje, certamente pertence a outro dia
-        if (state.lastActiveDate !== todayIso) return true;
-
-        // Se lastActiveDate é hoje, mas o registro de hoje no histórico foi gravado ontem à noite
-        // (caso resíduo do antigo bug do UTC toISOString registrado ontem após as 21h):
-        if (state.history && state.history[todayIso] && state.history[todayIso].updatedAt) {
-          const histLocalDate = getLocalDateIso(new Date(state.history[todayIso].updatedAt));
-          if (histLocalDate !== todayIso) {
-            return true;
-          }
-        }
-
-        // Se lastActiveDate === todayIso e não é resíduo do bug UTC, pertence a HOJE!
-        return false;
+        return state.lastActiveDate !== todayIso;
       }
 
       // 2. Se lastActiveDate não existe (legado):
-      if (state.history && state.history[todayIso] && state.history[todayIso].updatedAt) {
-        const histLocalDate = getLocalDateIso(new Date(state.history[todayIso].updatedAt));
-        if (histLocalDate === todayIso) return false;
+      if (state.history && state.history[todayIso]) {
+        return false;
       }
 
-      // Se não tem confirmação de hoje, mas tem marcações feitas:
+      // Se não tem confirmação de hoje, mas tem marcações feitas de dia anterior sem data:
       const hasMarkings = (state.waterCurrent && state.waterCurrent > 0) ||
         !!state.workoutDone || !!state.cardioDone || !!state.sleepLogged ||
         (state.exerciseChecks && Object.keys(state.exerciseChecks).length > 0) ||
@@ -3929,7 +3915,7 @@
       };
     }
 
-    function applyPrescriptionPayload(dataPayload) {
+    function applyPrescriptionPayload(dataPayload, options = {}) {
       if (!dataPayload) return;
 
       // Proteção local-first: se o payload recebido não trouxer refeições válidas, preserva as refeições já existentes localmente
@@ -4045,8 +4031,8 @@
         if (_firstRoutine && !selectedRoutineKey) selectedRoutineKey = _firstRoutine.routineKey;
       }
 
-      // Salva imediatamente no estado persistente local (INVARIANTE 12)
-      if (appliedMeals && _authorizedPatientId) {
+      // Salva imediatamente no estado persistente local (INVARIANTE 12) apenas se não for carga inicial do loadState
+      if (appliedMeals && _authorizedPatientId && !options.skipSave) {
         try {
           saveState();
         } catch (_) {}
@@ -4058,14 +4044,99 @@
       if (!_authorizedPatientId) return;
 
       const todayIso = getLocalDateIso();
-      let dataPayload = null;
-
-      // ── A. Tenta carregar payload do plano prescrito (multi-key cascade) ──
       const patientIdClean = String(_authorizedPatientId).trim();
       const patientIdLower = patientIdClean.toLowerCase();
       const patientIdSlug = patientIdLower.replace(/\s+/g, '-');
       const patientIdNum = !isNaN(Number(patientIdClean)) ? Number(patientIdClean) : null;
 
+      // ── A. Aplica estado de interação salvo localmente (checks, água, sono) PRIMEIRO ──
+      let needsPersistReset = false;
+      const mealDoneMap = {};
+      try {
+        const storageKey = getDisciplineStorageKey();
+        let saved = storageKey ? localStorage.getItem(storageKey) : null;
+        if (!saved && _authorizedPatientId) {
+          saved = localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdClean}`) ||
+                  localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdSlug}`) ||
+                  (patientIdNum !== null ? localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdNum}`) : null) ||
+                  localStorage.getItem('nutriax_patient_discipline_v3');
+        }
+        if (saved) {
+          const parsed = JSON.parse(saved);
+
+          // Limpa artefatos legados da versão mock (14 dias, 2500ml de água pré-preenchidos)
+          if (parsed.streakDays === 14 && !parsed.startDate) {
+            parsed.streakDays = 1;
+            parsed.startDate = todayIso;
+          }
+          if (parsed.waterCurrent === 2500 && !parsed.lastActiveDate) {
+            parsed.waterCurrent = 0;
+          }
+          if (parsed.workoutDone === true && !parsed.lastActiveDate && (!parsed.exerciseChecks || Object.keys(parsed.exerciseChecks).length === 0)) {
+            parsed.workoutDone = false;
+          }
+
+          // Se virou o dia (ou se os dados pertencem a um dia anterior), reseta as tarefas diárias
+          if (isStateFromPreviousDay(parsed, todayIso)) {
+            resetDailyState(parsed, todayIso);
+            needsPersistReset = true;
+          }
+
+          if (Array.isArray(parsed.meals)) {
+            parsed.meals.forEach(m => { mealDoneMap[m.id] = m.done; });
+          }
+          // Mescla o estado de interação SEM sobrescrever nome ou metas do plano prescrito
+          const { meals: _m, name: _savedName, waterTarget: _savedWt, ...restParsed } = parsed;
+          Object.assign(patientState, restParsed);
+
+          // Garante inicialização de objetos de check
+          patientState.foodItemChecks = patientState.foodItemChecks || {};
+          patientState.exerciseChecks = patientState.exerciseChecks || {};
+
+          // RECUPERAÇÃO DAS REFEIÇÕES PRESCRITAS:
+          // Se dataPayload não forneceu refeições prescritas (ou se patientState.meals ainda tem os mocks padrão),
+          // mas o estado salvo no app disciplina contém as refeições prescritas reais:
+          if ((!patientState.meals || patientState.meals.length === 0 || isDefaultMockMeals(patientState.meals)) &&
+              Array.isArray(parsed.meals) && parsed.meals.length > 0 && !isDefaultMockMeals(parsed.meals)) {
+            patientState.meals = parsed.meals;
+          }
+
+          // Restaura status `done` das refeições
+          if (Array.isArray(patientState.meals)) {
+            patientState.meals = patientState.meals.map(m => ({
+              ...m,
+              done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : false
+            }));
+          }
+
+          // Restaura nome e waterTarget se ausentes
+          if ((!patientState.name || patientState.name === 'Paciente') && _savedName) {
+            patientState.name = _savedName;
+          }
+          if (!patientState.waterTarget && _savedWt) {
+            patientState.waterTarget = _savedWt;
+          }
+
+          // Restaura a rotina selecionada livremente pelo paciente (se houver salva)
+          if (parsed.selectedRoutineKey && WORKOUT_DATABASE[parsed.selectedRoutineKey]) {
+            selectedRoutineKey = parsed.selectedRoutineKey;
+            patientState.selectedRoutineKey = parsed.selectedRoutineKey;
+          }
+          if (parsed.selectedScheduleDay) {
+            selectedScheduleDay = parsed.selectedScheduleDay;
+            patientState.selectedScheduleDay = parsed.selectedScheduleDay;
+          }
+        } else {
+          // Sem estado salvo anterior: inicializa dia zerado
+          resetDailyState(patientState, todayIso);
+          needsPersistReset = true;
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar state local', e);
+      }
+
+      // ── B. Tenta carregar payload do plano prescrito (multi-key cascade) ──
+      let dataPayload = null;
       const payloadKeysToTry = [
         `nutriax_patient_payload_${patientIdClean}`,
         `nutriax_patient_payload_${patientIdSlug}`,
@@ -4129,7 +4200,15 @@
       }
 
       if (dataPayload) {
-        applyPrescriptionPayload(dataPayload);
+        applyPrescriptionPayload(dataPayload, { skipSave: true });
+      }
+
+      // Garante que o status `done` das refeições salvas pelo paciente prevaleça sobre a prescrição
+      if (Array.isArray(patientState.meals) && Object.keys(mealDoneMap).length > 0) {
+        patientState.meals = patientState.meals.map(m => ({
+          ...m,
+          done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : !!m.done
+        }));
       }
 
       if (!patientState.fastingProtocol) {
@@ -4138,88 +4217,6 @@
                         localStorage.getItem(`nutriax_fasting_protocol_${patientIdSlug}`);
           if (rawFp) patientState.fastingProtocol = JSON.parse(rawFp);
         } catch (_) { }
-      }
-
-      // ── B. Aplica estado de interação salvo localmente (checks, água, sono) ──
-      let needsPersistReset = false;
-      try {
-        const storageKey = getDisciplineStorageKey();
-        let saved = storageKey ? localStorage.getItem(storageKey) : null;
-        if (!saved && _authorizedPatientId) {
-          saved = localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdClean}`) ||
-                  localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdSlug}`) ||
-                  (patientIdNum !== null ? localStorage.getItem(`nutriax_patient_discipline_v3_${patientIdNum}`) : null) ||
-                  localStorage.getItem('nutriax_patient_discipline_v3');
-        }
-        if (saved) {
-          const parsed = JSON.parse(saved);
-
-          // Limpa artefatos legados da versão mock (14 dias, 2500ml de água pré-preenchidos)
-          if (parsed.streakDays === 14 && !parsed.startDate) {
-            parsed.streakDays = 1;
-            parsed.startDate = todayIso;
-          }
-          if (parsed.waterCurrent === 2500 && !parsed.lastActiveDate) {
-            parsed.waterCurrent = 0;
-          }
-          if (parsed.workoutDone === true && !parsed.lastActiveDate && (!parsed.exerciseChecks || Object.keys(parsed.exerciseChecks).length === 0)) {
-            parsed.workoutDone = false;
-          }
-
-          // Se virou o dia (ou se os dados pertencem a um dia anterior), reseta as tarefas diárias
-          if (isStateFromPreviousDay(parsed, todayIso)) {
-            resetDailyState(parsed, todayIso);
-            needsPersistReset = true;
-          }
-
-          const mealDoneMap = {};
-          if (Array.isArray(parsed.meals)) {
-            parsed.meals.forEach(m => { mealDoneMap[m.id] = m.done; });
-          }
-          // Mescla o estado de interação SEM sobrescrever nome ou metas do plano prescrito
-          const { meals: _m, name: _savedName, waterTarget: _savedWt, ...restParsed } = parsed;
-          Object.assign(patientState, restParsed);
-
-          // RECUPERAÇÃO DAS REFEIÇÕES PRESCRITAS:
-          // Se dataPayload não forneceu refeições prescritas (ou se patientState.meals ainda tem os mocks padrão),
-          // mas o estado salvo no app disciplina contém as refeições prescritas reais:
-          if ((!patientState.meals || patientState.meals.length === 0 || isDefaultMockMeals(patientState.meals)) &&
-              Array.isArray(parsed.meals) && parsed.meals.length > 0 && !isDefaultMockMeals(parsed.meals)) {
-            patientState.meals = parsed.meals;
-          }
-
-          // Restaura status `done` das refeições
-          if (Array.isArray(patientState.meals)) {
-            patientState.meals = patientState.meals.map(m => ({
-              ...m,
-              done: mealDoneMap[m.id] !== undefined ? !!mealDoneMap[m.id] : false
-            }));
-          }
-
-          // Restaura nome e waterTarget se ausentes
-          if ((!patientState.name || patientState.name === 'Paciente') && _savedName) {
-            patientState.name = _savedName;
-          }
-          if (!patientState.waterTarget && _savedWt) {
-            patientState.waterTarget = _savedWt;
-          }
-
-          // Restaura a rotina selecionada livremente pelo paciente (se houver salva)
-          if (parsed.selectedRoutineKey && WORKOUT_DATABASE[parsed.selectedRoutineKey]) {
-            selectedRoutineKey = parsed.selectedRoutineKey;
-            patientState.selectedRoutineKey = parsed.selectedRoutineKey;
-          }
-          if (parsed.selectedScheduleDay) {
-            selectedScheduleDay = parsed.selectedScheduleDay;
-            patientState.selectedScheduleDay = parsed.selectedScheduleDay;
-          }
-        } else {
-          // Sem estado salvo anterior: inicializa dia zerado
-          resetDailyState(patientState, todayIso);
-          needsPersistReset = true;
-        }
-      } catch (e) {
-        console.warn('Erro ao carregar state local', e);
       }
 
       // ── C. Validação final e garantia de identificação correta do paciente ──
@@ -5726,15 +5723,25 @@
           if (patientState.exerciseChecks && patientState.exerciseChecks[e.id]) done++;
         });
       }
-      patientState.workoutDone = (done > 0 && done >= Math.ceil(total * 0.7));
+      const isCurrentRoutineDone = (done > 0 && done >= Math.ceil(total * 0.7));
+      if (isCurrentRoutineDone) {
+        patientState.workoutDone = true;
+        patientState.completedRoutineKey = selectedRoutineKey;
+      } else if (patientState.completedRoutineKey === selectedRoutineKey) {
+        // Se a rotina marcada como concluída hoje era esta mesma e o paciente desmarcou exercícios:
+        patientState.workoutDone = false;
+        delete patientState.completedRoutineKey;
+      }
+      // Se patientState.workoutDone é true por outra rotina concluída hoje, preserva o status!
 
       const btnText = document.getElementById('btnCompleteWorkoutText');
       const btn = document.getElementById('btnCompleteFullWorkout');
       if (btnText && btn) {
         const badge = routine.badge || selectedRoutineKey || '';
-        if (patientState.workoutDone) {
+        const isDoneForThisRoutine = isCurrentRoutineDone || (patientState.completedRoutineKey === selectedRoutineKey);
+        if (isDoneForThisRoutine || patientState.workoutDone) {
           btn.className = "w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95 transition-all";
-          btnText.textContent = `Treino ${badge} Concluído! 🎉`;
+          btnText.textContent = isDoneForThisRoutine ? `Treino ${badge} Concluído! 🎉` : `Treino Concluído (${patientState.completedRoutineKey || 'Hoje'}) 🎉`;
         } else {
           btn.className = "w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 transition-all";
           btnText.textContent = `Concluir Treino ${badge}`;
@@ -6727,9 +6734,6 @@
         patientState.streakDays = Number(cloud.streakDays);
       }
       if (cloud.tier) patientState.tier = cloud.tier;
-      if (cloud.foodItemChecks && typeof cloud.foodItemChecks === 'object') {
-        patientState.foodItemChecks = { ...(patientState.foodItemChecks || {}), ...cloud.foodItemChecks };
-      }
       if (cloud.history && typeof cloud.history === 'object') {
         const cleanHistory = { ...(patientState.history || {}) };
         Object.entries(cloud.history).forEach(([dateKey, entry]) => {
@@ -6768,9 +6772,19 @@
             }
           });
         }
+        if (cloud.workoutDone) patientState.workoutDone = true;
+        if (cloud.cardioDone) patientState.cardioDone = true;
+        if ((cloud.waterCurrent || 0) > (patientState.waterCurrent || 0)) {
+          patientState.waterCurrent = cloud.waterCurrent;
+        }
+        if (cloud.sleepLogged && !patientState.sleepLogged) {
+          patientState.sleepLogged = true;
+          patientState.sleepHours = cloud.sleepHours || 0;
+          patientState.sleepQuality = cloud.sleepQuality || null;
+        }
       }
 
-      // Aplica dados de HOJE apenas se realmente foram atualizados hoje
+      // Aplica dados de HOJE do histórico se disponíveis e compatíveis
       if (patientState.history && patientState.history[todayIso]) {
         const h = patientState.history[todayIso];
         const hLocalDate = h.updatedAt ? getLocalDateIso(new Date(h.updatedAt)) : todayIso;
