@@ -7445,21 +7445,90 @@ if (typeof window !== 'undefined') {
 
   });
 
+  // ── MÓDULO: domain/math/waterTarget.js ──
+  defineModule("domain/math/waterTarget.js", function(require, module, exports) {
+function calculateDeterministicWaterTarget(contextOrWeight, options = {}) {
+  let weightKg = 70.0;
+  let activityFactor = 1.42;
+  let isAthlete = false;
+
+  if (typeof contextOrWeight === 'number') {
+    weightKg = contextOrWeight;
+    activityFactor = options.activityFactor != null ? Number(options.activityFactor) : 1.42;
+    isAthlete = Boolean(options.isAthlete);
+  } else if (contextOrWeight && typeof contextOrWeight === 'object') {
+    const ctx = contextOrWeight;
+    weightKg = parseFloat(
+      ctx.anthropometry?.weightKg ||
+      ctx.patient?.weightKg ||
+      ctx.patient?.currentWeight ||
+      ctx.currentWeight ||
+      ctx.weight ||
+      70.0
+    );
+    activityFactor = parseFloat(
+      ctx.energy?.activityFactor ||
+      ctx.patient?.activityFactor ||
+      ctx.activityFactor ||
+      1.42
+    );
+    const pType = String(ctx.patient?.patientType || ctx.patientType || '').toLowerCase();
+    const tLevel = String(ctx.patient?.trainingLevel || ctx.trainingLevel || '').toLowerCase();
+    isAthlete = Boolean(
+      ctx.training?.isAthlete ||
+      pType.includes('atleta') ||
+      pType.includes('alto rendimento') ||
+      tLevel.includes('atleta') ||
+      tLevel.includes('competidor')
+    );
+  }
+
+  if (!Number.isFinite(weightKg) || weightKg <= 0) weightKg = 70.0;
+  if (!Number.isFinite(activityFactor) || activityFactor <= 0) activityFactor = 1.42;
+
+  let mlPerKg = 35;
+  if (isAthlete || activityFactor >= 1.55) {
+    mlPerKg = 45;
+  } else if (activityFactor >= 1.35) {
+    mlPerKg = 40;
+  } else {
+    mlPerKg = 35;
+  }
+
+  const targetWaterMl = Math.round(weightKg * mlPerKg);
+  const minMlPerKg = Math.max(30, mlPerKg - 5);
+  const minWaterL = Number(((weightKg * minMlPerKg) / 1000).toFixed(1));
+  const maxWaterL = Number(((weightKg * mlPerKg) / 1000).toFixed(1));
+
+  return {
+    status: 'PASS',
+    weightKg,
+    activityFactor,
+    isAthlete,
+    mlPerKg,
+    targetWaterMl,
+    targetWaterL: Number((targetWaterMl / 1000).toFixed(2)),
+    minWaterL,
+    maxWaterL,
+    rangeDisplay: `${minWaterL} a ${maxWaterL} L/dia`,
+    rationale: `Meta de ${mlPerKg} mL/kg baseada em peso (${weightKg.toFixed(1)} kg) e nível de demanda (${isAthlete ? 'Atleta/Alta Demanda' : (activityFactor >= 1.55 ? 'Intensa' : (activityFactor >= 1.35 ? 'Moderada' : 'Leve'))})`
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { calculateDeterministicWaterTarget };
+}
+  });
+
   // ── MÓDULO: domain/math/index.js ──
   defineModule("domain/math/index.js", function(require, module, exports) {
-/**
- * domain/math/index.js
- * 
- * Ponto Único de Exportação do Motor Matemático Canônico e Política Energética.
- * Camada Pura — NutriAx Pro.
- */
-
 const nutritionMath = require('./nutritionMath');
 const { DEFAULT_ENERGY_POLICY, validateEnergyPolicy } = require('./energyPolicy');
 const { calculateDeterministicEnergyTarget } = require('./energyTarget');
 const { DEFAULT_MACRO_POLICY, validateMacroPolicy } = require('./macroPolicy');
 const { calculateDeterministicMacroTargets, isAthleteOrHighDemand, normalizeObjectiveCategory } = require('./macroTarget');
 const { validateNutritionPrescriptionTargets } = require('./nutritionTargetValidator');
+const { calculateDeterministicWaterTarget } = require('./waterTarget');
 
 const combined = {
   ...nutritionMath,
@@ -7471,7 +7540,8 @@ const combined = {
   calculateDeterministicMacroTargets,
   isAthleteOrHighDemand,
   normalizeObjectiveCategory,
-  validateNutritionPrescriptionTargets
+  validateNutritionPrescriptionTargets,
+  calculateDeterministicWaterTarget
 };
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -7486,9 +7556,11 @@ if (typeof window !== 'undefined') {
   window.NutriDomain.macroPolicy = { DEFAULT_MACRO_POLICY, validateMacroPolicy };
   window.NutriDomain.macroTarget = { calculateDeterministicMacroTargets, isAthleteOrHighDemand, normalizeObjectiveCategory };
   window.NutriDomain.targetValidator = { validateNutritionPrescriptionTargets };
+  window.NutriDomain.waterTarget = { calculateDeterministicWaterTarget };
 }
 
   });
+
 
   // ── MÓDULO: domain/math/energyPolicy.js ──
   defineModule("domain/math/energyPolicy.js", function(require, module, exports) {
@@ -19152,6 +19224,9 @@ module.exports = Object.freeze({
       validateMacroPolicy: math.validateMacroPolicy,
       isAthleteOrHighDemand: math.isAthleteOrHighDemand,
       normalizeObjectiveCategory: math.normalizeObjectiveCategory
+    },
+    waterTarget: {
+      calculateDeterministicWaterTarget: math.calculateDeterministicWaterTarget
     },
     targetValidator: {
       validateNutritionPrescriptionTargets: math.validateNutritionPrescriptionTargets

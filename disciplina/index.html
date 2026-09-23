@@ -998,12 +998,17 @@
       </div>
 
       <!-- RESUMO GERAL DE MACRONUTRIENTES -->
-      <!-- Resumo Geral de Macronutrientes -->
-      <div id="patientMacroSummaryContainer" class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] space-y-2.5">
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-zinc-400 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
-            <i data-lucide="flame" class="w-3.5 h-3.5 text-[#E50914]"></i> Balanço Calórico:
-          </span>
+      <!-- RESUMO GERAL DE MACRONUTRIENTES & METAS CLÍNICAS -->
+      <div id="patientMacroSummaryContainer" class="p-3.5 rounded-xl bg-[#08090A] border border-[#272C31] space-y-2.5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5 border-b border-[#272C31]/50 pb-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-zinc-400 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+              <i data-lucide="flame" class="w-3.5 h-3.5 text-[#E50914]"></i> Balanço Calórico:
+            </span>
+            <span id="patientPrescribedTargetBadge" class="hidden text-[10px] font-mono text-zinc-300 bg-[#121518] px-2 py-0.5 rounded border border-[#272C31] shadow-sm">
+              🎯 Alvo Clínico: <strong id="patientPrescribedTargetKcal" class="text-white">--</strong>
+            </span>
+          </div>
           <span id="patientMacroCaloriesTotal"
             class="text-xs font-mono font-black text-white bg-[#171B1F] px-2 py-0.5 rounded border border-[#272C31]">
             0 / 0 kcal
@@ -1015,12 +1020,11 @@
             style="width: 0%;"></div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs pt-1">
           <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/70">
             <span class="text-[9px] font-mono text-zinc-400 uppercase block">Proteína</span>
             <span id="patientMacroProtTotal" class="text-xs font-black text-white font-mono block">0g</span>
-            <span id="patientMacroProtConsumed" class="text-[9px] font-mono text-rose-400 font-bold block">0g
-              feitas</span>
+            <span id="patientMacroProtConsumed" class="text-[9px] font-mono text-rose-400 font-bold block">0g feitas</span>
             <div class="w-full bg-[#171B1F] h-1.5 rounded-full overflow-hidden mt-1">
               <div id="patientMacroProtProgress" class="h-full bg-rose-500 rounded-full" style="width: 0%;"></div>
             </div>
@@ -1028,8 +1032,7 @@
           <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/70">
             <span class="text-[9px] font-mono text-zinc-400 uppercase block">Carboidrato</span>
             <span id="patientMacroCarbTotal" class="text-xs font-black text-white font-mono block">0g</span>
-            <span id="patientMacroCarbConsumed" class="text-[9px] font-mono text-amber-400 font-bold block">0g
-              feitas</span>
+            <span id="patientMacroCarbConsumed" class="text-[9px] font-mono text-amber-400 font-bold block">0g feitas</span>
             <div class="w-full bg-[#171B1F] h-1.5 rounded-full overflow-hidden mt-1">
               <div id="patientMacroCarbProgress" class="h-full bg-amber-500 rounded-full" style="width: 0%;"></div>
             </div>
@@ -1037,10 +1040,17 @@
           <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/70">
             <span class="text-[9px] font-mono text-zinc-400 uppercase block">Gordura</span>
             <span id="patientMacroFatTotal" class="text-xs font-black text-white font-mono block">0g</span>
-            <span id="patientMacroFatConsumed" class="text-[9px] font-mono text-cyan-400 font-bold block">0g
-              feitas</span>
+            <span id="patientMacroFatConsumed" class="text-[9px] font-mono text-cyan-400 font-bold block">0g feitas</span>
             <div class="w-full bg-[#171B1F] h-1.5 rounded-full overflow-hidden mt-1">
               <div id="patientMacroFatProgress" class="h-full bg-cyan-500 rounded-full" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="p-2 rounded-lg bg-[#121518] border border-[#272C31]/70">
+            <span class="text-[9px] font-mono text-zinc-400 uppercase block">Fibras</span>
+            <span id="patientMacroFiberTotal" class="text-xs font-black text-white font-mono block">≥ 25g</span>
+            <span id="patientMacroFiberConsumed" class="text-[9px] font-mono text-emerald-400 font-bold block">0g feitas</span>
+            <div class="w-full bg-[#171B1F] h-1.5 rounded-full overflow-hidden mt-1">
+              <div id="patientMacroFiberProgress" class="h-full bg-emerald-500 rounded-full" style="width: 0%;"></div>
             </div>
           </div>
         </div>
@@ -3363,7 +3373,7 @@
         mealsMap[mName].lipid += (item.lipid || 0);
       });
 
-      return Object.values(mealsMap).map((m, idx) => ({
+      const converted = Object.values(mealsMap).map((m, idx) => ({
         id: `m_${idx + 1}`,
         time: m.time,
         name: m.name,
@@ -3375,6 +3385,17 @@
         fat: Math.round(m.lipid),
         done: false
       }));
+
+      // Ordenação cronológica estrita por horário da refeição
+      converted.sort((a, b) => {
+        const tA = a.time || "12:00";
+        const tB = b.time || "12:00";
+        const cmp = tA.localeCompare(tB);
+        if (cmp !== 0) return cmp;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+
+      return converted;
     }
 
     function checkIndexedDbPatient(patientId) {
@@ -6445,16 +6466,25 @@
 
       const totalMeals = patientState.meals.length;
 
-      // ── 1. Calcula totais prescritos e consumidos reais (apenas itens marcados) ──
+      // ── 1. Extrai Metas Canônicas Prescritas (Pilar 3) vs Totais do Cardápio ──
+      const pTargets = patientState.prescribedTargets || null;
+      const prescribedCalKcal = pTargets && Number(pTargets.caloricTargetKcal) > 0 ? Math.round(pTargets.caloricTargetKcal) : null;
+      const prescribedProtG = pTargets && Number(pTargets.proteinTargetG) > 0 ? Math.round(pTargets.proteinTargetG) : null;
+      const prescribedCarbG = pTargets && Number(pTargets.carbohydrateTargetG) > 0 ? Math.round(pTargets.carbohydrateTargetG) : null;
+      const prescribedFatG = pTargets && Number(pTargets.fatTargetG) > 0 ? Math.round(pTargets.fatTargetG) : null;
+      const prescribedFiberG = pTargets && Number(pTargets.fiberTargetG) > 0 ? Math.round(pTargets.fiberTargetG) : 25;
+
       const totalKcal = Math.round(patientState.meals.reduce((s, m) => s + (Number(m.kcal) || 0), 0));
       const totalProt = Math.round(patientState.meals.reduce((s, m) => s + (Number(m.prot) || 0), 0));
       const totalCarb = Math.round(patientState.meals.reduce((s, m) => s + (Number(m.carbo) || 0), 0));
       const totalFat = Math.round(patientState.meals.reduce((s, m) => s + (Number(m.fat) || 0), 0));
+      const totalFiber = Math.round(patientState.meals.reduce((s, m) => s + (Array.isArray(m.items) ? m.items.reduce((acc, it) => acc + (Number(it.fiber) || 0), 0) : 0), 0));
 
       let consumedKcal = 0;
       let consumedProt = 0;
       let consumedCarb = 0;
       let consumedFat = 0;
+      let consumedFiber = 0;
       let totalItemsCount = 0;
       let checkedItemsCount = 0;
       let completedMealsCount = 0;
@@ -6479,6 +6509,7 @@
               consumedProt += Number(it.prot) || ((Number(m.prot) || 0) / pCount);
               consumedCarb += Number(it.carbo) || ((Number(m.carbo) || 0) / pCount);
               consumedFat += Number(it.lipid || it.fat) || ((Number(m.fat) || 0) / pCount);
+              consumedFiber += Number(it.fiber) || 0;
             }
           });
           if (mTotal > 0 && mChecked === mTotal) {
@@ -6501,6 +6532,7 @@
       consumedProt = Math.round(consumedProt);
       consumedCarb = Math.round(consumedCarb);
       consumedFat = Math.round(consumedFat);
+      consumedFiber = Math.round(consumedFiber * 10) / 10;
 
       // ── 2. Atualiza Tag de Refeições Feitas ──
       const tagEl = document.getElementById('mealsCompletedTag');
@@ -6513,49 +6545,88 @@
       if (calTotEl) {
         calTotEl.innerHTML = `${totalKcal.toLocaleString('pt-BR')} kcal <span class="text-[9px] text-orange-300 font-normal font-sans ml-1">(${consumedKcal.toLocaleString('pt-BR')} consumidas)</span>`;
       }
+      const targetBadge = document.getElementById('patientPrescribedTargetBadge');
+      const targetKcalEl = document.getElementById('patientPrescribedTargetKcal');
+      if (targetBadge && targetKcalEl) {
+        if (prescribedCalKcal) {
+          targetBadge.classList.remove('hidden');
+          targetKcalEl.textContent = `${prescribedCalKcal.toLocaleString('pt-BR')} kcal`;
+        } else {
+          targetBadge.classList.add('hidden');
+        }
+      }
       const calProgEl = document.getElementById('patientMacroCalProgressBar');
       if (calProgEl) {
-        const calPct = totalKcal > 0 ? Math.min(100, Math.round((consumedKcal / totalKcal) * 100)) : 0;
+        const baseCalRef = prescribedCalKcal || totalKcal;
+        const calPct = baseCalRef > 0 ? Math.min(100, Math.round((consumedKcal / baseCalRef) * 100)) : 0;
         calProgEl.style.width = `${calPct}%`;
       }
 
       // Proteínas
       const protTotEl = document.getElementById('patientMacroProtTotal');
-      if (protTotEl) protTotEl.textContent = `${totalProt}g`;
+      if (protTotEl) {
+        protTotEl.textContent = prescribedProtG ? `${prescribedProtG}g` : `${totalProt}g`;
+      }
       const protConsEl = document.getElementById('patientMacroProtConsumed');
       if (protConsEl) {
-        const pPct = totalProt > 0 ? Math.round((consumedProt / totalProt) * 100) : 0;
-        protConsEl.innerHTML = `<span class="text-rose-300 font-bold">${consumedProt}g</span> consumidas (${pPct}%)`;
+        const baseProtRef = prescribedProtG || totalProt;
+        const pPct = baseProtRef > 0 ? Math.round((consumedProt / baseProtRef) * 100) : 0;
+        protConsEl.innerHTML = `<span class="text-rose-300 font-bold">${consumedProt}g</span> feitas (${pPct}%)`;
       }
       const protProgEl = document.getElementById('patientMacroProtProgress');
       if (protProgEl) {
-        protProgEl.style.width = `${totalProt > 0 ? Math.min(100, Math.round((consumedProt / totalProt) * 100)) : 0}%`;
+        const baseProtRef = prescribedProtG || totalProt;
+        protProgEl.style.width = `${baseProtRef > 0 ? Math.min(100, Math.round((consumedProt / baseProtRef) * 100)) : 0}%`;
       }
 
       // Carboidratos
       const carbTotEl = document.getElementById('patientMacroCarbTotal');
-      if (carbTotEl) carbTotEl.textContent = `${totalCarb}g`;
+      if (carbTotEl) {
+        carbTotEl.textContent = prescribedCarbG ? `${prescribedCarbG}g` : `${totalCarb}g`;
+      }
       const carbConsEl = document.getElementById('patientMacroCarbConsumed');
       if (carbConsEl) {
-        const cPct = totalCarb > 0 ? Math.round((consumedCarb / totalCarb) * 100) : 0;
-        carbConsEl.innerHTML = `<span class="text-amber-300 font-bold">${consumedCarb}g</span> consumidos (${cPct}%)`;
+        const baseCarbRef = prescribedCarbG || totalCarb;
+        const cPct = baseCarbRef > 0 ? Math.round((consumedCarb / baseCarbRef) * 100) : 0;
+        carbConsEl.innerHTML = `<span class="text-amber-300 font-bold">${consumedCarb}g</span> feitas (${cPct}%)`;
       }
       const carbProgEl = document.getElementById('patientMacroCarbProgress');
       if (carbProgEl) {
-        carbProgEl.style.width = `${totalCarb > 0 ? Math.min(100, Math.round((consumedCarb / totalCarb) * 100)) : 0}%`;
+        const baseCarbRef = prescribedCarbG || totalCarb;
+        carbProgEl.style.width = `${baseCarbRef > 0 ? Math.min(100, Math.round((consumedCarb / baseCarbRef) * 100)) : 0}%`;
       }
 
       // Gorduras
       const fatTotEl = document.getElementById('patientMacroFatTotal');
-      if (fatTotEl) fatTotEl.textContent = `${totalFat}g`;
+      if (fatTotEl) {
+        fatTotEl.textContent = prescribedFatG ? `${prescribedFatG}g` : `${totalFat}g`;
+      }
       const fatConsEl = document.getElementById('patientMacroFatConsumed');
       if (fatConsEl) {
-        const fPct = totalFat > 0 ? Math.round((consumedFat / totalFat) * 100) : 0;
-        fatConsEl.innerHTML = `<span class="text-cyan-300 font-bold">${consumedFat}g</span> consumidas (${fPct}%)`;
+        const baseFatRef = prescribedFatG || totalFat;
+        const fPct = baseFatRef > 0 ? Math.round((consumedFat / baseFatRef) * 100) : 0;
+        fatConsEl.innerHTML = `<span class="text-cyan-300 font-bold">${consumedFat}g</span> feitas (${fPct}%)`;
       }
       const fatProgEl = document.getElementById('patientMacroFatProgress');
       if (fatProgEl) {
-        fatProgEl.style.width = `${totalFat > 0 ? Math.min(100, Math.round((consumedFat / totalFat) * 100)) : 0}%`;
+        const baseFatRef = prescribedFatG || totalFat;
+        fatProgEl.style.width = `${baseFatRef > 0 ? Math.min(100, Math.round((consumedFat / baseFatRef) * 100)) : 0}%`;
+      }
+
+      // Fibras
+      const fiberTotEl = document.getElementById('patientMacroFiberTotal');
+      const fiberGoal = prescribedFiberG || (totalFiber > 0 ? totalFiber : 25);
+      if (fiberTotEl) {
+        fiberTotEl.textContent = `≥ ${fiberGoal}g`;
+      }
+      const fiberConsEl = document.getElementById('patientMacroFiberConsumed');
+      if (fiberConsEl) {
+        const fibPct = fiberGoal > 0 ? Math.round((consumedFiber / fiberGoal) * 100) : 0;
+        fiberConsEl.innerHTML = `<span class="text-emerald-300 font-bold">${consumedFiber}g</span> feitas (${fibPct}%)`;
+      }
+      const fiberProgEl = document.getElementById('patientMacroFiberProgress');
+      if (fiberProgEl) {
+        fiberProgEl.style.width = `${fiberGoal > 0 ? Math.min(100, Math.round((consumedFiber / fiberGoal) * 100)) : 0}%`;
       }
 
       // ── 4. Renderiza Cada Card de Refeição ──
@@ -6907,31 +6978,79 @@
       const currentRef = equivList.find(e => food.name.toLowerCase().includes(e.name.toLowerCase().split(' ')[0])) || equivList[0];
       const baseRatio = currentRef ? (1.0 / currentRef.factor) : 1.0;
 
-      if (listEl) {
-        listEl.innerHTML = equivList
-          .filter(e => !e.name.toLowerCase().includes(food.name.toLowerCase().split(' ')[0]))
-          .map(e => {
-            const calculatedQty = Math.round(baseQtyGrams * (e.factor * baseRatio));
-            const calculatedKcal = Math.round((e.per100g.kcal * calculatedQty) / 100);
-            const calculatedProt = Math.round(((e.per100g.prot * calculatedQty) / 100) * 10) / 10;
-            const calculatedCarb = Math.round(((e.per100g.carbo * calculatedQty) / 100) * 10) / 10;
-            const calculatedFat = Math.round(((e.per100g.fat * calculatedQty) / 100) * 10) / 10;
+      // Extração de restrições clínicas do paciente para segurança das substituições
+      const restrictionsList = [];
+      if (patientState.clinicalRestrictions) {
+        if (Array.isArray(patientState.clinicalRestrictions)) {
+          restrictionsList.push(...patientState.clinicalRestrictions);
+        } else if (typeof patientState.clinicalRestrictions === 'object') {
+          if (Array.isArray(patientState.clinicalRestrictions.allergies)) restrictionsList.push(...patientState.clinicalRestrictions.allergies);
+          if (Array.isArray(patientState.clinicalRestrictions.intolerances)) restrictionsList.push(...patientState.clinicalRestrictions.intolerances);
+          if (Array.isArray(patientState.clinicalRestrictions.pathologies)) restrictionsList.push(...patientState.clinicalRestrictions.pathologies);
+        }
+      }
+      if (Array.isArray(patientState.allergies)) restrictionsList.push(...patientState.allergies);
 
+      const checkFoodRestriction = (foodName) => {
+        const fLower = String(foodName).toLowerCase();
+        for (const r of restrictionsList) {
+          const rLower = String(r).toLowerCase().trim();
+          if (!rLower) continue;
+          if ((rLower.includes('lactose') || rLower.includes('leite')) && (fLower.includes('leite') || fLower.includes('queijo') || fLower.includes('iogurte') || fLower.includes('cottage') || fLower.includes('whey'))) return r;
+          if ((rLower.includes('glúten') || rLower.includes('gluten')) && (fLower.includes('trigo') || fLower.includes('aveia') || fLower.includes('pão') || fLower.includes('centeio') || fLower.includes('torrada'))) return r;
+          if ((rLower.includes('ovo')) && (fLower.includes('ovo') || fLower.includes('clara'))) return r;
+          if ((rLower.includes('camarão') || rLower.includes('frutos do mar')) && (fLower.includes('camarão') || fLower.includes('peixe') || fLower.includes('salmão') || fLower.includes('atum'))) return r;
+          if (fLower.includes(rLower)) return r;
+        }
+        return null;
+      };
+
+      if (listEl) {
+        const availableEquivs = equivList.filter(e => !e.name.toLowerCase().includes(food.name.toLowerCase().split(' ')[0]));
+        if (availableEquivs.length === 0) {
+          listEl.innerHTML = `<div class="p-3 text-center text-xs text-zinc-500 font-mono">Nenhuma alternativa equivalente encontrada.</div>`;
+          return;
+        }
+
+        listEl.innerHTML = availableEquivs.map(e => {
+          const restriction = checkFoodRestriction(e.name);
+          const calculatedQty = Math.round(baseQtyGrams * (e.factor * baseRatio));
+          const calculatedKcal = Math.round((e.per100g.kcal * calculatedQty) / 100);
+          const calculatedProt = Math.round(((e.per100g.prot * calculatedQty) / 100) * 10) / 10;
+          const calculatedCarb = Math.round(((e.per100g.carbo * calculatedQty) / 100) * 10) / 10;
+          const calculatedFat = Math.round(((e.per100g.fat * calculatedQty) / 100) * 10) / 10;
+
+          if (restriction) {
             return `
-              <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-orange-500/40 space-y-1 transition-all">
+              <div class="p-2.5 rounded-xl bg-red-950/20 border border-red-900/40 space-y-1 opacity-70">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white">${e.name}</span>
-                  <span class="text-xs font-mono font-black text-orange-400 bg-orange-950/60 border border-orange-800/80 px-2 py-0.5 rounded">
-                    ${calculatedQty}g
+                  <span class="text-xs font-bold text-red-200 line-through">${e.name}</span>
+                  <span class="text-[10px] font-mono font-bold text-red-400 bg-red-950/80 border border-red-800 px-2 py-0.5 rounded">
+                    ⚠️ Contraindicado (${restriction})
                   </span>
                 </div>
-                <div class="flex items-center justify-between text-[10px] font-mono text-zinc-400">
-                  <span>${calculatedKcal} kcal • ${calculatedProt}g P • ${calculatedCarb}g C • ${calculatedFat}g G</span>
-                  <span class="text-[9px] text-zinc-500 font-sans">${e.tip}</span>
+                <div class="text-[10px] font-mono text-zinc-500">
+                  Opção desaconselhada devido ao registro de alergia/intolerância clínica.
                 </div>
               </div>
             `;
-          }).join('');
+          }
+
+          return `
+            <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-orange-500/40 space-y-1 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white">${e.name}</span>
+                <span class="text-xs font-mono font-black text-orange-400 bg-orange-950/60 border border-orange-800/80 px-2 py-0.5 rounded">
+                  ${calculatedQty}g
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                <span>${calculatedKcal} kcal • ${calculatedProt}g P • ${calculatedCarb}g C • ${calculatedFat}g G</span>
+                <span class="text-[9px] text-zinc-500 font-sans">${e.tip}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
       }
     }
 

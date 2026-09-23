@@ -12,6 +12,8 @@ const { DEFAULT_MACRO_POLICY, validateMacroPolicy } = require('./macroPolicy');
 const { calculateDeterministicMacroTargets, isAthleteOrHighDemand, normalizeObjectiveCategory } = require('./macroTarget');
 const { validateNutritionPrescriptionTargets } = require('./nutritionTargetValidator');
 
+const { calculateDeterministicWaterTarget } = require('./waterTarget');
+
 const combined = {
   ...nutritionMath,
   DEFAULT_ENERGY_POLICY,
@@ -22,7 +24,8 @@ const combined = {
   calculateDeterministicMacroTargets,
   isAthleteOrHighDemand,
   normalizeObjectiveCategory,
-  validateNutritionPrescriptionTargets
+  validateNutritionPrescriptionTargets,
+  calculateDeterministicWaterTarget
 };
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -37,4 +40,6 @@ if (typeof window !== 'undefined') {
   window.NutriDomain.macroPolicy = { DEFAULT_MACRO_POLICY, validateMacroPolicy };
   window.NutriDomain.macroTarget = { calculateDeterministicMacroTargets, isAthleteOrHighDemand, normalizeObjectiveCategory };
   window.NutriDomain.targetValidator = { validateNutritionPrescriptionTargets };
+  window.NutriDomain.waterTarget = { calculateDeterministicWaterTarget };
 }
+

@@ -94,6 +94,18 @@ function getCanonicalMacroTargetMath() {
   return null;
 }
 
+function getCanonicalWaterTargetMath() {
+  if (typeof NutriDomain !== 'undefined' && NutriDomain.waterTarget && typeof NutriDomain.waterTarget.calculateDeterministicWaterTarget === 'function') {
+    return NutriDomain.waterTarget;
+  }
+  if (typeof require !== 'undefined') {
+    try {
+      return require('./domain/math/waterTarget');
+    } catch (_) {}
+  }
+  return null;
+}
+
 /**
  * Resolução Canônica de Metas Energéticas e Macronutrientes (N2.1 / N2.2).
  * ÚNICA autoridade clínica para UI, PDF e Persistência.
@@ -105,7 +117,7 @@ function getCanonicalMacroTargetMath() {
  */
 function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, meta = null) {
   const p = patient || (typeof activePatientData !== 'undefined' ? activePatientData : {}) || {};
-  const ev = evalData || (typeof lastEval !== 'undefined' ? lastEval : {}) || {};
+  const ev = evalData || (typeof lastEval !== 'undefined' && lastEval ? lastEval : (typeof window !== 'undefined' && window._transientEval ? window._transientEval : null)) || {};
   const patientId = p.id || p.patientId || (typeof activePatientId !== 'undefined' ? activePatientId : 'patient_active');
 
   const globalMeta = (typeof currentPrescriptionMeta !== 'undefined') ? currentPrescriptionMeta : null;
@@ -118,6 +130,22 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
       Number.isFinite(existingTargets.caloricTargetKcal) &&
       Number.isFinite(existingTargets.proteinTargetG) &&
       existingTargets.caloricTargetKcal > 0) {
+    if (!existingTargets.targetWaterMl) {
+      const wKg = Number(ev.weight || p.currentWeight || p.weight || 70);
+      const af = Number(ev.activityFactor || p.activityFactor || 1.42);
+      const isAth = String(p.patientType || '').toLowerCase().includes('atleta');
+      const waterEngine = getCanonicalWaterTargetMath();
+      const wRes = waterEngine?.calculateDeterministicWaterTarget
+        ? waterEngine.calculateDeterministicWaterTarget(wKg, { activityFactor: af, isAthlete: isAth })
+        : null;
+      const targetWaterMl = wRes?.targetWaterMl ?? Math.round(wKg * (af >= 1.55 ? 45 : (af >= 1.35 ? 40 : 35)));
+      return Object.freeze({
+        ...existingTargets,
+        targetWaterMl,
+        waterTargetL: Number((targetWaterMl / 1000).toFixed(2)),
+        waterRangeDisplay: wRes?.rangeDisplay ?? `${(wKg * 0.035).toFixed(1)} a ${(wKg * 0.045).toFixed(1)} L/dia`
+      });
+    }
     return existingTargets;
   }
 
@@ -138,6 +166,8 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
 
   const actFactor = Number(ev.activityFactor || p.activityFactor || (typeof document !== 'undefined' ? document.getElementById('evalActivityFactor')?.value : 1.2) || 1.2);
   const objectiveText = p.objective || ev.objective || (typeof document !== 'undefined' ? document.getElementById('anamneseObjective')?.value : 'Perda de peso') || 'Perda de peso';
+
+  const isAthlete = String(patientType).toLowerCase().includes('atleta') || String(patientType).toLowerCase().includes('alto rendimento');
 
   const canonicalContext = {
     patient: {
@@ -163,7 +193,7 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
     },
     routine: {},
     training: {
-      isAthlete: String(patientType).toLowerCase().includes('atleta') || String(patientType).toLowerCase().includes('alto rendimento')
+      isAthlete: isAthlete
     },
     cardio: {},
     clinical: {}
@@ -171,6 +201,13 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
 
   const energyEngine = getCanonicalEnergyTargetMath();
   const macroEngine = getCanonicalMacroTargetMath();
+  const waterEngine = getCanonicalWaterTargetMath();
+
+  const waterRes = waterEngine?.calculateDeterministicWaterTarget
+    ? waterEngine.calculateDeterministicWaterTarget(canonicalContext)
+    : null;
+  const targetWaterMl = waterRes?.targetWaterMl ?? Math.round(weightKg * (actFactor >= 1.55 || isAthlete ? 45 : (actFactor >= 1.35 ? 40 : 35)));
+  const waterRangeDisplay = waterRes?.rangeDisplay ?? `${(weightKg * 0.035).toFixed(1)} a ${(weightKg * 0.045).toFixed(1)} L/dia`;
 
   if (energyEngine && typeof energyEngine.calculateDeterministicEnergyTarget === 'function') {
     const energyRes = energyEngine.calculateDeterministicEnergyTarget(canonicalContext, { allowAdolescent });
@@ -188,6 +225,9 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
         carbohydrateTargetG: macroRes?.carbohydrateTargetG ?? null,
         fatTargetG: macroRes?.fatTargetG ?? null,
         fiberTargetG: macroRes?.fiberTargetG ?? null,
+        targetWaterMl: targetWaterMl,
+        waterTargetL: Number((targetWaterMl / 1000).toFixed(2)),
+        waterRangeDisplay: waterRangeDisplay,
         energyTargetResult: energyRes,
         macroTargetResult: macroRes,
         targetValidationResult: null
@@ -224,6 +264,9 @@ function resolveCanonicalPrescriptionTargets(patient = null, evalData = null, me
     carbohydrateTargetG: fallbackCarbG,
     fatTargetG: fallbackFatG,
     fiberTargetG: 25,
+    targetWaterMl: targetWaterMl,
+    waterTargetL: Number((targetWaterMl / 1000).toFixed(2)),
+    waterRangeDisplay: waterRangeDisplay,
     energyTargetResult: null,
     macroTargetResult: null,
     targetValidationResult: null
@@ -234,10 +277,13 @@ if (typeof window !== 'undefined') {
   window.resolveCanonicalPrescriptionTargets = resolveCanonicalPrescriptionTargets;
   window.getCanonicalEnergyTargetMath = getCanonicalEnergyTargetMath;
   window.getCanonicalMacroTargetMath = getCanonicalMacroTargetMath;
+  window.getCanonicalWaterTargetMath = getCanonicalWaterTargetMath;
 }
 if (typeof globalThis !== 'undefined') {
   globalThis.resolveCanonicalPrescriptionTargets = resolveCanonicalPrescriptionTargets;
+  globalThis.getCanonicalWaterTargetMath = getCanonicalWaterTargetMath;
 }
+
 
 /**
  * Computa um fingerprint determinístico e canônico do conteúdo clínico da prescrição.
@@ -845,9 +891,9 @@ async function updateDashboardAndRadar(patientId = activePatientId) {
     } else {
       // Fallback determinístico alinhado às políticas quando não há metas canônicas resolvidas
       if (objective.toLowerCase().includes("perda") || objective.toLowerCase().includes("emagrecimento")) {
-        caloricTarget = Math.round(get - 450);
+        caloricTarget = Math.round(get * 0.80); // -20% canônico N2.1
       } else if (objective.toLowerCase().includes("hipertrofia")) {
-        caloricTarget = Math.round(get + 350);
+        caloricTarget = Math.round(get * 1.15); // +15% canônico N2.1
       }
     }
   } catch (targetErr) {
@@ -2563,6 +2609,23 @@ function updateEvaluationCalculations() {
 
   if (document.getElementById("resCaloricTarget")) {
     document.getElementById("resCaloricTarget").innerText = caloricTarget;
+  }
+
+  if (typeof window !== 'undefined') {
+    window._transientEval = {
+      weight,
+      height,
+      gender,
+      age,
+      leanMass: bodyComp.leanMassKg,
+      fatPercent: bodyComp.bodyFatPercent,
+      activityFactor: actFactor,
+      objective: document.getElementById("anamneseObjective")?.value || "Perda de peso",
+      tmbKcal: tmbData.tmb,
+      getKcal: getKcal,
+      caloricTargetKcal: caloricTarget,
+      isUnsaved: true
+    };
   }
 
   const proj = calculateGoalProjection(weight, bodyComp.bodyFatPercent, targetBF, getKcal, caloricTarget);
@@ -4357,9 +4420,8 @@ function generateWhatsAppDietMessage(patientData = {}, items = [], targets = {},
   }
 
   if (includeWater) {
-    const waterMin = (pWeight * 0.035).toFixed(1);
-    const waterMax = (pWeight * 0.040).toFixed(1);
-    msg += `💧 *Meta de Hidratação Diária:* ${waterMin} a ${waterMax} Litros de água/dia\n`;
+    const waterDisplay = targets?.waterRangeDisplay || (targets?.targetWaterMl ? `${(targets.targetWaterMl / 1000).toFixed(1)} Litros de água/dia` : `${(pWeight * 0.035).toFixed(1)} a ${(pWeight * 0.045).toFixed(1)} Litros de água/dia`);
+    msg += `💧 *Meta de Hidratação Diária:* ${waterDisplay}\n`;
   }
 
   msg += `\n══════════════════════════════\n`;
@@ -4376,6 +4438,10 @@ function generateWhatsAppDietMessage(patientData = {}, items = [], targets = {},
   });
 
   const orderedMealKeys = Object.keys(grouped).sort((a, b) => {
+    const timeA = grouped[a][0]?.mealTime || "12:00";
+    const timeB = grouped[b][0]?.mealTime || "12:00";
+    const timeCompare = timeA.localeCompare(timeB);
+    if (timeCompare !== 0) return timeCompare;
     const idxA = mealOrder.indexOf(a);
     const idxB = mealOrder.indexOf(b);
     return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
@@ -5002,16 +5068,48 @@ function renderMealItems() {
     }
   });
 
-  // Ordena respeitando a ordem clínica padrão ou cronologicamente por horário
+  // Recupera protocolo ativo de jejum intermitente (se houver) para validação de janela
+  let activeFastingProto = null;
+  if (typeof activePatientId !== 'undefined' && activePatientId) {
+    const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
+      ? window.NutriAxFasting
+      : (typeof NutriAxFasting !== 'undefined' ? NutriAxFasting : null);
+    if (fastingMod && typeof fastingMod.getActiveProtocol === 'function') {
+      activeFastingProto = fastingMod.getActiveProtocol(activePatientId);
+    }
+    if (!activeFastingProto) {
+      try {
+        const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${activePatientId}`) ||
+                      localStorage.getItem(`nutriax_fasting_protocol_${String(activePatientId).toLowerCase().replace(/\s+/g, '-')}`) ||
+                      localStorage.getItem('nutriax_fasting_protocol_default');
+        if (rawFp) activeFastingProto = JSON.parse(rawFp);
+      } catch (_) {}
+    }
+  }
+  const hasActiveFastingWindow = Boolean(
+    activeFastingProto &&
+    activeFastingProto.enabled === true &&
+    Array.isArray(activeFastingProto.feedingWindows) &&
+    activeFastingProto.feedingWindows.length > 0 &&
+    activeFastingProto.feedingWindows[0].start &&
+    activeFastingProto.feedingWindows[0].end
+  );
+  const feedWinStart = hasActiveFastingWindow ? activeFastingProto.feedingWindows[0].start : null;
+  const feedWinEnd = hasActiveFastingWindow ? activeFastingProto.feedingWindows[0].end : null;
+
+  // Ordena cronologicamente por horário de refeição (mealTime) com desempate na ordem clínica padrão
   mealsPresent.sort((a, b) => {
+    const timeA = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === a)?.mealTime || "12:00";
+    const timeB = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === b)?.mealTime || "12:00";
+    const timeDiff = timeA.localeCompare(timeB);
+    if (timeDiff !== 0) return timeDiff;
+
     const idxA = standardMealOrder.indexOf(a);
     const idxB = standardMealOrder.indexOf(b);
     if (idxA !== -1 && idxB !== -1) return idxA - idxB;
     if (idxA !== -1) return -1;
     if (idxB !== -1) return 1;
-    const timeA = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === a)?.mealTime || "12:00";
-    const timeB = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === b)?.mealTime || "12:00";
-    return timeA.localeCompare(timeB) || a.localeCompare(b);
+    return a.localeCompare(b);
   });
 
   const effectiveMealGroups = mealsPresent.length > 0 ? mealsPresent : standardMealOrder;
@@ -5042,6 +5140,31 @@ function renderMealItems() {
       const targetMealCarb = Math.round(totalPrescribedCarb * strat.pct);
       const targetMealLip = Math.round(totalPrescribedLip * strat.pct);
 
+      const mealTimeStr = items[0]?.mealTime || "08:00";
+      let fastingConflictBadge = '';
+      if (hasActiveFastingWindow && feedWinStart && feedWinEnd) {
+        const toMin = (t) => {
+          const parts = String(t).split(':').map(Number);
+          return (parts[0] || 0) * 60 + (parts[1] || 0);
+        };
+        const mMin = toMin(mealTimeStr);
+        const sMin = toMin(feedWinStart);
+        const eMin = toMin(feedWinEnd);
+        let isInside = false;
+        if (sMin <= eMin) {
+          isInside = mMin >= sMin && mMin <= eMin;
+        } else {
+          isInside = mMin >= sMin || mMin <= eMin;
+        }
+        if (!isInside) {
+          fastingConflictBadge = `
+            <span class="bg-amber-950/80 text-amber-300 border border-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm" title="Refeição em horário fora da janela de alimentação definida no Jejum Intermitente (${feedWinStart} às ${feedWinEnd})">
+              ⚠️ Fora da Janela (${feedWinStart}-${feedWinEnd})
+            </span>
+          `;
+        }
+      }
+
       return `
       <div class="bg-zinc-900/90 rounded-3xl border border-zinc-800 shadow-card-dark overflow-hidden mb-5">
         <!-- 1. Cabeçalho Principal da Refeição -->
@@ -5049,12 +5172,13 @@ function renderMealItems() {
           <div class="flex items-center gap-2.5">
             <span class="w-3 h-3 rounded-full bg-red-600 shadow-sm shadow-red-600/50"></span>
             <div>
-              <h3 class="font-black text-sm text-white flex items-center gap-2">
+              <h3 class="font-black text-sm text-white flex items-center gap-2 flex-wrap">
                 ${group}
-                <span class="text-xs text-zinc-400 font-normal font-mono">(${items[0]?.mealTime || "08:00"})</span>
+                <span class="text-xs text-zinc-400 font-normal font-mono">(${mealTimeStr})</span>
                 <span class="bg-zinc-900 text-zinc-300 border border-zinc-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
                   ${Math.round(strat.pct * 100)}% da Dieta
                 </span>
+                ${fastingConflictBadge}
               </h3>
             </div>
           </div>
@@ -5245,18 +5369,27 @@ async function exportPrescriptionAndEvaluationPDF() {
       mealsPresent.push(mName);
     }
   });
+  // Ordena cronologicamente por horário de refeição com desempate na ordem clínica padrão
   mealsPresent.sort((a, b) => {
+    const timeA = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === a)?.mealTime || "12:00";
+    const timeB = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === b)?.mealTime || "12:00";
+    const timeDiff = timeA.localeCompare(timeB);
+    if (timeDiff !== 0) return timeDiff;
+
     const idxA = standardMealOrder.indexOf(a);
     const idxB = standardMealOrder.indexOf(b);
     if (idxA !== -1 && idxB !== -1) return idxA - idxB;
     if (idxA !== -1) return -1;
     if (idxB !== -1) return 1;
-    const timeA = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === a)?.mealTime || "12:00";
-    const timeB = currentPrescriptionItems.find((i) => (i.mealName || "").trim() === b)?.mealTime || "12:00";
-    return timeA.localeCompare(timeB) || a.localeCompare(b);
+    return a.localeCompare(b);
   });
   const mealGroups = mealsPresent.length > 0 ? mealsPresent : standardMealOrder;
-  const hydration = p.hydrationLiters || (weight ? Number((weight * 0.035).toFixed(1)) : 3.0);
+  const hydration = (canonicalTargets && canonicalTargets.waterTargetL != null)
+    ? canonicalTargets.waterTargetL
+    : (p.hydrationLiters || (weight ? Number((weight * 0.035).toFixed(1)) : 3.0));
+  const hydrationDisplay = (canonicalTargets && canonicalTargets.waterRangeDisplay)
+    ? `${canonicalTargets.waterRangeDisplay} (${canonicalTargets.targetWaterMl || Math.round(hydration * 1000)} mL/dia)`
+    : `${hydration} Litros / dia`;
   const emissionDate = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   // 5. Montagem do HTML Imprimível
@@ -5489,9 +5622,28 @@ async function exportPrescriptionAndEvaluationPDF() {
         `;
   }).join("")}
 
+      <!-- 4. Protocolo de Treinamento & Periodização Biomecânica (Se Cadastrado) -->
+      ${(typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length > 0) ? `
+        <div class="section-title">4. Periodização de Treinamento &amp; Performance</div>
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 12px; font-size: 11px;">
+          <div style="font-weight: 800; color: #0f172a; margin-bottom: 6px; display: flex; justify-content: space-between;">
+            <span>Divisão Ativa: <strong style="color: #dc2626;">${typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'Periodização Personalizada'}</strong></span>
+            <span style="color: #64748b; font-family: monospace;">Frequência: ${perfWorkoutPlan.length} sessões</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px;">
+            ${perfWorkoutPlan.map(w => `
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px;">
+                <strong style="color: #0f172a; font-size: 11px; display: block;">${w.name || `Treino ${w.id}`}</strong>
+                <span style="color: #64748b; font-size: 10px;">${(w.exercises || []).length} exercícios • ${w.exercises ? w.exercises.reduce((a, b) => a + (parseInt(b.sets) || 3), 0) : 0} séries</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
       <!-- 5. Hidratação & Orientações Finais -->
       <div class="card-box highlight" style="margin-top: 14px; font-size: 11px;">
-        <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">💧 META DE HIDRATAÇÃO DIÁRIA: <span style="color: #dc2626; font-size: 13px;">${hydration} Litros / dia</span></div>
+        <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">💧 META DE HIDRATAÇÃO DIÁRIA: <span style="color: #dc2626; font-size: 13px;">${hydrationDisplay}</span></div>
         <p style="color: #475569;">Distribuir a ingestão de água ao longo do dia, priorizando períodos fora das grandes refeições (30 min antes ou 1h após).</p>
       </div>
 
@@ -12595,6 +12747,15 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
       }))
     : [];
 
+  // Ordena cronologicamente por horário
+  formattedMeals.sort((a, b) => {
+    const tA = a.time || "12:00";
+    const tB = b.time || "12:00";
+    const cmp = tA.localeCompare(tB);
+    if (cmp !== 0) return cmp;
+    return (a.name || "").localeCompare(b.name || "");
+  });
+
   // 2. Banco de Dados Biomecânico de Treinos (Rotinas A-F, Cardio, OFF)
   const formattedWorkout = {};
   if (Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length > 0) {
@@ -12785,6 +12946,21 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     typeof currentPrescriptionMeta !== 'undefined' ? currentPrescriptionMeta : null
   );
 
+  // Meta Canônica de Hidratação para o App do Paciente (Substitui fallbacks isolados)
+  if (canonTargets && Number.isFinite(canonTargets.targetWaterMl) && canonTargets.targetWaterMl > 0) {
+    targetWater = canonTargets.targetWaterMl;
+  } else {
+    const waterMath = (typeof getCanonicalWaterTargetMath === 'function') ? getCanonicalWaterTargetMath() : null;
+    if (waterMath && typeof waterMath.calculateDeterministicWaterTarget === 'function') {
+      const calcW = waterMath.calculateDeterministicWaterTarget({
+        weightKg: activePatientData?.currentWeight || activePatientData?.weight || 70,
+        activityFactor: activePatientData?.activityFactor || 1.42,
+        patientType: activePatientData?.patientType
+      });
+      if (calcW && calcW.targetWaterMl) targetWater = calcW.targetWaterMl;
+    }
+  }
+
   const isEligible = Boolean(isDietEligibleForPatientPublication);
 
   const syncPayload = {
@@ -12792,6 +12968,8 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     patientId: pId,
     patientName: patientName,
     targetWater: targetWater,
+    targetWaterL: Number((targetWater / 1000).toFixed(2)),
+    waterRangeDisplay: (canonTargets && canonTargets.waterRangeDisplay) ? canonTargets.waterRangeDisplay : `${targetWater} mL/dia`,
     dietPlanStatus: isEligible
       ? 'VALIDATED_CANONICAL'
       : (Array.isArray(currentPrescriptionItems) && currentPrescriptionItems.length > 0 ? 'PENDING_CLINICAL_VALIDATION' : 'EMPTY'),
@@ -12802,8 +12980,15 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
       proteinTargetG: canonTargets.proteinTargetG,
       carbohydrateTargetG: canonTargets.carbohydrateTargetG,
       fatTargetG: canonTargets.fatTargetG,
-      fiberTargetG: canonTargets.fiberTargetG
+      fiberTargetG: canonTargets.fiberTargetG,
+      waterTargetMl: targetWater
     } : null,
+    clinicalRestrictions: {
+      allergies: activePatientData?.allergies || (Array.isArray(activePatientData?.clinicalRestrictions) ? activePatientData.clinicalRestrictions : []) || [],
+      intolerances: activePatientData?.intolerances || [],
+      pathologies: activePatientData?.pathologies || [],
+      notes: activePatientData?.clinicalNotes || activePatientData?.observations || ""
+    },
     actualDietTotals: isEligible && formattedMeals.length > 0 ? {
       kcal: Math.round(formattedMeals.reduce((acc, m) => acc + (m.kcal || 0), 0)),
       prot: Math.round(formattedMeals.reduce((acc, m) => acc + (m.prot || 0), 0)),
@@ -15819,6 +16004,10 @@ function perfGetNutritionContext() {
   const dashWeightText = document.getElementById('dashWeight')?.innerText?.replace('kg', '')?.trim();
 
   let currentWeight = 115.8;
+  if (typeof activePatientData !== 'undefined' && activePatientData) {
+    const pw = parseFloat(activePatientData.currentWeight || activePatientData.weight || activePatientData.usualWeight);
+    if (pw > 0) currentWeight = pw;
+  }
   if (headerWeightText && parseFloat(headerWeightText)) currentWeight = parseFloat(headerWeightText);
   else if (perfWeightText && parseFloat(perfWeightText)) currentWeight = parseFloat(perfWeightText);
   else if (anamneseWeightVal && parseFloat(anamneseWeightVal)) currentWeight = parseFloat(anamneseWeightVal);
@@ -15865,7 +16054,12 @@ function perfGetNutritionContext() {
   const carbInput = document.getElementById('prescCarbGKg');
   if (carbInput && carbInput.value && parseFloat(carbInput.value)) carbGKg = parseFloat(carbInput.value);
 
-  const waterTargetMl = Math.round(currentWeight * 40); // 40ml/kg (ex: 115.8 * 40 = 4632 mL)
+  // Meta Canônica de Hidratação Unificada (N3.7.5)
+  const waterTargetMl = (canonTargets && Number.isFinite(canonTargets.targetWaterMl))
+    ? Math.round(canonTargets.targetWaterMl)
+    : (typeof calculateDeterministicWaterTarget === 'function'
+      ? calculateDeterministicWaterTarget({ weight: currentWeight, activityFactor: 1.42 }).targetWaterMl
+      : Math.round(currentWeight * 40));
 
   const isCutting = objective.toLowerCase().includes('perda') || objective.toLowerCase().includes('emagrecimento') || energyBalance < -150;
   const isBulking = objective.toLowerCase().includes('hipertrofia') || energyBalance > 150;
