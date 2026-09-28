@@ -568,8 +568,8 @@
     <!-- ═════════════════════════════════════════════════════════ -->
     <section id="tabViewHoje" class="tab-view active w-full space-y-4">
 
-      <!-- HERO BANNER INTERATIVO: DISCIPLINA & ROTINA COM DIAS & SLIDES -->
-      <div id="heroHojeContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+      <!-- HERO BANNER INTERATIVO: DISCIPLINA & ROTINA -->
+      <div id="heroHojeContainer" onmouseenter="pauseHeroCarousel('heroHoje')" ontouchstart="pauseHeroCarousel('heroHoje')" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
         <!-- Slides Container -->
         <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroHojeSlider">
           <!-- Slide 0: Imagem do Dia (Alterna com o dia selecionado) -->
@@ -580,11 +580,13 @@
           <!-- Slide 1: Pilar Institucional Disciplina -->
           <div class="hero-slide" data-slide="1" id="heroHojeSlide1">
             <img src="../assets/pilares/disciplina/institucional.jpg" alt="Pilar Disciplina & Rotina" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
-            <div class="absolute inset-0 bg-gradient-to-t from-[#08090A] via-[#08090A]/70 to-[#08090A]/30"></div>
-            <div class="absolute inset-0 flex flex-col justify-center px-4 sm:px-6">
-              <span class="text-[9px] font-mono uppercase tracking-widest text-[#E50914] font-bold">Método &amp; Princípio</span>
-              <h3 class="text-sm sm:text-base font-black text-white mt-1">"A disciplina te leva aonde a motivação não alcança."</h3>
-              <p class="text-[10px] text-zinc-300 mt-1 max-w-md">Hábitos atômicos diários constroem resultados inegociáveis. O foco é no processo, não na perfeição.</p>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#08090A] via-[#08090A]/75 to-[#08090A]/30"></div>
+            <div class="absolute inset-0 flex flex-col justify-center px-5 sm:px-8">
+              <span class="text-[9px] font-mono uppercase tracking-widest text-[#E50914] font-bold flex items-center gap-1.5">
+                <i data-lucide="shield" class="w-3 h-3"></i> Método &amp; Princípio
+              </span>
+              <h3 class="text-sm sm:text-base font-black text-white mt-1 leading-snug">"A disciplina te leva aonde a motivação não alcança."</h3>
+              <p class="text-[10px] text-zinc-300 mt-1 max-w-md leading-relaxed">Hábitos atômicos diários constroem resultados inegociáveis. O foco é no processo, não na perfeição.</p>
             </div>
           </div>
           <!-- Slide 2: Resumo Flash do Dia -->
@@ -596,17 +598,17 @@
               <span class="text-[9px] font-mono text-zinc-400">Tempo real</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
-              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+              <div class="p-2 rounded-xl bg-[#08090A]/85 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Consistência</div>
                 <div class="text-base font-black text-white font-mono mt-0.5" id="heroQuickStreak">1 dia</div>
                 <div class="text-[8px] text-emerald-400 font-mono">Foco ativo</div>
               </div>
-              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+              <div class="p-2 rounded-xl bg-[#08090A]/85 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Treino</div>
                 <div class="text-xs font-black text-white font-mono mt-1" id="heroQuickWorkout">Em Aberto</div>
                 <div class="text-[8px] text-amber-400 font-mono">Prescrito</div>
               </div>
-              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+              <div class="p-2 rounded-xl bg-[#08090A]/85 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Hidratação</div>
                 <div class="text-base font-black text-[#00C896] font-mono mt-0.5" id="heroQuickWater">-- / 3L</div>
                 <div class="text-[8px] text-zinc-400 font-mono">Meta diária</div>
@@ -615,21 +617,16 @@
           </div>
         </div>
 
-        <!-- Top Badges & Day Selector -->
-        <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 z-10">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 02 · DISCIPLINA
+        <!-- Top Badges & Pause Control (LIMPO E ESPAÇOSO) -->
+        <div class="absolute top-2.5 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
+          <span class="pointer-events-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 02 · DISCIPLINA &amp; HÁBITOS
           </span>
-          <!-- Seletor Rápido de Dias da Semana (Interativo) -->
-          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroDaySelector">
-            <button type="button" onclick="selectHeroDay('seg')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="seg">SEG</button>
-            <button type="button" onclick="selectHeroDay('ter')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="ter">TER</button>
-            <button type="button" onclick="selectHeroDay('qua')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="qua">QUA</button>
-            <button type="button" onclick="selectHeroDay('qui')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="qui">QUI</button>
-            <button type="button" onclick="selectHeroDay('sex')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="sex">SEX</button>
-            <button type="button" onclick="selectHeroDay('sab')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="sab">SÁB</button>
-            <button type="button" onclick="selectHeroDay('dom')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="dom">DOM</button>
-          </div>
+          <!-- Botão de Pausa / Rotação explícito -->
+          <button type="button" id="heroHojePlayPauseBtn" onclick="toggleHeroPlayPause('heroHoje')" class="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 hover:bg-[#171B1F] border border-[#272C31] backdrop-blur-sm text-[9px] font-mono text-zinc-300 hover:text-white shadow transition-all active:scale-95" title="Pausar ou Retomar Rotação">
+            <span id="heroHojePlayPauseIcon">⏸️</span>
+            <span id="heroHojePlayPauseText">Pausar</span>
+          </button>
         </div>
 
         <!-- Bottom Patient Info & Streak -->
@@ -639,7 +636,7 @@
             <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight" id="patientNameDisplay">
               Paciente
             </h1>
-            <p class="text-[9px] text-zinc-400 mt-0.5" id="heroDayMotto">Rotina • consistência • hábitos</p>
+            <p class="text-[10px] text-zinc-400 mt-0.5" id="heroDayMotto">Rotina • consistência • hábitos</p>
           </div>
           <div class="text-right flex flex-col items-end gap-1 pointer-events-auto">
             <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#08090A]/95 border border-[#272C31] backdrop-blur-sm shadow-md">
@@ -667,6 +664,23 @@
         <button type="button" onclick="nextHeroSlide('heroHoje')" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Próximo Slide">
           <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
         </button>
+      </div>
+
+      <!-- SELETOR DEDICADO DE DIAS DA SEMANA (FORA DA IMAGEM - LIMPO E ELEGANTE) -->
+      <div class="p-2 rounded-2xl bg-[#121518] border border-[#272C31] flex items-center justify-between gap-2 shadow-sm">
+        <div class="flex items-center gap-1.5 pl-1.5 shrink-0">
+          <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#E50914]"></i>
+          <span class="text-[10px] font-mono text-zinc-400 font-bold uppercase">Dia:</span>
+        </div>
+        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 justify-end" id="heroDaySelector">
+          <button type="button" onclick="selectHeroDay('seg')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="seg">SEG</button>
+          <button type="button" onclick="selectHeroDay('ter')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="ter">TER</button>
+          <button type="button" onclick="selectHeroDay('qua')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="qua">QUA</button>
+          <button type="button" onclick="selectHeroDay('qui')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="qui">QUI</button>
+          <button type="button" onclick="selectHeroDay('sex')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="sex">SEX</button>
+          <button type="button" onclick="selectHeroDay('sab')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="sab">SÁB</button>
+          <button type="button" onclick="selectHeroDay('dom')" class="hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white" data-day="dom">DOM</button>
+        </div>
       </div>
 
       <!-- CARD RESUMO COMPARATIVO: ONTEM VS HOJE -->
@@ -875,7 +889,7 @@
     <section id="tabViewTreino" class="tab-view hidden w-full space-y-4">
 
       <!-- HERO BANNER INTERATIVO: TREINO & PERFORMANCE -->
-      <div id="heroTreinoContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+      <div id="heroTreinoContainer" onmouseenter="pauseHeroCarousel('heroTreino')" ontouchstart="pauseHeroCarousel('heroTreino')" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
         <!-- Slides Container -->
         <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroTreinoSlider">
           <!-- Slide 0: Imagem do Treino Ativo -->
@@ -926,13 +940,19 @@
           <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 04 · PERFORMANCE
           </span>
-          <!-- Seletor Rápido de Treinos do Ciclo -->
-          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroWorkoutSelector">
-            <button type="button" onclick="selectHeroWorkout(1)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-wkt="1">T1</button>
-            <button type="button" onclick="selectHeroWorkout(2)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="2">T2</button>
-            <button type="button" onclick="selectHeroWorkout(3)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="3">T3</button>
-            <button type="button" onclick="selectHeroWorkout(4)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="4">T4</button>
-            <button type="button" onclick="selectHeroWorkout(5)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="5">T5</button>
+          <div class="flex items-center gap-1.5">
+            <!-- Seletor Rápido de Treinos do Ciclo -->
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroWorkoutSelector">
+              <button type="button" onclick="selectHeroWorkout(1)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-wkt="1">T1</button>
+              <button type="button" onclick="selectHeroWorkout(2)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="2">T2</button>
+              <button type="button" onclick="selectHeroWorkout(3)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="3">T3</button>
+              <button type="button" onclick="selectHeroWorkout(4)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="4">T4</button>
+              <button type="button" onclick="selectHeroWorkout(5)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="5">T5</button>
+            </div>
+            <!-- Botão de Pausa Treino -->
+            <button type="button" id="heroTreinoPlayPauseBtn" onclick="toggleHeroPlayPause('heroTreino')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#08090A]/90 hover:bg-[#171B1F] border border-[#272C31] text-[9px] font-mono text-zinc-300 hover:text-white shadow transition-all active:scale-95" title="Pausar ou Retomar">
+              <span id="heroTreinoPlayPauseIcon">⏸️</span>
+            </button>
           </div>
         </div>
 
@@ -1155,7 +1175,7 @@
     <section id="tabViewNutricao" class="tab-view hidden w-full space-y-4">
 
       <!-- HERO BANNER INTERATIVO: NUTRIÇÃO & SAÚDE -->
-      <div id="heroNutricaoContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+      <div id="heroNutricaoContainer" onmouseenter="pauseHeroCarousel('heroNutricao')" ontouchstart="pauseHeroCarousel('heroNutricao')" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
         <!-- Slides Container -->
         <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroNutricaoSlider">
           <!-- Slide 0: Imagem Nutrição Estratégica -->
@@ -1173,29 +1193,29 @@
               <p class="text-[10px] text-zinc-300 mt-1 max-w-md">Cada refeição deve priorizar fontes proteicas limpas, fibras e hidratação adequada para sustentar o anabolismo e a saúde metabólica.</p>
             </div>
           </div>
-          <!-- Slide 2: Resumo Métrico de Macros -->
+          <!-- Slide 2: Resumo Métrico de Macros (EM ANDAMENTO DO DIA) -->
           <div class="hero-stats-overlay" data-slide="2" id="heroNutricaoSlide2">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[10px] font-mono font-bold uppercase text-amber-400 flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> Balanço Energético do Dia
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> Balanço do Dia em Andamento
               </span>
-              <span class="text-[9px] font-mono text-zinc-400">Prescrição Ativa</span>
+              <span class="text-[9px] font-mono text-zinc-400">Tempo Real</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
               <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Proteínas</div>
-                <div class="text-base font-black text-sky-400 font-mono mt-0.5" id="heroMacroP">~160g</div>
-                <div class="text-[8px] text-zinc-400 font-mono">2.0 g/kg</div>
+                <div class="text-xs font-black text-sky-400 font-mono mt-0.5" id="heroMacroP">0g / 0g</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Feito / Meta</div>
               </div>
               <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Carboidratos</div>
-                <div class="text-base font-black text-emerald-400 font-mono mt-0.5" id="heroMacroC">~210g</div>
-                <div class="text-[8px] text-zinc-400 font-mono">Energia Limpa</div>
+                <div class="text-xs font-black text-emerald-400 font-mono mt-0.5" id="heroMacroC">0g / 0g</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Feito / Meta</div>
               </div>
               <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Lipídios</div>
-                <div class="text-base font-black text-amber-400 font-mono mt-0.5" id="heroMacroG">~55g</div>
-                <div class="text-[8px] text-zinc-400 font-mono">Hormonal</div>
+                <div class="text-xs font-black text-amber-400 font-mono mt-0.5" id="heroMacroG">0g / 0g</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Feito / Meta</div>
               </div>
             </div>
           </div>
@@ -1206,13 +1226,19 @@
           <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 03 · NUTRIÇÃO
           </span>
-          <!-- Seletor Rápido de Foco / Refeições -->
-          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroMealSelector">
-            <button type="button" onclick="selectHeroMeal('todas')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-meal="todas">PLANO</button>
-            <button type="button" onclick="selectHeroMeal('cafe')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="cafe">CAFÉ</button>
-            <button type="button" onclick="selectHeroMeal('almoco')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="almoco">ALMOÇO</button>
-            <button type="button" onclick="selectHeroMeal('lanche')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="lanche">LANCHE</button>
-            <button type="button" onclick="selectHeroMeal('jantar')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="jantar">JANTAR</button>
+          <div class="flex items-center gap-1.5">
+            <!-- Seletor Rápido de Foco / Refeições -->
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroMealSelector">
+              <button type="button" onclick="selectHeroMeal('todas')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-meal="todas">PLANO</button>
+              <button type="button" onclick="selectHeroMeal('cafe')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="cafe">CAFÉ</button>
+              <button type="button" onclick="selectHeroMeal('almoco')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="almoco">ALMOÇO</button>
+              <button type="button" onclick="selectHeroMeal('lanche')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="lanche">LANCHE</button>
+              <button type="button" onclick="selectHeroMeal('jantar')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="jantar">JANTAR</button>
+            </div>
+            <!-- Botão de Pausa Nutrição -->
+            <button type="button" id="heroNutricaoPlayPauseBtn" onclick="toggleHeroPlayPause('heroNutricao')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#08090A]/90 hover:bg-[#171B1F] border border-[#272C31] text-[9px] font-mono text-zinc-300 hover:text-white shadow transition-all active:scale-95" title="Pausar ou Retomar">
+              <span id="heroNutricaoPlayPauseIcon">⏸️</span>
+            </button>
           </div>
         </div>
 
@@ -1247,7 +1273,7 @@
         </button>
       </div>
 
-      <!-- CARD DISTRIBUIÇÃO DE MACRONUTRIENTES COM ANEL SVG -->
+      <!-- CARD DISTRIBUIÇÃO DE MACRONUTRIENTES COM ANEL SVG (EM ANDAMENTO DO DIA) -->
       <div class="p-3.5 rounded-2xl bg-[#121518]/90 border border-[#272C31] shadow-lg">
         <div class="flex items-center justify-between border-b border-[#272C31] pb-2 mb-3">
           <div class="flex items-center gap-2">
@@ -1255,56 +1281,65 @@
               <i data-lucide="pie-chart" class="w-3.5 h-3.5"></i>
             </div>
             <div>
-              <h3 class="text-xs font-black text-white font-mono uppercase">Distribuição de Macros</h3>
-              <p class="text-[9px] text-zinc-400 font-mono">Balanço proporcional prescrito</p>
+              <h3 class="text-xs font-black text-white font-mono uppercase">Balanço de Macros do Dia</h3>
+              <p class="text-[9px] text-zinc-400 font-mono">Consumo realizado vs metas prescritas</p>
             </div>
           </div>
-          <span class="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-2 py-0.5 rounded-full">
-            Meta Ativa
+          <span id="macroDonutStatusBadge" class="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-2 py-0.5 rounded-full">
+            Em Andamento
           </span>
         </div>
 
         <div class="flex items-center justify-between gap-4">
-          <!-- Donut SVG Circular -->
+          <!-- Donut SVG Circular Dinâmico -->
           <div class="relative w-20 h-20 shrink-0 flex items-center justify-center">
             <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
               <!-- Background circle -->
-              <path class="text-zinc-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <!-- Protein segment (sky) ~30% -->
-              <path stroke-dasharray="30, 100" stroke-width="3.5" stroke="#38bdf8" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <!-- Carbs segment (emerald) ~50% -->
-              <path stroke-dasharray="50, 100" stroke-dashoffset="-30" stroke-width="3.5" stroke="#00C896" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <!-- Fat segment (amber) ~20% -->
-              <path stroke-dasharray="20, 100" stroke-dashoffset="-80" stroke-width="3.5" stroke="#fbbf24" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path class="text-zinc-800" stroke-width="3.5" stroke="#1c2024" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <!-- Protein segment (sky) -->
+              <path id="macroDonutArcP" stroke-dasharray="30, 100" stroke-width="3.5" stroke="#38bdf8" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" class="transition-all duration-700" />
+              <!-- Carbs segment (emerald) -->
+              <path id="macroDonutArcC" stroke-dasharray="50, 100" stroke-dashoffset="-30" stroke-width="3.5" stroke="#00C896" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" class="transition-all duration-700" />
+              <!-- Fat segment (amber) -->
+              <path id="macroDonutArcG" stroke-dasharray="20, 100" stroke-dashoffset="-80" stroke-width="3.5" stroke="#fbbf24" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" class="transition-all duration-700" />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span class="text-[10px] font-mono font-black text-white" id="macroDonutKcal">1980</span>
-              <span class="text-[7px] font-mono text-zinc-400 uppercase">kcal</span>
+              <span class="text-[10px] font-mono font-black text-white" id="macroDonutKcal">0</span>
+              <span class="text-[7px] font-mono text-zinc-400 block" id="macroDonutKcalSub">/ 0 kcal</span>
             </div>
           </div>
 
-          <!-- Legenda de Macros -->
+          <!-- Legenda de Macros com dados reais -->
           <div class="grid grid-cols-1 gap-1.5 flex-1 text-[10px] font-mono">
             <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#08090A] border border-[#272C31]">
               <div class="flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-                <span class="text-zinc-300">Proteínas (30%)</span>
+                <span class="text-zinc-300">Proteínas</span>
               </div>
-              <span class="text-white font-bold" id="macroDonutP">160g</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-white font-bold" id="macroDonutP">0g / 0g</span>
+                <span class="text-[8px] text-sky-400" id="macroDonutPPct">0%</span>
+              </div>
             </div>
             <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#08090A] border border-[#272C31]">
               <div class="flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-[#00C896]"></span>
-                <span class="text-zinc-300">Carboidratos (50%)</span>
+                <span class="text-zinc-300">Carboidratos</span>
               </div>
-              <span class="text-white font-bold" id="macroDonutC">210g</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-white font-bold" id="macroDonutC">0g / 0g</span>
+                <span class="text-[8px] text-emerald-400" id="macroDonutCPct">0%</span>
+              </div>
             </div>
             <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#08090A] border border-[#272C31]">
               <div class="flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span class="text-zinc-300">Gorduras (20%)</span>
+                <span class="text-zinc-300">Gorduras</span>
               </div>
-              <span class="text-white font-bold" id="macroDonutG">55g</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-white font-bold" id="macroDonutG">0g / 0g</span>
+                <span class="text-[8px] text-amber-400" id="macroDonutGPct">0%</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1457,7 +1492,7 @@
     <section id="tabViewProgresso" class="tab-view hidden w-full space-y-4">
 
       <!-- HERO BANNER INTERATIVO: EVOLUÇÃO & RESULTADO -->
-      <div id="heroProgressoContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+      <div id="heroProgressoContainer" onmouseenter="pauseHeroCarousel('heroProgresso')" ontouchstart="pauseHeroCarousel('heroProgresso')" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
         <!-- Slides Container -->
         <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroProgressoSlider">
           <!-- Slide 0: Imagem Evolução -->
@@ -1508,11 +1543,17 @@
           <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 05 · RESULTADO
           </span>
-          <!-- Seletor Rápido de Visões -->
-          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroProgressSelector">
-            <button type="button" onclick="setHeroSlide('heroProgresso', 0)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white">VISÃO GERAL</button>
-            <button type="button" onclick="setHeroSlide('heroProgresso', 1)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white">MÉTODO</button>
-            <button type="button" onclick="setHeroSlide('heroProgresso', 2)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white">ESTATÍSTICAS</button>
+          <div class="flex items-center gap-1.5">
+            <!-- Seletor Rápido de Visões -->
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroProgressSelector">
+              <button type="button" onclick="setHeroSlide('heroProgresso', 0)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white">VISÃO GERAL</button>
+              <button type="button" onclick="setHeroSlide('heroProgresso', 1)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white">MÉTODO</button>
+              <button type="button" onclick="setHeroSlide('heroProgresso', 2)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white">ESTATÍSTICAS</button>
+            </div>
+            <!-- Botão de Pausa Progresso -->
+            <button type="button" id="heroProgressoPlayPauseBtn" onclick="toggleHeroPlayPause('heroProgresso')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#08090A]/90 hover:bg-[#171B1F] border border-[#272C31] text-[9px] font-mono text-zinc-300 hover:text-white shadow transition-all active:scale-95" title="Pausar ou Retomar">
+              <span id="heroProgressoPlayPauseIcon">⏸️</span>
+            </button>
           </div>
         </div>
 
@@ -3022,8 +3063,52 @@
       }
     };
 
-    window.setHeroSlide = function(heroKey, slideIdx) {
+    var _heroPauseStates = {
+      heroHoje: false,
+      heroTreino: false,
+      heroNutricao: false,
+      heroProgresso: false
+    };
+
+    window.toggleHeroPlayPause = function(heroKey) {
+      _heroPauseStates[heroKey] = !_heroPauseStates[heroKey];
+      window.updateHeroPlayPauseBtn(heroKey);
+    };
+
+    window.pauseHeroCarousel = function(heroKey) {
+      _heroPauseStates[heroKey] = true;
+      window.updateHeroPlayPauseBtn(heroKey);
+    };
+
+    window.resumeHeroCarousel = function(heroKey) {
+      _heroPauseStates[heroKey] = false;
+      window.updateHeroPlayPauseBtn(heroKey);
+    };
+
+    window.updateHeroPlayPauseBtn = function(heroKey) {
+      var isPaused = _heroPauseStates[heroKey];
+      var iconEl = document.getElementById(heroKey + 'PlayPauseIcon');
+      var textEl = document.getElementById(heroKey + 'PlayPauseText');
+      var btnEl = document.getElementById(heroKey + 'PlayPauseBtn');
+
+      if (iconEl) iconEl.textContent = isPaused ? '▶️' : '⏸️';
+      if (textEl) textEl.textContent = isPaused ? 'Pausado' : 'Pausar';
+      if (btnEl) {
+        if (isPaused) {
+          btnEl.classList.add('border-amber-700/80', 'text-amber-300');
+          btnEl.title = 'Carrossel pausado. Toque para retomar rotação.';
+        } else {
+          btnEl.classList.remove('border-amber-700/80', 'text-amber-300');
+          btnEl.title = 'Pausar rotação automática';
+        }
+      }
+    };
+
+    window.setHeroSlide = function(heroKey, slideIdx, isAuto) {
       _heroSlideStates[heroKey] = slideIdx;
+      if (!isAuto) {
+        window.pauseHeroCarousel(heroKey);
+      }
       for (var i = 0; i < 3; i++) {
         var slideEl = document.getElementById(heroKey + 'Slide' + i);
         var dotEl = document.getElementById(heroKey + 'Dot' + i);
@@ -3044,20 +3129,21 @@
       }
     };
 
-    window.nextHeroSlide = function(heroKey) {
+    window.nextHeroSlide = function(heroKey, isAuto) {
       var current = _heroSlideStates[heroKey] || 0;
       var next = (current + 1) % 3;
-      window.setHeroSlide(heroKey, next);
+      window.setHeroSlide(heroKey, next, isAuto);
     };
 
     window.prevHeroSlide = function(heroKey) {
       var current = _heroSlideStates[heroKey] || 0;
       var prev = (current - 1 + 3) % 3;
-      window.setHeroSlide(heroKey, prev);
+      window.setHeroSlide(heroKey, prev, false);
     };
 
     window.selectHeroDay = function(dayKey) {
       if (!_heroDayData[dayKey]) return;
+      window.pauseHeroCarousel('heroHoje');
       var data = _heroDayData[dayKey];
       var imgEl = document.getElementById('heroHojeImg');
       var mottoEl = document.getElementById('heroDayMotto');
@@ -3076,18 +3162,19 @@
       var pills = document.querySelectorAll('.hero-day-pill');
       pills.forEach(function(pill) {
         if (pill.getAttribute('data-day') === dayKey) {
-          pill.className = 'hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white shadow';
+          pill.className = 'hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white shadow';
         } else {
-          pill.className = 'hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white';
+          pill.className = 'hero-day-pill px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all bg-[#08090A] border-[#272C31] text-zinc-400 hover:text-white';
         }
       });
 
       if (_heroSlideStates.heroHoje !== 0) {
-        window.setHeroSlide('heroHoje', 0);
+        window.setHeroSlide('heroHoje', 0, false);
       }
     };
 
     window.selectHeroWorkout = function(wktNum) {
+      window.pauseHeroCarousel('heroTreino');
       var data = _heroWorkoutData[wktNum];
       if (!data) return;
       var imgEl = document.getElementById('heroTreinoImg');
@@ -3110,11 +3197,12 @@
       });
 
       if (_heroSlideStates.heroTreino !== 0) {
-        window.setHeroSlide('heroTreino', 0);
+        window.setHeroSlide('heroTreino', 0, false);
       }
     };
 
     window.selectHeroMeal = function(mealKey) {
+      window.pauseHeroCarousel('heroNutricao');
       var data = _heroMealData[mealKey];
       if (!data) return;
       var imgEl = document.getElementById('heroNutricaoImg');
@@ -3133,8 +3221,102 @@
       });
 
       if (_heroSlideStates.heroNutricao !== 0) {
-        window.setHeroSlide('heroNutricao', 0);
+        window.setHeroSlide('heroNutricao', 0, false);
       }
+    };
+
+    window.syncNutritionProgressDisplays = function(data) {
+      if (!data) return;
+      var consumedKcal = Math.round(data.consumedKcal || 0);
+      var baseCalRef = Math.round(data.baseCalRef || 0);
+      var consumedProt = Math.round(data.consumedProt || 0);
+      var baseProtRef = Math.round(data.baseProtRef || 0);
+      var consumedCarb = Math.round(data.consumedCarb || 0);
+      var baseCarbRef = Math.round(data.baseCarbRef || 0);
+      var consumedFat = Math.round(data.consumedFat || 0);
+      var baseFatRef = Math.round(data.baseFatRef || 0);
+
+      // 1. Atualizar Donut do Card de Distribuição
+      var kcalEl = document.getElementById('macroDonutKcal');
+      var kcalSubEl = document.getElementById('macroDonutKcalSub');
+      if (kcalEl) kcalEl.textContent = consumedKcal.toLocaleString('pt-BR');
+      if (kcalSubEl) kcalSubEl.textContent = '/ ' + (baseCalRef > 0 ? baseCalRef.toLocaleString('pt-BR') : '--') + ' kcal';
+
+      var pEl = document.getElementById('macroDonutP');
+      var cEl = document.getElementById('macroDonutC');
+      var gEl = document.getElementById('macroDonutG');
+      if (pEl) pEl.textContent = consumedProt + 'g / ' + (baseProtRef || '--') + 'g';
+      if (cEl) cEl.textContent = consumedCarb + 'g / ' + (baseCarbRef || '--') + 'g';
+      if (gEl) gEl.textContent = consumedFat + 'g / ' + (baseFatRef || '--') + 'g';
+
+      var pPctEl = document.getElementById('macroDonutPPct');
+      var cPctEl = document.getElementById('macroDonutCPct');
+      var gPctEl = document.getElementById('macroDonutGPct');
+      var pPct = baseProtRef > 0 ? Math.round((consumedProt / baseProtRef) * 100) : 0;
+      var cPct = baseCarbRef > 0 ? Math.round((consumedCarb / baseCarbRef) * 100) : 0;
+      var gPct = baseFatRef > 0 ? Math.round((consumedFat / baseFatRef) * 100) : 0;
+      if (pPctEl) pPctEl.textContent = pPct + '%';
+      if (cPctEl) cPctEl.textContent = cPct + '%';
+      if (gPctEl) gPctEl.textContent = gPct + '%';
+
+      var badgeEl = document.getElementById('macroDonutStatusBadge');
+      if (badgeEl) {
+        var calPct = baseCalRef > 0 ? Math.round((consumedKcal / baseCalRef) * 100) : 0;
+        if (calPct >= 100) {
+          badgeEl.textContent = '100% Batido (' + consumedKcal.toLocaleString('pt-BR') + ' kcal)';
+          badgeEl.className = 'text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-700/80 px-2 py-0.5 rounded-full';
+        } else if (calPct > 0) {
+          badgeEl.textContent = calPct + '% Concluído (' + consumedKcal.toLocaleString('pt-BR') + ' kcal)';
+          badgeEl.className = 'text-[10px] font-mono font-bold text-amber-400 bg-amber-950/50 border border-amber-800/60 px-2 py-0.5 rounded-full';
+        } else {
+          badgeEl.textContent = '0% Em Andamento';
+          badgeEl.className = 'text-[10px] font-mono font-bold text-zinc-400 bg-zinc-900 border border-zinc-700 px-2 py-0.5 rounded-full';
+        }
+      }
+
+      // Atualizar SVG Donut Arcs com base na proporção consumida vs proporção meta se 0
+      var arcP = document.getElementById('macroDonutArcP');
+      var arcC = document.getElementById('macroDonutArcC');
+      var arcG = document.getElementById('macroDonutArcG');
+      var totalMacrosG = (consumedProt + consumedCarb + consumedFat);
+      if (totalMacrosG > 0) {
+        var pShare = Math.round((consumedProt / totalMacrosG) * 100);
+        var cShare = Math.round((consumedCarb / totalMacrosG) * 100);
+        var gShare = Math.max(0, 100 - pShare - cShare);
+        if (arcP) arcP.setAttribute('stroke-dasharray', pShare + ', 100');
+        if (arcC) {
+          arcC.setAttribute('stroke-dasharray', cShare + ', 100');
+          arcC.setAttribute('stroke-dashoffset', '-' + pShare);
+        }
+        if (arcG) {
+          arcG.setAttribute('stroke-dasharray', gShare + ', 100');
+          arcG.setAttribute('stroke-dashoffset', '-' + (pShare + cShare));
+        }
+      } else {
+        var totalBaseG = (baseProtRef + baseCarbRef + baseFatRef);
+        if (totalBaseG > 0) {
+          var pShareBase = Math.round((baseProtRef / totalBaseG) * 100);
+          var cShareBase = Math.round((baseCarbRef / totalBaseG) * 100);
+          var gShareBase = Math.max(0, 100 - pShareBase - cShareBase);
+          if (arcP) arcP.setAttribute('stroke-dasharray', pShareBase + ', 100');
+          if (arcC) {
+            arcC.setAttribute('stroke-dasharray', cShareBase + ', 100');
+            arcC.setAttribute('stroke-dashoffset', '-' + pShareBase);
+          }
+          if (arcG) {
+            arcG.setAttribute('stroke-dasharray', gShareBase + ', 100');
+            arcG.setAttribute('stroke-dashoffset', '-' + (pShareBase + cShareBase));
+          }
+        }
+      }
+
+      // 2. Atualizar Hero Slide 2 de Nutrição
+      var heroP = document.getElementById('heroMacroP');
+      var heroC = document.getElementById('heroMacroC');
+      var heroG = document.getElementById('heroMacroG');
+      if (heroP) heroP.textContent = consumedProt + 'g / ' + (baseProtRef || '--') + 'g';
+      if (heroC) heroC.textContent = consumedCarb + 'g / ' + (baseCarbRef || '--') + 'g';
+      if (heroG) heroG.textContent = consumedFat + 'g / ' + (baseFatRef || '--') + 'g';
     };
 
     window.renderConsistencyHeatmap = function() {
@@ -3170,11 +3352,11 @@
         var activeTab = document.querySelector('.tab-view.active');
         if (!activeTab) return;
         var tabId = activeTab.id;
-        if (tabId === 'tabViewHoje') window.nextHeroSlide('heroHoje');
-        else if (tabId === 'tabViewTreino') window.nextHeroSlide('heroTreino');
-        else if (tabId === 'tabViewNutricao') window.nextHeroSlide('heroNutricao');
-        else if (tabId === 'tabViewProgresso') window.nextHeroSlide('heroProgresso');
-      }, 7000);
+        if (tabId === 'tabViewHoje' && !_heroPauseStates.heroHoje) window.nextHeroSlide('heroHoje', true);
+        else if (tabId === 'tabViewTreino' && !_heroPauseStates.heroTreino) window.nextHeroSlide('heroTreino', true);
+        else if (tabId === 'tabViewNutricao' && !_heroPauseStates.heroNutricao) window.nextHeroSlide('heroNutricao', true);
+        else if (tabId === 'tabViewProgresso' && !_heroPauseStates.heroProgresso) window.nextHeroSlide('heroProgresso', true);
+      }, 10000);
     };
 
     if (document.readyState === 'loading') {
@@ -7661,6 +7843,20 @@
         fiberProgEl.style.width = `${fiberGoal > 0 ? Math.min(100, Math.round((consumedFiber / fiberGoal) * 100)) : 0}%`;
       }
 
+      // Sincronização em tempo real dos novos painéis de Nutrição (Donut e Hero Slide 2)
+      if (typeof window.syncNutritionProgressDisplays === 'function') {
+        window.syncNutritionProgressDisplays({
+          consumedKcal: consumedKcal,
+          baseCalRef: (prescribedCalKcal || totalKcal),
+          consumedProt: consumedProt,
+          baseProtRef: (prescribedProtG || totalProt),
+          consumedCarb: consumedCarb,
+          baseCarbRef: (prescribedCarbG || totalCarb),
+          consumedFat: consumedFat,
+          baseFatRef: (prescribedFatG || totalFat)
+        });
+      }
+
       // ── 4. Renderiza Cada Card de Refeição ──
       container.innerHTML = patientState.meals.map(m => {
         const mKcal = Math.round(m.kcal || 0);
@@ -8374,6 +8570,23 @@
       // Atualiza Lista de Ações Pendentes
       if (typeof renderPendingActions === 'function') {
         renderPendingActions();
+      }
+
+      // Atualiza Painel Rápido do Dia no Carrossel Hoje (Slide 2)
+      const hStreak = document.getElementById('heroQuickStreak');
+      if (hStreak) {
+        hStreak.textContent = `${patientState.streak || 1} ${patientState.streak === 1 ? 'dia' : 'dias'}`;
+      }
+      const hWkt = document.getElementById('heroQuickWorkout');
+      if (hWkt) {
+        hWkt.textContent = patientState.workoutDone ? '✓ Feito' : 'Em Aberto';
+        hWkt.className = `text-xs font-black font-mono mt-1 ${patientState.workoutDone ? 'text-emerald-400' : 'text-amber-400'}`;
+      }
+      const hWater = document.getElementById('heroQuickWater');
+      if (hWater) {
+        const curL = ((patientState.waterCurrent || 0) / 1000).toFixed(1);
+        const tgtL = ((patientState.waterTarget || 4000) / 1000).toFixed(1);
+        hWater.textContent = `${curL} / ${tgtL}L`;
       }
 
       const fb = document.getElementById('dailyScoreFeedback');
