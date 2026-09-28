@@ -133,11 +133,26 @@
     const completedDates = [];
     const hist = history && typeof history === 'object' ? history : {};
 
+    // Detecta se o ciclo pode ter sido re-inicializado recentemente (startDate > entradas do histórico)
+    // Nesse caso, expande a janela para capturar treinos anteriores ao startDate atual
+    let effectiveStartDate = cycle.startDate;
+    const allWorkoutDates = Object.keys(hist).filter(dk => {
+      const e = hist[dk];
+      return e && (e.workoutDone || e.done);
+    }).sort();
+    if (allWorkoutDates.length > 0 && allWorkoutDates[0] < effectiveStartDate) {
+      // Há treinos registrados antes do startDate do ciclo → usa a data mais antiga como início
+      effectiveStartDate = allWorkoutDates[0];
+    }
+    const effectiveEndDate = cycle.endDate > effectiveStartDate
+      ? cycle.endDate
+      : addDaysToIso(effectiveStartDate, (cycle.durationDays || CYCLE_DURATION_DAYS) - 1);
+
     Object.keys(hist).forEach(dateKey => {
       const entry = hist[dateKey];
-      if (entry && (entry.workoutDone === true || entry.done === true)) {
-        // Verifica se a data está no intervalo do ciclo [startDate, endDate]
-        if (dateKey >= cycle.startDate && dateKey <= cycle.endDate) {
+      if (entry && (entry.workoutDone || entry.done)) {
+        // Verifica se a data está no intervalo efetivo do ciclo
+        if (dateKey >= effectiveStartDate && dateKey <= effectiveEndDate) {
           completedDates.push(dateKey);
         }
       }
@@ -157,8 +172,8 @@
     // Avaliação detalhada de cada microciclo (Semana 1..4)
     const microcyclesProgress = (cycle.microcycles || DEFAULT_MICROCICLES).map((micro, idx) => {
       const weekNum = idx + 1;
-      const weekStartIso = addDaysToIso(cycle.startDate, (weekNum - 1) * 7);
-      const weekEndIso = addDaysToIso(cycle.startDate, (weekNum * 7) - 1);
+      const weekStartIso = addDaysToIso(effectiveStartDate, (weekNum - 1) * 7);
+      const weekEndIso = addDaysToIso(effectiveStartDate, (weekNum * 7) - 1);
 
       const workoutsInWeek = completedDates.filter(d => d >= weekStartIso && d <= weekEndIso).length;
       const targetWeekly = cycle.prescribedWeeklyFrequency || 5;

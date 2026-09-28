@@ -5572,13 +5572,38 @@
               <span class="text-zinc-300">
                 <strong class="text-white">${metrics.completedWorkoutsCount}</strong> de <strong class="text-white">${metrics.totalPrescribedWorkouts}</strong> treinos concluídos
               </span>
-              <span class="font-bold ${metrics.adherencePercent >= 80 ? 'text-emerald-400' : 'text-amber-400'}">
+              <span class="font-bold ${metrics.adherencePercent >= 80 ? 'text-emerald-400' : metrics.adherencePercent >= 50 ? 'text-amber-400' : 'text-red-400'}">
                 Aderência: ${metrics.adherencePercent}%
               </span>
             </div>
             <div class="w-full bg-[#08090A] h-2.5 rounded-full overflow-hidden border border-zinc-800 p-0.5">
               <div class="h-full rounded-full bg-gradient-to-r from-[#E50914] via-[#F2B84B] to-[#00C896] transition-all duration-500"
                 style="width: ${Math.min(100, Math.max(3, metrics.adherencePercent))}%"></div>
+            </div>
+          </div>
+
+          <!-- Marcadores Diários da Semana Atual (dots visuais) -->
+          <div class="space-y-1">
+            <p class="text-[9px] font-mono text-zinc-500 uppercase">Semana ${metrics.currentWeek} · Treinos realizados</p>
+            <div class="flex items-center gap-1.5">
+              ${(() => {
+                const curMicro = metrics.microcycles.find(m => m.isCurrent) || metrics.microcycles[metrics.currentWeek - 1];
+                const target = curMicro ? curMicro.targetWorkouts : (cycle.prescribedWeeklyFrequency || 5);
+                const done = curMicro ? curMicro.workoutsDone : 0;
+                return Array.from({ length: target }, (_, i) => {
+                  const isDone = i < done;
+                  const isCurrent = i === done;
+                  return `<div class="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black transition-all ${
+                    isDone
+                      ? 'bg-[#00C896] border-2 border-[#00C896]/80 text-black shadow-[0_0_6px_rgba(0,200,150,0.5)]'
+                      : isCurrent
+                        ? 'bg-blue-500/20 border-2 border-blue-400 text-blue-300 animate-pulse'
+                        : 'bg-zinc-900 border border-zinc-700 text-zinc-600'
+                  }">
+                    ${isDone ? '✓' : (i + 1)}
+                  </div>`;
+                }).join('');
+              })()}
             </div>
           </div>
 
@@ -5591,6 +5616,7 @@
           ${actionBannerHtml}
         </div>
       `;
+
 
       if (window.lucide) window.lucide.createIcons({ root: container });
     }
@@ -5795,8 +5821,9 @@
       const container = document.getElementById('weeklyScheduleCarousel');
       if (!container) return;
 
-      const WEEKDAY_SHORT = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
-      const todayDayNum = getTodayScheduleDay();
+      // WEEKDAY_SHORT removido: os treinos não são fixos a dias da semana específicos.
+      // "Hoje" é o dia da agenda que está atualmente selecionado para execução.
+      const todayDayNum = selectedScheduleDay || getTodayScheduleDay();
 
       const sourceList = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0)
         ? WEEKLY_SCHEDULE_DATA
@@ -5813,13 +5840,17 @@
       container.innerHTML = sourceList.map(d => {
         const isSelected = d.dayNum ? (d.dayNum === selectedScheduleDay) : (d.routineKey === selectedRoutineKey);
         const isToday = (d.dayNum === todayDayNum);
-        const isCompleted = (patientState.completedRoutineKey === d.routineKey && isSelected) || (isSelected && patientState.workoutDone);
+        // isCompleted: rotina concluída hoje — independente de qual card está selecionado
+        const isCompleted = patientState.completedRoutineKey === d.routineKey ||
+          (d.routineKey === selectedRoutineKey && isSelected && patientState.workoutDone);
 
         const colorBorder = isSelected
           ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]'
-          : (isToday
-            ? 'border-blue-700/70 bg-blue-950/30 hover:border-blue-500'
-            : (isCompleted ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600' : 'border-zinc-800 bg-black/60 hover:border-zinc-700'));
+          : (isCompleted
+            ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600'
+            : (isToday
+              ? 'border-blue-700/70 bg-blue-950/30 hover:border-blue-500'
+              : 'border-zinc-800 bg-black/60 hover:border-zinc-700'));
 
         const badgeColor = isCompleted
           ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
@@ -5829,10 +5860,11 @@
 
         const badgeText = isCompleted
           ? '✅ Feito'
-          : (isToday ? '🎯 Hoje' : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type));
+          : (isToday ? '🎯 Em execução' : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type));
 
-        const weekdayLabel = WEEKDAY_SHORT[(d.dayNum - 1) % 7] || `D${d.dayNum}`;
-        const dayBadge = `${weekdayLabel} · DIA ${d.dayNum}`;
+        // Removido o rótulo de dia da semana (SEG, TER, QUA...) pois o Treino 1
+        // pode ser realizado em qualquer dia, sem estar fixo a uma data específica.
+        const dayBadge = `DIA ${d.dayNum}`;
         const routineBadge = d.routineKey ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)) : (d.type === 'Off' ? 'DESCANSO' : 'CARDIO');
         const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
 
@@ -6249,8 +6281,12 @@
         });
       }
 
+      // FIX: Atualiza workoutDone ANTES de saveState para que history[hoje].workoutDone
+      // seja gravado corretamente quando ≥70% dos exercícios forem concluídos.
+      updateWorkoutVisuals();
       saveState();
       renderWorkoutExercises();
+      updateWorkoutCycleProgress();
       calculateDailyIDC();
       if (window.lucide) window.lucide.createIcons();
     }
@@ -6279,6 +6315,7 @@
       }
       saveState();
       updateCardioVisuals();
+      updateWorkoutCycleProgress();
       calculateDailyIDC();
     }
 
@@ -7249,6 +7286,15 @@
       toggleWorkoutCheck();
     }
     window.toggleCompleteFullWorkout = toggleCompleteFullWorkout;
+
+    /**
+     * Atualiza apenas o card de periodização sem re-renderizar toda a tela.
+     * Chamado após cada exercício marcado para manter o contador ao vivo.
+     */
+    function updateWorkoutCycleProgress() {
+      renderWorkoutCycleCard();
+    }
+    window.updateWorkoutCycleProgress = updateWorkoutCycleProgress;
 
     function updateSleepData() {
       const val = parseFloat(document.getElementById('sleepHoursInput').value);
