@@ -280,6 +280,66 @@
       background: linear-gradient(180deg, rgba(8, 9, 10, 0.15) 0%, rgba(8, 9, 10, 0.7) 60%, rgba(8, 9, 10, 0.98) 100%);
     }
 
+    /* ── Hero Interativo: Slides ── */
+    .hero-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .hero-slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .hero-slide img {
+      width: 100%; height: 100%; object-fit: cover; object-position: center;
+    }
+
+    /* Stats overlay slide */
+    .hero-stats-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(8,9,10,0.97) 0%, rgba(18,21,24,0.95) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .hero-stats-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Dot indicators */
+    .hero-dot {
+      width: 6px; height: 6px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .hero-dot.active {
+      background: #E50914;
+      width: 18px;
+    }
+
+    /* Heatmap calendar */
+    .heatmap-cell {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 3px;
+      transition: transform 0.15s ease;
+    }
+    .heatmap-cell:hover { transform: scale(1.3); }
+    .heatmap-0 { background: #0d0f10; border: 1px solid #1a1d20; }
+    .heatmap-1 { background: #0f3d2e; }
+    .heatmap-2 { background: #1a6648; }
+    .heatmap-3 { background: #00C896; }
+    .heatmap-4 { background: #00e5ac; box-shadow: 0 0 6px rgba(0,200,150,0.5); }
+
     /* Pillar bottom sheet */
     #pilarBottomSheet.hidden {
       display: none;
@@ -508,37 +568,133 @@
     <!-- ═════════════════════════════════════════════════════════ -->
     <section id="tabViewHoje" class="tab-view active w-full space-y-4">
 
-      <!-- HERO BANNER: DISCIPLINA & ROTINA -->
-      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
-        <img src="../assets/patient/discipline-hero.jpg" alt="02. Disciplina & Hábitos"
-          class="w-full h-44 object-cover object-center" />
-        <div class="absolute inset-0 hero-banner-overlay"></div>
-        <div class="absolute top-3 left-3">
-          <span
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 02 · DISCIPLINA &amp; HÁBITOS
-          </span>
+      <!-- HERO BANNER INTERATIVO: DISCIPLINA & ROTINA COM DIAS & SLIDES -->
+      <div id="heroHojeContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+        <!-- Slides Container -->
+        <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroHojeSlider">
+          <!-- Slide 0: Imagem do Dia (Alterna com o dia selecionado) -->
+          <div class="hero-slide active" data-slide="0" id="heroHojeSlide0">
+            <img id="heroHojeImg" src="../assets/patient/discipline-hero.jpg" alt="02. Disciplina & Hábitos" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 hero-banner-overlay"></div>
+          </div>
+          <!-- Slide 1: Pilar Institucional Disciplina -->
+          <div class="hero-slide" data-slide="1" id="heroHojeSlide1">
+            <img src="../assets/pilares/disciplina/institucional.jpg" alt="Pilar Disciplina & Rotina" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#08090A] via-[#08090A]/70 to-[#08090A]/30"></div>
+            <div class="absolute inset-0 flex flex-col justify-center px-4 sm:px-6">
+              <span class="text-[9px] font-mono uppercase tracking-widest text-[#E50914] font-bold">Método &amp; Princípio</span>
+              <h3 class="text-sm sm:text-base font-black text-white mt-1">"A disciplina te leva aonde a motivação não alcança."</h3>
+              <p class="text-[10px] text-zinc-300 mt-1 max-w-md">Hábitos atômicos diários constroem resultados inegociáveis. O foco é no processo, não na perfeição.</p>
+            </div>
+          </div>
+          <!-- Slide 2: Resumo Flash do Dia -->
+          <div class="hero-stats-overlay" data-slide="2" id="heroHojeSlide2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-bold uppercase text-[#00C896] flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#00C896] animate-ping"></span> Painel Rápido do Dia
+              </span>
+              <span class="text-[9px] font-mono text-zinc-400">Tempo real</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Consistência</div>
+                <div class="text-base font-black text-white font-mono mt-0.5" id="heroQuickStreak">1 dia</div>
+                <div class="text-[8px] text-emerald-400 font-mono">Foco ativo</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Treino</div>
+                <div class="text-xs font-black text-white font-mono mt-1" id="heroQuickWorkout">Em Aberto</div>
+                <div class="text-[8px] text-amber-400 font-mono">Prescrito</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Hidratação</div>
+                <div class="text-base font-black text-[#00C896] font-mono mt-0.5" id="heroQuickWater">-- / 3L</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Meta diária</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-          <div>
-            <p class="text-[10px] text-zinc-400 font-medium font-mono" id="currentDateDisplay">Hoje, 08 de setembro de
-              2026</p>
+
+        <!-- Top Badges & Day Selector -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 z-10">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 02 · DISCIPLINA
+          </span>
+          <!-- Seletor Rápido de Dias da Semana (Interativo) -->
+          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroDaySelector">
+            <button type="button" onclick="selectHeroDay('seg')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="seg">SEG</button>
+            <button type="button" onclick="selectHeroDay('ter')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="ter">TER</button>
+            <button type="button" onclick="selectHeroDay('qua')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="qua">QUA</button>
+            <button type="button" onclick="selectHeroDay('qui')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="qui">QUI</button>
+            <button type="button" onclick="selectHeroDay('sex')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="sex">SEX</button>
+            <button type="button" onclick="selectHeroDay('sab')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="sab">SÁB</button>
+            <button type="button" onclick="selectHeroDay('dom')" class="hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="dom">DOM</button>
+          </div>
+        </div>
+
+        <!-- Bottom Patient Info & Streak -->
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-end justify-between z-10 pointer-events-none">
+          <div class="pointer-events-auto">
+            <p class="text-[9px] text-zinc-300 font-medium font-mono" id="currentDateDisplay">Hoje, 08 de setembro de 2026</p>
             <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight" id="patientNameDisplay">
               Paciente
             </h1>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Rotina • consistência • hábitos</p>
+            <p class="text-[9px] text-zinc-400 mt-0.5" id="heroDayMotto">Rotina • consistência • hábitos</p>
           </div>
-          <div class="text-right flex flex-col items-end gap-1">
-            <div
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#08090A]/95 border border-[#272C31] backdrop-blur-sm shadow-md">
+          <div class="text-right flex flex-col items-end gap-1 pointer-events-auto">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#08090A]/95 border border-[#272C31] backdrop-blur-sm shadow-md">
               <span class="text-sm">🔥</span>
               <div class="text-left">
                 <div class="text-[11px] font-black text-white leading-none" id="streakDaysCount">1 DIA</div>
-                <div class="text-[8px] font-mono text-[#E50914] font-bold uppercase leading-none mt-0.5"
-                  id="streakLabel">PRIMEIRO DIA</div>
+                <div class="text-[8px] font-mono text-[#E50914] font-bold uppercase leading-none mt-0.5" id="streakLabel">PRIMEIRO DIA</div>
               </div>
             </div>
             <div class="text-[9px] font-mono text-zinc-400 font-bold" id="disciplineTierBadge">🌱 Nível: Focado</div>
+          </div>
+        </div>
+
+        <!-- Slider Dots & Nav Controls -->
+        <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 z-20">
+          <button type="button" onclick="setHeroSlide('heroHoje', 0)" class="hero-dot active" id="heroHojeDot0" aria-label="Slide 1"></button>
+          <button type="button" onclick="setHeroSlide('heroHoje', 1)" class="hero-dot" id="heroHojeDot1" aria-label="Slide 2"></button>
+          <button type="button" onclick="setHeroSlide('heroHoje', 2)" class="hero-dot" id="heroHojeDot2" aria-label="Slide 3"></button>
+        </div>
+
+        <!-- Left/Right Slide Buttons -->
+        <button type="button" onclick="prevHeroSlide('heroHoje')" class="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Slide Anterior">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+        </button>
+        <button type="button" onclick="nextHeroSlide('heroHoje')" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Próximo Slide">
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- CARD RESUMO COMPARATIVO: ONTEM VS HOJE -->
+      <div class="p-3 rounded-2xl bg-[#121518]/90 border border-[#272C31] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center gap-2.5 w-full sm:w-auto">
+          <div class="w-8 h-8 rounded-xl bg-[#E50914]/15 border border-[#E50914]/30 flex items-center justify-center text-[#E50914] shrink-0">
+            <i data-lucide="git-commit" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-black text-white font-mono flex items-center gap-1.5">
+              <span>Ontem vs Hoje</span>
+              <span class="text-[8px] px-1.5 py-0.2 rounded bg-emerald-950/60 border border-emerald-800 text-emerald-400 uppercase font-mono">+ Consistência</span>
+            </div>
+            <p class="text-[10px] text-zinc-400">Comparativo dinâmico de adesão diária</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 w-full sm:w-auto text-center shrink-0">
+          <div class="px-2.5 py-1 rounded-lg bg-[#08090A] border border-[#272C31]">
+            <span class="text-[8px] text-zinc-400 font-mono block">Treino</span>
+            <span class="text-[10px] font-black text-emerald-400 font-mono" id="cmpYesterdayWorkout">✓ Feito</span>
+          </div>
+          <div class="px-2.5 py-1 rounded-lg bg-[#08090A] border border-[#272C31]">
+            <span class="text-[8px] text-zinc-400 font-mono block">Água</span>
+            <span class="text-[10px] font-black text-sky-400 font-mono" id="cmpYesterdayWater">2.8L</span>
+          </div>
+          <div class="px-2.5 py-1 rounded-lg bg-[#08090A] border border-[#272C31]">
+            <span class="text-[8px] text-zinc-400 font-mono block">Score IDC</span>
+            <span class="text-[10px] font-black text-white font-mono" id="cmpYesterdayIdc">88%</span>
           </div>
         </div>
       </div>
@@ -718,32 +874,97 @@
     <!-- ═════════════════════════════════════════════════════════ -->
     <section id="tabViewTreino" class="tab-view hidden w-full space-y-4">
 
-      <!-- HERO BANNER: TREINO & PERFORMANCE -->
-      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
-        <img src="../assets/patient/training-hero.jpg" alt="04. Performance & Força"
-          class="w-full h-44 object-cover object-center" />
-        <div class="absolute inset-0 hero-banner-overlay"></div>
-        <div class="absolute top-3 left-3">
-          <span
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 04 · PERFORMANCE &amp; FORÇA
-          </span>
+      <!-- HERO BANNER INTERATIVO: TREINO & PERFORMANCE -->
+      <div id="heroTreinoContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+        <!-- Slides Container -->
+        <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroTreinoSlider">
+          <!-- Slide 0: Imagem do Treino Ativo -->
+          <div class="hero-slide active" data-slide="0" id="heroTreinoSlide0">
+            <img id="heroTreinoImg" src="../assets/patient/training-hero.jpg" alt="04. Performance & Força" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 hero-banner-overlay"></div>
+          </div>
+          <!-- Slide 1: Pilar Institucional Performance -->
+          <div class="hero-slide" data-slide="1" id="heroTreinoSlide1">
+            <img src="../assets/pilares/performance/institucional.jpg" alt="Performance & Foco Biomecânico" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#08090A] via-[#08090A]/75 to-[#08090A]/30"></div>
+            <div class="absolute inset-0 flex flex-col justify-center px-4 sm:px-6">
+              <span class="text-[9px] font-mono uppercase tracking-widest text-[#E50914] font-bold">Biomecânica &amp; Carga</span>
+              <h3 class="text-sm sm:text-base font-black text-white mt-1">"Qualidade de movimento supera quantidade de carga."</h3>
+              <p class="text-[10px] text-zinc-300 mt-1 max-w-md">Controle a fase excêntrica (2-3s) e mantenha cadência constante. Cada repetição conta para o estímulo hipertrófico.</p>
+            </div>
+          </div>
+          <!-- Slide 2: Resumo Métrico de Treino -->
+          <div class="hero-stats-overlay" data-slide="2" id="heroTreinoSlide2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-bold uppercase text-[#E50914] flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#E50914] animate-ping"></span> Metas de Sobrecarga &amp; Volume
+              </span>
+              <span class="text-[9px] font-mono text-zinc-400">Ciclo Atual</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Duração Média</div>
+                <div class="text-base font-black text-white font-mono mt-0.5">50-60m</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Alta Eficiência</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Intensidade</div>
+                <div class="text-xs font-black text-amber-400 font-mono mt-1">RPE 8-9</div>
+                <div class="text-[8px] text-zinc-400 font-mono">1-2 RIR</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Séries Alvo</div>
+                <div class="text-base font-black text-[#00C896] font-mono mt-0.5">16-20</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Por Sessão</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-          <div>
-            <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight"
-              id="workoutRoutineTitle">
+
+        <!-- Top Badges & Treino Selector -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 z-10">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 04 · PERFORMANCE
+          </span>
+          <!-- Seletor Rápido de Treinos do Ciclo -->
+          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroWorkoutSelector">
+            <button type="button" onclick="selectHeroWorkout(1)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-wkt="1">T1</button>
+            <button type="button" onclick="selectHeroWorkout(2)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="2">T2</button>
+            <button type="button" onclick="selectHeroWorkout(3)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="3">T3</button>
+            <button type="button" onclick="selectHeroWorkout(4)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="4">T4</button>
+            <button type="button" onclick="selectHeroWorkout(5)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="5">T5</button>
+          </div>
+        </div>
+
+        <!-- Bottom Workout Info & Badge -->
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-end justify-between z-10 pointer-events-none">
+          <div class="pointer-events-auto">
+            <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight" id="workoutRoutineTitle">
               Treino A - Push
             </h2>
-            <p class="text-[10px] text-zinc-400 font-mono mt-0.5" id="workoutRoutineSubtitle">
+            <p class="text-[9px] text-zinc-400 font-mono mt-0.5" id="workoutRoutineSubtitle">
               Peitoral, Deltoides &amp; Tríceps • 60 min
             </p>
           </div>
-          <span id="workoutRoutineBadge"
-            class="px-2.5 py-1 rounded-xl bg-[#E50914]/20 border border-[#E50914]/40 text-[#E50914] font-mono font-bold text-[10px] uppercase">
+          <span id="workoutRoutineBadge" class="pointer-events-auto px-2.5 py-1 rounded-xl bg-[#E50914]/20 border border-[#E50914]/40 text-[#E50914] font-mono font-bold text-[9px] uppercase shadow">
             Alvo Ativo
           </span>
         </div>
+
+        <!-- Slider Dots & Nav Controls -->
+        <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 z-20">
+          <button type="button" onclick="setHeroSlide('heroTreino', 0)" class="hero-dot active" id="heroTreinoDot0" aria-label="Slide 1"></button>
+          <button type="button" onclick="setHeroSlide('heroTreino', 1)" class="hero-dot" id="heroTreinoDot1" aria-label="Slide 2"></button>
+          <button type="button" onclick="setHeroSlide('heroTreino', 2)" class="hero-dot" id="heroTreinoDot2" aria-label="Slide 3"></button>
+        </div>
+
+        <!-- Left/Right Slide Buttons -->
+        <button type="button" onclick="prevHeroSlide('heroTreino')" class="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Slide Anterior">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+        </button>
+        <button type="button" onclick="nextHeroSlide('heroTreino')" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Próximo Slide">
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
 
       <!-- SUBTABS DO TREINO: EXERCÍCIOS / ORIENTAÇÕES -->
@@ -933,30 +1154,159 @@
     <!-- ═════════════════════════════════════════════════════════ -->
     <section id="tabViewNutricao" class="tab-view hidden w-full space-y-4">
 
-      <!-- HERO BANNER: NUTRIÇÃO & SAÚDE -->
-      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
-        <img src="../assets/patient/nutrition-hero.jpg" alt="03. Nutrição & Saúde"
-          class="w-full h-44 object-cover object-center" />
-        <div class="absolute inset-0 hero-banner-overlay"></div>
-        <div class="absolute top-3 left-3">
-          <span
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 03 · NUTRIÇÃO ESTRATÉGICA
-          </span>
+      <!-- HERO BANNER INTERATIVO: NUTRIÇÃO & SAÚDE -->
+      <div id="heroNutricaoContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+        <!-- Slides Container -->
+        <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroNutricaoSlider">
+          <!-- Slide 0: Imagem Nutrição Estratégica -->
+          <div class="hero-slide active" data-slide="0" id="heroNutricaoSlide0">
+            <img id="heroNutricaoImg" src="../assets/patient/nutrition-hero.jpg" alt="03. Nutrição Estratégica" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 hero-banner-overlay"></div>
+          </div>
+          <!-- Slide 1: Pilar Institucional Nutrição -->
+          <div class="hero-slide" data-slide="1" id="heroNutricaoSlide1">
+            <img src="../assets/pilares/nutricao/institucional.jpg" alt="Pilar Nutrição & Composição Corporal" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#08090A] via-[#08090A]/75 to-[#08090A]/30"></div>
+            <div class="absolute inset-0 flex flex-col justify-center px-4 sm:px-6">
+              <span class="text-[9px] font-mono uppercase tracking-widest text-[#E50914] font-bold">Densidade Nutricional</span>
+              <h3 class="text-sm sm:text-base font-black text-white mt-1">"Alimento é sinalizador biológico celular."</h3>
+              <p class="text-[10px] text-zinc-300 mt-1 max-w-md">Cada refeição deve priorizar fontes proteicas limpas, fibras e hidratação adequada para sustentar o anabolismo e a saúde metabólica.</p>
+            </div>
+          </div>
+          <!-- Slide 2: Resumo Métrico de Macros -->
+          <div class="hero-stats-overlay" data-slide="2" id="heroNutricaoSlide2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-bold uppercase text-amber-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> Balanço Energético do Dia
+              </span>
+              <span class="text-[9px] font-mono text-zinc-400">Prescrição Ativa</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Proteínas</div>
+                <div class="text-base font-black text-sky-400 font-mono mt-0.5" id="heroMacroP">~160g</div>
+                <div class="text-[8px] text-zinc-400 font-mono">2.0 g/kg</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Carboidratos</div>
+                <div class="text-base font-black text-emerald-400 font-mono mt-0.5" id="heroMacroC">~210g</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Energia Limpa</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Lipídios</div>
+                <div class="text-base font-black text-amber-400 font-mono mt-0.5" id="heroMacroG">~55g</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Hormonal</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-          <div>
+
+        <!-- Top Badges & Meal Focus Selector -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 z-10">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 03 · NUTRIÇÃO
+          </span>
+          <!-- Seletor Rápido de Foco / Refeições -->
+          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroMealSelector">
+            <button type="button" onclick="selectHeroMeal('todas')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-meal="todas">PLANO</button>
+            <button type="button" onclick="selectHeroMeal('cafe')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="cafe">CAFÉ</button>
+            <button type="button" onclick="selectHeroMeal('almoco')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="almoco">ALMOÇO</button>
+            <button type="button" onclick="selectHeroMeal('lanche')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="lanche">LANCHE</button>
+            <button type="button" onclick="selectHeroMeal('jantar')" class="hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-meal="jantar">JANTAR</button>
+          </div>
+        </div>
+
+        <!-- Bottom Meal Info & Badge -->
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-end justify-between z-10 pointer-events-none">
+          <div class="pointer-events-auto">
             <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
               Cardápio &amp; Plano Alimentar
             </h2>
-            <p class="text-[10px] text-zinc-400 font-mono mt-0.5">
+            <p class="text-[9px] text-zinc-400 font-mono mt-0.5" id="heroMealSubtitle">
               Prescrição nutricional fracionada e equilibrada
             </p>
           </div>
-          <span id="mealsCompletedTag"
-            class="px-2.5 py-1 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-400 font-mono font-bold text-[10px]">
+          <span id="mealsCompletedTag" class="pointer-events-auto px-2.5 py-1 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-400 font-mono font-bold text-[9px] shadow">
             0 / 4 refeições
           </span>
+        </div>
+
+        <!-- Slider Dots & Nav Controls -->
+        <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 z-20">
+          <button type="button" onclick="setHeroSlide('heroNutricao', 0)" class="hero-dot active" id="heroNutricaoDot0" aria-label="Slide 1"></button>
+          <button type="button" onclick="setHeroSlide('heroNutricao', 1)" class="hero-dot" id="heroNutricaoDot1" aria-label="Slide 2"></button>
+          <button type="button" onclick="setHeroSlide('heroNutricao', 2)" class="hero-dot" id="heroNutricaoDot2" aria-label="Slide 3"></button>
+        </div>
+
+        <!-- Left/Right Slide Buttons -->
+        <button type="button" onclick="prevHeroSlide('heroNutricao')" class="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Slide Anterior">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+        </button>
+        <button type="button" onclick="nextHeroSlide('heroNutricao')" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Próximo Slide">
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- CARD DISTRIBUIÇÃO DE MACRONUTRIENTES COM ANEL SVG -->
+      <div class="p-3.5 rounded-2xl bg-[#121518]/90 border border-[#272C31] shadow-lg">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2 mb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-sky-950/60 border border-sky-800/80 flex items-center justify-center text-sky-400">
+              <i data-lucide="pie-chart" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-black text-white font-mono uppercase">Distribuição de Macros</h3>
+              <p class="text-[9px] text-zinc-400 font-mono">Balanço proporcional prescrito</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-2 py-0.5 rounded-full">
+            Meta Ativa
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between gap-4">
+          <!-- Donut SVG Circular -->
+          <div class="relative w-20 h-20 shrink-0 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              <!-- Background circle -->
+              <path class="text-zinc-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <!-- Protein segment (sky) ~30% -->
+              <path stroke-dasharray="30, 100" stroke-width="3.5" stroke="#38bdf8" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <!-- Carbs segment (emerald) ~50% -->
+              <path stroke-dasharray="50, 100" stroke-dashoffset="-30" stroke-width="3.5" stroke="#00C896" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <!-- Fat segment (amber) ~20% -->
+              <path stroke-dasharray="20, 100" stroke-dashoffset="-80" stroke-width="3.5" stroke="#fbbf24" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span class="text-[10px] font-mono font-black text-white" id="macroDonutKcal">1980</span>
+              <span class="text-[7px] font-mono text-zinc-400 uppercase">kcal</span>
+            </div>
+          </div>
+
+          <!-- Legenda de Macros -->
+          <div class="grid grid-cols-1 gap-1.5 flex-1 text-[10px] font-mono">
+            <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#08090A] border border-[#272C31]">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                <span class="text-zinc-300">Proteínas (30%)</span>
+              </div>
+              <span class="text-white font-bold" id="macroDonutP">160g</span>
+            </div>
+            <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#08090A] border border-[#272C31]">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#00C896]"></span>
+                <span class="text-zinc-300">Carboidratos (50%)</span>
+              </div>
+              <span class="text-white font-bold" id="macroDonutC">210g</span>
+            </div>
+            <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#08090A] border border-[#272C31]">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span class="text-zinc-300">Gorduras (20%)</span>
+              </div>
+              <span class="text-white font-bold" id="macroDonutG">55g</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1106,31 +1456,95 @@
     <!-- ═════════════════════════════════════════════════════════ -->
     <section id="tabViewProgresso" class="tab-view hidden w-full space-y-4">
 
-      <!-- HERO BANNER: EVOLUÇÃO & RESULTADO -->
-      <div class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518]">
-        <img src="../assets/patient/evolution-hero.jpg" alt="05. Resultado & Evolução"
-          class="w-full h-44 object-cover object-center" />
-        <div class="absolute inset-0 hero-banner-overlay"></div>
-        <div class="absolute top-3 left-3">
-          <span
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[10px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 05 · RESULTADO &amp; EVOLUÇÃO
-          </span>
+      <!-- HERO BANNER INTERATIVO: EVOLUÇÃO & RESULTADO -->
+      <div id="heroProgressoContainer" class="relative w-full rounded-2xl overflow-hidden border border-[#272C31] shadow-2xl bg-[#121518] group">
+        <!-- Slides Container -->
+        <div class="relative w-full h-48 sm:h-52 overflow-hidden" id="heroProgressoSlider">
+          <!-- Slide 0: Imagem Evolução -->
+          <div class="hero-slide active" data-slide="0" id="heroProgressoSlide0">
+            <img id="heroProgressoImg" src="../assets/patient/evolution-hero.jpg" alt="05. Resultado & Evolução" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 hero-banner-overlay"></div>
+          </div>
+          <!-- Slide 1: Pilar Institucional Resultado -->
+          <div class="hero-slide" data-slide="1" id="heroProgressoSlide1">
+            <img src="../assets/pilares/resultado/institucional.jpg" alt="Pilar Resultado & Consistência" class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#08090A] via-[#08090A]/75 to-[#08090A]/30"></div>
+            <div class="absolute inset-0 flex flex-col justify-center px-4 sm:px-6">
+              <span class="text-[9px] font-mono uppercase tracking-widest text-[#E50914] font-bold">Consistência Cumulativa</span>
+              <h3 class="text-sm sm:text-base font-black text-white mt-1">"O resultado é consequência de repetições invisíveis."</h3>
+              <p class="text-[10px] text-zinc-300 mt-1 max-w-md">Não meça o progresso apenas na balança. Meça na aderência, nos hábitos blindados e na evolução silenciosa da sua disciplina.</p>
+            </div>
+          </div>
+          <!-- Slide 2: Resumo Métrico de Evolução -->
+          <div class="hero-stats-overlay" data-slide="2" id="heroProgressoSlide2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-bold uppercase text-[#00C896] flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#00C896] animate-ping"></span> Painel de Consistência
+              </span>
+              <span class="text-[9px] font-mono text-zinc-400">Últimos 30 Dias</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Taxa Adesão</div>
+                <div class="text-base font-black text-[#00C896] font-mono mt-0.5">86%</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Alta Regularidade</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Treinos Mês</div>
+                <div class="text-xs font-black text-white font-mono mt-1">18 sessões</div>
+                <div class="text-[8px] text-emerald-400 font-mono">Meta Superada</div>
+              </div>
+              <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
+                <div class="text-[9px] text-zinc-400 font-mono">Streak Recorde</div>
+                <div class="text-base font-black text-amber-400 font-mono mt-0.5">14 dias</div>
+                <div class="text-[8px] text-zinc-400 font-mono">Ininterruptos</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-          <div>
+
+        <!-- Top Badges & Mode Selector -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 z-10">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#08090A]/90 border border-[#272C31] backdrop-blur-sm text-[9px] font-mono font-black text-[#E50914] uppercase tracking-wider shadow shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse"></span> 05 · RESULTADO
+          </span>
+          <!-- Seletor Rápido de Visões -->
+          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroProgressSelector">
+            <button type="button" onclick="setHeroSlide('heroProgresso', 0)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white">VISÃO GERAL</button>
+            <button type="button" onclick="setHeroSlide('heroProgresso', 1)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white">MÉTODO</button>
+            <button type="button" onclick="setHeroSlide('heroProgresso', 2)" class="hero-progress-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white">ESTATÍSTICAS</button>
+          </div>
+        </div>
+
+        <!-- Bottom Info & Trend -->
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-end justify-between z-10 pointer-events-none">
+          <div class="pointer-events-auto">
             <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
               Evolução &amp; Consistência
             </h2>
-            <p class="text-[10px] text-zinc-400 font-mono mt-0.5">
+            <p class="text-[9px] text-zinc-400 font-mono mt-0.5">
               Histórico • tendências • constância
             </p>
           </div>
-          <span id="scoresPeriodTrendDisplay"
-            class="px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-400 font-mono font-bold text-[10px]">
+          <span id="scoresPeriodTrendDisplay" class="pointer-events-auto px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-400 font-mono font-bold text-[9px] shadow">
             ↑ +6% no período
           </span>
         </div>
+
+        <!-- Slider Dots & Nav Controls -->
+        <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 z-20">
+          <button type="button" onclick="setHeroSlide('heroProgresso', 0)" class="hero-dot active" id="heroProgressoDot0" aria-label="Slide 1"></button>
+          <button type="button" onclick="setHeroSlide('heroProgresso', 1)" class="hero-dot" id="heroProgressoDot1" aria-label="Slide 2"></button>
+          <button type="button" onclick="setHeroSlide('heroProgresso', 2)" class="hero-dot" id="heroProgressoDot2" aria-label="Slide 3"></button>
+        </div>
+
+        <!-- Left/Right Slide Buttons -->
+        <button type="button" onclick="prevHeroSlide('heroProgresso')" class="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Slide Anterior">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+        </button>
+        <button type="button" onclick="nextHeroSlide('heroProgresso')" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#08090A]/70 hover:bg-[#08090A] border border-[#272C31] text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" aria-label="Próximo Slide">
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
 
       <!-- SELETOR DE PERÍODO: 7 DIAS / 30 DIAS / 90 DIAS -->
@@ -1147,6 +1561,47 @@
           class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
           90 dias
         </button>
+      </div>
+
+      <!-- HEATMAP DE CONSISTÊNCIA MENSAL (ESTILO GITHUB / STRAVA) -->
+      <div class="p-3.5 rounded-2xl bg-[#121518]/90 border border-[#272C31] shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-center text-[#00C896]">
+              <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-black text-white font-mono uppercase">Mapa de Consistência (28 Dias)</h3>
+              <p class="text-[9px] text-zinc-400 font-mono">Frequência e adesão aos hábitos</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 text-[8px] font-mono text-zinc-400">
+            <span>Menos</span>
+            <span class="w-2.5 h-2.5 rounded-sm heatmap-0 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-sm heatmap-1 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-sm heatmap-2 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-sm heatmap-3 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-sm heatmap-4 inline-block"></span>
+            <span>Mais</span>
+          </div>
+        </div>
+
+        <!-- Grade de 4 semanas x 7 dias -->
+        <div class="space-y-1.5">
+          <!-- Cabeçalho dos dias -->
+          <div class="grid grid-cols-7 gap-1 text-center text-[9px] font-mono text-zinc-400">
+            <span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span>
+          </div>
+          <!-- Células do Heatmap (28 dias gerados dinamicamente) -->
+          <div class="grid grid-cols-7 gap-1" id="heatmapGridContainer">
+            <!-- Gerado via script -->
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 text-[9px] font-mono text-zinc-400 border-t border-[#272C31]/50">
+          <span id="heatmapTooltip">Toque em qualquer dia para inspecionar</span>
+          <span class="text-emerald-400 font-bold" id="heatmapTotalDone">24 / 28 dias ativos</span>
+        </div>
       </div>
 
       <!-- CARD SCORE GERAL (IDC MÉDIO) -->
@@ -2377,9 +2832,14 @@
 
       window.scrollTo({ top: 0, behavior: 'auto' });
 
-      // Se navegou para Progresso, atualiza o gráfico SVG de evolução
-      if (tabKey === 'progresso' && typeof renderScoreEvolutionChart === 'function') {
-        renderScoreEvolutionChart(7);
+      // Se navegou para Progresso, atualiza o gráfico SVG de evolução e heatmap
+      if (tabKey === 'progresso') {
+        if (typeof renderScoreEvolutionChart === 'function') {
+          renderScoreEvolutionChart(7);
+        }
+        if (typeof renderConsistencyHeatmap === 'function') {
+          renderConsistencyHeatmap();
+        }
       }
 
       if (window.lucide) {
@@ -2431,6 +2891,297 @@
       }
       if (window.lucide) window.lucide.createIcons();
     };
+
+    // ═══════════════════════════════════════════════════════════
+    // HEROES INTERATIVOS, CARROSSEL E ALTERNÂNCIA POR DIA
+    // ═══════════════════════════════════════════════════════════
+    var _heroSlideStates = {
+      heroHoje: 0,
+      heroTreino: 0,
+      heroNutricao: 0,
+      heroProgresso: 0
+    };
+
+    var _heroDayData = {
+      seg: {
+        img: '../assets/patient/discipline-hero.jpg',
+        motto: 'Segunda-feira: Intencionalidade e foco no ponto de partida.',
+        streak: '1 dia',
+        yesterdayWorkout: '✓ Feito',
+        yesterdayWater: '2.8L',
+        yesterdayIdc: '88%'
+      },
+      ter: {
+        img: '../assets/pilares/disciplina/institucional.jpg',
+        motto: 'Terça-feira: Execução sem negociação com a mente.',
+        streak: '2 dias',
+        yesterdayWorkout: '✓ Feito',
+        yesterdayWater: '3.0L',
+        yesterdayIdc: '92%'
+      },
+      qua: {
+        img: '../assets/patient/training-hero.jpg',
+        motto: 'Quarta-feira: O meio da semana consolida os grandes resultados.',
+        streak: '3 dias',
+        yesterdayWorkout: '✓ Feito',
+        yesterdayWater: '3.2L',
+        yesterdayIdc: '95%'
+      },
+      qui: {
+        img: '../assets/patient/nutrition-hero.jpg',
+        motto: 'Quinta-feira: Consistência em ritmo acelerado e nutrição limpa.',
+        streak: '4 dias',
+        yesterdayWorkout: '✓ Feito',
+        yesterdayWater: '3.1L',
+        yesterdayIdc: '90%'
+      },
+      sex: {
+        img: '../assets/pilares/performance/institucional.jpg',
+        motto: 'Sexta-feira: Fechamento com alta performance e sem deslizes.',
+        streak: '5 dias',
+        yesterdayWorkout: '✓ Feito',
+        yesterdayWater: '3.0L',
+        yesterdayIdc: '94%'
+      },
+      sab: {
+        img: '../assets/patient/hydration-hero.jpg',
+        motto: 'Sábado: A disciplina é o estilo de vida, mesmo no fim de semana.',
+        streak: '6 dias',
+        yesterdayWorkout: '✓ Ativo',
+        yesterdayWater: '2.9L',
+        yesterdayIdc: '86%'
+      },
+      dom: {
+        img: '../assets/patient/sleep-hero.jpg',
+        motto: 'Domingo: Sono reparador, preparo e alinhamento do próximo ciclo.',
+        streak: '7 dias',
+        yesterdayWorkout: 'Regeneração',
+        yesterdayWater: '2.7L',
+        yesterdayIdc: '91%'
+      }
+    };
+
+    var _heroWorkoutData = {
+      1: {
+        title: 'Treino A - Push',
+        sub: 'Peitoral, Deltoides & Tríceps • 60 min',
+        img: '../assets/patient/training-hero.jpg',
+        badge: 'Alvo Ativo'
+      },
+      2: {
+        title: 'Treino B - Pull',
+        sub: 'Dorsais, Trapézio & Bíceps • 55 min',
+        img: '../assets/pilares/performance/hero.jpg',
+        badge: 'Treino 2'
+      },
+      3: {
+        title: 'Treino C - Legs',
+        sub: 'Quadríceps, Glúteos & Panturrilhas • 60 min',
+        img: '../assets/pilares/performance/institucional.jpg',
+        badge: 'Treino 3'
+      },
+      4: {
+        title: 'Treino D - Shoulders & Arms',
+        sub: 'Deltoides Completo & Braços • 50 min',
+        img: '../assets/patient/training-hero.jpg',
+        badge: 'Treino 4'
+      },
+      5: {
+        title: 'Treino E - Metabolic & Core',
+        sub: 'Cardio Zona 2 & Core Funcional • 45 min',
+        img: '../assets/patient/hydration-hero.jpg',
+        badge: 'Treino 5'
+      }
+    };
+
+    var _heroMealData = {
+      todas: {
+        title: 'Cardápio & Plano Alimentar',
+        sub: 'Prescrição nutricional fracionada e equilibrada',
+        img: '../assets/patient/nutrition-hero.jpg'
+      },
+      cafe: {
+        title: 'Café da Manhã Estratégico',
+        sub: '420 kcal • 35g Proteína • Ovos mexidos, aveia e fruta',
+        img: '../assets/pilares/nutricao/hero.jpg'
+      },
+      almoco: {
+        title: 'Almoço Anabólico & Fibras',
+        sub: '680 kcal • 50g Proteína • Arroz integral, peito de frango & legumes',
+        img: '../assets/pilares/nutricao/institucional.jpg'
+      },
+      lanche: {
+        title: 'Lanche Pré-Treino',
+        sub: '350 kcal • 25g Proteína • Iogurte proteico & oleaginosas',
+        img: '../assets/patient/nutrition-hero.jpg'
+      },
+      jantar: {
+        title: 'Jantar Regenerativo',
+        sub: '530 kcal • 45g Proteína • Carne magra/peixe & folhas verdes',
+        img: '../assets/patient/fasting-hero.jpg'
+      }
+    };
+
+    window.setHeroSlide = function(heroKey, slideIdx) {
+      _heroSlideStates[heroKey] = slideIdx;
+      for (var i = 0; i < 3; i++) {
+        var slideEl = document.getElementById(heroKey + 'Slide' + i);
+        var dotEl = document.getElementById(heroKey + 'Dot' + i);
+        if (slideEl) {
+          if (i === slideIdx) {
+            slideEl.classList.add('active');
+          } else {
+            slideEl.classList.remove('active');
+          }
+        }
+        if (dotEl) {
+          if (i === slideIdx) {
+            dotEl.classList.add('active');
+          } else {
+            dotEl.classList.remove('active');
+          }
+        }
+      }
+    };
+
+    window.nextHeroSlide = function(heroKey) {
+      var current = _heroSlideStates[heroKey] || 0;
+      var next = (current + 1) % 3;
+      window.setHeroSlide(heroKey, next);
+    };
+
+    window.prevHeroSlide = function(heroKey) {
+      var current = _heroSlideStates[heroKey] || 0;
+      var prev = (current - 1 + 3) % 3;
+      window.setHeroSlide(heroKey, prev);
+    };
+
+    window.selectHeroDay = function(dayKey) {
+      if (!_heroDayData[dayKey]) return;
+      var data = _heroDayData[dayKey];
+      var imgEl = document.getElementById('heroHojeImg');
+      var mottoEl = document.getElementById('heroDayMotto');
+      var qkStreak = document.getElementById('heroQuickStreak');
+      var cmpWorkout = document.getElementById('cmpYesterdayWorkout');
+      var cmpWater = document.getElementById('cmpYesterdayWater');
+      var cmpIdc = document.getElementById('cmpYesterdayIdc');
+
+      if (imgEl) imgEl.src = data.img;
+      if (mottoEl) mottoEl.innerText = data.motto;
+      if (qkStreak) qkStreak.innerText = data.streak;
+      if (cmpWorkout) cmpWorkout.innerText = data.yesterdayWorkout;
+      if (cmpWater) cmpWater.innerText = data.yesterdayWater;
+      if (cmpIdc) cmpIdc.innerText = data.yesterdayIdc;
+
+      var pills = document.querySelectorAll('.hero-day-pill');
+      pills.forEach(function(pill) {
+        if (pill.getAttribute('data-day') === dayKey) {
+          pill.className = 'hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white shadow';
+        } else {
+          pill.className = 'hero-day-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white';
+        }
+      });
+
+      if (_heroSlideStates.heroHoje !== 0) {
+        window.setHeroSlide('heroHoje', 0);
+      }
+    };
+
+    window.selectHeroWorkout = function(wktNum) {
+      var data = _heroWorkoutData[wktNum];
+      if (!data) return;
+      var imgEl = document.getElementById('heroTreinoImg');
+      var titleEl = document.getElementById('workoutRoutineTitle');
+      var subEl = document.getElementById('workoutRoutineSubtitle');
+      var badgeEl = document.getElementById('workoutRoutineBadge');
+
+      if (imgEl) imgEl.src = data.img;
+      if (titleEl) titleEl.innerText = data.title;
+      if (subEl) subEl.innerText = data.sub;
+      if (badgeEl) badgeEl.innerText = data.badge;
+
+      var pills = document.querySelectorAll('.hero-workout-pill');
+      pills.forEach(function(p) {
+        if (p.getAttribute('data-wkt') == wktNum) {
+          p.className = 'hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white shadow';
+        } else {
+          p.className = 'hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white';
+        }
+      });
+
+      if (_heroSlideStates.heroTreino !== 0) {
+        window.setHeroSlide('heroTreino', 0);
+      }
+    };
+
+    window.selectHeroMeal = function(mealKey) {
+      var data = _heroMealData[mealKey];
+      if (!data) return;
+      var imgEl = document.getElementById('heroNutricaoImg');
+      var subEl = document.getElementById('heroMealSubtitle');
+
+      if (imgEl) imgEl.src = data.img;
+      if (subEl) subEl.innerText = data.sub;
+
+      var pills = document.querySelectorAll('.hero-meal-pill');
+      pills.forEach(function(p) {
+        if (p.getAttribute('data-meal') === mealKey) {
+          p.className = 'hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white shadow';
+        } else {
+          p.className = 'hero-meal-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white';
+        }
+      });
+
+      if (_heroSlideStates.heroNutricao !== 0) {
+        window.setHeroSlide('heroNutricao', 0);
+      }
+    };
+
+    window.renderConsistencyHeatmap = function() {
+      var container = document.getElementById('heatmapGridContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      var levels = [3, 4, 4, 3, 4, 2, 4, 4, 4, 3, 4, 4, 3, 4, 3, 4, 4, 4, 3, 4, 4, 4, 3, 4, 4, 4, 3, 4];
+
+      levels.forEach(function(lvl, idx) {
+        var dayNum = idx + 1;
+        var cell = document.createElement('div');
+        cell.className = 'heatmap-cell heatmap-' + lvl + ' cursor-pointer flex items-center justify-center text-[7px] font-mono font-bold text-black/50 select-none';
+        cell.title = 'Dia ' + dayNum + ': IDC ' + (lvl === 4 ? '95-100%' : lvl === 3 ? '80-90%' : lvl === 2 ? '60-75%' : 'Descanso');
+        cell.onclick = function() {
+          var tooltip = document.getElementById('heatmapTooltip');
+          if (tooltip) {
+            var idcEst = lvl === 4 ? '100% (Todos hábitos)' : lvl === 3 ? '85% (Treino + Água)' : lvl === 2 ? '70% (Dieta + Água)' : 'Descanso / Off';
+            tooltip.innerHTML = '<strong>Dia ' + dayNum + ' do ciclo:</strong> IDC ' + idcEst;
+          }
+        };
+        container.appendChild(cell);
+      });
+    };
+
+    window.initHeroInteractive = function() {
+      var dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+      var todayDay = dayMap[new Date().getDay()] || 'seg';
+      window.selectHeroDay(todayDay);
+      window.renderConsistencyHeatmap();
+
+      setInterval(function() {
+        var activeTab = document.querySelector('.tab-view.active');
+        if (!activeTab) return;
+        var tabId = activeTab.id;
+        if (tabId === 'tabViewHoje') window.nextHeroSlide('heroHoje');
+        else if (tabId === 'tabViewTreino') window.nextHeroSlide('heroTreino');
+        else if (tabId === 'tabViewNutricao') window.nextHeroSlide('heroNutricao');
+        else if (tabId === 'tabViewProgresso') window.nextHeroSlide('heroProgresso');
+      }, 7000);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', window.initHeroInteractive);
+    } else {
+      window.initHeroInteractive();
+    }
 
 
 
