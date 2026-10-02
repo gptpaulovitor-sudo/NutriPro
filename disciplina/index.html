@@ -18,10 +18,20 @@
   <meta name="application-name" content="NutriAx">
   <meta name="format-detection" content="telephone=no">
 
+  <!-- PWA Path Normalization Safeguard -->
+  <script>
+    if (window.location.pathname.endsWith('/disciplina')) {
+      window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash);
+    }
+  </script>
+
   <!-- Manifest & Icons -->
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="shortcut icon" href="icons/favicon.png" type="image/png">
 
   <!-- Fonts: Inter + JetBrains Mono -->
@@ -632,10 +642,16 @@
           <p class="text-[10px] text-zinc-400 leading-tight">Acesse rápido na sua tela de início</p>
         </div>
       </div>
-      <button onclick="installPatientPWA()"
-        class="px-3 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#b80710] text-white text-[10px] font-bold uppercase font-mono tracking-wider transition-all">
-        Instalar
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="btnInstallDisciplinaPwa" onclick="installPatientPWA()"
+          class="px-3 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#b80710] text-white text-[10px] font-bold uppercase font-mono tracking-wider transition-all shadow-md">
+          Instalar
+        </button>
+        <button type="button" onclick="document.getElementById('pwaInstallBanner').classList.add('hidden')"
+          class="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors" title="Dispensar aviso">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
     </div>
 
     <!-- ═════════════════════════════════════════════════════════ -->
@@ -8843,35 +8859,87 @@
       document.getElementById('sosModal').classList.add('hidden');
     }
 
-    // 15. PWA INSTALL PROMPT
+    // 15. PWA INSTALL PROMPT & INSTALADOR AUTOMÁTICO
     let deferredPrompt = null;
-    function setupPwaPrompt() {
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        const banner = document.getElementById('pwaInstallBanner');
-        if (banner) banner.classList.remove('hidden');
-      });
+    let deferredDisciplinaInstallPrompt = null;
 
-      window.addEventListener('appinstalled', () => {
-        const banner = document.getElementById('pwaInstallBanner');
-        if (banner) banner.classList.add('hidden');
-        deferredPrompt = null;
-      });
+    function isAppInStandaloneMode() {
+      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+             (window.navigator && window.navigator.standalone === true);
     }
 
-    function promptPwaInstall() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          deferredPrompt = null;
-          const banner = document.getElementById('pwaInstallBanner');
-          if (banner) banner.classList.add('hidden');
-        });
-      } else {
-        alert('Para instalar no iPhone: toque no botão Compartilhar do Safari e selecione "Adicionar à Tela de Início". No Android: abra o menu do Chrome e selecione "Instalar aplicativo".');
+    function syncPwaBannerVisibility() {
+      const banner = document.getElementById('pwaInstallBanner');
+      if (!banner) return;
+      if (isAppInStandaloneMode()) {
+        banner.classList.add('hidden');
+      } else if (deferredPrompt || deferredDisciplinaInstallPrompt) {
+        banner.classList.remove('hidden');
       }
     }
+
+    // Registra listener no topo para capturar antes de qualquer outro ciclo
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('[Disciplina PWA] Evento beforeinstallprompt capturado com sucesso.');
+      e.preventDefault();
+      deferredPrompt = e;
+      deferredDisciplinaInstallPrompt = e;
+      syncPwaBannerVisibility();
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('[Disciplina PWA] Aplicativo instalado com sucesso.');
+      deferredPrompt = null;
+      deferredDisciplinaInstallPrompt = null;
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner) banner.classList.add('hidden');
+    });
+
+    function setupPwaPrompt() {
+      syncPwaBannerVisibility();
+    }
+
+    async function promptPwaInstall() {
+      const promptEvent = deferredPrompt || deferredDisciplinaInstallPrompt;
+      const banner = document.getElementById('pwaInstallBanner');
+
+      if (promptEvent) {
+        try {
+          promptEvent.prompt();
+          const choiceResult = await promptEvent.userChoice;
+          console.log('[Disciplina PWA] Resposta do prompt:', choiceResult?.outcome);
+          if (choiceResult && choiceResult.outcome === 'accepted') {
+            if (banner) banner.classList.add('hidden');
+          }
+        } catch (err) {
+          console.warn('[Disciplina PWA] Erro ao abrir prompt nativo:', err);
+        } finally {
+          deferredPrompt = null;
+          deferredDisciplinaInstallPrompt = null;
+        }
+      } else {
+        const isIos = /iphone|ipad|ipod/.test((window.navigator.userAgent || '').toLowerCase());
+        const isStandalone = isAppInStandaloneMode();
+
+        if (isStandalone) {
+          alert('O aplicativo NutriAx Disciplina já está instalado no seu dispositivo!');
+          if (banner) banner.classList.add('hidden');
+          return;
+        }
+
+        if (isIos) {
+          alert('Para instalar no iPhone/iPad:\n1. Toque no botão "Compartilhar" (ícone com seta para cima) na barra do Safari;\n2. Role para baixo e selecione "Adicionar à Tela de Início".');
+        } else {
+          alert('Instalação do App Disciplina no Chrome:\n\n1. Abra o menu do Chrome (três pontinhos no topo à direita);\n2. Clique em "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n💡 Dica importante: Se você acabou de desinstalar o app, feche a aba e abra novamente (ou pressione Ctrl+F5) para o Chrome limpar o cache da desinstalação anterior e liberar a nova instalação.');
+        }
+      }
+    }
+
+    function installPatientPWA() {
+      return promptPwaInstall();
+    }
+    window.promptPwaInstall = promptPwaInstall;
+    window.installPatientPWA = installPatientPWA;
 
     // 16. GOOGLE AUTH & FIREBASE CLOUD SYNC UI
     function updateGoogleAuthVisuals(user) {
@@ -9523,22 +9591,10 @@
           registerDiscSw();
         }
       }
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredDisciplinaInstallPrompt = e;
-        console.log('[Disciplina PWA] beforeinstallprompt capturado no Disciplina.');
-        const btnInstall = document.getElementById('btnInstallDisciplinaPwa');
-        if (btnInstall) btnInstall.classList.remove('hidden');
-      });
     }
 
     initDisciplinaPWA();
 </script>
-</body>
-
-</html>
-
 </body>
 
 </html>

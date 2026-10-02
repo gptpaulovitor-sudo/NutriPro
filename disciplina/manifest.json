@@ -28,10 +28,39 @@
       "purpose": "any"
     },
     {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    },
+    {
       "src": "icons/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Check-in Diário",
+      "short_name": "Hoje",
+      "description": "Visualizar hábitos e refeições do dia",
+      "url": "./#hoje",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Treino Prescrito",
+      "short_name": "Treino",
+      "description": "Ver ficha de treino e exercícios",
+      "url": "./#treino",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Plano Nutricional",
+      "short_name": "Dieta",
+      "description": "Cardápio e registro de refeições",
+      "url": "./#dieta",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "prefer_related_applications": false
