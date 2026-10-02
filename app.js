@@ -18194,7 +18194,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha as travas de segurança do Leg engatadas em nível seguro.'
   },
   lg23: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-sumo-squat.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/smith-sumo-squat.gif',
     steps: [
       'Pés afastados além da largura dos ombros com pontas viradas para fora a 45°.',
       'Segure um halter pesado entre as pernas com braços estendidos.',
@@ -18205,7 +18205,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não deixe os joelhos caírem para dentro (valgo dinâmico).'
   },
   lg24: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/bodyweight-single-leg-hip-thrust.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif',
     steps: [
       'Costas apoiadas no banco na altura das escápulas, um pé firme no chão.',
       'Eleve a outra perna dobrada a 90° e segure um halter sobre a pelve (opcional).',
@@ -18216,7 +18216,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não use a lombar para compensar a amplitude; o movimento é exclusivamente do quadril.'
   },
   lg25: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunges.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif',
     steps: [
       'Segure um halter em cada mão ao lado do tronco com peitoral aberto e abdômen firme.',
       'Dê um passo largo à frente flexionando ambos os joelhos em ângulo de 90°.',
@@ -18824,7 +18824,16 @@ function perfGenerateFallbackSvg(exerciseName, muscleGroup) {
 function perfHandleGifError(imgEl) {
   if (!imgEl) return;
   const exName = imgEl.dataset.exname || 'Exercício';
-  const exGroup = imgEl.dataset.exgroup || 'Biomecânica';
+  const exGroup = imgEl.dataset.exgroup || 'Peitoral';
+
+  if (!imgEl.dataset.triedGroupFallback) {
+    imgEl.dataset.triedGroupFallback = 'true';
+    const groupGif = (typeof GROUP_DEFAULT_GIFS !== 'undefined' ? GROUP_DEFAULT_GIFS[exGroup] : null) || 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
+    if (groupGif && imgEl.src !== groupGif) {
+      imgEl.src = groupGif;
+      return;
+    }
+  }
 
   if (!imgEl.dataset.triedFallback) {
     imgEl.dataset.triedFallback = 'true';
@@ -18836,11 +18845,12 @@ const GROUP_DEFAULT_GIFS = {
   'Peitoral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
   'Dorsal': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif',
   'Pernas': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif',
-  'Ombros': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/shoulders/dumbbell-seated-shoulder-press.gif',
+  'Ombros': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif',
   'Bíceps': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
   'Tríceps': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif',
   'Braços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
   'Abdômen': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
+  'Cardio': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
   'Geral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif'
 };
 

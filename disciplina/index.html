@@ -3777,7 +3777,107 @@
       } else {
         loadPatientPreferences();
       }
+    // ═══════════════════════════════════════════════════════════
+    // MOTOR DE DEMONSTRAÇÃO VISUAL & GIFS DE BIOMECÂNICA (60 FPS)
+    // ═══════════════════════════════════════════════════════════
+    const GROUP_DEFAULT_GIFS = {
+      'Peitoral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+      'Dorsal': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif',
+      'Pernas': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif',
+      'Ombros': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif',
+      'Bíceps': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
+      'Tríceps': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif',
+      'Braços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
+      'Abdômen': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
+      'Cardio': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+      'Geral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif'
+    };
+
+    function resolveExerciseGif(ex) {
+      if (!ex) return GROUP_DEFAULT_GIFS['Peitoral'];
+
+      if (ex.gif && typeof ex.gif === 'string' && ex.gif.trim().startsWith('http')) {
+        let clean = ex.gif.trim();
+        if (clean.includes('shoulders/dumbbell-seated-shoulder-press.gif')) {
+          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif';
+        }
+        if (clean.includes('glutes/dumbbell-lunges.gif')) {
+          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif';
+        }
+        if (clean.includes('glutes/dumbbell-sumo-squat.gif')) {
+          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/smith-sumo-squat.gif';
+        }
+        if (clean.includes('glutes/bodyweight-single-leg-hip-thrust.gif')) {
+          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif';
+        }
+        return clean;
+      }
+
+      const name = String(ex.name || '').toLowerCase();
+      const group = String(ex.group || '').toLowerCase();
+
+      // Mapeamento semântico por nome do exercício
+      if (/supino.*inclinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-incline-bench-press.gif';
+      if (/supino.*declinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-decline-bench-press.gif';
+      if (/supino/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
+      if (/crucifixo|voador|peck/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-fly.gif';
+      if (/crossover/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/cable-standing-fly.gif';
+      if (/flex[aã]o/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/push-up.gif';
+      if (/paralela|dip/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/chest-dip.gif';
+
+      if (/puxad|pulldown/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif';
+      if (/barra.*fixa|chin.*up|pull.*up/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/pull-up.gif';
+      if (/remada.*sentad|remada.*baixa/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif';
+      if (/remada.*cavalinho|t-bar/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/lever-reverse-t-bar-row.gif';
+      if (/remada.*unilateral|serrote/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/dumbbell-one-arm-bent-over-row.gif';
+      if (/remada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/barbell-bent-over-row.gif';
+
+      if (/terra.*romeno|stiff/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-romanian-deadlift.gif';
+      if (/terra|deadlift/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-deadlift.gif';
+      if (/leg.*press/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-degrees-one-leg-press.gif';
+      if (/extensor/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif';
+      if (/flexor/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/hamstrings/lever-lying-leg-curl.gif';
+      if (/hack/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-hack-squat.gif';
+      if (/afundo|avan[cç]o|lunge|b[uú]lgaro/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif';
+      if (/eleva[cç][aã]o.*p[eé]lvica|hip.*thrust|gl[uú]teo.*bridge/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif';
+      if (/agachamento/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif';
+      if (/panturrilha|g[eê]meos/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif';
+
+      if (/desenvolvimento|militar|arnold/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif';
+      if (/eleva[cç][aã]o.*lateral/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-lateral-raise.gif';
+      if (/eleva[cç][aã]o.*frontal/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-front-raise.gif';
+      if (/crucifixo.*inverso|face.*pull|deltoide.*posterior/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif';
+      if (/encolhimento|trap[eé]zio/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-shrug.gif';
+
+      if (/rosca.*martelo/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/cable-hammer-curl-with-rope.gif';
+      if (/rosca.*scott/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/lever-preacher-curl.gif';
+      if (/rosca|b[ií]ceps/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif';
+
+      if (/tr[ií]ceps.*testa/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-lying-triceps-extension-skull-crusher.gif';
+      if (/tr[ií]ceps.*franc[eê]s/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-standing-one-arm-overhead-triceps-extension.gif';
+      if (/tr[ií]ceps|corda|pulley/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif';
+
+      if (/prancha|plank/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif';
+      if (/abdominal|crunch|infra|supra|core/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif';
+
+      if (/cardio|esteira|caminhada|treadmill|corrida|bike|bicicleta|eliptico/i.test(name) || /cardio/i.test(group)) {
+        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
+      }
+
+      // 2. Fallback pelo grupo muscular
+      if (/peito|peitoral/i.test(group)) return GROUP_DEFAULT_GIFS['Peitoral'];
+      if (/costas|dorsal/i.test(group)) return GROUP_DEFAULT_GIFS['Dorsal'];
+      if (/perna|gl[uú]teo|quadr[ií]ceps|posterior/i.test(group)) return GROUP_DEFAULT_GIFS['Pernas'];
+      if (/ombro|deltoide/i.test(group)) return GROUP_DEFAULT_GIFS['Ombros'];
+      if (/b[ií]ceps/i.test(group)) return GROUP_DEFAULT_GIFS['Bíceps'];
+      if (/tr[ií]ceps/i.test(group)) return GROUP_DEFAULT_GIFS['Tríceps'];
+      if (/bra[cç]o/i.test(group)) return GROUP_DEFAULT_GIFS['Braços'];
+      if (/abd[oô]men|core/i.test(group)) return GROUP_DEFAULT_GIFS['Abdômen'];
+
+      return GROUP_DEFAULT_GIFS['Peitoral'];
     }
+    window.resolveExerciseGif = resolveExerciseGif;
+    window.GROUP_DEFAULT_GIFS = GROUP_DEFAULT_GIFS;
 
     // 1. BANCO DE DADOS DE TODAS AS ROTINAS DE TREINO (A, B, C, D, E, F, CARDIO, OFF)
     const WORKOUT_DATABASE = {
@@ -5277,7 +5377,7 @@
             reps: ex.reps || '8-10',
             rpe: parseInt(ex.rpe) || 8,
             rest: parseInt(ex.rest) || 60,
-            gif: ex.gif || '',
+            gif: resolveExerciseGif(ex),
             steps: Array.isArray(ex.steps) ? ex.steps : ['Execute com amplitude completa e controle escapular.'],
             breathing: ex.breathing || 'Inspire na fase excêntrica e expire na fase concêntrica.',
             mistakes: ex.mistakes || 'Evite compensações articulares.'
@@ -5305,6 +5405,15 @@
 
         Object.keys(WORKOUT_DATABASE).forEach(k => delete WORKOUT_DATABASE[k]);
         Object.assign(WORKOUT_DATABASE, dataPayload.workoutDatabase);
+
+        // Garante que todo exercício tenha seu GIF válido resolvido e sanitizado
+        for (const rKey in WORKOUT_DATABASE) {
+          if (WORKOUT_DATABASE[rKey] && Array.isArray(WORKOUT_DATABASE[rKey].exercises)) {
+            WORKOUT_DATABASE[rKey].exercises.forEach(exItem => {
+              exItem.gif = resolveExerciseGif(exItem);
+            });
+          }
+        }
 
         if (!WORKOUT_DATABASE['OFF'] && fallbackOff) {
           WORKOUT_DATABASE['OFF'] = fallbackOff;
@@ -7463,7 +7572,7 @@
               </div>
 
               <!-- Botão GIF & Execução em Destaque -->
-              <button onclick="openExerciseGuideModal('${ex.id}')"
+              <button onclick="openExerciseGuideModal('${ex.id}', '${encodeURIComponent(ex.name || '')}')"
                 class="px-2.5 py-1.5 rounded-xl bg-[#171B1F] hover:bg-[#272C31] border border-[#272C31] text-zinc-200 hover:text-white font-bold text-[11px] flex items-center gap-1.5 active:scale-95 transition-all shrink-0">
                 <i data-lucide="video" class="w-3.5 h-3.5 text-[#E50914]"></i>
                 <span>GIF</span>
@@ -7808,13 +7917,43 @@
     }
 
     // 10. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
-    function openExerciseGuideModal(exId) {
+    function openExerciseGuideModal(exId, encodedName = '') {
+      let decodedName = '';
+      try { if (encodedName) decodedName = decodeURIComponent(encodedName); } catch (_) { decodedName = encodedName; }
+
       let foundEx = null;
       for (const rKey in WORKOUT_DATABASE) {
-        const match = WORKOUT_DATABASE[rKey].exercises.find(e => e.id === exId);
+        if (!WORKOUT_DATABASE[rKey] || !Array.isArray(WORKOUT_DATABASE[rKey].exercises)) continue;
+        const match = WORKOUT_DATABASE[rKey].exercises.find(e => 
+          (e.id && exId && e.id === exId) || 
+          (decodedName && e.name && e.name.toLowerCase() === decodedName.toLowerCase())
+        );
         if (match) { foundEx = match; break; }
       }
-      if (!foundEx) foundEx = WORKOUT_DATABASE['A'].exercises[0];
+
+      if (!foundEx && decodedName) {
+        foundEx = {
+          id: exId || 'custom_ex',
+          name: decodedName,
+          group: 'Geral',
+          equip: 'Livre · Composto',
+          primary: 'Músculo Alvo',
+          secondary: 'Estabilizadores',
+          cadence: '3-0-1-0',
+          sets: 3,
+          reps: '8-10',
+          rpe: 8,
+          rest: 60,
+          steps: ['Execute com amplitude completa e controle escapular.'],
+          breathing: 'Inspire na fase excêntrica e expire na fase concêntrica.',
+          mistakes: 'Evite compensações articulares.'
+        };
+      }
+
+      if (!foundEx) {
+        const firstRoutine = Object.values(WORKOUT_DATABASE).find(r => r && Array.isArray(r.exercises) && r.exercises.length > 0);
+        foundEx = (firstRoutine && firstRoutine.exercises[0]) || { name: 'Exercício', group: 'Geral' };
+      }
 
       document.getElementById('guideModalTitle').textContent = foundEx.name;
       document.getElementById('guideModalGroup').textContent = foundEx.group;
@@ -7824,14 +7963,17 @@
       document.getElementById('guideModalCadence').textContent = `Cadência: ${foundEx.cadence}`;
 
       const gifImg = document.getElementById('guideModalGif');
+      const resolvedGif = resolveExerciseGif(foundEx);
+      foundEx.gif = resolvedGif;
       gifImg.dataset.exname = foundEx.name;
       gifImg.dataset.exgroup = foundEx.group;
       gifImg.dataset.triedFallback = 'false';
-      gifImg.src = foundEx.gif;
+      gifImg.dataset.triedGroupFallback = 'false';
+      gifImg.src = resolvedGif;
 
       // Passos
       const stepsContainer = document.getElementById('guideModalSteps');
-      stepsContainer.innerHTML = foundEx.steps.map((step, idx) => `
+      stepsContainer.innerHTML = (foundEx.steps || ['Execute com amplitude completa e controle escapular.']).map((step, idx) => `
         <div class="flex items-start gap-2">
           <span class="w-4 h-4 rounded-full bg-blue-950 border border-blue-800 text-blue-300 font-mono text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
             ${idx + 1}
@@ -7840,8 +7982,8 @@
         </div>
       `).join('');
 
-      document.getElementById('guideModalBreathing').textContent = foundEx.breathing;
-      document.getElementById('guideModalMistakes').textContent = foundEx.mistakes;
+      document.getElementById('guideModalBreathing').textContent = foundEx.breathing || 'Inspire na fase excêntrica e expire na concêntrica.';
+      document.getElementById('guideModalMistakes').textContent = foundEx.mistakes || 'Evite compensações articulares.';
 
       document.getElementById('exerciseGuideModal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
@@ -7853,7 +7995,23 @@
     }
 
     function handleGuideGifError(imgEl) {
-      if (!imgEl || imgEl.dataset.triedFallback === 'true') return;
+      if (!imgEl) return;
+      const exName = imgEl.dataset.exname || 'Exercício';
+      const exGroup = imgEl.dataset.exgroup || 'Peitoral';
+
+      // 1ª Tentativa de recuperação: GIF oficial do grupo muscular
+      if (imgEl.dataset.triedGroupFallback !== 'true') {
+        imgEl.dataset.triedGroupFallback = 'true';
+        const groupGif = GROUP_DEFAULT_GIFS[exGroup] || GROUP_DEFAULT_GIFS['Peitoral'];
+        if (groupGif && imgEl.src !== groupGif) {
+          console.warn('[Disciplina GIF] Falha na URL primária. Carregando GIF do grupo:', exGroup);
+          imgEl.src = groupGif;
+          return;
+        }
+      }
+
+      // 2ª Tentativa defensiva: SVG animado de contingência
+      if (imgEl.dataset.triedFallback === 'true') return;
       imgEl.dataset.triedFallback = 'true';
       const name = (imgEl.dataset.exname || 'Exercício').replace(/</g, '&lt;');
       const group = (imgEl.dataset.exgroup || 'Biomecânica').replace(/</g, '&lt;');
