@@ -13139,6 +13139,17 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     cardioDatabase: (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB)) ? PERF_CARDIO_DB : null,
     activeSplit: typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : null,
     workoutCycle: Object.keys(formattedWorkout).length > 0 ? (function() {
+      // 1. Reutiliza ciclo ativo corrente do paciente se ainda estiver dentro do prazo e no mesmo split
+      try {
+        const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.workoutCycle && parsed.workoutCycle.status === 'ACTIVE' && parsed.workoutCycle.split === perfActiveSplit) {
+            return parsed.workoutCycle;
+          }
+        }
+      } catch (_) {}
+
       const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle) 
         ? window.NutriAxWorkoutCycle 
         : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
@@ -13182,47 +13193,69 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
       updateSystemLastSyncDate(new Date());
     }
 
-    // 3.1 Sincroniza imediatamente o cache do ambiente de disciplina com as refeições validadas
-    if (isEligible && formattedMeals.length > 0) {
-      const discKey = `nutriax_patient_discipline_v3_${pId}`;
-      let existingDisc = null;
-      const rawDisc = localStorage.getItem(discKey) || localStorage.getItem('nutriax_patient_discipline_v3');
-      if (rawDisc) {
-        try { existingDisc = JSON.parse(rawDisc); } catch (_) {}
-      }
-      if (!existingDisc) {
-        existingDisc = {
-          name: patientName,
-          streakDays: 1,
-          tier: 'Iniciante 🔥',
-          scoreIDC: 0,
-          waterCurrent: 0,
-          waterTarget: targetWater || 3000,
-          workoutDone: false,
-          cardioDone: false,
-          sleepHours: 0,
-          sleepQuality: null,
-          sleepLogged: false,
-          meals: formattedMeals,
-          timeline: [],
-          history: {}
-        };
-      } else {
-        const doneMap = {};
-        if (Array.isArray(existingDisc.meals)) {
-          existingDisc.meals.forEach(m => { doneMap[m.id] = m.done; });
-        }
-        existingDisc.meals = formattedMeals.map(m => ({
-          ...m,
-          done: doneMap[m.id] !== undefined ? !!doneMap[m.id] : false
-        }));
-        if (targetWater) existingDisc.waterTarget = targetWater;
-      }
-      existingDisc.updatedAtClient = new Date().toISOString();
-      const discStr = JSON.stringify(existingDisc);
-      localStorage.setItem(discKey, discStr);
-      localStorage.setItem('nutriax_patient_discipline_v3', discStr);
+    // 3.1 Sincroniza imediatamente o cache do ambiente de disciplina (refeições, treinos, periodização e cardio)
+    const discKey = `nutriax_patient_discipline_v3_${pId}`;
+    let existingDisc = null;
+    const rawDisc = localStorage.getItem(discKey) || localStorage.getItem('nutriax_patient_discipline_v3');
+    if (rawDisc) {
+      try { existingDisc = JSON.parse(rawDisc); } catch (_) {}
     }
+    if (!existingDisc) {
+      existingDisc = {
+        name: patientName || 'Paciente',
+        streakDays: 1,
+        tier: 'Iniciante 🔥',
+        scoreIDC: 0,
+        waterCurrent: 0,
+        waterTarget: targetWater || 3000,
+        workoutDone: false,
+        cardioDone: false,
+        sleepHours: 0,
+        sleepQuality: null,
+        sleepLogged: false,
+        meals: formattedMeals || [],
+        timeline: [],
+        history: {}
+      };
+    }
+
+    if (patientName) existingDisc.name = patientName;
+    if (targetWater) existingDisc.waterTarget = targetWater;
+
+    if (isEligible && formattedMeals.length > 0) {
+      const doneMap = {};
+      if (Array.isArray(existingDisc.meals)) {
+        existingDisc.meals.forEach(m => { doneMap[m.id] = m.done; });
+      }
+      existingDisc.meals = formattedMeals.map(m => ({
+        ...m,
+        done: doneMap[m.id] !== undefined ? !!doneMap[m.id] : false
+      }));
+    }
+
+    if (formattedWorkout && Object.keys(formattedWorkout).length > 0) {
+      existingDisc.workoutDatabase = formattedWorkout;
+    }
+    if (Array.isArray(normalizedSchedule) && normalizedSchedule.length > 0) {
+      existingDisc.weeklySchedule = normalizedSchedule;
+    }
+    if (syncPayload.workoutCycle) {
+      existingDisc.workoutCycle = syncPayload.workoutCycle;
+    }
+    if (syncPayload.activeSplit) {
+      existingDisc.activeSplit = syncPayload.activeSplit;
+    }
+    if (syncPayload.prescribedCardio) {
+      existingDisc.prescribedCardio = syncPayload.prescribedCardio;
+    }
+    if (syncPayload.cardioPrescription) {
+      existingDisc.cardioPrescription = syncPayload.cardioPrescription;
+    }
+
+    existingDisc.updatedAtClient = new Date().toISOString();
+    const discStr = JSON.stringify(existingDisc);
+    localStorage.setItem(discKey, discStr);
+    localStorage.setItem('nutriax_patient_discipline_v3', discStr);
   } catch (e) {
     console.warn("Erro ao salvar syncPayload local ou atualizar disciplina:", e);
   }
@@ -13232,6 +13265,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
     if (typeof BroadcastChannel !== "undefined") {
       const channel = new BroadcastChannel("nutriax_bidirectional_sync");
       channel.postMessage({ type: "SYNC_UPDATED", payload: syncPayload, patientId: pId });
+      channel.postMessage({ type: "PERFORMANCE_UPDATED", payload: syncPayload, patientId: pId });
     }
   } catch (e) { }
 
@@ -17116,19 +17150,19 @@ function perfRenderCycleStatusCard() {
   if (window.lucide) window.lucide.createIcons({ root: container });
 }
 
-function perfStartNewCycle4Weeks() {
-  const pId = typeof activePatientId !== 'undefined' ? activePatientId : null;
-  if (!pId) return;
+function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFreq = null, silent = false) {
+  const pId = patientId || (typeof activePatientId !== 'undefined' ? activePatientId : null);
+  if (!pId) return null;
 
   const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
     ? window.NutriAxWorkoutCycle
     : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
-  if (!cycleMod) return;
+  if (!cycleMod) return null;
 
-  const split = typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PHAT';
-  const freq = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
+  const split = targetSplit || (typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PHAT');
+  const freq = targetFreq || ((typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
     ? perfWeeklySchedule.filter(d => d.type && !d.type.toLowerCase().includes('off')).length
-    : 5;
+    : 5);
 
   const newCycle = cycleMod.createWorkoutCycle({
     patientId: pId,
@@ -17137,29 +17171,42 @@ function perfStartNewCycle4Weeks() {
     prescribedWeeklyFrequency: freq || 5
   });
 
-  // Atualiza cache de disciplina local
+  // Atualiza cache de disciplina local e histórico de ciclos anteriores
   try {
-    const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
-                localStorage.getItem(`nutriax_patient_payload_${pId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed.pastWorkoutCycles)) parsed.pastWorkoutCycles = [];
-      if (parsed.workoutCycle) {
-        parsed.pastWorkoutCycles.push(parsed.workoutCycle);
+    const keys = [
+      `nutriax_patient_discipline_v3_${pId}`,
+      `nutriax_patient_payload_${pId}`,
+      'nutriax_patient_discipline_v3',
+      'nutriax_sync_active_patient'
+    ];
+    keys.forEach(k => {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed.pastWorkoutCycles)) parsed.pastWorkoutCycles = [];
+          if (parsed.workoutCycle && parsed.workoutCycle.cycleId !== newCycle.cycleId) {
+            const oldCycle = { ...parsed.workoutCycle, status: 'COMPLETED' };
+            parsed.pastWorkoutCycles.push(oldCycle);
+          }
+          parsed.workoutCycle = newCycle;
+          localStorage.setItem(k, JSON.stringify(parsed));
+        } catch (_) {}
       }
-      parsed.workoutCycle = newCycle;
-      localStorage.setItem(`nutriax_patient_discipline_v3_${pId}`, JSON.stringify(parsed));
-      localStorage.setItem(`nutriax_patient_payload_${pId}`, JSON.stringify(parsed));
-    }
+    });
   } catch (_) {}
 
   perfRenderCycleStatusCard();
 
-  if (typeof showSystemAlert === 'function') {
-    showSystemAlert('Novo Ciclo de 4 Semanas Prescrito e Sincronizado!', 'success');
-  } else {
-    alert('Novo Ciclo de 4 Semanas Prescrito com Sucesso!');
+  if (!silent) {
+    if (typeof showSystemAlert === 'function') {
+      showSystemAlert('Novo Ciclo de 4 Semanas Prescrito e Sincronizado!', 'success');
+    } else {
+      alert('Novo Ciclo de 4 Semanas Prescrito com Sucesso!');
+    }
   }
+
+  return newCycle;
 }
 
 
@@ -25962,6 +26009,106 @@ if (typeof window !== 'undefined') {
 
 
 
+function perfBuildCanonicalWorkoutDatabase(workoutPlan, weeklySchedule, cardioId) {
+  const formattedWorkout = {};
+  const plan = Array.isArray(workoutPlan) ? workoutPlan : [];
+
+  plan.forEach(r => {
+    if (!r || !r.id) return;
+    const dbExercises = (r.exercises || []).map((ex, idx) => {
+      const canonical = typeof perfFindExercise === 'function' ? perfFindExercise(ex.exerciseId || ex.id, ex.name) : ex;
+      const guideData = typeof perfGetExerciseGuideData === 'function' ? perfGetExerciseGuideData(canonical) : {};
+      const defGifs = (typeof GROUP_DEFAULT_GIFS !== 'undefined') ? GROUP_DEFAULT_GIFS : {};
+      return {
+        num: idx + 1,
+        id: (canonical && canonical.id) || ex.exerciseId || ex.id || `ex_${idx + 1}`,
+        name: ex.name || (canonical && canonical.name) || 'Exercício',
+        group: (canonical && canonical.group) || ex.group || 'Geral',
+        equip: `${(canonical && canonical.equipment) || ex.equipment || 'Livre'} · ${(canonical && canonical.mechanics) || ex.mechanics || 'Composto'}`,
+        primary: (canonical && canonical.primary) || ex.primary || 'Músculo Alvo',
+        secondary: (canonical && canonical.secondary) || ex.secondary || 'Estabilizadores',
+        cadence: ex.cadence || (canonical && canonical.cadence) || '3-0-1-0',
+        resist: ex.resistProfile === 'stretched' ? 'Pico Alongado' : (ex.resistProfile === 'shortened' ? 'Pico Encurtado' : 'Curva Uniforme'),
+        sets: parseInt(ex.sets) || 3,
+        reps: ex.reps || '8-10',
+        rpe: parseInt(ex.rpe) || 8,
+        rest: parseInt(ex.rest) || 60,
+        gif: guideData.gifUrl || defGifs[(canonical && canonical.group) || 'Peitoral'] || 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+        steps: guideData.steps || ex.steps || ['Execute com amplitude completa e controle escapular.'],
+        breathing: guideData.breathing || ex.breathing || 'Inspire na fase excêntrica e expire na fase concêntrica.',
+        mistakes: guideData.mistakes || ex.mistakes || 'Evite compensações articulares.'
+      };
+    });
+
+    formattedWorkout[r.id] = {
+      id: r.id,
+      name: r.name || `Treino ${r.id}`,
+      badge: r.id,
+      subtitle: `${dbExercises.length} exercícios estruturados · Volume: ${dbExercises.reduce((a, b) => a + (b.sets || 3), 0)} sets`,
+      isCardio: r.id === 'Cardio',
+      isOff: r.id === 'OFF',
+      exercises: dbExercises
+    };
+  });
+
+  const cardioProto = (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+    ? (PERF_CARDIO_DB.find(c => c.id === (cardioId || 'cardio_01')) || PERF_CARDIO_DB[0])
+    : null;
+
+  if (!formattedWorkout['Cardio'] && cardioProto) {
+    const cardioExercises = [];
+    if (Array.isArray(cardioProto.blocks) && cardioProto.blocks.length > 0) {
+      cardioProto.blocks.forEach((b, idx) => {
+        const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || b.cadence || '');
+        const timeMatch = (b.name || itemDesc).match(/(\d+)\s*min/i);
+        const bDuration = timeMatch ? `${timeMatch[1]} min` : '15 min';
+        cardioExercises.push({
+          num: idx + 1,
+          id: `card_block_${idx + 1}`,
+          name: b.name || `Bloco ${idx + 1}`,
+          group: 'Cardio',
+          equip: cardioProto.equipment ? (Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : cardioProto.equipment) : 'Ergômetro',
+          primary: cardioProto.category || 'Zona 2 Base Aeróbica',
+          secondary: cardioProto.foco || 'Oxidação Lipídica',
+          cadence: b.cadence || 'Cadência Ritmada sem Impacto',
+          resist: cardioProto.intensityZone || 'Zona 2',
+          sets: 1,
+          reps: bDuration,
+          rpe: cardioProto.isHiit ? 8 : 6,
+          rest: 0,
+          gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+          steps: [itemDesc || 'Manter o ritmo constante na frequência cardíaca prescrita.'],
+          breathing: 'Respiração nasal ritmada.',
+          mistakes: 'Evitar ultrapassar a faixa de FC prescrita.'
+        });
+      });
+    }
+    formattedWorkout['Cardio'] = {
+      id: 'Cardio',
+      name: cardioProto.title || cardioProto.name || 'Cardio Estruturado',
+      badge: 'Z2',
+      subtitle: `${cardioProto.timeCap || '45 min'} · ${cardioProto.foco || 'Oxidação pura de ácidos graxos'}`,
+      isCardio: true,
+      isOff: false,
+      exercises: cardioExercises
+    };
+  }
+
+  if (!formattedWorkout['OFF']) {
+    formattedWorkout['OFF'] = {
+      id: 'OFF',
+      name: 'Descanso Total (Regeneração Ativa)',
+      badge: 'OFF',
+      subtitle: 'Recuperação do SNC, síntese proteica e restauração de glicogênio',
+      isCardio: false,
+      isOff: true,
+      exercises: []
+    };
+  }
+
+  return formattedWorkout;
+}
+
 async function savePerformanceForPatient(patientId = activePatientId) {
   const pId = patientId || activePatientId || (document.getElementById("activePatientSelect")?.value);
   if (!pId) return;
@@ -25972,12 +26119,32 @@ async function savePerformanceForPatient(patientId = activePatientId) {
     patientId: pId
   };
 
+  // Garante a existência do ciclo de treino atualizado
+  let currentCycle = null;
+  try {
+    const rawDisc = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`);
+    if (rawDisc) {
+      const parsed = JSON.parse(rawDisc);
+      if (parsed && parsed.workoutCycle && parsed.workoutCycle.status === 'ACTIVE') {
+        currentCycle = parsed.workoutCycle;
+      }
+    }
+  } catch (_) {}
+
+  if (!currentCycle) {
+    currentCycle = perfStartNewCycle4Weeks(pId, perfActiveSplit, null, true);
+  }
+
+  const canonicalWorkoutDb = perfBuildCanonicalWorkoutDatabase(perfWorkoutPlan, perfWeeklySchedule, perfPrescribedCardioId);
+
   const record = {
     id: pId,
     patientId: pId,
     activeSplit: perfActiveSplit,
     workoutPlan: perfWorkoutPlan,
+    workoutDatabase: canonicalWorkoutDb,
     weeklySchedule: perfWeeklySchedule,
+    workoutCycle: currentCycle,
     prescribedCardioId: perfPrescribedCardioId,
     cardioPrescription: perfCardioPrescription,
     heartRateZones: perfCustomHRZones,
@@ -26453,6 +26620,13 @@ async function approveAITraining(patientId, validatedPrescription, contextSnapsh
   // Limpa o estado pendente de revisão
   perfPendingAIValidation = null;
 
+  // Reinicializa o ciclo de periodização de 4 semanas para o treino recém-validado
+  try {
+    perfStartNewCycle4Weeks(pId, explicitSplit, null, true);
+  } catch (cycleErr) {
+    console.warn('[approveAITraining] Aviso ao reiniciar ciclo de periodização:', cycleErr);
+  }
+
   // PERSISTÊNCIA SEGURA — Único ponto de gravação autorizado
   await savePerformanceForPatient(pId);
   updateAITrainingBanner();
@@ -26497,6 +26671,13 @@ async function perfSetSplit(splitKey) {
 
   const selectEl = document.getElementById('perf-split-select');
   if (selectEl) selectEl.value = canonicalSplit;
+
+  // Ao alterar o split de treino, reinicia o mesociclo para a nova periodização
+  try {
+    perfStartNewCycle4Weeks(activePatientId, canonicalSplit, null, true);
+  } catch (cErr) {
+    console.warn('[perfSetSplit] Aviso ao reiniciar ciclo:', cErr);
+  }
 
   await savePerformanceForPatient(activePatientId);
   updateAITrainingBanner();
@@ -27115,6 +27296,13 @@ async function handleGenerateAITraining() {
       btnApprove.onclick = () => approveAITraining(generationPatientId, result.prescription, result.context);
     }
     updateAITrainingBanner();
+
+    // Reinicia o ciclo de periodização de 4 semanas para o novo treino gerado
+    try {
+      perfStartNewCycle4Weeks(generationPatientId, chosenSplit, null, true);
+    } catch (cGenErr) {
+      console.warn('[handleGenerateAITraining] Aviso ao reiniciar ciclo:', cGenErr);
+    }
 
     // PERSISTÊNCIA DO TREINO GERADO — salva imediatamente para sobreviver a reloads
     // (flag isClinicallyValidated: false indica que ainda aguarda aprovação do profissional)

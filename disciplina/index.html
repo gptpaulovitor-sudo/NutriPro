@@ -4317,6 +4317,7 @@
     let _authGateCurrentState = 'AUTHENTICATING'; // AUTHENTICATING, UNAUTHENTICATED, AUTHENTICATED_NO_LINK, BLOCKED, ERROR, AUTHORIZED
     let _activeCloudUnsubscribe = null;
     let _activeFastingUnsubscribe = null;
+    let _activePerfUnsubscribe = null;
     let _authListenerAttached = false;
 
     // Resolução segura do paciente ativo: ESTRITAMENTE baseada em autorização
@@ -4741,6 +4742,10 @@
         _activeFastingUnsubscribe();
         _activeFastingUnsubscribe = null;
       }
+      if (typeof _activePerfUnsubscribe === 'function') {
+        _activePerfUnsubscribe();
+        _activePerfUnsubscribe = null;
+      }
 
       const content = document.getElementById('disciplinaAppContent');
       if (content) content.classList.add('hidden');
@@ -4820,11 +4825,14 @@
 
     function shouldAcceptPrescriptionUpdate(incoming, current) {
       if (!incoming) return false;
-      // Se incoming não tem refeições válidas mas já temos refeições válidas locais, rejeita perda de refeições
+      // Se incoming não tem refeições válidas mas já temos refeições válidas locais,
+      // e também NÃO traz dados de treino ou ciclo de periodização, rejeita para evitar perda de dados
       const currentHasMeals = (Array.isArray(patientState.meals) && patientState.meals.length > 0 && !isDefaultMockMeals(patientState.meals)) ||
                               (current && Array.isArray(current.meals) && current.meals.length > 0 && !isDefaultMockMeals(current.meals));
       const incomingHasMeals = Array.isArray(incoming.meals) && incoming.meals.length > 0;
-      if (!incomingHasMeals && currentHasMeals) {
+      const incomingHasWorkout = !!(incoming.workoutDatabase || incoming.workoutPlan || incoming.workoutCycle || incoming.weeklySchedule);
+
+      if (!incomingHasMeals && currentHasMeals && !incomingHasWorkout) {
         return false;
       }
       // Se ambos tiverem data de atualização, rejeita se a versão incoming for estritamente mais antiga que a local
@@ -4926,6 +4934,18 @@
           }
         }
 
+        // 5.1 Hidrata Performance, Treinos e Periodização da Nuvem
+        if (window.NutriProFirebase?.performance?.loadFromCloud) {
+          try {
+            const cloudPerf = await window.NutriProFirebase.performance.loadFromCloud(_authorizedPatientId);
+            if (cloudPerf) {
+              applyPerformancePayload(cloudPerf);
+            }
+          } catch (e) {
+            console.warn('[NutriAx AuthGate] Aviso ao carregar performance da nuvem:', e);
+          }
+        }
+
         // 6. Configura Listeners em Tempo Real protegendo o estado local
         if (window.NutriProFirebase?.prescription?.subscribe) {
           if (typeof _activeCloudUnsubscribe === 'function') {
@@ -4954,6 +4974,18 @@
           _activeFastingUnsubscribe = window.NutriProFirebase.fasting.subscribe(_authorizedPatientId, (updatedF) => {
             if (updatedF) {
               patientState.fastingProtocol = updatedF;
+              renderAll();
+            }
+          });
+        }
+
+        if (window.NutriProFirebase?.performance?.subscribe) {
+          if (typeof _activePerfUnsubscribe === 'function') {
+            _activePerfUnsubscribe();
+          }
+          _activePerfUnsubscribe = window.NutriProFirebase.performance.subscribe(_authorizedPatientId, (updatedPerf) => {
+            if (updatedPerf) {
+              applyPerformancePayload(updatedPerf);
               renderAll();
             }
           });
@@ -5016,6 +5048,10 @@
         if (typeof _activeFastingUnsubscribe === 'function') {
           _activeFastingUnsubscribe();
           _activeFastingUnsubscribe = null;
+        }
+        if (typeof _activePerfUnsubscribe === 'function') {
+          _activePerfUnsubscribe();
+          _activePerfUnsubscribe = null;
         }
         await window.NutriProFirebase?.auth?.signOut();
       } catch (e) {
@@ -5206,6 +5242,46 @@
         appliedMeals = true;
       }
 
+      // Se workoutDatabase não vier pré-formatado mas workoutPlan vier como array
+      if ((!dataPayload.workoutDatabase || Object.keys(dataPayload.workoutDatabase).length === 0) && Array.isArray(dataPayload.workoutPlan) && dataPayload.workoutPlan.length > 0) {
+        const generatedDb = {};
+        dataPayload.workoutPlan.forEach(r => {
+          if (!r || !r.id) return;
+          const exercises = (r.exercises || []).map((ex, idx) => ({
+            num: idx + 1,
+            id: ex.id || ex.exerciseId || `ex_${idx + 1}`,
+            name: ex.name || 'Exercício',
+            group: ex.group || 'Geral',
+            equip: ex.equipment || ex.equip || 'Livre · Composto',
+            primary: ex.primary || 'Músculo Alvo',
+            secondary: ex.secondary || 'Estabilizadores',
+            cadence: ex.cadence || '3-0-1-0',
+            resist: ex.resist || 'Curva Uniforme',
+            sets: parseInt(ex.sets) || 3,
+            reps: ex.reps || '8-10',
+            rpe: parseInt(ex.rpe) || 8,
+            rest: parseInt(ex.rest) || 60,
+            gif: ex.gif || '',
+            steps: Array.isArray(ex.steps) ? ex.steps : ['Execute com amplitude completa e controle escapular.'],
+            breathing: ex.breathing || 'Inspire na fase excêntrica e expire na fase concêntrica.',
+            mistakes: ex.mistakes || 'Evite compensações articulares.'
+          }));
+          generatedDb[r.id] = {
+            id: r.id,
+            name: r.name || `Treino ${r.id}`,
+            badge: r.id,
+            subtitle: `${exercises.length} exercícios estruturados · Volume: ${exercises.reduce((a, b) => a + (b.sets || 3), 0)} sets`,
+            isCardio: r.id === 'Cardio',
+            isOff: r.id === 'OFF',
+            exercises: exercises
+          };
+        });
+        if (Object.keys(generatedDb).length > 0) {
+          dataPayload.workoutDatabase = generatedDb;
+        }
+      }
+
+      let appliedWorkout = false;
       // Aplica banco de treinos do paciente preservando rotinas de OFF e Cardio
       if (dataPayload.workoutDatabase && typeof dataPayload.workoutDatabase === 'object' && Object.keys(dataPayload.workoutDatabase).length > 0) {
         const fallbackOff = WORKOUT_DATABASE['OFF'];
@@ -5225,6 +5301,7 @@
             WORKOUT_DATABASE['Cardio'] = fallbackCardio;
           }
         }
+        appliedWorkout = true;
       }
 
       // Normaliza e aplica agenda semanal preservando dados de cardio
@@ -5272,11 +5349,18 @@
             patientState.selectedRoutineKey = selectedRoutineKey;
           }
         }
+        appliedWorkout = true;
       }
 
       // Aplica ou inicializa ciclo canônico de 4 semanas (Mesociclo)
+      let appliedCycle = false;
       if (dataPayload.workoutCycle && typeof dataPayload.workoutCycle === 'object') {
+        if (patientState.workoutCycle && patientState.workoutCycle.cycleId && patientState.workoutCycle.cycleId !== dataPayload.workoutCycle.cycleId) {
+          if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+          patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
+        }
         patientState.workoutCycle = dataPayload.workoutCycle;
+        appliedCycle = true;
       } else if (!patientState.workoutCycle) {
         const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
           ? window.NutriAxWorkoutCycle
@@ -5292,15 +5376,25 @@
             split: split,
             prescribedWeeklyFrequency: freq || 5
           });
+          appliedCycle = true;
         }
       }
 
       // Salva imediatamente no estado persistente local (INVARIANTE 12) apenas se não for carga inicial do loadState
-      if (appliedMeals && _authorizedPatientId && !options.skipSave) {
+      if ((appliedMeals || appliedWorkout || appliedCycle) && _authorizedPatientId && !options.skipSave) {
         try {
           saveState();
         } catch (_) {}
       }
+    }
+
+    function applyPerformancePayload(perfData) {
+      if (!perfData) return;
+      applyPrescriptionPayload(perfData);
+      try {
+        renderWorkoutTab();
+        renderWorkoutCycleCard();
+      } catch (_) {}
     }
 
     function loadState() {
@@ -8956,6 +9050,14 @@
           if (event.data.type === 'SYNC_UPDATED') {
             if (event.data.payload) {
               applyPrescriptionPayload(event.data.payload);
+              if (event.data.payload.patientName) {
+                patientState.name = event.data.payload.patientName;
+              }
+              renderAll();
+            }
+          } else if (event.data.type === 'PERFORMANCE_UPDATED') {
+            if (event.data.payload) {
+              applyPerformancePayload(event.data.payload);
               if (event.data.payload.patientName) {
                 patientState.name = event.data.payload.patientName;
               }
