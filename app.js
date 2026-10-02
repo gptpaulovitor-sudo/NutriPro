@@ -23766,17 +23766,19 @@ window.geminiRemoveKeyFromPool = geminiRemoveKeyFromPool;
 // geminiPerformanceAIGenerator(context, requirements, previousErrors)
 // ════════════════════════════════════════════════════════════════════════════
 
-const GEMINI_MODEL = 'gemini-3.6-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 /**
  * Executa uma única chamada ao endpoint Gemini com uma chave específica.
- * Lança isQuotaError=true em caso de HTTP 429 para o chamador poder rotacionar.
+ * Lança isQuotaError=true em caso de HTTP 429 e isCapacityError=true em caso de HTTP 503 para poder rotacionar.
  * @param {string} apiKey
  * @param {string} prompt
+ * @param {string} [modelOverride=null]
  * @returns {Promise<Object>} Prescrição bruta JSON
  */
-async function _callGeminiWithKey(apiKey, prompt) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+async function _callGeminiWithKey(apiKey, prompt, modelOverride = null) {
+  const model = modelOverride || GEMINI_MODEL;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 90000);
 
@@ -23819,6 +23821,12 @@ async function _callGeminiWithKey(apiKey, prompt) {
       const quotaErr = new Error(`Chave #KEY# com quota excedida (HTTP 429).${detailSuffix}`);
       quotaErr.isQuotaError = true;
       throw quotaErr;
+    }
+    if (response.status === 503 || response.status === 500 || response.status === 502) {
+      const capacityErr = new Error(`Falha na API do Gemini (HTTP ${response.status} - Alta demanda no modelo ${model}).${detailSuffix}`);
+      capacityErr.isCapacityError = true;
+      capacityErr.failedModel = model;
+      throw capacityErr;
     }
     throw new Error(`Falha na API do Gemini (HTTP ${response.status}).${detailSuffix}`);
   }
@@ -24075,38 +24083,62 @@ ${previousErrors.join('\n')}
 Gere uma nova prescrição corrigida, mantendo todos os requisitos e respeitando o TrainingPrescriptionSchema.`;
   }
 
-  // 3. Rotação por pool de chaves — tenta cada key; pula em caso de 429
+  // 3. Rotação por pool de chaves e cascata de modelos resiliente (503 / 429)
+  const modelsToTry = [
+    GEMINI_MODEL,
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-3.6-flash'
+  ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
+
   const quotaExhaustedKeys = [];
   let lastError = null;
 
-  for (let ki = 0; ki < apiKeys.length; ki++) {
-    const currentKey = apiKeys[ki];
-    try {
-      console.info(`[Gemini] Tentando chave #${ki + 1} de ${apiKeys.length}...`);
-      const prescription = await _callGeminiWithKey(currentKey, prompt);
-      if (ki > 0) {
-        console.info(`[Gemini] Sucesso com chave #${ki + 1} (após ${ki} quota(s) excedida(s)).`);
+  for (const modelCandidate of modelsToTry) {
+    for (let ki = 0; ki < apiKeys.length; ki++) {
+      const currentKey = apiKeys[ki];
+      try {
+        console.info(`[Gemini] Tentando modelo "${modelCandidate}" com chave #${ki + 1} de ${apiKeys.length}...`);
+        const prescription = await _callGeminiWithKey(currentKey, prompt, modelCandidate);
+        if (modelCandidate !== GEMINI_MODEL || ki > 0) {
+          console.info(`[Gemini] Sucesso com modelo "${modelCandidate}" e chave #${ki + 1}.`);
+        }
+        return prescription;
+      } catch (err) {
+        lastError = err;
+        if (err.isQuotaError) {
+          quotaExhaustedKeys.push(ki + 1);
+          console.warn(`[Gemini] Chave #${ki + 1} com quota excedida (429) no modelo "${modelCandidate}". Tentando próxima...`);
+          continue;
+        }
+        if (err.isCapacityError) {
+          console.warn(`[Gemini] Modelo "${modelCandidate}" com alta demanda (503). Tentando próximo modelo do cascade...`);
+          break; // passa para o próximo modelo do cascade
+        }
+        // Se for erro de autenticação (401/403) e houver mais de uma chave:
+        if ((err.message.includes('401') || err.message.includes('403')) && ki + 1 < apiKeys.length) {
+          console.warn(`[Gemini] Chave #${ki + 1} inválida (401/403). Tentando próxima chave...`);
+          continue;
+        }
+        // Para outros erros (ex: parâmetros 400 ou timeout)
+        throw err;
       }
-      return prescription;
-    } catch (err) {
-      lastError = err;
-      if (err.isQuotaError) {
-        quotaExhaustedKeys.push(ki + 1);
-        console.warn(`[Gemini] Chave #${ki + 1} com quota excedida. ${ki + 1 < apiKeys.length ? 'Tentando próxima...' : 'Sem mais chaves disponíveis.'}`);
-        continue; // tenta a próxima key
-      }
-      // Erros que não são de quota (timeout, 401, 400...) lançam imediatamente
-      throw err;
     }
   }
 
-  // Todas as chaves esgotaram quota
-  const poolMsg = apiKeys.length > 1
-    ? `Todas as ${apiKeys.length} chaves do pool estão com quota excedida.`
-    : 'A chave de API está com quota excedida.';
-  const finalErr = new Error(`${poolMsg} Aguarde a renovação (geralmente meia-noite PT) ou adicione novas chaves em "🔑 Chaves de API".`);
-  finalErr.isQuotaError = true;
-  throw finalErr;
+  // Se todas as chaves e modelos falharam com quota
+  if (lastError && lastError.isQuotaError) {
+    const poolMsg = apiKeys.length > 1
+      ? `Todas as ${apiKeys.length} chaves do pool estão com quota excedida.`
+      : 'A chave de API está com quota excedida.';
+    const finalErr = new Error(`${poolMsg} Aguarde a renovação ou adicione novas chaves em "🔑 Chaves de API".`);
+    finalErr.isQuotaError = true;
+    throw finalErr;
+  }
+
+  if (lastError) throw lastError;
+  throw new Error('Falha ao comunicar com a API do Gemini.');
 }
 
 
@@ -26758,15 +26790,39 @@ async function handleGenerateAITraining() {
 
   try {
     // PASSO 1: Executa a pipeline canônica e segura através do orquestrador
-    const result = await generateAndValidateWorkout(generationPatientId, geminiPerformanceAIGenerator);
+    let result = await generateAndValidateWorkout(generationPatientId, geminiPerformanceAIGenerator);
 
     if (result.status === 'REJECT') {
-      resetGenAiButtons();
       const errMsg = result.errors && result.errors.length > 0
         ? result.errors.join('\n\n')
         : 'Não foi possível gerar uma prescrição compatível após 3 tentativas.';
-      alert('❌ Falha na geração da prescrição:\n\n' + errMsg);
-      return;
+
+      const isApiCapacityOrQuota = errMsg.includes('503') || errMsg.includes('429') || errMsg.includes('500') || errMsg.includes('502') || errMsg.includes('high demand') || errMsg.includes('quota') || errMsg.includes('Alta demanda') || errMsg.includes('timeout') || errMsg.includes('Falha na API');
+
+      if (isApiCapacityOrQuota) {
+        console.warn('[handleGenerateAITraining] API do Gemini em alta demanda ou indisponível. Ativando Motor Clínico Determinístico de Contingência...');
+        const contingencyResult = await generateAndValidateWorkout(generationPatientId, defaultPerformanceAIGenerator);
+        if (contingencyResult && contingencyResult.status !== 'REJECT') {
+          result = contingencyResult;
+          const toast = document.getElementById('perf-ai-toast');
+          if (toast) {
+            toast.style.display = 'flex';
+            toast.className = 'items-start gap-3 px-4 py-2.5 rounded-xl text-xs font-medium bg-[#171B1F] border border-amber-500/50 text-amber-300';
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-amber-400 shrink-0"></i>
+              <div><strong>Modo Clínico de Contingência Ativado:</strong> Servidores do Gemini em alta demanda momentânea (HTTP 503). O treino foi individualizado e validado pelo motor biomecânico sem interrupção.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            setTimeout(() => { if (toast) toast.style.display = 'none'; }, 9000);
+          }
+        } else {
+          resetGenAiButtons();
+          alert('❌ Falha na geração da prescrição:\n\n' + errMsg);
+          return;
+        }
+      } else {
+        resetGenAiButtons();
+        alert('❌ Falha na geração da prescrição:\n\n' + errMsg);
+        return;
+      }
     }
 
     // PASSO 2: Determinação explícita e determinística do split (Fase 5 - Seção 10)
