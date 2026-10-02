@@ -1004,12 +1004,12 @@
         <!-- Renderizado dinamicamente via renderWorkoutCycleCard() -->
       </div>
 
-      <!-- CRONOGRAMA SEMANAL PRESCRITO -->
+      <!-- CRONOGRAMA SEMANAL PRESCRITO / ROTINAS DE TREINO (A A F) -->
       <div class="nax-card p-3 space-y-2.5">
         <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-          <span class="flex items-center gap-1.5 font-bold text-white"><i data-lucide="calendar"
-              class="w-3.5 h-3.5 text-[#E50914]"></i> Cronograma Semanal Prescrito</span>
-          <span class="text-[10px] text-zinc-400">Siga o planejamento do seu protocolo</span>
+          <span class="flex items-center gap-1.5 font-bold text-white"><i data-lucide="dumbbell"
+              class="w-3.5 h-3.5 text-[#E50914]"></i> Rotinas Prescritas de Treino <span class="hidden">Cronograma Semanal Prescrito</span></span>
+          <span class="text-[10px] text-zinc-400">Divisão de A a F do seu protocolo</span>
         </div>
         <!-- Carrossel Detalhado de Rotinas (Seletor Unificado) -->
         <div id="weeklyScheduleCarousel" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -1024,8 +1024,7 @@
             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Sinergia Nutricional
           </span>
           <span id="synergyDayLabel"
-            class="text-[9px] font-mono text-zinc-400 bg-[#08090A] px-2 py-0.5 rounded border border-[#272C31]">DIA
-            1</span>
+            class="text-[9px] font-mono text-zinc-400 bg-[#08090A] px-2 py-0.5 rounded border border-[#272C31]">TREINO A</span>
         </div>
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div class="p-2 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
@@ -3321,7 +3320,7 @@
 
     window.renderConsistencyHeatmap = function() {
       var container = document.getElementById('heatmapGridContainer');
-      if (!container) return;
+      if (!container || typeof container.appendChild !== 'function') return;
       container.innerHTML = '';
 
       var levels = [3, 4, 4, 3, 4, 2, 4, 4, 4, 3, 4, 4, 3, 4, 3, 4, 4, 4, 3, 4, 4, 4, 3, 4, 4, 4, 3, 4];
@@ -6782,25 +6781,63 @@
       const container = document.getElementById('weeklyScheduleCarousel');
       if (!container) return;
 
-      // WEEKDAY_SHORT removido: os treinos não são fixos a dias da semana específicos.
-      // "Hoje" é o dia da agenda que está atualmente selecionado para execução.
-      const todayDayNum = selectedScheduleDay || getTodayScheduleDay();
+      // Rotinas Prescritas de A a F (idêntico ao ambiente do nutricionista, sem impor dias numéricos fixos)
+      const routineOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'Cardio', 'OFF'];
+      let sourceList = [];
 
-      const sourceList = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0)
-        ? WEEKLY_SCHEDULE_DATA
-        : Object.keys(WORKOUT_DATABASE).map((k, idx) => ({
-          dayNum: idx + 1,
-          dayName: `DIA ${idx + 1}`,
-          type: WORKOUT_DATABASE[k].isOff ? 'Off' : (WORKOUT_DATABASE[k].isCardio ? 'Cardio' : 'Treino'),
-          routineKey: k,
-          title: WORKOUT_DATABASE[k].name || `Treino ${k}`,
-          sub: WORKOUT_DATABASE[k].subtitle || '',
-          synergy: {}
-        }));
+      routineOrder.forEach((k, idx) => {
+        if (WORKOUT_DATABASE[k]) {
+          const dbItem = WORKOUT_DATABASE[k];
+          const schedMatch = (Array.isArray(WEEKLY_SCHEDULE_DATA) ? WEEKLY_SCHEDULE_DATA : []).find(d => d.routineKey === k);
+          const isOff = dbItem.isOff || k === 'OFF';
+          const isCardio = dbItem.isCardio || k === 'Cardio';
+          const exCount = Array.isArray(dbItem.exercises) ? dbItem.exercises.length : 0;
+          const setsCount = Array.isArray(dbItem.exercises)
+            ? dbItem.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets) || 0), 0)
+            : 0;
+
+          sourceList.push({
+            routineKey: k,
+            dayNum: schedMatch ? schedMatch.dayNum : (idx + 1),
+            dayName: schedMatch ? schedMatch.dayName : `TREINO ${k}`,
+            badge: dbItem.badge || k,
+            type: schedMatch ? schedMatch.type : (isOff ? 'Off' : (isCardio ? 'Cardio' : 'Treino')),
+            title: (schedMatch && schedMatch.title) ? schedMatch.title : (dbItem.name || `Treino ${k}`),
+            sub: (schedMatch && (schedMatch.sub || schedMatch.focus))
+              ? (schedMatch.sub || schedMatch.focus)
+              : (dbItem.subtitle || (exCount > 0 ? `${exCount} exercícios · ${setsCount} séries` : '')),
+            exCount: exCount,
+            setsCount: setsCount,
+            synergy: (schedMatch && schedMatch.synergy) ? schedMatch.synergy : {}
+          });
+        }
+      });
+
+      // Fallback para WEEKLY_SCHEDULE_DATA se WORKOUT_DATABASE estiver sem as chaves esperadas
+      if (sourceList.length === 0 && Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0) {
+        const seen = new Set();
+        WEEKLY_SCHEDULE_DATA.forEach((d, idx) => {
+          const rKey = d.routineKey || (d.type === 'Off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
+          if (!seen.has(rKey)) {
+            seen.add(rKey);
+            sourceList.push({
+              routineKey: rKey,
+              dayNum: d.dayNum || (idx + 1),
+              dayName: d.dayName || `TREINO ${rKey}`,
+              badge: rKey,
+              type: d.type || 'Treino',
+              title: d.title || `Treino ${rKey}`,
+              sub: d.sub || d.focus || '',
+              exCount: 0,
+              setsCount: 0,
+              synergy: d.synergy || {}
+            });
+          }
+        });
+      }
 
       container.innerHTML = sourceList.map(d => {
-        const isSelected = d.dayNum ? (d.dayNum === selectedScheduleDay) : (d.routineKey === selectedRoutineKey);
-        const isToday = (d.dayNum === todayDayNum);
+        const isSelected = (d.routineKey === selectedRoutineKey);
         // isCompleted: rotina concluída hoje — independente de qual card está selecionado
         const isCompleted = patientState.completedRoutineKey === d.routineKey ||
           (d.routineKey === selectedRoutineKey && isSelected && patientState.workoutDone);
@@ -6809,42 +6846,54 @@
           ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]'
           : (isCompleted
             ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600'
-            : (isToday
-              ? 'border-blue-700/70 bg-blue-950/30 hover:border-blue-500'
-              : 'border-zinc-800 bg-black/60 hover:border-zinc-700'));
+            : 'border-zinc-800 bg-black/60 hover:border-zinc-700');
 
         const badgeColor = isCompleted
           ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-          : (isToday
+          : (isSelected
             ? 'bg-blue-900 text-blue-200 border-blue-500 font-bold'
-            : (d.type === 'Treino + Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : (d.type === 'Cardio' ? 'bg-amber-950 text-amber-300 border-amber-800' : (d.type === 'Off' || d.type === 'off' ? 'bg-zinc-900 text-zinc-400 border-zinc-800' : 'bg-zinc-900 text-zinc-300 border-zinc-800'))));
+            : (d.type === 'Treino + Cardio'
+              ? 'bg-amber-950 text-amber-300 border-amber-800'
+              : (d.type === 'Cardio'
+                ? 'bg-amber-950 text-amber-300 border-amber-800'
+                : (d.type === 'Off' || d.type === 'off'
+                  ? 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                  : 'bg-zinc-900 text-zinc-300 border-zinc-800'))));
 
         const badgeText = isCompleted
           ? '✅ Feito'
-          : (isToday ? '🎯 Em execução' : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type));
+          : (isSelected
+            ? '🎯 Em execução'
+            : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type));
 
-        // Removido o rótulo de dia da semana (SEG, TER, QUA...) pois o Treino 1
-        // pode ser realizado em qualquer dia, sem estar fixo a uma data específica.
-        const dayBadge = `DIA ${d.dayNum}`;
-        const routineBadge = d.routineKey ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)) : (d.type === 'Off' ? 'DESCANSO' : 'CARDIO');
+        // Rótulo da rotina alinhado ao ambiente do nutricionista (TREINO A, B, C... CARDIO, DESCANSO)
+        // SEM definir "DIA X"
+        const routineLetter = d.badge || (d.routineKey ? d.routineKey : (d.type === 'Off' ? 'OFF' : 'Z2'));
+        const routineBadge = d.routineKey
+          ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`))
+          : (d.type === 'Off' ? 'DESCANSO' : 'CARDIO');
         const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
 
+        const exInfo = d.exCount > 0 ? `${d.exCount} exercícios · ${d.setsCount} séries` : '';
+
         return `
-          <div onclick="selectRoutine('${targetRoutineKey}', ${d.dayNum})"
-            class="min-w-[155px] max-w-[185px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
+          <div onclick="selectRoutine('${targetRoutineKey}', ${d.dayNum || 1})"
+            data-routine="${targetRoutineKey}"
+            class="min-w-[160px] max-w-[195px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : (isToday ? 'bg-blue-400' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600'))}"></span>
-                ${dayBadge}
+              <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
+                <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 font-black text-xs ${isSelected ? 'text-blue-300 border-blue-500/60' : 'text-zinc-200'}">${routineLetter}</span>
+                <span class="uppercase tracking-wider text-[9px] ${isSelected ? 'text-blue-200 font-bold' : 'text-zinc-400'}">${routineBadge}</span>
               </span>
-              <span class="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border ${badgeColor}">
+              <span class="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded border ${badgeColor}">
                 ${badgeText}
               </span>
             </div>
             <div>
-              <div class="text-[10px] font-mono font-black ${isSelected ? 'text-blue-300' : 'text-zinc-400'} uppercase">${routineBadge}</div>
               <h4 class="text-xs font-black text-white line-clamp-1 mt-0.5">${d.title}</h4>
               <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub || d.focus || ''}</p>
+              ${exInfo ? `<div class="text-[8px] font-mono text-zinc-500 mt-1 flex items-center gap-1"><span>${exInfo}</span></div>` : ''}
             </div>
           </div>
         `;

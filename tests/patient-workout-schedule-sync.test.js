@@ -201,12 +201,8 @@ test('Unificação de Seletores de Treino e Acompanhamento da Prescrição Real'
     assert.equal(exp.getSelectedRoutineKey(), 'D', 'Deve selecionar automaticamente a rotina prescrita para quinta-feira (D)');
   });
 
-  await t.test('4. Atribuição Exclusiva do Badge "🎯 Hoje" no Carrossel', () => {
-    // Simula Quarta-feira (Dia 3)
-    class WednesdayDate extends Date {
-      getDay() { return 3; }
-    }
-    const { exp, domElements } = createPatientEnvironment({ MockDate: WednesdayDate });
+  await t.test('4. Atribuição Exclusiva do Badge de Execução no Carrossel de Rotinas A a F', () => {
+    const { exp, domElements } = createPatientEnvironment();
 
     const mockPayload = {
       workoutDatabase: {
@@ -226,19 +222,20 @@ test('Unificação de Seletores de Treino e Acompanhamento da Prescrição Real'
 
     const carouselHtml = domElements['weeklyScheduleCarousel'].innerHTML;
 
-    // Deve conter "🎯 Hoje" exatamente uma vez
-    const hojeMatches = carouselHtml.match(/🎯 Hoje/g) || [];
-    assert.equal(hojeMatches.length, 1, 'Deve haver exatamente 1 badge "🎯 Hoje" no carrossel');
+    // Deve conter badge de execução exatamente uma vez
+    const execMatches = carouselHtml.match(/🎯 Em execução/g) || [];
+    assert.equal(execMatches.length, 1, 'Deve haver exatamente 1 badge "🎯 Em execução" no carrossel de rotinas');
 
-    // O badge de hoje deve estar associado a Quarta (DIA 3)
-    assert.ok(carouselHtml.includes('QUA · DIA 3'), 'Deve exibir dia abreviado QUA · DIA 3');
+    // As rotinas são exibidas por letra (TREINO A, TREINO B...) sem impor dia fixo
+    assert.ok(carouselHtml.includes('TREINO A'), 'Deve conter rotina TREINO A');
+    assert.ok(carouselHtml.includes('TREINO B'), 'Deve conter rotina TREINO B');
 
-    // Se o usuário clica para visualizar o Dia 1 (Segunda), o badge "🎯 Hoje" NÃO deve mudar para Segunda
-    exp.selectScheduleDay(1);
+    // Ao selecionar a rotina B, o badge "🎯 Em execução" move-se unicamente para B
+    exp.selectRoutine('B');
     exp.renderWeeklyCarousel();
     const carouselHtmlAfterClick = domElements['weeklyScheduleCarousel'].innerHTML;
-    const matchesAfterClick = carouselHtmlAfterClick.match(/🎯 Hoje/g) || [];
-    assert.equal(matchesAfterClick.length, 1, 'Mesmo após navegar de dia, "🎯 Hoje" permanece no dia real do calendário');
+    const matchesAfterClick = carouselHtmlAfterClick.match(/🎯 Em execução/g) || [];
+    assert.equal(matchesAfterClick.length, 1, 'Após selecionar Treino B, permanece exatamente 1 rotina em execução');
   });
 
   await t.test('5. Seleção Unívoca Sem Destaque Duplicado Para Dias com a Mesma Rotina', () => {
