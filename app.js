@@ -1,18 +1,97 @@
 // app.js - Application Controller, Per-Patient Cloud Sync & Bidirectional Engine
 // v2026.08.18-1323 — Drive list com botões + seletor atualiza após importar
 
-// Lucide High-Performance Optimizer (Safeguard)
-if (typeof window !== 'undefined' && window.lucide && !window.lucide._optimized) {
-  const _origCreateIcons = window.lucide.createIcons;
+// Lucide High-Performance Zero-Overhead Engine (Safeguard)
+if (typeof window !== 'undefined' && window.lucide && !window.lucide._engineV3) {
+  const _origCreateIcons = window.lucide._origCreateIcons || window.lucide.createIcons;
   window.lucide._origCreateIcons = _origCreateIcons;
-  window.lucide._optimized = true;
+  window.lucide._engineV3 = true;
+
+  function _toPascalCase(string) {
+    let out = "";
+    let upperNext = false;
+    for (let i = 0; i < string.length; i++) {
+      const ch = string[i];
+      if (ch === "-" || ch === "_" || ch <= " ") {
+        upperNext = out.length > 0;
+        continue;
+      }
+      if (out.length === 0) {
+        out += ch.toUpperCase();
+      } else {
+        out += upperNext ? ch.toUpperCase() : ch;
+      }
+      upperNext = false;
+    }
+    return out;
+  }
+
+  function _getAttrs(el) {
+    const attrs = {};
+    if (!el || !el.attributes) return attrs;
+    for (let i = 0; i < el.attributes.length; i++) {
+      const a = el.attributes[i];
+      attrs[a.name] = a.value;
+    }
+    return attrs;
+  }
+
+  function _renderPendingIcons(root) {
+    const target = (root && root.querySelectorAll) ? root : document;
+    const pending = target.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg), [icon-name]:not(svg)');
+    if (!pending || pending.length === 0) return;
+
+    const icons = window.lucide.icons || {};
+    const canCreate = typeof window.lucide.createElement === 'function';
+
+    pending.forEach(el => {
+      const iconName = el.getAttribute('data-lucide') || el.getAttribute('icon-name');
+      if (!iconName) return;
+      const pascalName = _toPascalCase(iconName);
+      const iconNode = icons[pascalName] || icons[iconName];
+
+      if (iconNode && canCreate) {
+        const elAttrs = _getAttrs(el);
+        delete elAttrs['data-lucide'];
+        delete elAttrs['icon-name'];
+        const baseClass = el.getAttribute('class') || '';
+        const mergedClass = (baseClass + ' lucide lucide-' + iconName).trim();
+
+        const svgAttrs = {
+          xmlns: "http://www.w3.org/2000/svg",
+          width: el.getAttribute('width') || 24,
+          height: el.getAttribute('height') || 24,
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": el.getAttribute('stroke-width') || 2,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          ...elAttrs,
+          class: mergedClass,
+          "aria-hidden": "true",
+          "data-nax-rendered": "true"
+        };
+
+        try {
+          const svg = window.lucide.createElement(iconNode, svgAttrs);
+          if (el.parentNode) {
+            el.parentNode.replaceChild(svg, el);
+          }
+        } catch (err) { }
+      } else {
+        try {
+          if (el.parentNode && _origCreateIcons) {
+            _origCreateIcons.call(window.lucide, { root: el.parentNode });
+          }
+        } catch (e) { }
+      }
+    });
+  }
+
   window.lucide.createIcons = function(options) {
     const root = (options && options.root) || document;
-    if (root && root.querySelectorAll) {
-      const pending = root.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)');
-      if (pending.length === 0) return; // Nada pendente: saída instantânea (0ms)
-    }
-    try { _origCreateIcons.call(window.lucide, options); } catch (e) { console.warn('Lucide notice:', e); }
+    _renderPendingIcons(root);
   };
 }
 
@@ -1761,63 +1840,113 @@ function renderFoodsTable(foodsList) {
     return `<div class="flex items-center justify-center gap-1">${energyBadge}${massBadge}</div>`;
   };
 
-  tableBody.innerHTML = foodsList
-    .map(
-      (f) => {
-        const p = Number(f.protein) || 0;
-        const c = Number(f.carbohydrate) || 0;
-        const g = Number(f.lipid) || 0;
-        const atwater = Number((f.bromatology?.atwaterKcal || ((p * 4) + (c * 4) + (g * 9))).toFixed(1));
+  const CHUNK_SIZE = 80;
+  window._activeFoodsList = foodsList;
+  window._renderedFoodsCount = Math.min(CHUNK_SIZE, foodsList.length);
 
-        return `
-        <tr class="hover:bg-zinc-800/60 transition-colors group">
-          <td class="py-3 px-4 font-bold text-white">
-            <div class="flex items-center gap-1.5">
-              <span class="text-white text-xs font-bold">${f.name}</span>
-            </div>
-            <div class="flex items-center gap-1.5 mt-1">
-              ${getPrepBadge(f.prepState)}
-              ${f.brand ? `<span class="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">${f.brand}</span>` : ""}
-            </div>
-          </td>
-          <td class="py-3 px-3 text-zinc-300 font-medium text-[11px]">${f.category || "Geral"}</td>
-          <td class="py-3 px-3">${getSourceBadge(f)}</td>
-          <td class="py-3 px-2 text-right font-black text-red-400">${Number(f.calories).toFixed(1)}</td>
-          <td class="py-3 px-2 text-right font-mono text-zinc-400 text-[11px]">${atwater.toFixed(1)}</td>
-          <td class="py-3 px-2 text-right font-bold text-zinc-200">${p.toFixed(1)}g</td>
-          <td class="py-3 px-2 text-right font-bold text-zinc-200">${c.toFixed(1)}g</td>
-          <td class="py-3 px-2 text-right font-bold text-zinc-200">${g.toFixed(1)}g</td>
-          <td class="py-3 px-2 text-right text-zinc-400">${Number(f.fiber || 0).toFixed(1)}g</td>
-          <td class="py-3 px-2 text-right text-zinc-400">${Number(f.sodium || 0).toFixed(0)}mg</td>
-          <td class="py-3 px-3 text-center">${getBromatologyBadge(f)}</td>
-          <td class="py-3 px-3 text-center">
-            <div class="flex items-center justify-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
-              <button
-                onclick="quickAddFoodToDiet('${f.id || f.name}')"
-                title="Adicionar à Dieta Ativa"
-                class="p-1.5 bg-zinc-800 text-zinc-200 hover:bg-red-600 hover:text-white rounded-lg transition-colors border border-zinc-700 shadow-sm"
-              >
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              </button>
-              ${f.source === "Meus Alimentos" ? `
-                <button
-                  onclick="deleteCustomFood('${f.id || f.name}')"
-                  title="Excluir Alimento"
-                  class="p-1.5 bg-rose-950/80 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-colors border border-rose-800/80 shadow-sm"
-                >
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-              ` : ""}
-            </div>
-          </td>
-        </tr>
-      `;
-      }
-    )
-    .join("");
+  window._renderFoodRow = (f) => {
+    const p = Number(f.protein) || 0;
+    const c = Number(f.carbohydrate) || 0;
+    const g = Number(f.lipid) || 0;
+    const atwater = Number((f.bromatology?.atwaterKcal || ((p * 4) + (c * 4) + (g * 9))).toFixed(1));
 
-  if (window.lucide) window.lucide.createIcons();
+    return `
+    <tr class="hover:bg-zinc-800/60 transition-colors group">
+      <td class="py-3 px-4 font-bold text-white">
+        <div class="flex items-center gap-1.5">
+          <span class="text-white text-xs font-bold">${f.name}</span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-1">
+          ${getPrepBadge(f.prepState)}
+          ${f.brand ? `<span class="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">${f.brand}</span>` : ""}
+        </div>
+      </td>
+      <td class="py-3 px-3 text-zinc-300 font-medium text-[11px]">${f.category || "Geral"}</td>
+      <td class="py-3 px-3">${getSourceBadge(f)}</td>
+      <td class="py-3 px-2 text-right font-black text-red-400">${Number(f.calories).toFixed(1)}</td>
+      <td class="py-3 px-2 text-right font-mono text-zinc-400 text-[11px]">${atwater.toFixed(1)}</td>
+      <td class="py-3 px-2 text-right font-bold text-zinc-200">${p.toFixed(1)}g</td>
+      <td class="py-3 px-2 text-right font-bold text-zinc-200">${c.toFixed(1)}g</td>
+      <td class="py-3 px-2 text-right font-bold text-zinc-200">${g.toFixed(1)}g</td>
+      <td class="py-3 px-2 text-right text-zinc-400">${Number(f.fiber || 0).toFixed(1)}g</td>
+      <td class="py-3 px-2 text-right text-zinc-400">${Number(f.sodium || 0).toFixed(0)}mg</td>
+      <td class="py-3 px-3 text-center">${getBromatologyBadge(f)}</td>
+      <td class="py-3 px-3 text-center">
+        <div class="flex items-center justify-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+          <button
+            onclick="quickAddFoodToDiet('${f.id || f.name}')"
+            title="Adicionar à Dieta Ativa"
+            class="p-1.5 bg-zinc-800 text-zinc-200 hover:bg-red-600 hover:text-white rounded-lg transition-colors border border-zinc-700 shadow-sm"
+          >
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+          ${f.source === "Meus Alimentos" ? `
+            <button
+              onclick="deleteCustomFood('${f.id || f.name}')"
+              title="Excluir Alimento"
+              class="p-1.5 bg-rose-950/80 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-colors border border-rose-800/80 shadow-sm"
+            >
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          ` : ""}
+        </div>
+      </td>
+    </tr>
+  `;
+  };
+
+  const initialRows = foodsList.slice(0, window._renderedFoodsCount).map(window._renderFoodRow).join("");
+  let loadMoreHtml = "";
+  if (foodsList.length > window._renderedFoodsCount) {
+    loadMoreHtml = `
+      <tr id="foodsLoadMoreRow">
+        <td colspan="12" class="py-4 text-center bg-zinc-950/90 border-t border-zinc-800">
+          <button type="button" onclick="loadMoreFoods()" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-bold rounded-xl transition-all border border-zinc-700 shadow-md">
+            Carregar Mais Alimentos (${window._renderedFoodsCount} de ${foodsList.length})
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  tableBody.innerHTML = initialRows + loadMoreHtml;
+  if (window.lucide) window.lucide.createIcons({ root: tableBody });
 }
+
+window.loadMoreFoods = function() {
+  const tableBody = document.getElementById("foodsTableBody");
+  const loadMoreRow = document.getElementById("foodsLoadMoreRow");
+  if (!tableBody || !window._activeFoodsList || typeof window._renderFoodRow !== 'function') return;
+
+  const currentCount = window._renderedFoodsCount || 0;
+  const nextChunk = window._activeFoodsList.slice(currentCount, currentCount + 80);
+  if (nextChunk.length === 0) {
+    if (loadMoreRow) loadMoreRow.remove();
+    return;
+  }
+
+  window._renderedFoodsCount = currentCount + nextChunk.length;
+  const tempDiv = document.createElement("tbody");
+  tempDiv.innerHTML = nextChunk.map(window._renderFoodRow).join("");
+
+  if (loadMoreRow) {
+    while (tempDiv.firstChild) {
+      tableBody.insertBefore(tempDiv.firstChild, loadMoreRow);
+    }
+    if (window._renderedFoodsCount >= window._activeFoodsList.length) {
+      loadMoreRow.remove();
+    } else {
+      const btn = loadMoreRow.querySelector("button");
+      if (btn) btn.innerText = `Carregar Mais Alimentos (${window._renderedFoodsCount} de ${window._activeFoodsList.length})`;
+    }
+  } else {
+    while (tempDiv.firstChild) {
+      tableBody.appendChild(tempDiv.firstChild);
+    }
+  }
+
+  if (window.lucide) window.lucide.createIcons({ root: tableBody });
+};
 
 // 4.3 Filtro por Botões de Fonte
 function setFoodSourceFilter(source) {
@@ -11128,8 +11257,10 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
     console.error("Erro ao carregar dados do módulo " + tabName, err);
   }
 
-  // 9. Re-cria ícones Lucide na nova aba
-  if (window.lucide) window.lucide.createIcons();
+  // 9. Re-cria ícones Lucide apenas na nova aba ativa
+  if (window.lucide) {
+    window.lucide.createIcons({ root: target || document });
+  }
 
   // 10. Scroll para o topo apenas se explicitamente solicitado
   if (autoScroll) {

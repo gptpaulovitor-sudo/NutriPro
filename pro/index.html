@@ -72,31 +72,110 @@
   <!-- Lucide Icons (Local + CDN fallback) -->
   <script src="../lucide.min.js"></script>
   <script>if (typeof lucide === 'undefined') document.write('<script src="https://unpkg.com/lucide@latest"><\\/script>');</script>
-  <!-- Lucide High-Performance Optimizer: evita repetição destrutiva de SVGs e elimina lag de navegação -->
+  <!-- Lucide High-Performance Zero-Overhead Engine: elimina recriação destrutiva de SVGs e lag de navegação/rolagem -->
   <script>
     (function() {
-      function patchLucide() {
-        if (!window.lucide || window.lucide._optimized) return;
-        const originalCreateIcons = window.lucide.createIcons;
-        window.lucide._origCreateIcons = originalCreateIcons;
-        window.lucide._optimized = true;
+      function installLucideEngine() {
+        if (!window.lucide || window.lucide._engineV3) return;
+        const origCreateIcons = window.lucide._origCreateIcons || window.lucide.createIcons;
+        window.lucide._origCreateIcons = origCreateIcons;
+        window.lucide._engineV3 = true;
+
+        function toPascalCase(string) {
+          let out = "";
+          let upperNext = false;
+          for (let i = 0; i < string.length; i++) {
+            const ch = string[i];
+            if (ch === "-" || ch === "_" || ch <= " ") {
+              upperNext = out.length > 0;
+              continue;
+            }
+            if (out.length === 0) {
+              out += ch.toUpperCase();
+            } else {
+              out += upperNext ? ch.toUpperCase() : ch;
+            }
+            upperNext = false;
+          }
+          return out;
+        }
+
+        function getAttrs(el) {
+          const attrs = {};
+          if (!el || !el.attributes) return attrs;
+          for (let i = 0; i < el.attributes.length; i++) {
+            const a = el.attributes[i];
+            attrs[a.name] = a.value;
+          }
+          return attrs;
+        }
+
+        function renderPendingIcons(root) {
+          const target = (root && root.querySelectorAll) ? root : document;
+          // Seleciona EXCLUSIVAMENTE placeholders que ainda não foram transformados em SVG
+          const pending = target.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg), [icon-name]:not(svg)');
+          if (!pending || pending.length === 0) return;
+
+          const icons = window.lucide.icons || {};
+          const canCreate = typeof window.lucide.createElement === 'function';
+
+          pending.forEach(el => {
+            const iconName = el.getAttribute('data-lucide') || el.getAttribute('icon-name');
+            if (!iconName) return;
+            const pascalName = toPascalCase(iconName);
+            const iconNode = icons[pascalName] || icons[iconName];
+
+            if (iconNode && canCreate) {
+              const elAttrs = getAttrs(el);
+              delete elAttrs['data-lucide'];
+              delete elAttrs['icon-name'];
+              const baseClass = el.getAttribute('class') || '';
+              const mergedClass = (baseClass + ' lucide lucide-' + iconName).trim();
+
+              const svgAttrs = {
+                xmlns: "http://www.w3.org/2000/svg",
+                width: el.getAttribute('width') || 24,
+                height: el.getAttribute('height') || 24,
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                "stroke-width": el.getAttribute('stroke-width') || 2,
+                "stroke-linecap": "round",
+                "stroke-linejoin": "round",
+                ...elAttrs,
+                class: mergedClass,
+                "aria-hidden": "true",
+                "data-nax-rendered": "true"
+              };
+
+              try {
+                const svg = window.lucide.createElement(iconNode, svgAttrs);
+                if (el.parentNode) {
+                  el.parentNode.replaceChild(svg, el);
+                }
+              } catch (err) {
+                // Fallback gracioso
+              }
+            } else {
+              // Fallback isolado apenas para o elemento pai
+              try {
+                if (el.parentNode && origCreateIcons) {
+                  origCreateIcons.call(window.lucide, { root: el.parentNode });
+                }
+              } catch (e) { }
+            }
+          });
+        }
 
         window.lucide.createIcons = function(options) {
           const root = (options && options.root) || document;
-          if (root && root.querySelectorAll) {
-            const pending = root.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)');
-            if (pending.length === 0) return;
-          }
-          try {
-            originalCreateIcons.call(window.lucide, options);
-          } catch (e) {
-            console.warn('Lucide notice:', e);
-          }
+          renderPendingIcons(root);
         };
       }
-      patchLucide();
+
+      installLucideEngine();
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', patchLucide);
+        document.addEventListener('DOMContentLoaded', installLucideEngine);
       }
     })();
   </script>
@@ -226,14 +305,14 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="nutriaxProAppContent" class="hidden min-h-screen flex flex-col antialiased" style="display:none;">
 
-  <!-- Marca d'agua sutil -->
+  <!-- Marca d'agua sutil (Acelerada por GPU) -->
   <div class="fixed inset-0 pointer-events-none -z-10 opacity-[0.03]"
-    style="background-image: url('logo.png'); background-position: bottom right; background-repeat: no-repeat; background-size: 40%;"
+    style="background-image: url('logo.png'); background-position: bottom right; background-repeat: no-repeat; background-size: 40%; transform: translateZ(0); will-change: transform;"
     aria-hidden="true"></div>
 
-  <!-- ═══ 1. CABEÇALHO SUPERIOR FIXO (TOP HEADER HUD) ═══ -->
+  <!-- ═══ 1. CABEÇALHO SUPERIOR FIXO (TOP HEADER HUD - GPU ACCELERATED) ═══ -->
   <header
-    class="sticky top-0 z-50 w-full backdrop-blur-md border-b shadow-lg" style="background:rgba(8,9,10,0.97);border-color:#272C31;box-shadow:0 2px 16px rgba(0,0,0,0.7)">
+    class="sticky top-0 z-50 w-full border-b shadow-lg" style="background:#08090A;border-color:#272C31;box-shadow:0 2px 16px rgba(0,0,0,0.7);transform:translateZ(0);will-change:transform;">
 
     <!-- ── CABEÇALHO DESKTOP (MD E ACIMA) ── -->
     <div class="hidden md:flex px-6 py-2 items-center justify-between gap-4">
@@ -718,7 +797,7 @@
             </p>
           </div>
 
-          <div class="hidden xl:flex items-center max-w-xs z-10 px-4 py-2.5 rounded-xl bg-black/40 border border-[#272C31]/60 backdrop-blur-sm">
+          <div class="hidden xl:flex items-center max-w-xs z-10 px-4 py-2.5 rounded-xl bg-[#121518]/90 border border-[#272C31]">
             <p class="text-xs italic text-[#B7BCC2] leading-relaxed">
               "A mente molda os hábitos, os hábitos definem o físico."
             </p>
@@ -923,7 +1002,7 @@
           </div>
 
           <!-- Centro/Frase Motivacional da Referência 2 -->
-          <div class="hidden xl:flex items-center max-w-xs z-10 px-4 py-2.5 rounded-xl bg-black/40 border border-[#272C31]/60 backdrop-blur-sm">
+          <div class="hidden xl:flex items-center max-w-xs z-10 px-4 py-2.5 rounded-xl bg-[#121518]/90 border border-[#272C31]">
             <p class="text-xs italic text-[#B7BCC2] leading-relaxed">
               "Melhorar hoje para ter mais resultados amanhã."
             </p>

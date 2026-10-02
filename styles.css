@@ -41,7 +41,13 @@
   box-sizing: border-box;
 }
 
-html, body {
+html {
+  overflow-x: clip;
+  scroll-behavior: auto !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
   min-height: 100vh;
   background-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
@@ -50,6 +56,9 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
+  overflow-x: clip;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
 }
 
 /* Scrollbar Minimalista & Profissional */
@@ -66,12 +75,14 @@ main {
 
 section[id^="tab-"] {
   margin-top: 0 !important;
+  contain: layout style;
 }
 
 section[id^="tab-"].hidden,
 section[id^="tab-"][hidden],
 [hidden] {
   display: none !important;
+  content-visibility: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
   height: 0 !important;
@@ -413,9 +424,10 @@ body {
   html, body {
     width: 100% !important;
     max-width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
     position: relative;
     background-color: var(--bg-primary);
+    -webkit-overflow-scrolling: touch;
   }
 
   main {
@@ -424,18 +436,18 @@ body {
     padding-top: 0.5rem !important;
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
     max-width: 100vw !important;
-    overflow-x: hidden !important;
   }
 
   /* ═══ TOP APP BAR COMPACTA MOBILE ═══ */
   .nax-mobile-top-header {
     height: 50px;
-    background: rgba(8, 9, 10, 0.98);
+    background: #08090A;
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 50;
     transform: translateZ(0);
+    will-change: transform;
   }
 
   /* ═══ PILAR HERO VISUAL MOBILE ═══ */
@@ -942,6 +954,22 @@ body {
   background-color: #fbbf24 !important; /* amber-400 */
   color: #000000 !important;
   border-color: #fde68a !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PERFORMANCE ACCELERATION (GPU COMPOSITING & CONTAINMENT)
+   Elimina travamentos de renderização, reflows e lag de rolagem
+   ═══════════════════════════════════════════════════════════ */
+.hud-card, .nax-card, .table-responsive-wrapper {
+  contain: layout style;
+}
+
+#perf-routines-container,
+#foodsTableBody,
+#anamneseForm,
+#evaluationForm {
+  content-visibility: auto;
+  contain-intrinsic-size: 500px;
 }
 
 
