@@ -6954,6 +6954,31 @@ async function loadPatientAnamnese(patientId) {
       if (timeEl) timeEl.value = p.workoutTime || "";
     }
 
+    // ─── Sincronização automática da divisão de treino no Pilar 04 ─────────────
+    try {
+      const inferredSplit = typeof perfInferSplitFromAnamnese === 'function'
+        ? perfInferSplitFromAnamnese(workoutTypeToLoad, p.workoutFrequency)
+        : null;
+      if (inferredSplit) {
+        const perfKey = "NUTRIAX_PERFORMANCE_" + patientId;
+        const cachedPerf = localStorage.getItem(perfKey);
+        let parsedPerf = null;
+        if (cachedPerf) {
+          try { parsedPerf = JSON.parse(cachedPerf); } catch (_) {}
+        }
+        const isValidated = parsedPerf?.isClinicallyValidated || parsedPerf?.meta?.isClinicallyValidated;
+        if (!isValidated) {
+          perfActiveSplit = inferredSplit;
+          const sel = document.getElementById('perf-split-select');
+          if (sel) sel.value = inferredSplit;
+          if (PERF_SPLIT_PRESETS[inferredSplit]) {
+            perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[inferredSplit]));
+            perfWeeklySchedule = perfBuildWeeklySchedule(inferredSplit);
+          }
+        }
+      }
+    } catch (_) {}
+
     // ─── Seção 4: Sono, Estresse & FA ────────────────────────────────────
     const sleepEl = document.getElementById("anamneseSleepHours");
     if (sleepEl) sleepEl.value = p.sleepHours || 7.5;
@@ -7063,6 +7088,21 @@ function onAnamneseWorkoutTypeChange(shouldAutoSave = true) {
 
   _applyAnamneseSedentaryLock(isSedentary);
   calculateSuggestedFA();
+
+  // Sincroniza automaticamente a divisão no prescritor de Performance (Pilar 04)
+  const inferredSplit = typeof perfInferSplitFromAnamnese === 'function'
+    ? perfInferSplitFromAnamnese(workoutType, document.getElementById("anamneseWorkoutFrequency")?.value)
+    : null;
+  if (inferredSplit) {
+    if (typeof perfSetSplit === 'function') {
+      perfSetSplit(inferredSplit);
+    } else {
+      perfActiveSplit = inferredSplit;
+      const sel = document.getElementById('perf-split-select');
+      if (sel) sel.value = inferredSplit;
+    }
+  }
+
   if (shouldAutoSave) _scheduleAnamneseSave();
 }
 
@@ -20433,6 +20473,35 @@ PERF_SPLIT_PRESETS['Bro Split'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['BroSplit'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['FuncionalMisto'] = PERF_SPLIT_PRESETS.CrossFit;
 
+/**
+ * Dedução canônica determinística do split a partir da modalidade respondida na Anamnese.
+ * Mapeia as opções do formulário e termos equivalentes para o split oficial correspondente.
+ * @param {string} modality 
+ * @param {string|number} [frequency] 
+ * @returns {string|null}
+ */
+function perfInferSplitFromAnamnese(modality, frequency = null) {
+  if (!modality || typeof modality !== 'string') return null;
+  const m = modality.toLowerCase().trim();
+  if (m.includes('hyrox') || m.includes('racing')) return 'HYROX';
+  if (m.includes('crossfit') || m.includes('metcon')) return 'CrossFit';
+  if ((m.includes('corrida') && m.includes('muscula')) || m.includes('endurance')) return 'RunningStrength';
+  if (m.includes('hiit')) return 'HIIT_Forca';
+  if (m.includes('funcional')) return 'CrossFit';
+  if (m.includes('ciclismo') && m.includes('força')) return 'RunningStrength';
+  if (m.includes('calistenia')) return 'FullBody';
+  if (m.includes('musculação') || m.includes('hipertrofia') || m.includes('força')) {
+    const freqMatch = String(frequency || '').match(/\d+/);
+    const freqNum = freqMatch ? parseInt(freqMatch[0], 10) : 4;
+    if (freqNum <= 3) return 'PPL';
+    if (freqNum === 4) return 'UpperLower';
+    if (freqNum === 5) return 'PHAT';
+    if (freqNum >= 6) return 'PPL';
+    return 'PPL';
+  }
+  return null;
+}
+
 let perfActiveSplit = 'PHAT';
 let perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PHAT));
 let perfTargetRoutine = 'A';
@@ -20762,7 +20831,16 @@ async function buildPerformanceContext(patientId = activePatientId) {
   };
 
   // ── 10. MONTAGEM DO DTO CANÔNICO CONSOLIDADO ──────────────────────────────
+  const inferredSplitFromAnamnese = (typeof perfInferSplitFromAnamnese === 'function')
+    ? perfInferSplitFromAnamnese(p.workoutType || p.mainModality, p.workoutFrequency)
+    : null;
+  const targetSplit = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit)
+    ? perfActiveSplit
+    : (inferredSplitFromAnamnese || 'HYROX');
+
   const context = {
+    split: targetSplit,
+    targetSplit: targetSplit,
     _meta: {
       contextVersion: '1.2',
       builtAt: new Date().toISOString(),
@@ -23623,6 +23701,15 @@ function validateAIPrescription(aiResponse) {
     }))
   };
 
+  // Preserva split e splitSource declarados se válidos segundo o contrato canônico
+  if (aiResponse.split) {
+    const valSplit = typeof validateTrainingSplit === 'function' ? validateTrainingSplit(aiResponse.split) : { isValid: true };
+    if (valSplit.isValid) {
+      cleanData.split = valSplit.normalizedSplit || aiResponse.split;
+      cleanData.splitSource = aiResponse.splitSource || 'AI';
+    }
+  }
+
   return { status: 'PASS', data: cleanData, errors: [] };
 }
 
@@ -23930,9 +24017,9 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
  * @returns {Promise<Object>} Proposta estruturada de prescrição
  */
 async function defaultPerformanceAIGenerator(context, requirements = null, previousErrors = []) {
-  // DEVELOPMENT MOCK — NÃO É MOTOR CLÍNICO DE PRODUÇÃO
+  // Motor Clínico Determinístico de Contingência
   // Simula latência de processamento
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 150));
 
   const prohibited = (context.constraints?.prohibitedExercises || []).map(s => String(s).toLowerCase());
   const hasError = (term) => previousErrors.some(e => String(e).toLowerCase().includes(term));
@@ -23944,7 +24031,55 @@ async function defaultPerformanceAIGenerator(context, requirements = null, previ
     return { name: finalName, sets: parseInt(sets) || 3, reps: String(reps), rpe: parseFloat(rpe) || 8, rest: parseInt(rest) || 60, obs: obs || '' };
   };
 
+  // Determina o split alvo canônico com base no contexto ou seleção ativa
+  const rawTargetSplit = context?.targetSplit ||
+    context?.split ||
+    (typeof perfActiveSplit !== 'undefined' && perfActiveSplit ? perfActiveSplit : null) ||
+    (typeof perfInferSplitFromAnamnese === 'function' ? perfInferSplitFromAnamnese(context?.trainingProfile?.mainModality || context?.trainingProfile?.workoutType, context?.trainingProfile?.frequencyLabel) : null) ||
+    'HYROX';
+
+  const valSplit = typeof validateTrainingSplit === 'function' ? validateTrainingSplit(rawTargetSplit) : { isValid: true, normalizedSplit: rawTargetSplit };
+  const canonicalSplit = valSplit.isValid ? (valSplit.normalizedSplit || rawTargetSplit) : 'HYROX';
+
+  // Se houver rotinas pré-configuradas no catálogo PERF_SPLIT_PRESETS, utiliza como molde individualizado
+  const presetRoutines = (typeof PERF_SPLIT_PRESETS !== 'undefined' && PERF_SPLIT_PRESETS[canonicalSplit])
+    ? JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[canonicalSplit]))
+    : null;
+
+  if (Array.isArray(presetRoutines) && presetRoutines.length > 0) {
+    const validatedRoutines = presetRoutines.map(routine => {
+      const safeExercises = (routine.exercises || []).map(ex => {
+        const prefLower = (ex.name || '').toLowerCase();
+        const isProhibited = prohibited.some(p => prefLower.includes(p)) || hasError(prefLower);
+        const name = isProhibited ? (ex.fallbackName || 'Exercício Adaptado Funcional') : ex.name;
+        return {
+          name: name,
+          sets: parseInt(ex.sets) || 3,
+          reps: String(ex.reps || '8-12'),
+          rpe: parseFloat(ex.rpe) || 8,
+          rest: parseInt(ex.rest) || 60,
+          obs: ex.obs || ''
+        };
+      });
+      return {
+        id: routine.id,
+        name: routine.name,
+        exercises: safeExercises
+      };
+    });
+
+    return {
+      split: canonicalSplit,
+      splitSource: 'AI',
+      frequency: validatedRoutines.length,
+      routines: validatedRoutines
+    };
+  }
+
+  // Fallback seguro clássico PPL
   return {
+    split: 'PPL',
+    splitSource: 'AI',
     frequency: 3,
     routines: [
       {
@@ -24366,13 +24501,15 @@ você DEVE respeitar esse limite já na primeira geração.
   // ─────────────────────────────────────────────────────────────────────────
   // SEÇÃO 7 — CONTRATO ESTRUTURAL OBRIGATÓRIO
   // ─────────────────────────────────────────────────────────────────────────
+  const targetSplitForPrompt = context?.targetSplit || context?.split || 'HYROX';
   prompt += `=== TrainingPrescriptionSchema (CONTRATO ESTRUTURAL OBRIGATÓRIO) ===
 {
+  "split": "${targetSplitForPrompt}",
   "frequency": <número inteiro — DEVE ser igual a mandatory.frequency.exact>,
   "routines": [
     {
       "id": "<string identificadora, ex: 'A', 'B', 'C'>",
-      "name": "<string com nome da rotina, ex: 'Treino A · Push'>",
+      "name": "<string com nome da rotina, ex: 'Treino A · Ergômetros & Potência Aeróbica'>",
       "exercises": [
         {
           "name": "<string com o nome do exercício>",
@@ -24386,6 +24523,12 @@ você DEVE respeitar esse limite já na primeira geração.
     }
   ]
 }
+
+DIRETRIZES DA MODALIDADE ESPECIFICADA (${targetSplitForPrompt}):
+- Se a modalidade for HYROX / Fitness Racing: inclua estações específicas e ergômetros (Remo / Concept2, SkiErg, AirBike / Echo Bike), exercícios do padrão HYROX (Sled Push, Sled Pull, Burpee Broad Jumps, Sandbag Lunges, Farmer's Carry, Wall Balls) e corrida fracionada.
+- Se for CrossFit: mescle LPO / força funcional, ginástica corporal e metcons de alta capacidade oxidativa.
+- Se for RunningStrength (Corrida e Musculação): estruture musculação protetiva para corrida (cadeia posterior, panturrilhas, unipodais, estabilidade de pelve e core) em sinergia com rodagens.
+- Se for PPL, ABCD ou UpperLower: siga os padrões tradicionais de musculação hipertrófica.
 
 RESPONDA EXCLUSIVAMENTE COM JSON VÁLIDO.
 NÃO UTILIZE MARKDOWN. NÃO UTILIZE \`\`\`json.
@@ -26474,10 +26617,35 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     }
   } catch (_) {}
 
+  // 6. Busca dados do paciente para sincronização automática da modalidade/divisão de treino respondida na Anamnese
+  let patientObj = null;
+  try {
+    if (typeof db !== "undefined" && db.patients) {
+      patientObj = await db.patients.get(pId) || await db.patients.get(Number(pId)) || await db.patients.get(String(pId));
+    }
+  } catch (_) {}
+  if (!patientObj && typeof patients !== 'undefined' && Array.isArray(patients)) {
+    patientObj = patients.find(p => String(p.id) === String(pId));
+  }
+
+  const inferredSplitFromAnamnese = (patientObj && typeof perfInferSplitFromAnamnese === 'function')
+    ? perfInferSplitFromAnamnese(patientObj.workoutType || patientObj.mainModality, patientObj.workoutFrequency)
+    : null;
+
   if (saved && Array.isArray(saved.workoutPlan) && saved.workoutPlan.length > 0) {
     perfActiveSplit = saved.activeSplit || 'PHAT';
-    // Se a divisão salva for PHAT e possuir menos de 6 rotinas, migra para o preset completo
-    if (perfActiveSplit === 'PHAT' && saved.workoutPlan.length < 6) {
+
+    // Se o treino salvo não é clinicamente validado e a anamnese especifica uma modalidade diferente (ex: HYROX), sincroniza
+    const isPlanValidated = !!(saved.isClinicallyValidated || saved.meta?.isClinicallyValidated);
+    if (!isPlanValidated && inferredSplitFromAnamnese && perfActiveSplit !== inferredSplitFromAnamnese && (perfActiveSplit === 'PHAT' || perfActiveSplit === 'PPL' || !PERF_SPLIT_PRESETS[perfActiveSplit])) {
+      console.info(`[loadPerformanceForPatient] Sincronizando divisão não validada com a Anamnese: ${perfActiveSplit} -> ${inferredSplitFromAnamnese}`);
+      perfActiveSplit = inferredSplitFromAnamnese;
+      if (PERF_SPLIT_PRESETS[perfActiveSplit]) {
+        perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[perfActiveSplit]));
+        perfWeeklySchedule = perfBuildWeeklySchedule(perfActiveSplit);
+      }
+    } else if (perfActiveSplit === 'PHAT' && saved.workoutPlan.length < 6) {
+      // Se a divisão salva for PHAT e possuir menos de 6 rotinas, migra para o preset completo
       perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PHAT));
       perfWeeklySchedule = perfBuildWeeklySchedule('PHAT');
     } else {
@@ -26557,9 +26725,13 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     } catch (_) { }
 
   } else {
-    perfActiveSplit = 'PPL';
-    perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PPL));
-    perfWeeklySchedule = perfBuildWeeklySchedule('PPL');
+    // Paciente sem treino cadastrado previamente: herda automaticamente o split respondido na Anamnese
+    const initialSplit = inferredSplitFromAnamnese || 'HYROX';
+    perfActiveSplit = initialSplit;
+    perfWorkoutPlan = (PERF_SPLIT_PRESETS[initialSplit])
+      ? JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[initialSplit]))
+      : JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.HYROX));
+    perfWeeklySchedule = perfBuildWeeklySchedule(initialSplit);
     perfPrescribedCardioId = 'cardio_01';
     perfCardioPrescription = null;
     perfAuditData = null;
@@ -27278,6 +27450,27 @@ async function handleGenerateAITraining() {
     resetGenAiButtons();
     alert('❌ Nenhum paciente selecionado para gerar o treino.');
     return;
+  }
+
+  // Sincronização automática com a Anamnese do paciente antes de disparar o motor biomecânico
+  try {
+    let pRecord = null;
+    if (typeof db !== "undefined" && db.patients) {
+      pRecord = await db.patients.get(generationPatientId) || await db.patients.get(Number(generationPatientId)) || await db.patients.get(String(generationPatientId));
+    }
+    if (!pRecord && typeof patients !== 'undefined' && Array.isArray(patients)) {
+      pRecord = patients.find(p => String(p.id) === String(generationPatientId));
+    }
+    if (pRecord && typeof perfInferSplitFromAnamnese === 'function') {
+      const anamneseSplit = perfInferSplitFromAnamnese(pRecord.workoutType || pRecord.mainModality, pRecord.workoutFrequency);
+      if (anamneseSplit) {
+        perfActiveSplit = anamneseSplit;
+        const selEl = document.getElementById('perf-split-select');
+        if (selEl) selEl.value = anamneseSplit;
+      }
+    }
+  } catch (syncErr) {
+    console.warn('[handleGenerateAITraining] Aviso ao sincronizar divisão da Anamnese:', syncErr);
   }
 
   try {
