@@ -24,6 +24,9 @@ const VALID_TRAINING_SPLITS = Object.freeze([
   // ── Splits Híbridos & Performance ──
   'HYROX',
   'CrossFit',
+  'Metcon',
+  'MetconHibrido',
+  'Metcon_Hibrido',
   'RunningStrength',
   'HIIT_Forca',
   'Triathlon',
@@ -55,6 +58,7 @@ function normalizeTrainingSplit(split) {
   }
   if (lower === 'hyrox') return 'HYROX';
   if (lower === 'crossfit') return 'CrossFit';
+  if (lower === 'metcon' || lower === 'metconhibrido' || lower === 'metcon_hibrido') return 'Metcon';
   if (lower === 'runningstrength' || lower === 'running_strength' || lower === 'corrida_musculacao') return 'RunningStrength';
   if (lower === 'hiit_forca' || lower === 'hiitforca' || lower === 'hiit_musculacao') return 'HIIT_Forca';
   if (lower === 'funcionalmisto' || lower === 'funcional_misto') return 'FuncionalMisto';

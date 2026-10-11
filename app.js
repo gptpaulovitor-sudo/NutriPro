@@ -16790,6 +16790,18 @@ function _perfBuildRawWeeklySchedule(splitKey) {
       { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recuperação Completa', type: 'Off', carboTip: 'Carbo de baixo IG', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono reparador de 8-9h' }
     ];
   }
+  else if (normalizedKey === 'Metcon' || normalizedKey === 'MetconHibrido') {
+    const r = PERF_SPLIT_PRESETS.Metcon || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Metcon Força & Potência', focus: 'EMOM, Terra, Push Press & AirBike', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Aporte rápido de carboidratos e hidratação com eletrólitos' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Metcon Glicolítico & Densidade', focus: 'AMRAP, Barras, Dips & Remo', type: 'Treino', carboTip: `${preCarbG} carbo peri-treino`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Tamponamento muscular com bicarbonato/beta-alanina' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Regenerativo Z2 / Mobilidade', focus: 'Biogênese & Sensibilidade Insulínica', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Oxidação de ácidos graxos sem sobrecarga de membros superiores' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Chipper & Resistência Mista', focus: 'Thrusters, Burpees, Farmers & Wall Balls', type: 'Treino', carboTip: `${preCarbG} carbo com eletrólitos`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Resistência aeróbia sob fadiga mecânica' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação Neuromuscular', type: 'Off', carboTip: 'Carboidratos equilibrados', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Alívio completo do sistema nervoso central' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Cardio Leve Z1/Z2 / Soltura', focus: 'Circulação Capilar', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recuperação ativa para depuração de lactato' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Sono e Regeneração (8-9h)', type: 'Off', carboTip: 'Carbo complexo com fibras', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono profundo e síntese proteica total' }
+    ];
+  }
   else if (normalizedKey === 'CrossFit') {
     const r = PERF_SPLIT_PRESETS.CrossFit || [];
     return [
@@ -20541,6 +20553,46 @@ const PERF_SPLIT_PRESETS = {
     }
   ],
 
+  // ── 8.1 CONDICIONAMENTO METABÓLICO HÍBRIDO (Metcon - 3 Dias · EMOM, AMRAP & Chipper) ──
+  Metcon: [
+    {
+      id: 'A',
+      name: 'Treino A · Metcon Força & Potência Anaeróbia (EMOM)',
+      description: 'Trabalho de potência sob densidade temporal combinando levantamentos compostos pesados, ergômetros e saltos.',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra Convencional / Trap Bar', sets: 4, reps: '5 reps', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Força de tração máxima em bloco metabólico com saída explosiva.' },
+        { exerciseId: 'sh01', name: 'Desenvolvimento Militar (Push Press / OHP)', sets: 4, reps: '6-8', rpe: 8.0, rest: 60, cadence: 'Explosivo', resistProfile: 'shortened', obs: 'Potência de ombro e estabilização de core sob fadiga.' },
+        { exerciseId: 'lg01', name: 'AirBike / Echo Bike (Sprints de 30s)', sets: 5, reps: '30s tiros', rpe: 9.0, rest: 60, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Pico de potência anaeróbia e produção rápida de lactato.' },
+        { exerciseId: 'lg08', name: 'Box Jump na Caixa (60cm) ou Salto Pliométrico', sets: 4, reps: '8 saltos', rpe: 8.0, rest: 60, cadence: 'Pliométrico', resistProfile: 'uniform', obs: 'Ciclo alongamento-encurtamento com absorção suave de impacto.' },
+        { exerciseId: 'ab06', name: 'Prancha Isométrica com Carga ou Hollow Body', sets: 3, reps: '45s', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Anti-extensão lombar rígida sob frequência cardíaca elevada.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Metcon Glicolítico & Densidade (AMRAP)',
+      description: 'Circuitos de alta densidade metabólica (AMRAP) com calistenia, ergômetros e tração.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Barra Fixa Estrita ou Kipping (Pull-up)', sets: 4, reps: '8-10', rpe: 8.5, rest: 60, cadence: 'Ritmo', resistProfile: 'stretched', obs: 'Tração vertical ritmada com amplitude escapular completa.' },
+        { exerciseId: 'pe19', name: 'Mergulho em Paralelas (Dips) ou Flexões no Solo', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Empurrada contínua mantendo cotovelos alinhados.' },
+        { exerciseId: 'do01', name: 'Remo Concept2 RowErg (Tiros de 250m)', sets: 5, reps: '250m sprint', rpe: 9.0, rest: 60, cadence: 'Ritmo 28s/m', resistProfile: 'uniform', obs: 'Depleção glicogênica e capacidade de tamponamento muscular.' },
+        { exerciseId: 'lg10', name: 'Kettlebell Swing Americano / Russo', sets: 4, reps: '15-20', rpe: 8.5, rest: 60, cadence: 'Explosivo', resistProfile: 'stretched', obs: 'Extensão potente de quadril e ativação de glúteos.' },
+        { exerciseId: 'ab03', name: 'Toes-to-Bar ou Elevação de Pernas Suspenso', sets: 4, reps: '10-12', rpe: 8.0, rest: 45, cadence: 'Controlado', resistProfile: 'stretched', obs: 'Flexão de tronco e força de pegada (grip) sustentada.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Metcon Chipper & Resistência Mista (For Time)',
+      description: 'Sessão longa de resistência muscular mista completando estações em sequência ininterrupta.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Thrusters com Barra / Halteres (Agachamento + Press)', sets: 4, reps: '10-12', rpe: 8.5, rest: 90, cadence: 'Fluido', resistProfile: 'uniform', obs: 'Composto multiarticular exigindo capacidade cardiovascular extrema.' },
+        { exerciseId: 'lg07', name: 'Burpees com Salto sobre a Barra', sets: 4, reps: '12-15', rpe: 8.5, rest: 60, cadence: 'Constante', resistProfile: 'uniform', obs: 'Movimento corporal dinâmico contínuo sem pausas longas.' },
+        { exerciseId: 'sh18', name: 'Farmers Carry com Halteres / Kettlebells Pesados', sets: 4, reps: '50m', rpe: 8.5, rest: 90, cadence: 'Passo Firme', resistProfile: 'uniform', obs: 'Transporte de carga sustentada sob respiração ofegante.' },
+        { exerciseId: 'lg01', name: 'Wall Balls com Medicine Ball (6/9kg)', sets: 4, reps: '20 reps', rpe: 9.0, rest: 60, cadence: 'Fluido', resistProfile: 'uniform', obs: 'Agachamento completo e arremesso preciso no alvo de 3 metros.' },
+        { exerciseId: 'ab05', name: 'Abdominal Rollout na Roda ou Prancha Lateral', sets: 3, reps: '10-12', rpe: 8.0, rest: 45, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Estabilização profunda de core para recuperação do SNC.' }
+      ]
+    }
+  ],
+
   // ── 9. CROSSFIT / METCON (3 Dias · LPO, Ginástica & Condicionamento WOD) ────
   CrossFit: [
     {
@@ -21069,6 +21121,8 @@ const PERF_SPLIT_PRESETS = {
 // Aliases oficiais canônicos para Bro Split (Seção 13)
 PERF_SPLIT_PRESETS['Bro Split'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['BroSplit'] = PERF_SPLIT_PRESETS.ABCDE;
+PERF_SPLIT_PRESETS['MetconHibrido'] = PERF_SPLIT_PRESETS.Metcon;
+PERF_SPLIT_PRESETS['Metcon_Hibrido'] = PERF_SPLIT_PRESETS.Metcon;
 
 /**
  * Dedução canônica determinística do split a partir da modalidade respondida na Anamnese.
@@ -21083,8 +21137,9 @@ function perfInferSplitFromAnamnese(modality, frequency = null) {
 
   // 1. Modalidades Híbridas & Racing (Alta Exigência)
   if (m.includes('hyrox') || m.includes('racing')) return 'HYROX';
+  if (m.includes('metcon') || m.includes('condicionamento metab')) return 'Metcon';
+  if (m.includes('crossfit')) return 'CrossFit';
   if (m.includes('triathlon')) return 'Triathlon';
-  if (m.includes('crossfit') || m.includes('metcon')) return 'CrossFit';
   if (m.includes('hiit')) return 'HIIT_Forca';
   if (m.includes('ciclismo') && (m.includes('força') || m.includes('forca') || m.includes('muscula'))) return 'Ciclismo_Forca';
   if (m.includes('corrida') && (m.includes('muscula') || m.includes('concorrente'))) return 'RunningStrength';

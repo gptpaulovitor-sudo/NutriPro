@@ -99,7 +99,8 @@ export type ModalidadeTreino =
   | 'funcional_misto'      // ★ HÍBRIDO: Funcional + Peso Livre
   | 'ciclismo_forca'       // ★ HÍBRIDO: Ciclismo/Spinning + Musculação
   | 'running_musculacao'   // ★ HÍBRIDO: Corrida + Musculação
-  | 'esportes_coletivos';  // ★ HÍBRIDO: Futebol, Basquete, Vôlei
+  | 'esportes_coletivos'   // ★ HÍBRIDO: Futebol, Basquete, Vôlei
+  | 'metcon_hibrido';      // ★ HÍBRIDO: Treino de Condicionamento Metabólico Híbrido (Metcon)
 
 /**
  * Perfil metabólico derivado da modalidade, usado no motor de prescrição

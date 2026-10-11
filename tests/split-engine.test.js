@@ -543,6 +543,7 @@ test('F5 COMPLEMENTAR 5: Cobertura de 100% das Modalidades da Anamnese no Split 
     { label: 'Aeróbico Geral', expected: 'Aerobico_Geral' },
     { label: 'Calistenia', expected: 'Calistenia' },
     { label: 'HYROX / Fitness Racing', expected: 'HYROX' },
+    { label: 'Treino de Condicionamento Metabólico Híbrido (Metcon)', expected: 'Metcon' },
     { label: 'Crossfit & Funcional', expected: 'CrossFit' },
     { label: 'HIIT + Musculação', expected: 'HIIT_Forca' },
     { label: 'Triathlon', expected: 'Triathlon' },

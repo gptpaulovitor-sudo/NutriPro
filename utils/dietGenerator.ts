@@ -1006,6 +1006,17 @@ export const PERFIS_MODALIDADE_TREINO: Record<ModalidadeTreino, PerfilModalidade
     hidratacaoExtraMlKg: 15,
     notaClinica: 'Alta variabilidade de intensidade (sprints + pausa + aeróbico). Carboidrato de médio-rápido IG pré-jogo (batata doce/banana). Atenção a micronutrientes (ferro, zinco, vitamina C).',
   },
+  metcon_hibrido: {
+    modalidade: 'metcon_hibrido',
+    label: 'Treino de Condicionamento Metabólico Híbrido (Metcon)',
+    emoji: '🔥⚡',
+    isHibrida: true,
+    deltaProteinaGKg: 0.20,
+    extraCarboPeriTreino: 50,
+    fatorGetAdicional: 0.08,
+    hidratacaoExtraMlKg: 15,
+    notaClinica: 'ALTO IMPACTO GLICOGÊNICO (METCON HÍBRIDO): Densidade elevada de trabalho sob fadiga, combinando ergômetros, peso livre e calistenia. Demanda rápida de glicose peri-treino (40-50g carbo pré/intra) e hidratação com eletrólitos para evitar queda de rendimento.',
+  },
 };
 
 /**
