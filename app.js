@@ -20264,12 +20264,174 @@ const PERF_SPLIT_PRESETS = {
         { exerciseId: 'ab05', name: 'Abdominal Rollout (Roda Abdominal)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-2-0', resistProfile: 'stretched', obs: 'Core no comprimento máximo.' }
       ]
     }
+  ],
+
+  // ── 8. HYROX RACING SPLIT (3 Dias · Ergômetros, Trenó, Força Funcional & Corrida) ──
+  HYROX: [
+    {
+      id: 'A',
+      name: 'Treino A · Ergômetros & Potência Aeróbica (HYROX)',
+      description: 'Intervalos nos ergômetros Concept2 (SkiErg, Remo, AirBike) e esteira em ritmo de prova.',
+      exercises: [
+        { exerciseId: 'pe18', name: 'SkiErg Concept2 (Intervalos de Potência)', sets: 5, reps: '500m', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Trabalho de dorsal e core em flexão explosiva · ritmo de prova.' },
+        { exerciseId: 'do01', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 4, reps: '750m', rpe: 8.0, rest: 90, cadence: 'Ritmo 26s/m', resistProfile: 'uniform', obs: 'Perna, quadril e dorsal em sincronia com respiração.' },
+        { exerciseId: 'lg01', name: 'AirBike / Echo Bike (Lactate Wash)', sets: 4, reps: '1 min', rpe: 9.0, rest: 120, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Tiros de potência máxima anaeróbia.' },
+        { exerciseId: 'lg08', name: 'Corrida na Esteira (Tiros Progressivos)', sets: 5, reps: '400m', rpe: 8.5, rest: 60, cadence: 'Ritmo Z4', resistProfile: 'uniform', obs: 'Simulação da transição pós-ergômetro em esteira inclinada 1%.' },
+        { exerciseId: 'ab06', name: 'Prancha Isométrica / Hollow Body Hold', sets: 4, reps: '45s', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Estabilização profunda de core para sustentação de postura.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Força Funcional & Estações HYROX',
+      description: 'Estações oficiais: Sled Push, Sled Pull, Burpees, Lunges com Sandbag e Farmers Carry.',
+      exercises: [
+        { exerciseId: 'lg04', name: 'Sled Push (Empurrar Trenó com Carga)', sets: 4, reps: '20m', rpe: 9.0, rest: 120, cadence: 'Forte', resistProfile: 'uniform', obs: 'Braços estendidos ou cotovelos flexionados · passada curta e potente.' },
+        { exerciseId: 'do08', name: 'Sled Pull (Puxar Trenó com Corda)', sets: 4, reps: '20m', rpe: 8.5, rest: 120, cadence: 'Firme', resistProfile: 'uniform', obs: 'Base aberta com quadril baixo · tração potente de cadeia posterior.' },
+        { exerciseId: 'lg07', name: 'Burpee Broad Jumps (Salto em Extensão)', sets: 4, reps: '15 reps', rpe: 8.5, rest: 90, cadence: 'Fluido', resistProfile: 'uniform', obs: 'Peito no chão e salto à frente sem pausa.' },
+        { exerciseId: 'lg08', name: 'Sandbag Walking Lunges (Passada com Saco 20/30kg)', sets: 4, reps: '20 passos', rpe: 8.5, rest: 90, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Saco apoiado nas costas · joelho toca levemente o chão.' },
+        { exerciseId: 'sh18', name: 'Farmers Carry com Halteres / Kettlebells', sets: 4, reps: '50m', rpe: 8.5, rest: 90, cadence: 'Constante', resistProfile: 'uniform', obs: 'Carga pesada em cada mão · postura ereta e pegada firme.' },
+        { exerciseId: 'lg01', name: 'Wall Balls com Medicine Ball (6/9kg)', sets: 4, reps: '20 reps', rpe: 9.0, rest: 60, cadence: 'Fluido', resistProfile: 'uniform', obs: 'Agachamento profundo e arremesso no alvo de 3m.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Concorrente & Simulação de Prova HYROX',
+      description: 'Simulação intercalada de corrida + estações em ritmo de prova contínuo.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Corrida na Esteira (Ritmo de Aquecimento)', sets: 1, reps: '1000m', rpe: 7.0, rest: 60, cadence: 'Ritmo Z3', resistProfile: 'uniform', obs: '1 km de corrida contínua para ativação neuromuscular.' },
+        { exerciseId: 'do01', name: 'Remo RowErg + Burpees (Bi-set HYROX)', sets: 4, reps: '500m + 10 burp', rpe: 8.5, rest: 90, cadence: 'Sem pausa', resistProfile: 'uniform', obs: 'Transição imediata do remo para burpees.' },
+        { exerciseId: 'pe18', name: 'SkiErg + Wall Balls (Bi-set HYROX)', sets: 4, reps: '500m + 15 WB', rpe: 8.5, rest: 90, cadence: 'Sem pausa', resistProfile: 'uniform', obs: 'Trabalho de membros superiores e inferiores combinados.' },
+        { exerciseId: 'lg08', name: 'Passadas com Halteres + AirBike', sets: 3, reps: '20 passos + 15 cal', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Depleção glicogênica e trabalho de lactato muscular.' },
+        { exerciseId: 'sh18', name: 'Suitcase Carry (Caminhada Unilateral)', sets: 3, reps: '30m / lado', rpe: 8.0, rest: 60, cadence: 'Controlado', resistProfile: 'uniform', obs: 'Anti-flexão lateral de tronco e fortalecimento de oblíquos.' }
+      ]
+    }
+  ],
+
+  // ── 9. CROSSFIT / METCON (3 Dias · LPO, Ginástica & Condicionamento WOD) ────
+  CrossFit: [
+    {
+      id: 'A',
+      name: 'Treino A · Força Básica & Levantamento de Peso',
+      description: 'Estímulo de potência neuromuscular e levantamentos compostos pesados.',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra (Deadlift Convencional)', sets: 5, reps: '3-5', rpe: 8.5, rest: 150, cadence: 'Potente', resistProfile: 'uniform', obs: 'Tensão na cadeia posterior · saída limpa da tíbia.' },
+        { exerciseId: 'lg02', name: 'Agachamento Frontal com Barra (Front Squat)', sets: 4, reps: '4-6', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Cotovelos altos e tronco vertical · base de LPO.' },
+        { exerciseId: 'sh01', name: 'Push Press com Barra (Impulso com Pernas)', sets: 4, reps: '5-6', rpe: 8.0, rest: 90, cadence: 'Explosivo', resistProfile: 'shortened', obs: 'Dip curto e extensão tripla de quadril/joelho/tornozelo.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Metcon Glicolítico & Ginástica Funcional',
+      description: 'Trabalho de alta intensidade com barra fixa, flexão e estímulo metabólico.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Barra Fixa / Pull-up (Estilo Metcon)', sets: 4, reps: '6-8', rpe: 8.5, rest: 90, cadence: 'Ritmo', resistProfile: 'stretched', obs: 'Ativação escapular completa em tração vertical.' },
+        { exerciseId: 'pe19', name: 'Mergulho em Paralelas ou Handstand Push-up', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Força de empurrar vertical e estabilização de ombro.' },
+        { exerciseId: 'lg01', name: 'Thrusters com Barra (Agachamento + Press)', sets: 4, reps: '12-15', rpe: 9.0, rest: 90, cadence: 'Fluido', resistProfile: 'uniform', obs: 'Movimento integrado e contínuo com respiração ritmada.' },
+        { exerciseId: 'ab03', name: 'Toes-to-Bar (Pés na Barra)', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: 'Controlado', resistProfile: 'stretched', obs: 'Flexão pélvica pura com controle de balanço.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Resistência Metabólica Mista (Chipper WOD)',
+      description: 'Sessão mista de endurance e potência com kettlebell e ergômetros.',
+      exercises: [
+        { exerciseId: 'lg10', name: 'Kettlebell Swing Americano', sets: 4, reps: '15-20', rpe: 8.0, rest: 60, cadence: 'Explosivo', resistProfile: 'stretched', obs: 'Extensão de quadril explosiva até linha acima da cabeça.' },
+        { exerciseId: 'lg08', name: 'Box Jump (Salto na Caixa 60cm)', sets: 4, reps: '12 reps', rpe: 8.0, rest: 60, cadence: 'Pliométrico', resistProfile: 'uniform', obs: 'Aterrissagem suave e extensão completa no topo.' },
+        { exerciseId: 'do01', name: 'Remo RowErg ou AirBike (Tiros de Caloria)', sets: 4, reps: '20 cal', rpe: 9.0, rest: 60, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Estresse cardiovascular máximo sustentado.' }
+      ]
+    }
+  ],
+
+  // ── 10. CORRIDA + MUSCULAÇÃO (4 Dias · Treinamento Concorrente Estruturado) ─
+  RunningStrength: [
+    {
+      id: 'A',
+      name: 'Treino A · Upper Força + Tiros na Esteira',
+      description: 'Tronco pesado na musculação seguido de tiros curtos de velocidade.',
+      exercises: [
+        { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força básica de empurrar.' },
+        { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Postura escapular para economia de corrida.' },
+        { exerciseId: 'sh01', name: 'Desenvolvimento Militar (OHP)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'shortened', obs: 'Estabilidade do complexo do ombro.' },
+        { exerciseId: 'lg08', name: 'Tiros de Velocidade na Esteira', sets: 8, reps: '200m sprint', rpe: 9.0, rest: 45, cadence: 'Máx Pace', resistProfile: 'uniform', obs: 'Desenvolvimento de cadência e potência mecânica.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Lower Força & Cadeia Posterior (Anti-lesão)',
+      description: 'Membros inferiores com foco em tendões e economia de passada.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '5-6', rpe: 8.0, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Profundidade paralela para força neural sem fadiga excessiva.' },
+        { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Fortalecimento excêntrico de isquiotibiais (prevenção).' },
+        { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8 cada perna', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Correção de assimetrias entre pernas.' },
+        { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-2-1-0', resistProfile: 'stretched', obs: '2s de pausa no estiramento · rigidez do tendão de Aquiles.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Corrida Contínua em Limiar (Tempo Run)',
+      description: 'Sessão específica de endurance cardiovascular e estabilização de core.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Corrida Contínua em Limiar (Tempo Run)', sets: 1, reps: '35 min', rpe: 7.5, rest: 0, cadence: 'Ritmo Z3/Z4', resistProfile: 'uniform', obs: 'Esteira ou pista · controle de frequência cardíaca constante.' },
+        { exerciseId: 'ab05', name: 'Abdominal Rollout (Roda Abdominal)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-2-0', resistProfile: 'stretched', obs: 'Core anterior resistente à extensão.' },
+        { exerciseId: 'ab06', name: 'Prancha Lateral com Elevação de Perna', sets: 3, reps: '30s / lado', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Glúteo médio e estabilidade pélvica na fase de apoio da corrida.' }
+      ]
+    },
+    {
+      id: 'D',
+      name: 'Treino D · Full Body Funcional & Mobilidade Ativa',
+      description: 'Manutenção muscular global e mobilidade articular.',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra (Trap Bar / Barra Hexagonal)', sets: 4, reps: '6 reps', rpe: 8.0, rest: 120, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Distribuição equilibrada entre quadril e joelho.' },
+        { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Estímulo clavicular com amplitude confortável.' },
+        { exerciseId: 'do11', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10 reps', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Tração horizontal unilateral.' },
+        { exerciseId: 'lg08', name: 'Passada com Halteres (Walking Lunges)', sets: 3, reps: '12 passos', rpe: 7.5, rest: 60, cadence: 'Controlado', resistProfile: 'uniform', obs: 'Passada estável sem impacto.' }
+      ]
+    }
+  ],
+
+  // ── 11. HIIT + MUSCULAÇÃO (3 Dias · Duplo Estresse Cardiovascular e Miofibrilar) ─
+  HIIT_Forca: [
+    {
+      id: 'A',
+      name: 'Treino A · Push & HIIT Esteira',
+      description: 'Peitoral, Ombros e Tríceps com finalizador cardiovascular de alta intensidade.',
+      exercises: [
+        { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força de peitoral básica.' },
+        { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Feixe clavicular.' },
+        { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '10-12', rpe: 8.5, rest: 45, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Deltoide medial.' },
+        { exerciseId: 'tr01', name: 'Tríceps na Polia com Barra Reta', sets: 3, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de contração de tríceps.' },
+        { exerciseId: 'lg08', name: 'HIIT na Esteira (Sprints 30s/30s)', sets: 10, reps: '30s tiros', rpe: 9.0, rest: 30, cadence: 'Máx Pace', resistProfile: 'uniform', obs: '10 minutos de tiros a 15-18 km/h com 30s de caminhada.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Pull & HIIT Remo',
+      description: 'Dorsais, Trapézio e Bíceps combinados com tiros de remo Concept2.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Barra Fixa Pronada', sets: 4, reps: '6-8', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Largura dorsal completa.' },
+        { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Espessura dorsal.' },
+        { exerciseId: 'bi01', name: 'Rosca Direta com Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Flexão de cotovelos.' },
+        { exerciseId: 'do01', name: 'HIIT no Remo Concept2 (Tiros 100m)', sets: 8, reps: '100m sprint', rpe: 9.0, rest: 45, cadence: 'Potência Máx', resistProfile: 'uniform', obs: 'Tiros máximos de potência com pausa ativa.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Legs & HIIT AirBike',
+      description: 'Pernas pesadas seguidas de esvaziamento glicogênico na AirBike.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '6-8', rpe: 8.5, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força básica de membros inferiores.' },
+        { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Volume de quadríceps.' },
+        { exerciseId: 'lg10', name: 'Stiff com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Cadeia posterior.' },
+        { exerciseId: 'lg01', name: 'HIIT na AirBike / Echo Bike (Tabata)', sets: 8, reps: '20s on / 10s off', rpe: 9.5, rest: 10, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Protocolo Tabata de 4 minutos com consumo máximo de oxigênio.' }
+      ]
+    }
   ]
 };
 
 // Aliases oficiais canônicos para Bro Split (Seção 13)
 PERF_SPLIT_PRESETS['Bro Split'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['BroSplit'] = PERF_SPLIT_PRESETS.ABCDE;
+PERF_SPLIT_PRESETS['FuncionalMisto'] = PERF_SPLIT_PRESETS.CrossFit;
 
 let perfActiveSplit = 'PHAT';
 let perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS.PHAT));

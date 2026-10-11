@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -16,7 +16,14 @@ import {
   BrainCircuit,
   CheckCircle2,
   AlertCircle,
+  Activity,
+  RefreshCw,
+  SlidersHorizontal,
+  Flame,
+  Layers,
 } from 'lucide-react';
+import { getPatientAnamneseAction } from '@/app/actions/prescribeDiet';
+import { PacienteAnamneseDTO } from '@/utils/nutritionTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
@@ -179,13 +186,371 @@ const EXERCISE_DATABASE: Exercise[] = [
   { id: 'ab06', name: 'Prancha Isométrica no Solo (Plank)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Peso Corporal', primaryMuscle: 'Transverso do Abdômen & Reto Abdominal', secondaryMuscles: 'Glúteos, Ombros' },
   { id: 'ab07', name: 'Russian Twist com Halter ou Anilha', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Halteres', primaryMuscle: 'Oblíquos Interno e Externo', secondaryMuscles: 'Reto Abdominal' },
   { id: 'ab08', name: 'Abdominal na Máquina (Machine Crunch)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Máquina', primaryMuscle: 'Reto Abdominal', secondaryMuscles: 'Oblíquos' },
+
+  // ── CARDIO & ERGÔMETROS (HYROX, CONCORRENTE, INTERVALOS) ──
+  { id: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Dorsal, Tríceps & Core', secondaryMuscles: 'Ombros, Glúteos' },
+  { id: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Pernas, Dorsal & Bíceps', secondaryMuscles: 'Core, Trapézio' },
+  { id: 'hy03', name: 'AirBike / Echo Bike / CycleAir', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Quadríceps & Glúteos', secondaryMuscles: 'Peito, Costas, Braços' },
+  { id: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Membros Inferiores & Potência Anaeróbia', secondaryMuscles: 'Core, Panturrilhas' },
+  { id: 'hy05', name: 'Corrida Contínua na Esteira (Ritmo Z3/Z4)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Endurance Cardiovascular & Muscular', secondaryMuscles: 'Panturrilhas, Quadríceps' },
+
+  // ── FUNCIONAL / HYROX & PESO LIVRE (ESTAÇÕES OFICIAIS & CALISTENIA) ──
+  { id: 'hy06', name: 'Sled Push (Empurrar Trenó com Carga)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Quadríceps, Glúteos & Panturrilhas', secondaryMuscles: 'Core, Ombros' },
+  { id: 'hy07', name: 'Sled Pull (Puxar Trenó com Corda)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Dorsal, Bíceps & Isquiotibiais', secondaryMuscles: 'Antebraço, Core' },
+  { id: 'hy08', name: 'Burpee Broad Jumps (Salto em Extensão)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Peso Corporal', primaryMuscle: 'Potência de Pernas & Core', secondaryMuscles: 'Peitoral, Tríceps' },
+  { id: 'hy09', name: 'Sandbag Walking Lunges (Passada com Saco)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Quadríceps & Glúteo Máximo', secondaryMuscles: 'Core, Trapézio' },
+  { id: 'hy10', name: 'Farmers Carry com Halteres / Kettlebells', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Halteres', primaryMuscle: 'Trapézio, Antebraços & Core', secondaryMuscles: 'Glúteos, Panturrilhas' },
+  { id: 'hy11', name: 'Wall Balls com Medicine Ball (6/9kg)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Quadríceps, Glúteos & Deltoides', secondaryMuscles: 'Tríceps, Core' },
+  { id: 'hy12', name: 'Thrusters com Barra (Agachamento + Press)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Barra', primaryMuscle: 'Corpo Inteiro (Pernas + Ombros)', secondaryMuscles: 'Tríceps, Core' },
+  { id: 'hy13', name: 'Box Jump na Caixa (60cm)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Potência de Extensão de Quadril', secondaryMuscles: 'Panturrilhas, Core' },
+  { id: 'hy14', name: 'Kettlebell Swing Americano', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Glúteos & Isquiotibiais (Hip Hinge)', secondaryMuscles: 'Deltóides, Core' },
 ];
 
-const MUSCLE_GROUPS = ['Todos', 'Peitoral', 'Dorsal', 'Pernas', 'Ombros', 'Bíceps', 'Tríceps', 'Abdômen'];
+const MUSCLE_GROUPS = [
+  'Todos',
+  'Cardio & Ergômetros',
+  'Funcional / HYROX',
+  'Peitoral',
+  'Dorsal',
+  'Pernas',
+  'Ombros',
+  'Bíceps',
+  'Tríceps',
+  'Abdômen'
+];
 
 const MECHANICS_COLOR: Record<string, string> = {
   'Composto': 'text-blue-400 bg-blue-500/10 border border-blue-500/30',
   'Isolador': 'text-violet-400 bg-violet-500/10 border border-violet-500/30',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRESETS DE DIVISÕES DE TREINO (HÍBRIDAS & TRADICIONAIS)
+// ─────────────────────────────────────────────────────────────────────────────
+interface SplitDefinition {
+  id: string;
+  name: string;
+  category: 'Híbrida & Racing' | 'Musculação Tradicional';
+  daysCount: number;
+  description: string;
+  badge: string;
+  icon: string;
+  routines: WorkoutRoutine[];
+}
+
+const TRAINING_SPLITS: Record<string, SplitDefinition> = {
+  HYROX: {
+    id: 'HYROX',
+    name: 'HYROX / Fitness Racing',
+    category: 'Híbrida & Racing',
+    daysCount: 3,
+    description: 'Ergômetros (SkiErg, Remo, AirBike), estações oficiais (trenó, lunges, wall balls) e esteira.',
+    badge: '★ Racing',
+    icon: '⚡🏃🏋️',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Ergômetros & Potência Aeróbica (HYROX)',
+        exercises: [
+          { exerciseId: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', sets: 5, reps: '500m', rpe: 8.5, rest: 90 },
+          { exerciseId: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 4, reps: '750m', rpe: 8.0, rest: 90 },
+          { exerciseId: 'hy03', name: 'AirBike / Echo Bike / CycleAir', sets: 4, reps: '1 min', rpe: 9.0, rest: 120 },
+          { exerciseId: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', sets: 5, reps: '400m', rpe: 8.5, rest: 60 },
+          { exerciseId: 'ab06', name: 'Prancha Isométrica no Solo (Plank)', sets: 4, reps: '45s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Força Funcional & Estações HYROX',
+        exercises: [
+          { exerciseId: 'hy06', name: 'Sled Push (Empurrar Trenó com Carga)', sets: 4, reps: '20m', rpe: 9.0, rest: 120 },
+          { exerciseId: 'hy07', name: 'Sled Pull (Puxar Trenó com Corda)', sets: 4, reps: '20m', rpe: 8.5, rest: 120 },
+          { exerciseId: 'hy08', name: 'Burpee Broad Jumps (Salto em Extensão)', sets: 4, reps: '15 reps', rpe: 8.5, rest: 90 },
+          { exerciseId: 'hy09', name: 'Sandbag Walking Lunges (Passada com Saco)', sets: 4, reps: '20 passos', rpe: 8.5, rest: 90 },
+          { exerciseId: 'hy10', name: 'Farmers Carry com Halteres / Kettlebells', sets: 4, reps: '50m', rpe: 8.5, rest: 90 },
+          { exerciseId: 'hy11', name: 'Wall Balls com Medicine Ball (6/9kg)', sets: 4, reps: '20 reps', rpe: 9.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Concorrente & Simulação de Prova',
+        exercises: [
+          { exerciseId: 'hy05', name: 'Corrida Contínua na Esteira (Ritmo Z3/Z4)', sets: 1, reps: '1000m', rpe: 7.0, rest: 60 },
+          { exerciseId: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 4, reps: '500m', rpe: 8.5, rest: 90 },
+          { exerciseId: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', sets: 4, reps: '500m', rpe: 8.5, rest: 90 },
+          { exerciseId: 'hy11', name: 'Wall Balls com Medicine Ball (6/9kg)', sets: 4, reps: '15 reps', rpe: 8.5, rest: 60 },
+          { exerciseId: 'hy10', name: 'Farmers Carry com Halteres / Kettlebells', sets: 3, reps: '40m', rpe: 8.0, rest: 60 },
+        ],
+      },
+    ],
+  },
+  CrossFit: {
+    id: 'CrossFit',
+    name: 'CrossFit / Metcon WOD',
+    category: 'Híbrida & Racing',
+    daysCount: 3,
+    description: 'Levantamento de peso olímpico (LPO), ginástica funcional e metcon glicolítico.',
+    badge: '★ Híbrida',
+    icon: '🔥🏋️',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Força Básica & LPO',
+        exercises: [
+          { exerciseId: 'do16', name: 'Levantamento Terra Convencional (Deadlift)', sets: 5, reps: '3-5', rpe: 8.5, rest: 150 },
+          { exerciseId: 'lg02', name: 'Agachamento Frontal com Barra (Front Squat)', sets: 4, reps: '4-6', rpe: 8.5, rest: 120 },
+          { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé (Overhead)', sets: 4, reps: '5-6', rpe: 8.0, rest: 90 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Metcon Glicolítico & Ginástica',
+        exercises: [
+          { exerciseId: 'do01', name: 'Barra Fixa Pronada (Pull-up)', sets: 4, reps: '6-8', rpe: 8.5, rest: 90 },
+          { exerciseId: 'pe19', name: 'Mergulho em Paralelas (Foco Peitoral)', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'hy12', name: 'Thrusters com Barra (Agachamento + Press)', sets: 4, reps: '12-15', rpe: 9.0, rest: 90 },
+          { exerciseId: 'ab03', name: 'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)', sets: 4, reps: '10-12', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Resistência Metabólica Mista (WOD)',
+        exercises: [
+          { exerciseId: 'hy14', name: 'Kettlebell Swing Americano', sets: 4, reps: '15-20', rpe: 8.0, rest: 60 },
+          { exerciseId: 'hy13', name: 'Box Jump na Caixa (60cm)', sets: 4, reps: '12 reps', rpe: 8.0, rest: 60 },
+          { exerciseId: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 4, reps: '20 cal', rpe: 9.0, rest: 60 },
+        ],
+      },
+    ],
+  },
+  RunningStrength: {
+    id: 'RunningStrength',
+    name: 'Corrida + Musculação (Concorrente)',
+    category: 'Híbrida & Racing',
+    daysCount: 4,
+    description: 'Periodização concorrente com esteira, força de membros inferiores e cadeia posterior.',
+    badge: '★ Híbrida',
+    icon: '🏃🏋️',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Upper Força + Tiros na Esteira',
+        exercises: [
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pronada)', sets: 4, reps: '6-8', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé (Overhead)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', sets: 8, reps: '200m', rpe: 9.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Lower Força & Cadeia Posterior',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 4, reps: '5-6', rpe: 8.0, rest: 150 },
+          { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8 cada perna', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.5, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Corrida Contínua em Limiar (Tempo Run)',
+        exercises: [
+          { exerciseId: 'hy05', name: 'Corrida Contínua na Esteira (Ritmo Z3/Z4)', sets: 1, reps: '35 min', rpe: 7.5, rest: 0 },
+          { exerciseId: 'ab05', name: 'Abdominal Rollout (Roda Abdominal)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab06', name: 'Prancha Isométrica no Solo (Plank)', sets: 3, reps: '45s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'D',
+        name: 'Treino D — Full Body Funcional & Core',
+        exercises: [
+          { exerciseId: 'do16', name: 'Levantamento Terra Convencional (Deadlift)', sets: 4, reps: '6 reps', rpe: 8.0, rest: 120 },
+          { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do11', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10 reps', rpe: 8.0, rest: 60 },
+          { exerciseId: 'lg08', name: 'Avanço / Passada com Halteres ou Barra', sets: 3, reps: '12 passos', rpe: 7.5, rest: 60 },
+        ],
+      },
+    ],
+  },
+  HIIT_Forca: {
+    id: 'HIIT_Forca',
+    name: 'HIIT + Musculação',
+    category: 'Híbrida & Racing',
+    daysCount: 3,
+    description: 'Blocos de musculação hipertrófica combinados com finalizadores na esteira, remo e bike.',
+    badge: '★ Híbrida',
+    icon: '⚡🏋️',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Push & HIIT Esteira',
+        exercises: [
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '10-12', rpe: 8.5, rest: 45 },
+          { exerciseId: 'tr01', name: 'Tríceps na Polia com Barra Reta (Pushdown)', sets: 3, reps: '10-12', rpe: 8.5, rest: 60 },
+          { exerciseId: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', sets: 8, reps: '30s tiros', rpe: 9.0, rest: 30 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Pull & HIIT Remo',
+        exercises: [
+          { exerciseId: 'do01', name: 'Barra Fixa Pronada (Pull-up)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pronada)', sets: 4, reps: '6-8', rpe: 8.0, rest: 90 },
+          { exerciseId: 'bi01', name: 'Rosca Direta com Barra Reta', sets: 3, reps: '8-10', rpe: 8.0, rest: 60 },
+          { exerciseId: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 6, reps: '150m sprint', rpe: 9.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Legs & HIIT AirBike',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 4, reps: '6-8', rpe: 8.5, rest: 150 },
+          { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'hy03', name: 'AirBike / Echo Bike / CycleAir', sets: 8, reps: '20s on / 10s off', rpe: 9.5, rest: 10 },
+        ],
+      },
+    ],
+  },
+  PPL: {
+    id: 'PPL',
+    name: 'Push / Pull / Legs (PPL)',
+    category: 'Musculação Tradicional',
+    daysCount: 3,
+    description: 'Divisão clássica de 3 a 6 dias separando empurrar, puxar e membros inferiores.',
+    badge: 'Clássico',
+    icon: '🏋️',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Push (Empurrar)',
+        exercises: [
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '12-15', rpe: 8.0, rest: 60 },
+          { exerciseId: 'tr01', name: 'Tríceps na Polia com Barra Reta (Pushdown)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab02', name: 'Abdominal na Polia Alta com Corda (Cable Crunch)', sets: 3, reps: '12-15', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Pull (Puxar)',
+        exercises: [
+          { exerciseId: 'do01', name: 'Barra Fixa Pronada (Pull-up)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pronada)', sets: 4, reps: '6-8', rpe: 8.5, rest: 90 },
+          { exerciseId: 'sh15', name: 'Face Pull na Polia com Corda', sets: 3, reps: '12-15', rpe: 8.0, rest: 45 },
+          { exerciseId: 'bi01', name: 'Rosca Direta com Barra Reta', sets: 3, reps: '8-10', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab03', name: 'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)', sets: 3, reps: '12-15', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Legs (Pernas)',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 4, reps: '6-8', rpe: 8.5, rest: 150 },
+          { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'lg06', name: 'Cadeira Extensora', sets: 3, reps: '12-15', rpe: 8.0, rest: 60 },
+          { exerciseId: 'lg13', name: 'Cadeira Flexora Sentada', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '12-15', rpe: 8.5, rest: 60 },
+        ],
+      },
+    ],
+  },
+  UpperLower: {
+    id: 'UpperLower',
+    name: 'Upper / Lower (4 Dias)',
+    category: 'Musculação Tradicional',
+    daysCount: 4,
+    description: 'Divisão de tronco e membros inferiores para alta frequência e força mecânica.',
+    badge: 'Alta Freq.',
+    icon: '⚡',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Upper Força',
+        exercises: [
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '5-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'do01', name: 'Barra Fixa Pronada (Pull-up)', sets: 4, reps: '5-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé (Overhead)', sets: 3, reps: '6-8', rpe: 8.0, rest: 90 },
+          { exerciseId: 'tr01', name: 'Tríceps na Polia com Barra Reta (Pushdown)', sets: 3, reps: '8-10', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Lower Força',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 4, reps: '6-8', rpe: 8.5, rest: 150 },
+          { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.5, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Upper Hipertrofia',
+        exercises: [
+          { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do04', name: 'Puxada Frontal Aberta na Polia', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '12-15', rpe: 8.0, rest: 45 },
+          { exerciseId: 'bi01', name: 'Rosca Direta com Barra Reta', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'D',
+        name: 'Treino D — Lower Hipertrofia',
+        exercises: [
+          { exerciseId: 'lg03', name: 'Agachamento Hack (Máquina)', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg06', name: 'Cadeira Extensora', sets: 3, reps: '12-15', rpe: 8.5, rest: 60 },
+          { exerciseId: 'lg13', name: 'Cadeira Flexora Sentada', sets: 3, reps: '10-12', rpe: 8.5, rest: 60 },
+          { exerciseId: 'lg15', name: 'Elevação Pélvica com Barra (Hip Thrust)', sets: 3, reps: '8-10', rpe: 8.5, rest: 90 },
+        ],
+      },
+    ],
+  },
+  FullBody: {
+    id: 'FullBody',
+    name: 'Full Body (3 Dias)',
+    category: 'Musculação Tradicional',
+    daysCount: 3,
+    description: 'Corpo inteiro com foco em multiarticulares e recuperação espaçada.',
+    badge: '3 Dias',
+    icon: '⚡',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Full Body Squat & Push',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pronada)', sets: 4, reps: '6-8', rpe: 8.0, rest: 90 },
+          { exerciseId: 'ab06', name: 'Prancha Isométrica no Solo (Plank)', sets: 3, reps: '45s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Full Body Hinge & Pull',
+        exercises: [
+          { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'do01', name: 'Barra Fixa Pronada (Pull-up)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'sh01', name: 'Desenvolvimento Militar em Pé (Overhead)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'ab03', name: 'Elevação de Pernas na Barra Fixa (Hanging Leg Raise)', sets: 3, reps: '12-15', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Full Body Hipertrofia',
+        exercises: [
+          { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do04', name: 'Puxada Frontal Aberta na Polia', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 3, reps: '12-15', rpe: 8.0, rest: 45 },
+        ],
+      },
+    ],
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -196,32 +561,15 @@ export default function PerformanceDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('Todos');
 
+  // ── Divisão de Treino Ativa & Anamnese ──
+  const [selectedSplit, setSelectedSplit] = useState<string>('HYROX');
+  const [patientAnamnese, setPatientAnamnese] = useState<PacienteAnamneseDTO | null>(null);
+  const [isSyncingAnamnese, setIsSyncingAnamnese] = useState(false);
+
   // ── Plano de Treino ──
-  const [workoutPlan, setWorkoutPlan] = useState<WorkoutRoutine[]>([
-    {
-      id: 'A',
-      name: 'Treino A — Push (Empurrar)',
-      exercises: [
-        { exerciseId: 'ex01', name: 'Supino Reto com Barra', sets: 4, reps: '6-8', rpe: 8, rest: 120 },
-        { exerciseId: 'ex16', name: 'Elevação Lateral com Halteres', sets: 4, reps: '12-15', rpe: 7, rest: 60 },
-        { exerciseId: 'ex23', name: 'Tríceps na Polia (Cabo)', sets: 3, reps: '10-12', rpe: 7, rest: 60 },
-      ],
-    },
-    {
-      id: 'B',
-      name: 'Treino B — Pull (Puxar)',
-      exercises: [
-        { exerciseId: 'ex06', name: 'Barra Fixa (Pullup)', sets: 4, reps: 'Máx', rpe: 9, rest: 120 },
-        { exerciseId: 'ex08', name: 'Remada Unilateral com Halter', sets: 4, reps: '8-10', rpe: 8, rest: 90 },
-        { exerciseId: 'ex19', name: 'Rosca Direta com Barra', sets: 3, reps: '10-12', rpe: 7, rest: 60 },
-      ],
-    },
-    {
-      id: 'C',
-      name: 'Treino C — Legs (Pernas)',
-      exercises: [],
-    },
-  ]);
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutRoutine[]>(() => {
+    return JSON.parse(JSON.stringify(TRAINING_SPLITS.HYROX.routines));
+  });
 
   // ── Rotina selecionada para adicionar exercício ──
   const [targetRoutineId, setTargetRoutineId] = useState<string>('A');
@@ -230,83 +578,92 @@ export default function PerformanceDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiToast, setAiToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // ── Sincronização Inicial com Anamnese ──
+  useEffect(() => {
+    async function carregarAnamneseInicial() {
+      try {
+        setIsSyncingAnamnese(true);
+        const res = await getPatientAnamneseAction();
+        if (res) {
+          setPatientAnamnese(res);
+          const mod = res.anamnese.modalidadeTreino;
+          let splitSugerido = 'HYROX';
+          if (mod === 'hyrox') splitSugerido = 'HYROX';
+          else if (mod === 'crossfit') splitSugerido = 'CrossFit';
+          else if (mod === 'running_musculacao') splitSugerido = 'RunningStrength';
+          else if (mod === 'hiit_forca') splitSugerido = 'HIIT_Forca';
+          else if (mod === 'funcional_misto') splitSugerido = 'CrossFit';
+          else if (mod === 'musculacao') splitSugerido = 'PPL';
+          else splitSugerido = 'HYROX';
+
+          setSelectedSplit(splitSugerido);
+          if (TRAINING_SPLITS[splitSugerido]) {
+            const plan = JSON.parse(JSON.stringify(TRAINING_SPLITS[splitSugerido].routines));
+            setWorkoutPlan(plan);
+            setTargetRoutineId(plan[0]?.id || 'A');
+          }
+        }
+      } catch (err) {
+        console.warn('[Performance] Erro ao carregar anamnese:', err);
+      } finally {
+        setIsSyncingAnamnese(false);
+      }
+    }
+    carregarAnamneseInicial();
+  }, []);
+
+  const handleSplitChange = (newSplit: string) => {
+    setSelectedSplit(newSplit);
+    if (TRAINING_SPLITS[newSplit]) {
+      const plan = JSON.parse(JSON.stringify(TRAINING_SPLITS[newSplit].routines));
+      setWorkoutPlan(plan);
+      setTargetRoutineId(plan[0]?.id || 'A');
+      setAiToast({
+        type: 'success',
+        message: `Divisão de treino alterada para "${TRAINING_SPLITS[newSplit].name}" (${plan.length} rotinas ativas).`,
+      });
+      setTimeout(() => setAiToast(null), 4000);
+    }
+  };
+
+  const handleSyncAnamnese = async () => {
+    setIsSyncingAnamnese(true);
+    try {
+      const res = await getPatientAnamneseAction();
+      if (res) {
+        setPatientAnamnese(res);
+        const mod = res.anamnese.modalidadeTreino;
+        let splitSugerido = 'HYROX';
+        if (mod === 'hyrox') splitSugerido = 'HYROX';
+        else if (mod === 'crossfit') splitSugerido = 'CrossFit';
+        else if (mod === 'running_musculacao') splitSugerido = 'RunningStrength';
+        else if (mod === 'hiit_forca') splitSugerido = 'HIIT_Forca';
+        else if (mod === 'musculacao') splitSugerido = 'PPL';
+        handleSplitChange(splitSugerido);
+      }
+    } finally {
+      setIsSyncingAnamnese(false);
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────────────────
   // CO-PILOTO BIOMECÂNICO — handleGenerateAITraining()
-  //
-  // Em produção: esta função enviará ao endpoint de IA os dados do paciente
-  // recuperados do banco de dados de Avaliação (Assessment), como:
-  //   - weightKg, bodyFatPct, leanMassKg  → para definir volume e intensidade
-  //   - gender, age                        → para ajuste hormonal
-  //   - objective (ex: Perda de Peso + Preservação Muscular)
-  //
-  // ISOLAMENTO: nenhum import de módulos de nutrição/dieta é feito aqui.
-  // Os dados de avaliação serão lidos via API Route própria (ex: GET /api/assessment/{patientId}).
   // ─────────────────────────────────────────────────────────────────────────
   const handleGenerateAITraining = async () => {
     setIsGenerating(true);
     setAiToast(null);
 
     try {
-      // Simula latência da chamada à API de IA (substituir por fetch real)
-      await new Promise((resolve) => setTimeout(resolve, 2200));
+      await new Promise((resolve) => setTimeout(resolve, 1800));
 
-      // ── MOCK DO RETORNO DA IA ──────────────────────────────────────────
-      // Contexto simulado do paciente (virá do banco de Avaliação):
-      //   Paciente: Paulo Vitor | 38 anos | 116 kg | ~6.4% Gordura
-      //   Massa Magra: 108.55 kg | FFMI: 28.26 | Objetivo: Hipertrofia + Recomp.
-      //
-      // Lógica de periodização aplicada (Stoppani — Enciclopédia de Força):
-      //   - Alto FFMI + baixo % gordura → protocolo de alta intensidade, RPE 8-9
-      //   - Volume moderado-alto (4-5 séries) por grupo muscular
-      //   - Foco em exercícios compostos multiarticulares como base
-      //   - Isoladores de alto RPE para hipertrofia máxima (sarcoplásmica)
-      // ──────────────────────────────────────────────────────────────────
-      const aiGeneratedPlan: WorkoutRoutine[] = [
-        {
-          id: 'A',
-          name: 'Treino A — Push · Hipertrofia (IA)',
-          exercises: [
-            { exerciseId: 'ex01', name: 'Supino Reto com Barra',            sets: 5, reps: '5-6',   rpe: 9,  rest: 180 },
-            { exerciseId: 'ex02', name: 'Supino Inclinado com Halteres',    sets: 4, reps: '8-10',  rpe: 8,  rest: 120 },
-            { exerciseId: 'ex15', name: 'Desenvolvimento Militar com Barra', sets: 4, reps: '6-8',   rpe: 8,  rest: 120 },
-            { exerciseId: 'ex16', name: 'Elevação Lateral com Halteres',    sets: 4, reps: '12-15', rpe: 7,  rest: 60  },
-            { exerciseId: 'ex22', name: 'Tríceps Testa (Skull Crusher)',    sets: 3, reps: '10-12', rpe: 7,  rest: 75  },
-            { exerciseId: 'ex03', name: 'Crucifixo no Cabo (Crossover)',    sets: 3, reps: '12-15', rpe: 7,  rest: 60  },
-          ],
-        },
-        {
-          id: 'B',
-          name: 'Treino B — Pull · Hipertrofia (IA)',
-          exercises: [
-            { exerciseId: 'ex06', name: 'Barra Fixa (Pullup)',              sets: 5, reps: '4-6',   rpe: 9,  rest: 180 },
-            { exerciseId: 'ex05', name: 'Remada Curvada com Barra',         sets: 4, reps: '6-8',   rpe: 8,  rest: 120 },
-            { exerciseId: 'ex08', name: 'Remada Unilateral com Halter',     sets: 4, reps: '8-10',  rpe: 8,  rest: 90  },
-            { exerciseId: 'ex18', name: 'Face Pull no Cabo',                sets: 3, reps: '15-20', rpe: 6,  rest: 60  },
-            { exerciseId: 'ex19', name: 'Rosca Direta com Barra',           sets: 4, reps: '8-10',  rpe: 8,  rest: 75  },
-            { exerciseId: 'ex20', name: 'Rosca Martelo com Halteres',       sets: 3, reps: '10-12', rpe: 7,  rest: 60  },
-          ],
-        },
-        {
-          id: 'C',
-          name: 'Treino C — Legs · Hipertrofia (IA)',
-          exercises: [
-            { exerciseId: 'ex09', name: 'Agachamento Livre',                sets: 5, reps: '4-6',   rpe: 9,  rest: 180 },
-            { exerciseId: 'ex10', name: 'Leg Press 45°',                   sets: 4, reps: '8-12',  rpe: 8,  rest: 120 },
-            { exerciseId: 'ex11', name: 'Stiff (Levantamento Terra Romeno)', sets: 4, reps: '8-10',  rpe: 8,  rest: 120 },
-            { exerciseId: 'ex12', name: 'Cadeira Extensora',                sets: 3, reps: '12-15', rpe: 7,  rest: 60  },
-            { exerciseId: 'ex13', name: 'Mesa Flexora',                     sets: 3, reps: '10-12', rpe: 7,  rest: 60  },
-            { exerciseId: 'ex14', name: 'Elevação de Panturrilha em Pé',    sets: 4, reps: '15-20', rpe: 6,  rest: 45  },
-          ],
-        },
-      ];
+      const splitDef = TRAINING_SPLITS[selectedSplit] || TRAINING_SPLITS.HYROX;
+      const aiGeneratedPlan: WorkoutRoutine[] = JSON.parse(JSON.stringify(splitDef.routines));
 
       setWorkoutPlan(aiGeneratedPlan);
       setAiToast({
         type: 'success',
-        message: 'Co-piloto gerou 3 rotinas · 16 exercícios · baseado nos dados de Avaliação do paciente.',
+        message: `Co-piloto gerou ${aiGeneratedPlan.length} rotinas para "${splitDef.name}" calibrado com a Anamnese e Avaliação do paciente.`,
       });
-
-      // Auto-dismiss do toast após 5 segundos
       setTimeout(() => setAiToast(null), 5000);
     } catch {
       setAiToast({ type: 'error', message: 'Falha na geração. Tente novamente.' });
@@ -390,7 +747,71 @@ export default function PerformanceDashboard() {
       <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-800">
 
         {/* Header do módulo */}
-        <div className="shrink-0 px-6 pt-5 pb-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800">
+        <div className="shrink-0 px-6 pt-5 pb-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800 space-y-3">
+          
+          {/* ── BARRA DE INTEGRAÇÃO COM ANAMNESE & DIVISÃO DE TREINO ── */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 border border-slate-800 rounded-xl">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
+                <Activity className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white">
+                    {patientAnamnese?.nome || 'Paulo Vitor R de Sousa'}
+                  </span>
+                  {patientAnamnese && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-950/80 border border-violet-700/60 text-violet-300">
+                      {patientAnamnese.biometria.pesoKg} kg • {patientAnamnese.biometria.idade} anos • Modalidade: {patientAnamnese.anamnese.modalidadeTreino?.toUpperCase() || 'HYROX'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Anamnese integrada: base de volume, intensidade e distribuição física.
+                </p>
+              </div>
+            </div>
+
+            {/* Seletor de Divisão de Treino & Sincronizador */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700/80 px-2.5 py-1.5 rounded-xl shadow-inner">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Divisão:
+                </span>
+                <select
+                  value={selectedSplit}
+                  onChange={(e) => handleSplitChange(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer pr-1"
+                >
+                  <optgroup label="Modalidades Híbridas & Racing">
+                    <option value="HYROX" className="bg-slate-900 text-white">⚡ HYROX / Fitness Racing (3 Dias)</option>
+                    <option value="CrossFit" className="bg-slate-900 text-white">🔥 CrossFit / Metcon (3 Dias)</option>
+                    <option value="RunningStrength" className="bg-slate-900 text-white">🏃 Corrida + Musculação (4 Dias)</option>
+                    <option value="HIIT_Forca" className="bg-slate-900 text-white">⚡ HIIT + Musculação (3 Dias)</option>
+                  </optgroup>
+                  <optgroup label="Divisões Clássicas de Hipertrofia">
+                    <option value="PPL" className="bg-slate-900 text-white">🏋️ Push / Pull / Legs (PPL - 3 Dias)</option>
+                    <option value="UpperLower" className="bg-slate-900 text-white">⚡ Upper / Lower (4 Dias)</option>
+                    <option value="FullBody" className="bg-slate-900 text-white">💪 Full Body 3x (3 Dias)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Botão Sincronizar Anamnese */}
+              <button
+                type="button"
+                onClick={handleSyncAnamnese}
+                disabled={isSyncingAnamnese}
+                title="Puxar modalidade da Anamnese do Paciente"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAnamnese ? 'animate-spin text-blue-400' : 'text-blue-400'}`} />
+                <span className="hidden sm:inline">Puxar Anamnese</span>
+              </button>
+            </div>
+          </div>
+
           <div className="flex items-start justify-between gap-4">
             {/* Título + Co-piloto */}
             <div className="flex-1 min-w-0">
@@ -398,12 +819,15 @@ export default function PerformanceDashboard() {
                 <Zap className="w-3.5 h-3.5" />
                 Módulo de Performance — NutriAx Pro
               </div>
-              <h1 className="text-xl font-bold text-white">
-                Prescrição de{' '}
-                <span className="text-blue-400">Treinamento</span>
+              <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                <span>{TRAINING_SPLITS[selectedSplit]?.icon || '🏋️'}</span>
+                <span>{TRAINING_SPLITS[selectedSplit]?.name || 'Prescrição de Treinamento'}</span>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  {TRAINING_SPLITS[selectedSplit]?.badge || 'Personalizado'}
+                </span>
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Variáveis de carga por Jim Stoppani · Anatomia por Delavier &amp; Evans
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                {TRAINING_SPLITS[selectedSplit]?.description || 'Variáveis de carga por Jim Stoppani · Anatomia por Delavier & Evans'}
               </p>
 
               {/* ── BOTÃO CO-PILOTO BIOMECÂNICO ── */}
@@ -432,7 +856,7 @@ export default function PerformanceDashboard() {
                 {isGenerating ? (
                   <>
                     <BrainCircuit className="w-4 h-4 animate-pulse" />
-                    <span>Analisando dados do paciente&hellip;</span>
+                    <span>Periodizando divisão com IA&hellip;</span>
                     {/* Dots de loading */}
                     <span className="flex gap-0.5 ml-1">
                       {[0, 1, 2].map((i) => (
@@ -447,7 +871,7 @@ export default function PerformanceDashboard() {
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Gerar Treino via IA (Usar dados da Avaliação)</span>
+                    <span>Gerar Treino via IA ({TRAINING_SPLITS[selectedSplit]?.name || 'Divisão Ativa'})</span>
                   </>
                 )}
               </button>
@@ -471,23 +895,27 @@ export default function PerformanceDashboard() {
           </div>
 
           {/* Seletor da rotina alvo para adição rápida */}
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider shrink-0">
-              Adicionar a:
+          <div className="pt-2 flex items-center gap-2 border-t border-slate-800/80">
+            <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider shrink-0 flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-blue-400" />
+              Rotina Alvo:
             </span>
-            {workoutPlan.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setTargetRoutineId(r.id)}
-                className={`px-3 py-1 text-xs rounded-lg font-semibold transition-all ${
-                  targetRoutineId === r.id
-                    ? 'bg-blue-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700'
-                }`}
-              >
-                {r.id}
-              </button>
-            ))}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+              {workoutPlan.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setTargetRoutineId(r.id)}
+                  className={`px-3 py-1 text-xs rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
+                    targetRoutineId === r.id
+                      ? 'bg-blue-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700'
+                  }`}
+                >
+                  <span className="font-bold">{r.id}</span>
+                  <span className="text-[10px] opacity-75 max-w-[120px] truncate">{r.name.split('—')[1]?.trim() || r.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

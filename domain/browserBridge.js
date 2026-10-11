@@ -527,7 +527,13 @@ const VALID_TRAINING_SPLITS = Object.freeze([
   'ABCD',
   'ABCDE',
   'Bro Split',
-  'BroSplit'
+  'BroSplit',
+  // ── Splits Híbridos & Performance ──
+  'HYROX',
+  'CrossFit',
+  'RunningStrength',
+  'HIIT_Forca',
+  'FuncionalMisto'
 ]);
 
 /**
@@ -539,9 +545,15 @@ const VALID_TRAINING_SPLITS = Object.freeze([
 function normalizeTrainingSplit(split) {
   if (typeof split !== 'string') return '';
   const trimmed = split.trim();
-  if (trimmed.toLowerCase() === 'brosplit' || trimmed.toLowerCase() === 'bro split') {
+  const lower = trimmed.toLowerCase();
+  if (lower === 'brosplit' || lower === 'bro split') {
     return 'Bro Split';
   }
+  if (lower === 'hyrox') return 'HYROX';
+  if (lower === 'crossfit') return 'CrossFit';
+  if (lower === 'runningstrength' || lower === 'running_strength' || lower === 'corrida_musculacao') return 'RunningStrength';
+  if (lower === 'hiit_forca' || lower === 'hiitforca') return 'HIIT_Forca';
+  if (lower === 'funcionalmisto' || lower === 'funcional_misto') return 'FuncionalMisto';
   return trimmed;
 }
 
