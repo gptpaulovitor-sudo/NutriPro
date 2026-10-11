@@ -1289,9 +1289,23 @@ function obterTemplatesRefeicoes(qtd: number): TemplateRefeicaoEsportiva[] {
 export function calcularScoreAlimento(
   alimento: Alimento,
   contexto: ContextoRefeicao,
-  questionario?: QuestionarioAcessibilidadePaciente
+  questionario?: QuestionarioAcessibilidadePaciente,
+  alimentosPreferidos?: string[]
 ): number {
   let score = 50; // Base neutra
+
+  // 0. Preferências de Consumo declaradas na Anamnese (Alimentos que o paciente adora / não abre mão)
+  if (alimentosPreferidos && alimentosPreferidos.length > 0) {
+    const nomeNorm = alimento.nome.toLowerCase();
+    const idNorm = alimento.id.toLowerCase();
+    const isPreferido = alimentosPreferidos.some((p) => {
+      const pNorm = p.trim().toLowerCase();
+      return pNorm && (nomeNorm.includes(pNorm) || idNorm.includes(pNorm) || pNorm.includes(nomeNorm));
+    });
+    if (isPreferido) {
+      score += 85; // Prioridade máxima de escolha para honrar a base de consumo da Anamnese
+    }
+  }
 
   // 1. Resposta declarada pelo paciente no Questionário
   if (questionario?.alimentosAcessiveis && questionario.alimentosAcessiveis.length > 0) {
@@ -1412,8 +1426,12 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
       }
 
       if (carnesDisponiveis.length > 0) {
-        // Ordena por score de acessibilidade, custo e preferência do paciente
-        carnesDisponiveis.sort((a, b) => calcularScoreAlimento(b, tpl.contexto, quest) - calcularScoreAlimento(a, tpl.contexto, quest));
+        // Ordena por score de acessibilidade, custo e preferência do paciente da Anamnese
+        carnesDisponiveis.sort(
+          (a, b) =>
+            calcularScoreAlimento(b, tpl.contexto, quest, anamnese.alimentosPreferidos) -
+            calcularScoreAlimento(a, tpl.contexto, quest, anamnese.alimentosPreferidos)
+        );
         const idxVariacao = idx % Math.min(carnesDisponiveis.length, 2);
         carnePrincipalEscolhida = carnesDisponiveis[idxVariacao];
         const itemCarne = escalonarAlimentoParaMacro(carnePrincipalEscolhida, metaRefProteina, 'proteina');
@@ -1524,10 +1542,14 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
             itensRefeicao.push(escalonarAlimentoParaMacro(feijao, saldoCarbo * 0.30, 'carboidrato', 140));
           }
         } else {
-          // Utiliza Raízes ordenadas por score de acessibilidade
+          // Utiliza Raízes ordenadas por score de acessibilidade e preferências da Anamnese
           tipoCarboPrincipal = 'raizes';
           const raizesDisponiveis = alimentosCtx.filter((a) => a.subgrupoCarbo === 'raizes');
-          raizesDisponiveis.sort((a, b) => calcularScoreAlimento(b, tpl.contexto, quest) - calcularScoreAlimento(a, tpl.contexto, quest));
+          raizesDisponiveis.sort(
+            (a, b) =>
+              calcularScoreAlimento(b, tpl.contexto, quest, anamnese.alimentosPreferidos) -
+              calcularScoreAlimento(a, tpl.contexto, quest, anamnese.alimentosPreferidos)
+          );
           const raiz = raizesDisponiveis[0] || alimentosCtx.find((a) => a.id === 'c_batata_doce');
           if (raiz) {
             itensRefeicao.push(escalonarAlimentoParaMacro(raiz, saldoCarbo, 'carboidrato', 230));
@@ -1570,7 +1592,11 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
         } else {
           tipoCarboPrincipal = 'raizes';
           const raizesDisponiveis = alimentosCtx.filter((a) => a.subgrupoCarbo === 'raizes');
-          raizesDisponiveis.sort((a, b) => calcularScoreAlimento(b, tpl.contexto, quest) - calcularScoreAlimento(a, tpl.contexto, quest));
+          raizesDisponiveis.sort(
+            (a, b) =>
+              calcularScoreAlimento(b, tpl.contexto, quest, anamnese.alimentosPreferidos) -
+              calcularScoreAlimento(a, tpl.contexto, quest, anamnese.alimentosPreferidos)
+          );
           const batata = raizesDisponiveis[0] || alimentosCtx.find((a) => a.id === 'c_batata_doce');
           if (batata) {
             itensRefeicao.push(escalonarAlimentoParaMacro(batata, saldoCarbo, 'carboidrato', 220));
@@ -1707,6 +1733,24 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     ? Math.round((itensAcessiveis / totalItensContados) * 100)
     : 100;
 
+  // Rastreia quais alimentos favoritos da Anamnese foram atendidos no plano
+  const alimentosPreferidosIncluidos: string[] = [];
+  if (anamnese.alimentosPreferidos && anamnese.alimentosPreferidos.length > 0) {
+    const todosItensPlan = refeicoesMontadas.flatMap((r) => r.itens.map((it) => it.nome.toLowerCase()));
+    for (const pref of anamnese.alimentosPreferidos) {
+      const pNorm = pref.trim().toLowerCase();
+      if (pNorm && todosItensPlan.some((n) => n.includes(pNorm))) {
+        alimentosPreferidosIncluidos.push(pref);
+      }
+    }
+  }
+
+  // Recomendação personalizada de hidratação (35ml/kg + 150ml por sessão semanal de treino)
+  const recomendacaoHidricaMl = Math.round(
+    biometria.pesoKg * 35 +
+    (anamnese.frequenciaSemanaTreino ? anamnese.frequenciaSemanaTreino * 150 : 500)
+  );
+
   return {
     id: `diet_plan_${Date.now()}`,
     pacienteId,
@@ -1719,5 +1763,8 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     refeicoes: refeicoesMontadas,
     indiceAcessibilidadePercentual,
     orcamentoEstimado: quest?.orcamento || 'moderado',
+    recomendacaoHidricaMl,
+    alimentosPreferidosIncluidos,
+    modalidadeTreinoAplicada: anamnese.modalidadeTreino,
   };
 }

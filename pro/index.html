@@ -2158,11 +2158,28 @@
                 <label class="block font-bold text-zinc-300 mb-1">Modalidade Principal</label>
                 <select id="anamneseWorkoutType" onchange="onAnamneseWorkoutTypeChange()"
                   class="w-full p-2.5 border border-zinc-700 rounded-xl font-bold bg-zinc-950 text-white focus:ring-2 focus:ring-red-600 outline-none">
-                  <option value="Musculação / Força" selected>Musculação / Força (Hipertrofia)</option>
-                  <option value="Crossfit & Funcional">Crossfit & Funcional</option>
-                  <option value="Endurance & Corrida">Endurance / Corrida / Ciclismo</option>
-                  <option value="Misto (Força + Cardio)">Misto (Força + Cardio)</option>
-                  <option value="Nenhum (Sedentário)">Nenhum (Sedentário)</option>
+                  <optgroup label="Modalidades Puras">
+                    <option value="Musculação / Força" selected>🏋️ Musculação / Força (Hipertrofia)</option>
+                    <option value="Endurance & Corrida">🏃 Corrida / Endurance</option>
+                    <option value="Ciclismo">🚴 Ciclismo / Spinning</option>
+                    <option value="Natação">🏊 Natação</option>
+                    <option value="Lutas / Artes Marciais">🥊 Lutas / Artes Marciais</option>
+                    <option value="Aeróbico Geral">🛐 Aeróbico Geral</option>
+                    <option value="Calistenia">🤸 Calistenia</option>
+                  </optgroup>
+                  <optgroup label="Modalidades Híbridas (Alta Exigência)">
+                    <option value="Crossfit & Funcional">★ CrossFit & Funcional</option>
+                    <option value="HIIT + Musculação">★ HIIT + Musculação</option>
+                    <option value="Triathlon">★ Triathlon (Natação + Ciclismo + Corrida)</option>
+                    <option value="Funcional Misto">★ Funcional Misto</option>
+                    <option value="Corrida + Musculação">★ Corrida + Musculação (Treinamento Concorrente)</option>
+                    <option value="Ciclismo + Força">★ Ciclismo + Força</option>
+                    <option value="Esportes Coletivos">★ Esportes Coletivos (Futebol, Basquete)</option>
+                  </optgroup>
+                  <optgroup label="Outros">
+                    <option value="Misto (Força + Cardio)">Misto (Força + Cardio)</option>
+                    <option value="Nenhum (Sedentário)">Nenhum (Sedentário)</option>
+                  </optgroup>
                 </select>
               </div>
 

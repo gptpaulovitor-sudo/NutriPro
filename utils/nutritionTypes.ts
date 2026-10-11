@@ -150,8 +150,22 @@ export interface Anamnese {
   horarioTreino?: string;           // ex: "17:30"
   modalidadeTreino?: ModalidadeTreino; // Modalidade principal (pura ou híbrida)
   frequenciaSemanaTreino?: number;  // Sessões por semana (1–7)
+  duracaoTreinoMin?: number;        // Duração média do treino em minutos
+  intensidadeTreino?: string;       // Leve, Moderada, Alta
   observacoesClinicas?: string;
   questionarioAcessibilidade?: QuestionarioAcessibilidadePaciente;
+  
+  // Preferências e Informações de Consumo & Rotina (Base para os Geradores)
+  alimentosPreferidos?: string[];   // Alimentos favoritos / que o paciente não abre mão (ex: Café, Ovos, Banana, Arroz)
+  consumoHidricoL?: number;         // Consumo hídrico diário habitual em Litros
+  disponibilidadeCozinhar?: 'Baixa' | 'Moderada' | 'Alta';
+  quemPreparaRefeicoes?: string;    // O próprio paciente, Cônjuge, Marmita pronta, etc.
+  habitoIntestinal?: string;        // Regular, Constipado, etc.
+  rotinaNeat?: string;              // Leve (escritório), Moderado, Intenso
+  horasSono?: number;               // Horas de sono por noite
+  qualidadeSono?: string;           // Excelente, Boa, Regular, Ruim
+  nivelEstresse?: string;           // Baixo, Moderado, Alto
+  patologiasClinicas?: string[];    // Hipertensão, Diabetes, etc.
 }
 
 // ----------------------------------------------------------------------------
@@ -308,11 +322,24 @@ export interface PlanoAlimentar {
   persistedId?: string; // ID salvo no banco se persistido
   indiceAcessibilidadePercentual?: number; // % de alimentos provenientes da cesta de alta disponibilidade/baixo custo
   orcamentoEstimado?: FaixaOrcamento;
+  recomendacaoHidricaMl?: number;
+  alimentosPreferidosIncluidos?: string[];
+  modalidadeTreinoAplicada?: ModalidadeTreino;
 }
 
 // ============================================================================
-// 6. ENTRADA E SAÍDA DA SERVER ACTION
+// 6. ENTRADA E SAÍDA DA SERVER ACTION & DTO DE INTEGRAÇÃO
 // ============================================================================
+
+export interface PacienteAnamneseDTO {
+  id: string;
+  nome: string;
+  email?: string;
+  telefone?: string;
+  biometria: BiometriaPaciente;
+  anamnese: Anamnese;
+  fonteIntegracao: 'PRISMA_DB' | 'CANONICAL_DEFAULT' | 'FALLBACK';
+}
 
 export interface PrescribeDietInput {
   pacienteId?: string;

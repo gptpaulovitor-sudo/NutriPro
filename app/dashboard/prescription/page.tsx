@@ -8,7 +8,7 @@
  * com persistência atômica no banco de dados via Prisma.
  */
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useEffect, useTransition, useMemo } from "react";
 import {
   UtensilsCrossed,
   Sparkles,
@@ -34,8 +34,12 @@ import {
   ShoppingBag,
   Leaf,
   Check,
+  FileText,
+  RefreshCw,
+  Star,
+  UserCheck,
 } from "lucide-react";
-import { prescribeDietAction } from "@/app/actions/prescribeDiet";
+import { prescribeDietAction, getPatientAnamneseAction } from "@/app/actions/prescribeDiet";
 import {
   ObjetivoClinico,
   NivelAtividade,
@@ -49,6 +53,7 @@ import {
   AmbienteConsumo,
   StatusAcessibilidadeAlimento,
   QuestionarioAcessibilidadePaciente,
+  PacienteAnamneseDTO,
 } from "@/utils/nutritionTypes";
 import {
   calculateTMB,
@@ -59,29 +64,47 @@ import { CATALOGO_ALIMENTOS_BASE, PERFIS_MODALIDADE_TREINO } from "@/utils/dietG
 export default function PrescriptionPage() {
   const [isPending, startTransition] = useTransition();
 
-  // Estados dos Dados Biométricos do Paciente
-  const [patientName, setPatientName] = useState("João Silva");
+  // Estados de Sincronização com a Anamnese
+  const [anamneseSincronizada, setAnamneseSincronizada] = useState(false);
+  const [fonteAnamnese, setFonteAnamnese] = useState<string>("Sincronizando...");
+  const [isSyncingAnamnese, setIsSyncingAnamnese] = useState(false);
+
+  // Estados dos Dados Biométricos do Paciente (Base Anamnese)
+  const [patientName, setPatientName] = useState("Paulo Vitor R de Sousa");
   const [gender, setGender] = useState<"Masculino" | "Feminino">("Masculino");
-  const [age, setAge] = useState(28);
-  const [weightKg, setWeightKg] = useState(82);
-  const [heightCm, setHeightCm] = useState(178);
+  const [age, setAge] = useState(38);
+  const [weightKg, setWeightKg] = useState(116);
+  const [heightCm, setHeightCm] = useState(196);
   const [bodyFatPercent, setBodyFatPercent] = useState<number | undefined>(14);
 
   // Estados Clínicos e de Rotina
-  const [objective, setObjective] = useState<ObjetivoClinico>("hipertrofia");
-  const [activityLevel, setActivityLevel] = useState<NivelAtividade>("moderado");
+  const [objective, setObjective] = useState<ObjetivoClinico>("emagrecimento");
+  const [activityLevel, setActivityLevel] = useState<NivelAtividade>("alto");
   const [mealCount, setMealCount] = useState(4);
   const [dietaryStyle, setDietaryStyle] = useState<EstiloAlimentar>("onivoro");
 
   // Perfil de Treino
   const [modalidadeTreino, setModalidadeTreino] = useState<ModalidadeTreino | undefined>("musculacao");
-  const [frequenciaSemanaTreino, setFrequenciaSemanaTreino] = useState<number>(4);
+  const [frequenciaSemanaTreino, setFrequenciaSemanaTreino] = useState<number>(6);
   const [horarioTreino, setHorarioTreino] = useState<string>("17:30");
 
+  // Preferências e Informações de Consumo (da Anamnese)
+  const [preferredFoodsList, setPreferredFoodsList] = useState<string[]>([
+    "Peito de Frango",
+    "Arroz Branco",
+    "Feijão Carioca",
+    "Ovos Inteiros",
+    "Banana",
+    "Aveia",
+    "Café",
+  ]);
+  const [preferredFoodInput, setPreferredFoodInput] = useState("");
+  const [consumoHidricoL, setConsumoHidricoL] = useState(4.0);
+
   // Restrições e Aversões
-  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>(["Lactose"]);
   const [aversionInput, setAversionInput] = useState("");
-  const [aversionsList, setAversionsList] = useState<string[]>([]);
+  const [aversionsList, setAversionsList] = useState<string[]>(["Fígado", "Moela"]);
 
   // Perfil Socioeconômico & Questionário de Acessibilidade do Paciente
   const [orcamento, setOrcamento] = useState<FaixaOrcamento>("economico");
@@ -148,6 +171,66 @@ export default function PrescriptionPage() {
       setAceitaSuplementos(true);
       setAlimentosAcessibilidade({});
     }
+  };
+
+  // Sincronização oficial com os dados da Anamnese
+  const sincronizarComAnamnese = async () => {
+    setIsSyncingAnamnese(true);
+    try {
+      const data = await getPatientAnamneseAction();
+      if (data) {
+        setPatientName(data.nome);
+        setGender(data.biometria.sexo as "Masculino" | "Feminino");
+        setAge(data.biometria.idade);
+        setWeightKg(data.biometria.pesoKg);
+        setHeightCm(data.biometria.alturaCm);
+        setBodyFatPercent(data.biometria.percentualGordura);
+        setObjective(data.anamnese.objetivo);
+        setActivityLevel(data.anamnese.nivelAtividade);
+        setMealCount(data.anamnese.numeroRefeicoesDia || 4);
+        if (data.anamnese.modalidadeTreino) setModalidadeTreino(data.anamnese.modalidadeTreino);
+        if (data.anamnese.frequenciaSemanaTreino) setFrequenciaSemanaTreino(data.anamnese.frequenciaSemanaTreino);
+        if (data.anamnese.horarioTreino) setHorarioTreino(data.anamnese.horarioTreino);
+        if (data.anamnese.alimentosPreferidos && data.anamnese.alimentosPreferidos.length > 0) {
+          setPreferredFoodsList(data.anamnese.alimentosPreferidos);
+        }
+        if (data.anamnese.restricoes?.aversoes) setAversionsList(data.anamnese.restricoes.aversoes);
+        if (data.anamnese.restricoes?.intolerancias) setSelectedAllergens(data.anamnese.restricoes.intolerancias);
+        if (data.anamnese.consumoHidricoL) setConsumoHidricoL(data.anamnese.consumoHidricoL);
+        if (data.anamnese.questionarioAcessibilidade?.orcamento) setOrcamento(data.anamnese.questionarioAcessibilidade.orcamento);
+        if (data.anamnese.questionarioAcessibilidade?.ambienteConsumo) setAmbienteConsumo(data.anamnese.questionarioAcessibilidade.ambienteConsumo);
+        if (data.anamnese.questionarioAcessibilidade?.alimentosAcessiveis) {
+          const mapAcess: Record<string, StatusAcessibilidadeAlimento> = {};
+          data.anamnese.questionarioAcessibilidade.alimentosAcessiveis.forEach((item) => {
+            mapAcess[item.alimentoId] = item.status;
+          });
+          setAlimentosAcessibilidade(mapAcess);
+        }
+        setAnamneseSincronizada(true);
+        setFonteAnamnese(data.fonteIntegracao === "PRISMA_DB" ? "Banco de Dados Local (Prisma)" : "Ficha Clínica Canônica");
+      }
+    } catch (err) {
+      console.warn("Falha ao sincronizar com Anamnese:", err);
+    } finally {
+      setIsSyncingAnamnese(false);
+    }
+  };
+
+  useEffect(() => {
+    sincronizarComAnamnese();
+  }, []);
+
+  // Handlers para Alimentos Preferidos / Não Abre Mão (Anamnese)
+  const handleAddPreferredFood = () => {
+    if (!preferredFoodInput.trim()) return;
+    if (!preferredFoodsList.includes(preferredFoodInput.trim())) {
+      setPreferredFoodsList([...preferredFoodsList, preferredFoodInput.trim()]);
+    }
+    setPreferredFoodInput("");
+  };
+
+  const handleRemovePreferredFood = (item: string) => {
+    setPreferredFoodsList(preferredFoodsList.filter((i) => i !== item));
   };
 
   // Plano Gerado e Feedbacks
@@ -245,6 +328,8 @@ export default function PrescriptionPage() {
             modalidadeTreino,
             frequenciaSemanaTreino,
             horarioTreino: horarioTreino || undefined,
+            alimentosPreferidos: preferredFoodsList,
+            consumoHidricoL,
             questionarioAcessibilidade: questionarioFormatado,
           },
           questionarioAcessibilidade: questionarioFormatado,
@@ -446,6 +531,46 @@ export default function PrescriptionPage() {
             {showConfigPanel ? "Ocultar Parâmetros" : "Ajustar Parâmetros"}
           </button>
         </div>
+      </div>
+
+      {/* =============================================================== */}
+      {/* BANNER DE INTEGRAÇÃO OFICIAL COM A ANAMNESE CLÍNICA DO PACIENTE */}
+      {/* =============================================================== */}
+      <div className="bg-gradient-to-r from-emerald-950/40 via-zinc-900 to-black border border-emerald-800/50 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl shadow-emerald-950/20">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+            <FileText className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-widest font-black text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700/60 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                ANAMNESE INTEGRADA
+              </span>
+              <span className="text-xs font-bold text-white flex items-center gap-1">
+                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                Paciente: <span className="text-emerald-400">{patientName}</span>
+              </span>
+              <span className="text-[11px] font-medium text-zinc-400">
+                ({fonteAnamnese})
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-1">
+              A Anamnese é a fonte de verdade para este prescritor: biometria, hábitos de rotina, alérgenos,
+              modalidades de treino (puras e híbridas) e preferências de consumo são alimentados automaticamente.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={sincronizarComAnamnese}
+          disabled={isSyncingAnamnese}
+          className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 cursor-pointer shadow-sm disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncingAnamnese ? "animate-spin" : ""}`} />
+          <span>{isSyncingAnamnese ? "Sincronizando..." : "Sincronizar com Anamnese"}</span>
+        </button>
       </div>
 
       {/* Alerta de Feedback (Sucesso / Erro) */}
@@ -822,6 +947,59 @@ export default function PrescriptionPage() {
                 </div>
               )}
             </div>
+
+            {/* Alimentos Preferidos / Não Abre Mão (Base da Anamnese) */}
+            <div className="pt-3 border-t border-zinc-800/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                  Alimentos Preferidos / Não Abre Mão (Anamnese)
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  Prioridade Máxima (+85 pts) no Gerador
+                </span>
+              </div>
+
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                <div className="flex-1 w-full flex gap-2">
+                  <input
+                    type="text"
+                    value={preferredFoodInput}
+                    onChange={(e) => setPreferredFoodInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddPreferredFood()}
+                    placeholder="Adicionar alimento preferido (ex: Café, Arroz, Ovos, Banana) e teclar Enter..."
+                    className="w-full p-2 bg-black/60 border border-zinc-800 rounded-lg text-xs text-white placeholder-zinc-500 focus:border-emerald-500 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPreferredFood}
+                    className="px-3 py-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-200 rounded-lg text-xs font-bold shrink-0 cursor-pointer"
+                  >
+                    + Favorito
+                  </button>
+                </div>
+
+                {preferredFoodsList.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {preferredFoodsList.map((pref) => (
+                      <span
+                        key={pref}
+                        className="px-2.5 py-0.5 bg-emerald-950/60 border border-emerald-700/60 rounded text-xs text-emerald-300 font-semibold flex items-center gap-1 shadow-sm"
+                      >
+                        ⭐ {pref}
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePreferredFood(pref)}
+                          className="text-emerald-400 hover:text-red-400 font-bold ml-1 transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* =============================================================== */}
@@ -1157,6 +1335,42 @@ export default function PrescriptionPage() {
                   }}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Card de Informações e Preferências da Anamnese no Plano */}
+          <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+            <div className="space-y-1">
+              <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                Preferências de Consumo da Anamnese Atendidas:
+              </span>
+              <p className="text-zinc-300">
+                {planoAlimentar.alimentosPreferidosIncluidos && planoAlimentar.alimentosPreferidosIncluidos.length > 0 ? (
+                  <>
+                    Alimentos favoritos inseridos no plano:{" "}
+                    <span className="text-emerald-300 font-bold">
+                      {planoAlimentar.alimentosPreferidosIncluidos.join(" • ")}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-zinc-400">Plano gerado com seleção nutricional balanceada respeitando todas as aversões e restrições.</span>
+                )}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <div className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300">
+                💧 Hidratação Alvo:{" "}
+                <span className="text-blue-400 font-bold">
+                  {((planoAlimentar.recomendacaoHidricaMl || 4000) / 1000).toFixed(1)} L/dia
+                </span>
+              </div>
+              {planoAlimentar.modalidadeTreinoAplicada && (
+                <div className="px-3 py-1.5 bg-violet-950/60 border border-violet-800/60 rounded-lg text-violet-300 font-bold">
+                  🏋️ Modalidade: {PERFIS_MODALIDADE_TREINO[planoAlimentar.modalidadeTreinoAplicada]?.label || planoAlimentar.modalidadeTreinoAplicada}
+                </div>
+              )}
             </div>
           </div>
         </div>

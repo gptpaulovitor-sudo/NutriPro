@@ -4124,9 +4124,13 @@ async function executeSmartPrescriptionGeneration() {
         objective: obj, patientType: patType,
         tmbKcal: canonicalTargets.tmbKcal, getKcal: canonicalTargets.getKcal,
         caloricTargetKcal: adjustedCaloricTarget,
-        mealsPerDay: mealCount, mealCount: mealCount,
+        preferredFoods: (p.preferredFoods ? p.preferredFoods.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : []),
+        foodAversions: (p.foodAversions ? p.foodAversions.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : []),
+        aversions: (p.foodAversions ? p.foodAversions.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : []),
+        dietaryRestrictions: (p.dietaryRestrictions ? p.dietaryRestrictions.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : []),
         preferences: {
           mealFrequency: mealCount,
+          preferredFoods: (p.preferredFoods ? p.preferredFoods.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : []),
           accessibilityPreferences: p.accessibilityPreferences || (typeof _readAccessibilityPreferences === 'function' ? _readAccessibilityPreferences() : null)
         },
         accessibilityPreferences: p.accessibilityPreferences || (typeof _readAccessibilityPreferences === 'function' ? _readAccessibilityPreferences() : null),
@@ -4135,11 +4139,12 @@ async function executeSmartPrescriptionGeneration() {
           wakeUpTime: trainingData.wakeUpTime || (document.getElementById('routineWakeUp') || {}).value || '07:00',
           bedTime: trainingData.bedTime || (document.getElementById('routineBedTime') || {}).value || '23:00',
           workoutTime: trainingData.workoutTime || (document.getElementById('routineWorkoutTime') || {}).value || null,
+          workoutType: p.workoutType || p.mainModality || 'Musculação / Força',
           mealsPerDay: mealCount, mealCount: mealCount
         },
         weeklySchedule: typeof perfWeeklySchedule !== 'undefined' ? perfWeeklySchedule : [],
         dietaryRecall: { hasRecall: dr.hasRecall || false, itemsCount: dr.itemCount || 0, typicalMealTimes: dr.mealTimes || [], items: dr._rawItems || [] },
-        clinical: { exams: (analysis.clinicalExams || {}).exams || [], latestExamDate: null }
+        clinical: { exams: (analysis.clinicalExams || {}).exams || [], latestExamDate: null, clinicalNotes: p.clinicalNotes || '' }
       },
       foodCatalog: foodCatalog,
       options: { mealCount: mealCount, dietaryStyle: dietaryStyle, dietaryCycle: dietaryCycle, includeSupplements: includeSupplements, allowAdolescent: allowAdolescent }
@@ -7110,6 +7115,9 @@ function calculateSuggestedFA(autoSync = true) {
     else if (freq === "6x/semana" || freq === "7x/semana") baseFA += 0.20;
 
     if (intensity === "Alta") baseFA += 0.05;
+    // Bônus metabólico para modalidades híbridas de alta exigência
+    const isHybrid = workoutType.includes("Crossfit") || workoutType.includes("HIIT") || workoutType.includes("Triathlon") || workoutType.includes("Misto") || workoutType.includes("Corrida + Musculação") || workoutType.includes("Ciclismo + Força") || workoutType.includes("Esportes Coletivos");
+    if (isHybrid) baseFA += 0.08;
   }
 
   if (sleep >= 7.0) baseFA += 0.02;
