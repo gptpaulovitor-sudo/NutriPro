@@ -65,6 +65,66 @@ export type NivelAtividade =
   | 'alto'
   | 'atleta';
 
+// ============================================================================
+// 2.1B MODALIDADES DE TREINO (Puras e Híbridas)
+// ============================================================================
+
+/**
+ * Modalidades puras e híbridas de treino, usadas para ajustar a periodização
+ * nutricional peri-treino (pré/pós), timing de carboidratos e taxas proteicas.
+ *
+ * HÍBRIDAS = combinam dois ou mais estímulos com demandas metabólicas distintas:
+ * - `crossfit`         : Resistência + Força + Metcon (alta demanda glicogênica)
+ * - `hiit_forca`       : HIIT Intervalado + Musculação (dual-energy stress)
+ * - `triathlon`        : Natação + Ciclismo + Corrida (alta demanda aeróbica + carbo)
+ * - `funcional_misto`  : Funcional + Peso Livre (NEAT elevado)
+ * - `ciclismo_forca`   : Ciclismo/Spinning + Musculação (aeróbico + anaeróbico)
+ * - `running_musculacao`: Corrida + Musculação (common in runners wanting hypertrophy)
+ * - `esportes_coletivos`: Futebol/Basquete/Vôlei (explosão + resistência mista)
+ */
+export type ModalidadeTreino =
+  // ── Modalidades Puras ──────────────────────────────────────────────
+  | 'musculacao'            // Treino resistido / musculação convencional
+  | 'aerobico'             // Cardio contínuo (caminhada, bike, natação leve)
+  | 'corrida'              // Running / Atletismo
+  | 'natacao'              // Natação competitiva ou recreativa
+  | 'ciclismo'             // Ciclismo de estrada ou spinning
+  | 'yoga_pilates'         // Flexibilidade, core e mobilidade
+  | 'artes_marciais'       // MMA, Jiu-Jitsu, Muay Thai, Judô
+  // ── Modalidades Híbridas ───────────────────────────────────────────
+  | 'crossfit'             // ★ HÍBRIDO: Força + Metcon + Resistência
+  | 'hiit_forca'           // ★ HÍBRIDO: HIIT Intervalado + Musculação
+  | 'triathlon'            // ★ HÍBRIDO: Natação + Ciclismo + Corrida
+  | 'funcional_misto'      // ★ HÍBRIDO: Funcional + Peso Livre
+  | 'ciclismo_forca'       // ★ HÍBRIDO: Ciclismo/Spinning + Musculação
+  | 'running_musculacao'   // ★ HÍBRIDO: Corrida + Musculação
+  | 'esportes_coletivos';  // ★ HÍBRIDO: Futebol, Basquete, Vôlei
+
+/**
+ * Perfil metabólico derivado da modalidade, usado no motor de prescrição
+ * para ajustar macros peri-treino e cargas de carboidrato.
+ */
+export interface PerfilModalidadeHibrida {
+  /** Identificador único da modalidade */
+  modalidade: ModalidadeTreino;
+  /** Rótulo legível pelo paciente */
+  label: string;
+  /** Emoji representativo */
+  emoji: string;
+  /** É uma modalidade híbrida (múltiplos estímulos)? */
+  isHibrida: boolean;
+  /** Acréscimo percentual na proteína (ex: 0.15 = +15% sobre a base da meta) */
+  deltaProteinaGKg: number;
+  /** Acréscimo de carboidrato peri-treino em gramas */
+  extraCarboPeriTreino: number;
+  /** Fator de ajuste do GET (multiplicador adicional por ser cardio intenso) */
+  fatorGetAdicional: number;
+  /** Necessidade hídrica adicional em ml/kg */
+  hidratacaoExtraMlKg: number;
+  /** Observação clínica específica */
+  notaClinica: string;
+}
+
 export type EstiloAlimentar =
   | 'onivoro'
   | 'vegetariano'
@@ -87,7 +147,9 @@ export interface Anamnese {
   nivelAtividade: NivelAtividade;
   numeroRefeicoesDia: number;
   restricoes: RestricoesAlimentares;
-  horarioTreino?: string; // ex: "17:30"
+  horarioTreino?: string;           // ex: "17:30"
+  modalidadeTreino?: ModalidadeTreino; // Modalidade principal (pura ou híbrida)
+  frequenciaSemanaTreino?: number;  // Sessões por semana (1–7)
   observacoesClinicas?: string;
   questionarioAcessibilidade?: QuestionarioAcessibilidadePaciente;
 }

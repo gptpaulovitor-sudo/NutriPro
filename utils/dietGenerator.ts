@@ -21,6 +21,8 @@ import {
   BiometriaPaciente,
   ObjetivoClinico,
   NivelAtividade,
+  ModalidadeTreino,
+  PerfilModalidadeHibrida,
   RestricoesAlimentares,
   CalculoEnergetico,
   Alimento,
@@ -823,6 +825,189 @@ export function escalonarAlimentoParaMacro(
 }
 
 // ============================================================================
+// 2.5 TABELA CANÔNICA DE PERFIS DE MODALIDADE DE TREINO
+// ============================================================================
+
+/**
+ * Catálogo de perfis metabólicos para cada modalidade de treino.
+ * Valores baseados em literatura de nutrição esportiva (ISSN, ADA, ACSM).
+ *
+ * Chaves de ajuste:
+ * - deltaProteinaGKg : adição em g/kg sobre a meta base do objetivo
+ * - extraCarboPeriTreino : carboidratos extras no pré/pós-treino (g)
+ * - fatorGetAdicional   : multiplicador adicional no GET (ex: 0.05 = +5%)
+ * - hidratacaoExtraMlKg : ml de água adicionais por kg de peso
+ */
+export const PERFIS_MODALIDADE_TREINO: Record<ModalidadeTreino, PerfilModalidadeHibrida> = {
+  // ── PURAS ─────────────────────────────────────────────────────────────
+  musculacao: {
+    modalidade: 'musculacao',
+    label: 'Musculação',
+    emoji: '🏋️',
+    isHibrida: false,
+    deltaProteinaGKg: 0.10,
+    extraCarboPeriTreino: 30,
+    fatorGetAdicional: 0.0,
+    hidratacaoExtraMlKg: 5,
+    notaClinica: 'Priorizar proteína de alto valor biológico peri-treino (Whey/Albumina) e carboidrato de baixo IG pré-treino.',
+  },
+  aerobico: {
+    modalidade: 'aerobico',
+    label: 'Aeróbico / Cardio Moderado',
+    emoji: '🛐',
+    isHibrida: false,
+    deltaProteinaGKg: 0.0,
+    extraCarboPeriTreino: 20,
+    fatorGetAdicional: 0.03,
+    hidratacaoExtraMlKg: 8,
+    notaClinica: 'Garantir ingestão adequada de carboidratos antes de sessões aeróbicas longas (>60 min). Monitorar eletrólitos.',
+  },
+  corrida: {
+    modalidade: 'corrida',
+    label: 'Corrida / Running',
+    emoji: '🏃',
+    isHibrida: false,
+    deltaProteinaGKg: 0.05,
+    extraCarboPeriTreino: 35,
+    fatorGetAdicional: 0.05,
+    hidratacaoExtraMlKg: 12,
+    notaClinica: 'Alta oxidação de carboidratos. Sugerir gel de maltodextrina ou banana pré-corrida longa. Risco de hiponatremia em ultramaratonas.',
+  },
+  natacao: {
+    modalidade: 'natacao',
+    label: 'Natação',
+    emoji: '🏊',
+    isHibrida: false,
+    deltaProteinaGKg: 0.05,
+    extraCarboPeriTreino: 30,
+    fatorGetAdicional: 0.04,
+    hidratacaoExtraMlKg: 6,
+    notaClinica: 'Atletas de natação tendem a subestimar perda hídrica. Atenção ao aporte de ferro (especialmente mulheres) e vitamina D.',
+  },
+  ciclismo: {
+    modalidade: 'ciclismo',
+    label: 'Ciclismo / Spinning',
+    emoji: '🚴',
+    isHibrida: false,
+    deltaProteinaGKg: 0.05,
+    extraCarboPeriTreino: 40,
+    fatorGetAdicional: 0.06,
+    hidratacaoExtraMlKg: 15,
+    notaClinica: 'Maior gasto calórico por hora entre as modalidades puras. Carboidrato durante pedaíadas >2h (g/h). Risco de catabolismo muscular em longos percursos.',
+  },
+  yoga_pilates: {
+    modalidade: 'yoga_pilates',
+    label: 'Yoga / Pilates',
+    emoji: '🧘',
+    isHibrida: false,
+    deltaProteinaGKg: 0.0,
+    extraCarboPeriTreino: 0,
+    fatorGetAdicional: 0.0,
+    hidratacaoExtraMlKg: 3,
+    notaClinica: 'Demanda metabólica baixa. Foco em micronutrientes anti-inflamatórios (omega-3, magnésio, cúlcio). Equilibrar flexível.',
+  },
+  artes_marciais: {
+    modalidade: 'artes_marciais',
+    label: 'Artes Marciais / MMA',
+    emoji: '🥊',
+    isHibrida: false,
+    deltaProteinaGKg: 0.15,
+    extraCarboPeriTreino: 35,
+    fatorGetAdicional: 0.05,
+    hidratacaoExtraMlKg: 12,
+    notaClinica: 'Alta demanda de proteína para reparo muscular (impacto). Atenção a períodos de cutting para lutas (desidratação aguda).',
+  },
+  // ── HÍBRIDAS ────────────────────────────────────────────────────────
+  crossfit: {
+    modalidade: 'crossfit',
+    label: 'CrossFit / Metcon',
+    emoji: '🔥',
+    isHibrida: true,
+    deltaProteinaGKg: 0.20,
+    extraCarboPeriTreino: 50,
+    fatorGetAdicional: 0.08,
+    hidratacaoExtraMlKg: 15,
+    notaClinica: 'ALTO IMPACTO HiBÍBRIDO: Combina força + resistência metabólica. Maior exigência de carboidrato intra-treino (20-30g/h). Proteína pós-treino dentro de 30 min é crítica. Monitorar catabolismo.',
+  },
+  hiit_forca: {
+    modalidade: 'hiit_forca',
+    label: 'HIIT + Musculação',
+    emoji: '⚡🏋️',
+    isHibrida: true,
+    deltaProteinaGKg: 0.18,
+    extraCarboPeriTreino: 40,
+    fatorGetAdicional: 0.06,
+    hidratacaoExtraMlKg: 12,
+    notaClinica: 'Stress metabólico duplo (glicógeno + músculo). Janela anábolica estendida. Priorizar carboidrato rápido pós-HIIT + proteína 0,3g/kg na refeição seguinte.',
+  },
+  triathlon: {
+    modalidade: 'triathlon',
+    label: 'Triathlon',
+    emoji: '🏊🚴🏃',
+    isHibrida: true,
+    deltaProteinaGKg: 0.15,
+    extraCarboPeriTreino: 60,
+    fatorGetAdicional: 0.10,
+    hidratacaoExtraMlKg: 20,
+    notaClinica: 'Máxima demanda hibíbrida. Gasto calórico extremo em treinos longos. Periodização de carboidrato (loading pré-prova). Eletrólitos críticos. Considerar suplementação de sódio em provas longas.',
+  },
+  funcional_misto: {
+    modalidade: 'funcional_misto',
+    label: 'Funcional Misto',
+    emoji: '🤸',
+    isHibrida: true,
+    deltaProteinaGKg: 0.12,
+    extraCarboPeriTreino: 30,
+    fatorGetAdicional: 0.04,
+    hidratacaoExtraMlKg: 8,
+    notaClinica: 'NEAT elevado por variação de movimentos. Bom equilíbrio entre energia e proteína. Ideal para recomposição corporal.',
+  },
+  ciclismo_forca: {
+    modalidade: 'ciclismo_forca',
+    label: 'Ciclismo + Musculação',
+    emoji: '🚴🏋️',
+    isHibrida: true,
+    deltaProteinaGKg: 0.15,
+    extraCarboPeriTreino: 45,
+    fatorGetAdicional: 0.07,
+    hidratacaoExtraMlKg: 15,
+    notaClinica: 'Combinar periodização de carboidrato (maior no dia do ciclismo) com aporte proteico elevado para preservar massa magra na fase aeróbica.',
+  },
+  running_musculacao: {
+    modalidade: 'running_musculacao',
+    label: 'Corrida + Musculação',
+    emoji: '🏃🏋️',
+    isHibrida: true,
+    deltaProteinaGKg: 0.15,
+    extraCarboPeriTreino: 35,
+    fatorGetAdicional: 0.05,
+    hidratacaoExtraMlKg: 10,
+    notaClinica: 'Conflito metabólico clássico (Efeito Interferência). Sequenciar: musculação antes da corrida. Proteína +20% nos dias de treino duplo.',
+  },
+  esportes_coletivos: {
+    modalidade: 'esportes_coletivos',
+    label: 'Esportes Coletivos',
+    emoji: '⚽🏀🏐',
+    isHibrida: true,
+    deltaProteinaGKg: 0.12,
+    extraCarboPeriTreino: 45,
+    fatorGetAdicional: 0.06,
+    hidratacaoExtraMlKg: 15,
+    notaClinica: 'Alta variabilidade de intensidade (sprints + pausa + aeróbico). Carboidrato de médio-rápido IG pré-jogo (batata doce/banana). Atenção a micronutrientes (ferro, zinco, vitamina C).',
+  },
+};
+
+/**
+ * Obtém o perfil de modalidade ou retorna null se não especificado.
+ */
+export function obterPerfilModalidade(
+  modalidade?: ModalidadeTreino
+): PerfilModalidadeHibrida | null {
+  if (!modalidade) return null;
+  return PERFIS_MODALIDADE_TREINO[modalidade] ?? null;
+}
+
+// ============================================================================
 // 3. CÁLCULO DE TAXAS METABÓLICAS (TMB, GET E METAS MACRO)
 // ============================================================================
 
@@ -860,11 +1045,18 @@ export function obterFatorAtividade(nivel: NivelAtividade): number {
 export function calcularBalançoEnergetico(
   biometria: BiometriaPaciente,
   objetivo: ObjetivoClinico,
-  nivelAtividade: NivelAtividade
+  nivelAtividade: NivelAtividade,
+  modalidadeTreino?: ModalidadeTreino
 ): CalculoEnergetico {
   const { tmb, metodo } = calcularTMB(biometria);
   const fatorAtividade = obterFatorAtividade(nivelAtividade);
-  const get = Math.round(tmb * fatorAtividade);
+  const getBase = Math.round(tmb * fatorAtividade);
+
+  // Ajuste adicional por modalidade híbrida (alta demanda calórica)
+  const perfilMod = obterPerfilModalidade(modalidadeTreino);
+  const getAjustado = perfilMod && perfilMod.fatorGetAdicional > 0
+    ? Math.round(getBase * (1 + perfilMod.fatorGetAdicional))
+    : getBase;
 
   let deltaCalorias = 0;
   switch (objetivo) {
@@ -878,13 +1070,13 @@ export function calcularBalançoEnergetico(
     default: deltaCalorias = 0; break;
   }
 
-  const caloriasAlvo = Math.max(1200, Math.round(get + deltaCalorias));
+  const caloriasAlvo = Math.max(1200, Math.round(getAjustado + deltaCalorias));
 
   return {
     tmb,
     metodoTmb: metodo,
     fatorAtividade,
-    get,
+    get: getAjustado,
     caloriasAlvo,
     deficitOuSuperavitKcal: deltaCalorias,
   };
@@ -893,19 +1085,24 @@ export function calcularBalançoEnergetico(
 export function calcularMetasMacronutrientes(
   biometria: BiometriaPaciente,
   objetivo: ObjetivoClinico,
-  caloriasAlvo: number
+  caloriasAlvo: number,
+  modalidadeTreino?: ModalidadeTreino
 ) {
   const peso = biometria.pesoKg;
   let proteinaGKg = 2.0;
   let gorduraPct = 0.25;
   let carboidratoG: number;
 
+  // Perfil da modalidade para ajuste de macros
+  const perfilMod = obterPerfilModalidade(modalidadeTreino);
+
   if (objetivo === 'cetogenica') {
     carboidratoG = 30;
-    proteinaGKg = 1.8;
+    proteinaGKg = 1.8 + (perfilMod?.deltaProteinaGKg ?? 0);
     const proteinaG = Math.round(peso * proteinaGKg);
     const kcalProtECarb = (proteinaG * 4) + (carboidratoG * 4);
     const gorduraG = Math.round((caloriasAlvo - kcalProtECarb) / 9);
+    const hidratacaoExtra = perfilMod ? Math.round(peso * perfilMod.hidratacaoExtraMlKg) : 0;
 
     return {
       calorias: caloriasAlvo,
@@ -914,16 +1111,17 @@ export function calcularMetasMacronutrientes(
       carboidratoG,
       gorduraG,
       fibrasMinimaG: 20,
-      aguaRecomendadaMl: Math.round(peso * 40),
+      aguaRecomendadaMl: Math.round(peso * 40) + hidratacaoExtra,
     };
   }
 
   if (objetivo === 'lowcarb') {
-    carboidratoG = 75;
-    proteinaGKg = 2.1;
+    carboidratoG = 75 + (perfilMod?.extraCarboPeriTreino ?? 0);
+    proteinaGKg = 2.1 + (perfilMod?.deltaProteinaGKg ?? 0);
     const proteinaG = Math.round(peso * proteinaGKg);
     const kcalProtECarb = (proteinaG * 4) + (carboidratoG * 4);
     const gorduraG = Math.round((caloriasAlvo - kcalProtECarb) / 9);
+    const hidratacaoExtra = perfilMod ? Math.round(peso * perfilMod.hidratacaoExtraMlKg) : 0;
 
     return {
       calorias: caloriasAlvo,
@@ -932,7 +1130,7 @@ export function calcularMetasMacronutrientes(
       carboidratoG,
       gorduraG,
       fibrasMinimaG: 25,
-      aguaRecomendadaMl: Math.round(peso * 38),
+      aguaRecomendadaMl: Math.round(peso * 38) + hidratacaoExtra,
     };
   }
 
@@ -945,16 +1143,24 @@ export function calcularMetasMacronutrientes(
     default: proteinaGKg = 2.0; gorduraPct = 0.25; break;
   }
 
+  // Aplicar delta de proteína da modalidade de treino
+  if (perfilMod) {
+    proteinaGKg = Math.min(3.0, proteinaGKg + perfilMod.deltaProteinaGKg);
+  }
+
   const proteinaG = Math.round(peso * proteinaGKg);
   const caloriasProteina = proteinaG * 4;
   const gorduraG = Math.round((caloriasAlvo * gorduraPct) / 9);
   const caloriasGordura = gorduraG * 9;
 
+  // Adicionar carboidratos peri-treino da modalidade ao pool de carboidratos
   const caloriasRestantesCarbo = caloriasAlvo - caloriasProteina - caloriasGordura;
-  carboidratoG = Math.max(50, Math.round(caloriasRestantesCarbo / 4));
+  const carboBase = Math.max(50, Math.round(caloriasRestantesCarbo / 4));
+  carboidratoG = carboBase + (perfilMod?.extraCarboPeriTreino ?? 0);
 
   const fibrasMinimaG = Math.round((caloriasAlvo / 1000) * 14);
-  const aguaRecomendadaMl = Math.round(peso * 35);
+  const hidratacaoExtra = perfilMod ? Math.round(peso * perfilMod.hidratacaoExtraMlKg) : 0;
+  const aguaRecomendadaMl = Math.round(peso * 35) + hidratacaoExtra;
 
   return {
     calorias: caloriasAlvo,
@@ -1153,10 +1359,10 @@ export function executarGeradorDietas(config: ConfigGeradorDieta): PlanoAlimenta
     throw new Error('Nenhum alimento restou elegível após aplicar as restrições alimentares.');
   }
 
-  // 2. Metas Energéticas e Macros
+  // 2. Metas Energéticas e Macros (com ajuste pela modalidade de treino)
   const isKetoOrLowCarb = anamnese.objetivo === 'cetogenica' || anamnese.objetivo === 'lowcarb';
-  const balanco = calcularBalançoEnergetico(biometria, anamnese.objetivo, anamnese.nivelAtividade);
-  const metasGlobais = calcularMetasMacronutrientes(biometria, anamnese.objetivo, balanco.caloriasAlvo);
+  const balanco = calcularBalançoEnergetico(biometria, anamnese.objetivo, anamnese.nivelAtividade, anamnese.modalidadeTreino);
+  const metasGlobais = calcularMetasMacronutrientes(biometria, anamnese.objetivo, balanco.caloriasAlvo, anamnese.modalidadeTreino);
 
   // 3. Templates de Refeições
   const templates = obterTemplatesRefeicoes(anamnese.numeroRefeicoesDia);

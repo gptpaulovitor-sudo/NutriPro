@@ -40,6 +40,7 @@ import {
   ObjetivoClinico,
   NivelAtividade,
   EstiloAlimentar,
+  ModalidadeTreino,
   PlanoAlimentar,
   Refeicao,
   ItemRefeicao,
@@ -53,7 +54,7 @@ import {
   calculateTMB,
   calculateGET,
 } from "@/utils/nutritionMath";
-import { CATALOGO_ALIMENTOS_BASE } from "@/utils/dietGenerator";
+import { CATALOGO_ALIMENTOS_BASE, PERFIS_MODALIDADE_TREINO } from "@/utils/dietGenerator";
 
 export default function PrescriptionPage() {
   const [isPending, startTransition] = useTransition();
@@ -71,6 +72,11 @@ export default function PrescriptionPage() {
   const [activityLevel, setActivityLevel] = useState<NivelAtividade>("moderado");
   const [mealCount, setMealCount] = useState(4);
   const [dietaryStyle, setDietaryStyle] = useState<EstiloAlimentar>("onivoro");
+
+  // Perfil de Treino
+  const [modalidadeTreino, setModalidadeTreino] = useState<ModalidadeTreino | undefined>("musculacao");
+  const [frequenciaSemanaTreino, setFrequenciaSemanaTreino] = useState<number>(4);
+  const [horarioTreino, setHorarioTreino] = useState<string>("17:30");
 
   // Restrições e Aversões
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
@@ -236,6 +242,9 @@ export default function PrescriptionPage() {
               aversoes: aversionsList,
               estiloAlimentar: dietaryStyle,
             },
+            modalidadeTreino,
+            frequenciaSemanaTreino,
+            horarioTreino: horarioTreino || undefined,
             questionarioAcessibilidade: questionarioFormatado,
           },
           questionarioAcessibilidade: questionarioFormatado,
@@ -602,6 +611,124 @@ export default function PrescriptionPage() {
                 <option value={6}>6 Refeições (Completo / Alto Fracionamento)</option>
               </select>
             </div>
+          </div>
+
+          {/* =============================================================== */}
+          {/* PERFIL DE TREINO & MODALIDADES (Puras + Híbridas)               */}
+          {/* =============================================================== */}
+          <div className="pt-4 border-t border-zinc-800/80 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                <Activity className="w-4 h-4 text-violet-400" />
+                Perfil de Treino &amp; Modalidade
+              </h3>
+              {modalidadeTreino && PERFIS_MODALIDADE_TREINO[modalidadeTreino]?.isHibrida && (
+                <span className="text-[11px] px-2.5 py-1 bg-violet-950/80 border border-violet-600 text-violet-300 font-bold rounded-lg flex items-center gap-1">
+                  ★ Modalidade Híbrida Detectada — Macros ajustados automaticamente
+                </span>
+              )}
+            </div>
+
+            {/* Seleção de Modalidade */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Modalidades Puras</span>
+              <div className="flex flex-wrap gap-2">
+                {(["musculacao", "aerobico", "corrida", "natacao", "ciclismo", "yoga_pilates", "artes_marciais"] as ModalidadeTreino[]).map((mod) => {
+                  const perfil = PERFIS_MODALIDADE_TREINO[mod];
+                  const isSelected = modalidadeTreino === mod;
+                  return (
+                    <button
+                      key={mod}
+                      type="button"
+                      onClick={() => setModalidadeTreino(isSelected ? undefined : mod)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-violet-700 border-violet-500 text-white shadow-md shadow-violet-900/40"
+                          : "bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                      }`}
+                    >
+                      <span>{perfil.emoji}</span>
+                      {perfil.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <span className="text-[11px] font-bold text-violet-400 uppercase tracking-wider block mt-3">
+                ★ Modalidades Híbridas (Ajuste Metabólico Duplo)
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {(["crossfit", "hiit_forca", "triathlon", "funcional_misto", "ciclismo_forca", "running_musculacao", "esportes_coletivos"] as ModalidadeTreino[]).map((mod) => {
+                  const perfil = PERFIS_MODALIDADE_TREINO[mod];
+                  const isSelected = modalidadeTreino === mod;
+                  return (
+                    <button
+                      key={mod}
+                      type="button"
+                      onClick={() => setModalidadeTreino(isSelected ? undefined : mod)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-violet-700 border-violet-500 text-white shadow-md shadow-violet-900/50 ring-1 ring-violet-400/40"
+                          : "bg-violet-950/20 border-violet-900/60 text-violet-300 hover:border-violet-700 hover:bg-violet-950/50"
+                      }`}
+                    >
+                      <span>{perfil.emoji}</span>
+                      {perfil.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Frequência + Horário */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1.5">Frequência (sessões/semana)</label>
+                <select
+                  value={frequenciaSemanaTreino}
+                  onChange={(e) => setFrequenciaSemanaTreino(Number(e.target.value))}
+                  className="w-full p-2 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs font-bold focus:border-violet-500 outline-none"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <option key={n} value={n}>{n}x por semana</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1.5">Horário Principal do Treino</label>
+                <input
+                  type="time"
+                  value={horarioTreino}
+                  onChange={(e) => setHorarioTreino(e.target.value)}
+                  className="w-full p-2 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs font-bold focus:border-violet-500 outline-none"
+                />
+              </div>
+
+              {modalidadeTreino && (
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-bold text-zinc-400 mb-1.5">Ajuste do Protocolo</label>
+                  <div className="p-2 bg-violet-950/30 border border-violet-900/50 rounded-xl space-y-0.5">
+                    <p className="text-[11px] text-violet-300 font-semibold">
+                      +{(PERFIS_MODALIDADE_TREINO[modalidadeTreino].deltaProteinaGKg * 100).toFixed(0)}% Proteína
+                      {" • "}+{PERFIS_MODALIDADE_TREINO[modalidadeTreino].extraCarboPeriTreino}g Carbo Peri
+                    </p>
+                    <p className="text-[11px] text-violet-400/80">
+                      +{(PERFIS_MODALIDADE_TREINO[modalidadeTreino].fatorGetAdicional * 100).toFixed(0)}% GET
+                      {" • "}+{PERFIS_MODALIDADE_TREINO[modalidadeTreino].hidratacaoExtraMlKg}ml/kg H₂O
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Nota Clínica da Modalidade */}
+            {modalidadeTreino && (
+              <div className="p-3 bg-violet-950/20 border border-violet-800/40 rounded-xl text-xs text-violet-200/80 font-medium flex items-start gap-2">
+                <HeartPulse className="w-3.5 h-3.5 text-violet-400 mt-0.5 shrink-0" />
+                <span><strong className="text-violet-300">Nota Clínica ({PERFIS_MODALIDADE_TREINO[modalidadeTreino].label}):</strong> {PERFIS_MODALIDADE_TREINO[modalidadeTreino].notaClinica}</span>
+              </div>
+            )}
           </div>
 
           {/* Restrições Alimentares e Estilo */}
