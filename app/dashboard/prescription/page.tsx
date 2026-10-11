@@ -783,7 +783,7 @@ export default function PrescriptionPage() {
                 ★ Modalidades Híbridas (Ajuste Metabólico Duplo)
               </span>
               <div className="flex flex-wrap gap-2">
-                {(["crossfit", "hiit_forca", "triathlon", "funcional_misto", "ciclismo_forca", "running_musculacao", "esportes_coletivos"] as ModalidadeTreino[]).map((mod) => {
+                {(["hyrox", "crossfit", "hiit_forca", "triathlon", "funcional_misto", "ciclismo_forca", "running_musculacao", "esportes_coletivos"] as ModalidadeTreino[]).map((mod) => {
                   const perfil = PERFIS_MODALIDADE_TREINO[mod];
                   const isSelected = modalidadeTreino === mod;
                   return (

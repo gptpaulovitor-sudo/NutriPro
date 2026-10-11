@@ -92,6 +92,7 @@ export type ModalidadeTreino =
   | 'yoga_pilates'         // Flexibilidade, core e mobilidade
   | 'artes_marciais'       // MMA, Jiu-Jitsu, Muay Thai, Judô
   // ── Modalidades Híbridas ───────────────────────────────────────────
+  | 'hyrox'                // ★ HÍBRIDO: Fitness Racing (SkiErg, Remo, AirBike, Corrida, Força Funcional)
   | 'crossfit'             // ★ HÍBRIDO: Força + Metcon + Resistência
   | 'hiit_forca'           // ★ HÍBRIDO: HIIT Intervalado + Musculação
   | 'triathlon'            // ★ HÍBRIDO: Natação + Ciclismo + Corrida

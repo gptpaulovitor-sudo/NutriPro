@@ -918,6 +918,17 @@ export const PERFIS_MODALIDADE_TREINO: Record<ModalidadeTreino, PerfilModalidade
     notaClinica: 'Alta demanda de proteína para reparo muscular (impacto). Atenção a períodos de cutting para lutas (desidratação aguda).',
   },
   // ── HÍBRIDAS ────────────────────────────────────────────────────────
+  hyrox: {
+    modalidade: 'hyrox',
+    label: 'HYROX / Fitness Racing',
+    emoji: '⚡🏃🏋️',
+    isHibrida: true,
+    deltaProteinaGKg: 0.20,
+    extraCarboPeriTreino: 50,
+    fatorGetAdicional: 0.09,
+    hidratacaoExtraMlKg: 16,
+    notaClinica: 'Padrão HYROX / Fitness Racing (SkiErg, Remo, AirBike, Corrida na esteira/rua, Calistenia e Força Funcional). Demanda glicogênica massiva e desidratação acelerada. Prescrever carboidratos intra-treino em sessões >60 min e 0,3-0,4g/kg de proteína pós-treino imediata.',
+  },
   crossfit: {
     modalidade: 'crossfit',
     label: 'CrossFit / Metcon',

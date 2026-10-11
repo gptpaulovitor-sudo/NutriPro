@@ -7116,7 +7116,7 @@ function calculateSuggestedFA(autoSync = true) {
 
     if (intensity === "Alta") baseFA += 0.05;
     // Bônus metabólico para modalidades híbridas de alta exigência
-    const isHybrid = workoutType.includes("Crossfit") || workoutType.includes("HIIT") || workoutType.includes("Triathlon") || workoutType.includes("Misto") || workoutType.includes("Corrida + Musculação") || workoutType.includes("Ciclismo + Força") || workoutType.includes("Esportes Coletivos");
+    const isHybrid = workoutType.includes("HYROX") || workoutType.includes("Crossfit") || workoutType.includes("HIIT") || workoutType.includes("Triathlon") || workoutType.includes("Misto") || workoutType.includes("Corrida + Musculação") || workoutType.includes("Ciclismo + Força") || workoutType.includes("Esportes Coletivos");
     if (isHybrid) baseFA += 0.08;
   }
 

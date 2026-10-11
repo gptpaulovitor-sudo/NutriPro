@@ -354,7 +354,8 @@ export async function getPatientAnamneseAction(
       // Mapeamento de Modalidade de Treino (Puras + Híbridas)
       let modTreino: ModalidadeTreino = "musculacao";
       const modLower = (p.mainModality || "").toLowerCase();
-      if (modLower.includes("crossfit")) modTreino = "crossfit";
+      if (modLower.includes("hyrox") || modLower.includes("racing") || modLower.includes("skierg")) modTreino = "hyrox";
+      else if (modLower.includes("crossfit")) modTreino = "crossfit";
       else if (modLower.includes("triathlon")) modTreino = "triathlon";
       else if (modLower.includes("corrida") && modLower.includes("forca")) modTreino = "running_musculacao";
       else if (modLower.includes("hiit")) modTreino = "hiit_forca";
