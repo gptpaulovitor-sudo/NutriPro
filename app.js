@@ -16777,6 +16777,200 @@ function _perfBuildRawWeeklySchedule(splitKey) {
     ];
   }
 
+  // ── Splits Híbridos & Performance Específicos ──────────────────────
+  else if (normalizedKey === 'HYROX') {
+    const r = PERF_SPLIT_PRESETS.HYROX || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Ergômetros & Potência', focus: 'SkiErg, Remo, AirBike e Tiros', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Depleção de ergômetros e economia ventilatória' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Força Funcional & Estações', focus: 'Sled Push, Sled Pull, Lunges e Wall Balls', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Força resistente e tolerância a lactato muscular' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Regenerativo Z2', focus: 'Biogênese & Sensibilidade Insulínica', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Oxidação de ácidos graxos sem fadiga de membros inferiores' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Simulação de Prova HYROX', focus: 'Bi-sets de corrida e estações concorrentes', type: 'Treino', carboTip: `${preCarbG} carbo com eletrólitos`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Simulação exata de transição de prova sob fadiga' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso / Mobilidade (OFF)', focus: 'Supercompensação Neuromuscular', type: 'Off', carboTip: 'Carboidratos equilibrados', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Repouso profundo do SNC' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Corrida Contínua Z2 / Limiar', focus: 'Economia de Corrida', type: 'Cardio', cardioId: 'cardio_02', carboTip: '40g carbo pré-corrida', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Volume de passada limpa sem carga nas costas' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recuperação Completa', type: 'Off', carboTip: 'Carbo de baixo IG', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono reparador de 8-9h' }
+    ];
+  }
+  else if (normalizedKey === 'CrossFit') {
+    const r = PERF_SPLIT_PRESETS.CrossFit || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Força & LPO', focus: 'Levantamento Terra, Front Squat & Push Press', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Potência máxima e coordenação intermuscular' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Metcon Glicolítico', focus: 'Barra Fixa, Thrusters & Paralelas', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Densidade metabólica e tamponamento muscular' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 / Mobilidade', focus: 'Recuperação Ativa', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Liberação miofascial e circulação capilar' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Chipper WOD & Ergômetros', focus: 'Kettlebell Swings, Box Jumps & Remo', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Resistência aeróbia sob carga' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Regeneração Muscular', type: 'Off', carboTip: 'Carbo complexo com fibras', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Reparação de microlesões e tecidos conjuntivos' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Engine Aeróbico / AirBike', focus: 'Capacidade Cardiovascular', type: 'Cardio', cardioId: 'cardio_03', carboTip: '30g carbo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'VO2max sem impacto mecânico' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Alívio Articular', type: 'Off', carboTip: 'Equilíbrio calórico', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Descanso do sistema nervoso autônomo' }
+    ];
+  }
+  else if (normalizedKey === 'RunningStrength') {
+    const r = PERF_SPLIT_PRESETS.RunningStrength || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Upper Força + Tiros', focus: 'Peito, Costas, Ombros & Tiros na Esteira', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Força básica de tronco sem sobrecarregar pernas' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Lower Força & Cadeia Posterior', focus: 'Agachamento, Stiff, Búlgaro & Panturrilhas', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Rigidez miotendínea e prevenção de fascite/tendinite' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Descanso / Mobilidade (OFF)', focus: 'Supercompensação de Pernas', type: 'Off', carboTip: 'Carboidratos moderados', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Reposição completa de glicogênio muscular' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Corrida em Limiar (Tempo Run)', focus: 'Corrida Contínua Z3/Z4 & Core', type: 'Treino', carboTip: '50-60g carbo peri-corrida', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Deslocamento de limiar anaeróbio de lactato' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recuperação Osteomuscular', type: 'Off', carboTip: 'Alimentação anti-inflamatória', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Alívio de impacto nas tíbias e articulações' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: 'D', title: r[3]?.name || 'Treino D · Full Body Funcional & Core', focus: 'Trap Bar Deadlift, Puxadas & Passadas', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Manutenção muscular global sem fadiga excessiva' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Longão de Rodagem Z2 (60-90 min)', focus: 'Base Mitocondrial', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carboidratos a cada 45 min', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Resistência aeróbia pura em ritmo conversacional' }
+    ];
+  }
+  else if (normalizedKey === 'HIIT_Forca') {
+    const r = PERF_SPLIT_PRESETS.HIIT_Forca || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Push & HIIT Esteira', focus: 'Peito, Ombros, Tríceps & Sprints 30s/30s', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Hipertrofia anterior associada a pico de FC' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Pull & HIIT Remo', focus: 'Costas, Bíceps & Tiros de Remo Concept2', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Tração potente com estímulo cardiovascular de tronco' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 Puro / Soltura', focus: 'Depuração Metabólica', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Oxidação lipídica e alívio neuromuscular' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Legs & HIIT AirBike', focus: 'Agachamento, Leg Press, Stiff & Tabata na Bike', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Esvaziamento glicogênico de membros inferiores' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recuperação Sistêmica', type: 'Off', carboTip: 'Equilíbrio nutricional', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Descanso de alta intensidade' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Circuito Leve / Caminhada Inclinada', focus: 'Fluxo Sanguíneo', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Ativação parassimpática' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Sono e Regeneração', type: 'Off', carboTip: 'Carbo complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Preparação para novo microciclo' }
+    ];
+  }
+  else if (normalizedKey === 'Triathlon') {
+    const r = PERF_SPLIT_PRESETS.Triathlon || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Natação Técnica & Intervalada', focus: 'Tiros de piscina e estabilidade de ombro', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Eficiência hidrodinâmica e economia de braçada' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Ciclismo de Limiar (Sweet Spot)', focus: 'Potência na bike e sustentação de FTP', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Tolerância ao lactato no pedal' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: 'D', title: r[3]?.name || 'Treino D · Força Preventiva & Core', focus: 'Hex Bar, Búlgaro, Manguito & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Proteção articular contra sobrecarga repetitiva' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Corrida em Ritmo de Prova', focus: 'Tempo Run & Panturrilhas', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Manutenção de pace sob fadiga acumulada' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Natação Regenerativa / Soltura', focus: 'Recuperação Ativa sem Gravidade', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Alívio muscular e relaxamento escapular' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Longão de Ciclismo / Transição Brick', focus: 'Endurance Aeróbio Prolongado', type: 'Cardio', cardioId: 'cardio_02', carboTip: '60g carbo/hora', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Simulação de nutrição e hidratação de prova' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação Completa', type: 'Off', carboTip: 'Recarga equilibrada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono restaurador e consolidação' }
+    ];
+  }
+  else if (normalizedKey === 'FuncionalMisto') {
+    const r = PERF_SPLIT_PRESETS.FuncionalMisto || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Padrões Fundamentais & Mobilidade', focus: 'Goblet Squat, Remada Kettlebell & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Qualidade de movimento e mobilidade articular' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Cardio Z2 / Caminhada Inclinada', focus: 'Oxidação Lipídica', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Biogênese sem sobrecarga muscular' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: 'B', title: r[1]?.name || 'Treino B · Potência & Core Integrado', focus: 'KB Swings, Farmer Walk & Toes-to-Bar', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Grip forte, estabilidade lombar e potência de quadril' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Descanso / Mobilidade (OFF)', focus: 'Recuperação', type: 'Off', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Descanso neuromuscular' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: r[2]?.name || 'Treino C · Circuito Metabólico Funcional', focus: 'Burpees, Ergômetro & Mountain Climbers', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Gasto calórico elevado e condicionamento total' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Atividade Livre Recreativa', focus: 'Saúde Mental & Movimento', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Carbo equilibrado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Movimentação prazerosa' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação', type: 'Off', carboTip: 'Alimentação limpa', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recarga semanal completa' }
+    ];
+  }
+  else if (normalizedKey === 'Ciclismo_Forca') {
+    const r = PERF_SPLIT_PRESETS.Ciclismo_Forca || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Força de Pernas para Ciclismo', focus: 'Agachamento, Leg Press, Stiff & Panturrilhas', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Produção máxima de watts na fase de compressão' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Sessão de Bike Intervalada', focus: 'Tiros VO2max e giros de cadência', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Potência anaeróbia e capacidade aeróbia na bike' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Descanso / Soltura (OFF)', focus: 'Recuperação de Pernas', type: 'Off', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Reposição de glicogênio muscular' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Tronco & Postura de Guidão', focus: 'Remada, Supino, Face Pull & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sustentação escapular e combate à dor cervical' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Giro de Recuperação Z1', focus: 'Circulação Capilar', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Pedal leve de soltura sem esforço' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: 'D', title: r[3]?.name || 'Treino D · Longão de Ciclismo Z2', focus: 'Rodagem Contínua de 75-90 min', type: 'Treino', carboTip: '50-60g carbo/hora', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Resistência mitocondrial para provas e estradas' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Regeneração Muscular', type: 'Off', carboTip: 'Carbo complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono e descanso total' }
+    ];
+  }
+  else if (normalizedKey === 'EsportesColetivos') {
+    const r = PERF_SPLIT_PRESETS.EsportesColetivos || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Força Reativa & Pliometria', focus: 'Trap Bar, Saltos na Caixa & Búlgaro', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Taxa de desenvolvimento de força para impulsão' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Agilidade & Mudança de Direção', focus: 'Drills de Cones, Flexão Nórdica & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Desaceleração segura e prevenção de LCA' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Regenerativo Z2', focus: 'Oxigenação Tecidual', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Alívio neuromuscular' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Condicionamento Intermitente', focus: 'Shuttle Runs, Flexões Explosivas & Rotação', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Capacidade de repetir sprints em intensidade de partida' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Pré-Jogo (OFF)', focus: 'Prontidão Neural', type: 'Off', carboTip: 'Recarga moderada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Músculos descansados e reativos' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Jogo / Coletivo / Prática Esportiva', focus: 'Desempenho Técnico-Tático', type: 'Treino + Cardio', carboTip: 'Eletrólitos + Carbo no intervalo', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Entrega máxima em campo/quadra' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação Pós-Jogo', type: 'Off', carboTip: 'Alimentação reparadora', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recuperação articular e muscular' }
+    ];
+  }
+  else if (normalizedKey === 'MistoCardio') {
+    const r = PERF_SPLIT_PRESETS.MistoCardio || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Upper Força + Cardio Z2', focus: 'Supino, Remada, Ombros & 25m Cardio', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Força de tronco e queima lipídica contínua' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Lower Força & Cadeia Posterior', focus: 'Agachamento, Leg Press, Stiff & Panturrilhas', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Tensão mecânica nos membros inferiores' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Descanso / Mobilidade (OFF)', focus: 'Recuperação Muscular', type: 'Off', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Pausa para síntese proteica' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Cardio HIIT Dedicado', focus: 'Remo Concept2 ou Esteira HIIT 1m/1m', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Gasto calórico elevado e expansão de VO2max' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Alívio do SNC', type: 'Off', carboTip: 'Alimentação equilibrada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Regeneração geral' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: 'D', title: r[3]?.name || 'Treino D · Full Body Funcional & Core', focus: 'Trap Bar, Puxadas, Halteres & Passadas', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Estímulo global de recomposição corporal' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Sono e Repouso', type: 'Off', carboTip: 'Carboidrato complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Supercompensação semanal' }
+    ];
+  }
+  else if (normalizedKey === 'Corrida_Endurance') {
+    const r = PERF_SPLIT_PRESETS.Corrida_Endurance || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Tiros de Velocidade & VO2max', focus: 'Tiros de 400m/800m & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Potência aeróbia e cadência de passada' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Fortalecimento Específico Corredor', focus: 'Búlgaro, Stiff Unilateral & Panturrilhas', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Blindagem articular contra lesões de corrida' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Rodagem Regenerativa Z1/Z2 (30 min)', focus: 'Depuração de Lactato', type: 'Cardio', cardioId: 'cardio_01', carboTip: '30g carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Soltura muscular sem estresse' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Corrida em Ritmo de Prova', focus: 'Tempo Run Contínuo de 35-50 min', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Estabilidade do limiar de lactato' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Descanso Pré-Longão', type: 'Off', carboTip: 'Carbo denso de baixo IG', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recarga de glicogênio hepático e muscular' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: 'D', title: r[3]?.name || 'Treino D · Longão de Rodagem Z2', focus: 'Volume Contínuo de 60 a 90 min', type: 'Treino', carboTip: 'Suplementação peri-longão', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Capilarização e eficiência energética' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação', type: 'Off', carboTip: 'Refeição equilibrada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono profundo e regeneração' }
+    ];
+  }
+  else if (normalizedKey === 'Ciclismo_Endurance') {
+    const r = PERF_SPLIT_PRESETS.Ciclismo_Endurance || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Limiar & Sweet Spot', focus: 'Intervalos 88-93% FTP & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Aumento de potência sustentada (FTP)' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Força de Sustentação & Core', focus: 'Agachamento, Remada & Stiff', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sustentação do tronco e estabilidade no selim' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Giro Regenerativo Z1 (40 min)', focus: 'Recuperação Ativa', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Soltura das pernas sem esforço' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Tiros Curtos / Alta Cadência (Z4/Z5)', focus: 'Agilidade Neuromuscular', type: 'Cardio', cardioId: 'cardio_03', carboTip: '40g carbo', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Potência de sprint e resposta rápida' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recarga Pré-Longão', type: 'Off', carboTip: 'Carbo equilibrado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recarga de energia' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: 'C', title: r[2]?.name || 'Treino C · Longão de Endurance Z2', focus: 'Rodagem de 90 a 120 min', type: 'Treino', carboTip: '60g carbo/hora', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Queima de gordura e adaptação de longa duração' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Regeneração Completa', type: 'Off', carboTip: 'Alimentação balanceada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Descanso total do corpo' }
+    ];
+  }
+  else if (normalizedKey === 'Natacao') {
+    const r = PERF_SPLIT_PRESETS.Natacao || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Volume Aeróbio na Piscina', focus: 'Séries de Fundo 200m/400m & Core', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Economia e ritmo hidrodinâmico' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Fortalecimento em Terra', focus: 'Barra Fixa, Face Pull & Remada', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Saúde do manguito e força de tração' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Soltura Aquática Regenerativa', focus: 'Descompressão Articular', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Mobilidade suave na água' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Tiros de Velocidade & Pernada', focus: 'Tiros 50m Crawl Máximo & Prancha', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Potência anaeróbia e viradas' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recuperação', type: 'Off', carboTip: 'Equilíbrio calórico', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Repouso dos ombros' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Educativos Técnicos de Nado', focus: 'Biomecânica de Braçada', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Aprimoramento técnico' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação', type: 'Off', carboTip: 'Nutrição completa', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono profundo' }
+    ];
+  }
+  else if (normalizedKey === 'Lutas') {
+    const r = PERF_SPLIT_PRESETS.Lutas || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Força Explosiva & Potência', focus: 'Terra, Supino Rápido & Barra com Toalha', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Força de projeção e pegada firme' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Pescoço, Grip & Core Rotacional', focus: 'Farmers Walk, Woodchopper & Cervical', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Blindagem contra lesões de combate' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Treino Técnico / Drill de Luta', focus: 'Precisão e Habilidade', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo peri-treino', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Movimentação sem desgaste máximo' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Resistência Lática de Rounds', focus: 'AirBike em Tiros de Round & Sprawls', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Tolerância ao cansaço nos últimos rounds' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Alívio Neural', type: 'Off', carboTip: 'Alimentação equilibrada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recuperação do sistema vestibular e cervical' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Sparring / Simulação de Combate', focus: 'Aplicação Real sob Estresse', type: 'Treino + Cardio', carboTip: 'Eletrólitos + Carbo rápido', proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Entrega na luta' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Regeneração Muscular', type: 'Off', carboTip: 'Carbo complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Repouso absoluto' }
+    ];
+  }
+  else if (normalizedKey === 'Calistenia') {
+    const r = PERF_SPLIT_PRESETS.Calistenia || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Tração (Pull) - Barra Fixa', focus: 'Pull-ups, Argolas & Toes-to-Bar', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Força relativa máxima em tração' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Empurrar (Push) - Paralelas', focus: 'Dips, Flexões Avançadas & Pike Push-up', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Empurrada vertical/horizontal e hollow body' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Mobilidade & Descanso Ativo', focus: 'Ombros e Punhos', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Saúde articular das mãos e cotovelos' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Pernas & Equilíbrio', focus: 'Pistol Squats, Saltos & Dragon Flag', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Controle unilateral e tensão de core' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação', type: 'Off', carboTip: 'Nutrição equilibrada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Reparação muscular' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Habilidades Ginásticas (Handstand, L-Sit)', focus: 'Propriocepção e Isometria', type: 'Treino', carboTip: 'Carbo leve', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Equilíbrio e sustentação corporal' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Alívio Articular', type: 'Off', carboTip: 'Carbo complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono profundo e descanso' }
+    ];
+  }
+  else if (normalizedKey === 'Aerobico_Geral') {
+    const r = PERF_SPLIT_PRESETS.Aerobico_Geral || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Cardio Contínuo Z2', focus: 'Caminhada Inclinada / Elíptico 45m & Core', type: 'Treino', carboTip: `${preCarbG} carbo leve`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Biogênese mitocondrial e queima lipídica confortável' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: r[1]?.name || 'Treino B · Circuito Metabólico Aeróbio', focus: 'Air Squats, Flexão Apoiada & Step-up', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterStr, strategyTip: 'Aptidão cardiorrespiratória em movimento amplo' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Descanso Total (OFF)', focus: 'Recuperação', type: 'Off', carboTip: 'Alimentação equilibrada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Repouso seguro' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: r[2]?.name || 'Treino C · Intervalado Aeróbio Moderado', focus: 'Intervalos Z3 na Esteira ou Bicicleta', type: 'Treino', carboTip: `${preCarbG} carbo`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Elevação controlada de VO2max' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Caminhada Leve ao Ar Livre', focus: 'Passos Diários & Saúde Cardiovascular', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Manutenção do gasto calórico basal' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Atividade Recreativa Livre', focus: 'Bem-estar', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Alimentação limpa', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Movimentação prazerosa' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Repouso e Regeneração', type: 'Off', carboTip: 'Carbo complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono restaurador' }
+    ];
+  }
+  // ── Se houver um preset customizado cadastrado em PERF_SPLIT_PRESETS ────────
+  else if (PERF_SPLIT_PRESETS[normalizedKey] && Array.isArray(PERF_SPLIT_PRESETS[normalizedKey])) {
+    const r = PERF_SPLIT_PRESETS[normalizedKey];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: r[0]?.id || 'A', title: r[0]?.name || 'Treino A', focus: r[0]?.description || 'Força e Resistência Específica', type: 'Treino', carboTip: `${preCarbG} carbo pré-treino`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Aporte de substrato para desempenho máximo' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: r[1]?.id || (r.length > 1 ? 'B' : null), title: r[1]?.name || (r.length > 1 ? 'Treino B' : 'Cardio Z2'), focus: r[1]?.description || 'Recuperação Ativa', type: r.length > 1 ? 'Treino' : 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Biogênese e depuração metabólica' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: r[2]?.id || (r.length > 2 ? 'C' : null), title: r[2]?.name || (r.length > 2 ? 'Treino C' : 'Descanso / Mobilidade'), focus: r[2]?.description || 'Supercompensação', type: r.length > 2 ? 'Treino' : 'Off', carboTip: 'Carbo equilibrado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Recuperação neuromuscular' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: r[3]?.id || (r.length > 3 ? 'D' : (r[0]?.id || 'A')), title: r[3]?.name || (r.length > 3 ? 'Treino D' : 'Treino Principal / Re-estímulo'), focus: r[3]?.description || 'Estímulo de Continuidade', type: 'Treino', carboTip: `${preCarbG} carbo denso`, proteinTip: protStr, waterTip: waterPlusStr, strategyTip: 'Manutenção de intensidade e volume' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: r[4]?.id || null, title: r[4]?.name || 'Descanso Total (OFF)', focus: 'Alívio do SNC', type: r[4] ? 'Treino' : 'Off', carboTip: 'Carbo de baixo IG', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Regeneração celular' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: r[5]?.id || null, title: r[5]?.name || 'Cardio Complementar Z2', focus: 'Capacidade Aeróbia', type: r[5] ? 'Treino' : 'Cardio', cardioId: 'cardio_02', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Oxidação lipídica' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação Semanal', type: 'Off', carboTip: 'Carbo equilibrado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono profundo e recomposição' }
+    ];
+  }
   // 9. Fallback Padrão PPL (caso splitKey não seja reconhecido)
   else {
     return [
@@ -20465,17 +20659,420 @@ const PERF_SPLIT_PRESETS = {
         { exerciseId: 'lg01', name: 'HIIT na AirBike / Echo Bike (Tabata)', sets: 8, reps: '20s on / 10s off', rpe: 9.5, rest: 10, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Protocolo Tabata de 4 minutos com consumo máximo de oxigênio.' }
       ]
     }
+  ],
+
+  // ── 12. TRIATHLON (4 Dias · Natação, Ciclismo, Corrida & Força Preventiva) ──
+  Triathlon: [
+    {
+      id: 'A',
+      name: 'Treino A · Natação Técnica & Intervalada',
+      description: 'Volume aeróbio contínuo e tiros na piscina com foco em eficiência de braçada.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Natação Intervalada na Piscina (Tiros 100m)', sets: 8, reps: '100m tiro', rpe: 8.0, rest: 30, cadence: 'Pace Prova', resistProfile: 'uniform', obs: 'Controle de braçadas e respiração bilateral.' },
+        { exerciseId: 'pe18', name: 'Flexões de Braço com Escápula Estável', sets: 3, reps: '12-15', rpe: 7.5, rest: 60, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Estabilidade anterior e ativação de serrátil.' },
+        { exerciseId: 'ab06', name: 'Prancha Frontal com Toque nos Ombros', sets: 3, reps: '45s', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Estabilidade rotacional na água.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Ciclismo Intervalado de Limiar',
+      description: 'Sessão na bike / rolo em limiar de lactato (Sweet Spot / FTP).',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Ciclismo em Limiar de Potência (Sweet Spot)', sets: 4, reps: '8 min', rpe: 8.5, rest: 120, cadence: '85-90 RPM', resistProfile: 'uniform', obs: 'Manutenção de potência sustentada perto do FTP.' },
+        { exerciseId: 'lg08', name: 'Giro Regenerativo de Alta Cadência', sets: 1, reps: '15 min', rpe: 6.5, rest: 0, cadence: '95-100 RPM', resistProfile: 'uniform', obs: 'Depuração de metabólitos e soltura das pernas.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Corrida em Ritmo de Prova (Tempo Run)',
+      description: 'Treino contínuo de corrida simulando o trecho final do Triathlon.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Corrida Contínua em Zona 3/4 (Tempo Run)', sets: 1, reps: '35-45 min', rpe: 8.0, rest: 0, cadence: 'Ritmo Prova', resistProfile: 'uniform', obs: 'Esteira ou rua · economia de passada e controle de FC.' },
+        { exerciseId: 'lg20', name: 'Panturrilha Unilateral no Degrau', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Prevenção de fascite plantar e tendinopatia aquiliana.' }
+      ]
+    },
+    {
+      id: 'D',
+      name: 'Treino D · Força Funcional para Triatletas & Core',
+      description: 'Fortalecimento articular e prevenção de lesões por sobrecarga cíclica.',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra Hex Bar / Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Força na cadeia posterior sem sobrecarga axial excessiva.' },
+        { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8-10 cada', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Equilíbrio unilateral e estabilidade de joelho.' },
+        { exerciseId: 'sh18', name: 'Face Pull na Polia com Rotação Externa', sets: 3, reps: '12-15', rpe: 7.5, rest: 60, cadence: '2-1-1-0', resistProfile: 'shortened', obs: 'Manguito rotador e tratores escapulares.' },
+        { exerciseId: 'ab05', name: 'Abdominal Rollout na Roda', sets: 3, reps: '10 reps', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Core anterior forte para postura aero.' }
+      ]
+    }
+  ],
+
+  // ── 13. FUNCIONAL MISTO (3 Dias · Mobilidade, Core & Circuito Metabólico) ────
+  FuncionalMisto: [
+    {
+      id: 'A',
+      name: 'Treino A · Padrões Fundamentais & Mobilidade Dinâmica',
+      description: 'Agachar, puxar, empurrar e articular com ênfase em mobilidade.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento Goblet com Halter / Kettlebell', sets: 4, reps: '10-12', rpe: 8.0, rest: 90, cadence: '3-1-1-0', resistProfile: 'uniform', obs: 'Tronco vertical e amplitude máxima de quadril.' },
+        { exerciseId: 'do08', name: 'Remada Unilateral com Kettlebell (Serrote)', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Tração horizontal unilateral com apoio firme.' },
+        { exerciseId: 'pe18', name: 'Flexões de Braço com Variações de Pegada', sets: 3, reps: '12-15', rpe: 8.0, rest: 60, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Controle de core e empurrada limpa.' },
+        { exerciseId: 'ab06', name: 'Prancha Lateral com Elevação de Quadril', sets: 3, reps: '30s / lado', rpe: 7.5, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Estabilizadores pélvicos e oblíquos.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Potência & Core Integrado',
+      description: 'Movimentos balísticos e transporte de carga.',
+      exercises: [
+        { exerciseId: 'lg10', name: 'Kettlebell Swing Russo', sets: 4, reps: '15-20', rpe: 8.0, rest: 60, cadence: 'Explosivo', resistProfile: 'stretched', obs: 'Snap de quadril potente sem agachar.' },
+        { exerciseId: 'sh18', name: 'Farmer Walk com Halteres Pesados', sets: 4, reps: '40 metros', rpe: 8.5, rest: 90, cadence: 'Passo Firme', resistProfile: 'uniform', obs: 'Postura ereta, ombros encaixados e grip forte.' },
+        { exerciseId: 'lg08', name: 'Passada com Halteres (Walking Lunges)', sets: 3, reps: '12 passos', rpe: 8.0, rest: 60, cadence: 'Controlado', resistProfile: 'uniform', obs: 'Estabilidade unilateral de joelho e tornozelo.' },
+        { exerciseId: 'ab03', name: 'Elevação de Pernas na Barra Fixa', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '2-0-1-0', resistProfile: 'stretched', obs: 'Flexão pélvica sem embalo.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Circuito Metabólico Funcional',
+      description: 'Sessão em circuito para queima calórica e condicionamento geral.',
+      exercises: [
+        { exerciseId: 'lg07', name: 'Burpees sem Salto Excessivo', sets: 4, reps: '12 reps', rpe: 8.5, rest: 45, cadence: 'Constante', resistProfile: 'uniform', obs: 'Ritmo sustentável de respiração.' },
+        { exerciseId: 'do01', name: 'Remo RowErg ou AirBike', sets: 4, reps: '250m ou 15 cal', rpe: 8.5, rest: 60, cadence: 'Forte', resistProfile: 'uniform', obs: 'Estímulo cardiovascular em cadeia fechada.' },
+        { exerciseId: 'lg08', name: 'Salto na Caixa ou Step-up Rápido', sets: 3, reps: '12 cada', rpe: 8.0, rest: 60, cadence: 'Dinâmico', resistProfile: 'uniform', obs: 'Pliometria moderada e aterrissagem macia.' },
+        { exerciseId: 'pe18', name: 'Mountain Climbers no Chão', sets: 4, reps: '30 segundos', rpe: 8.0, rest: 45, cadence: 'Rápido', resistProfile: 'uniform', obs: 'Core anterior e frequência cardíaca elevada.' }
+      ]
+    }
+  ],
+
+  // ── 14. CICLISMO + FORÇA (4 Dias · Potência no Pedal & Membros Inferiores) ──
+  Ciclismo_Forca: [
+    {
+      id: 'A',
+      name: 'Treino A · Força de Membros Inferiores para Ciclismo',
+      description: 'Sobrecarga miofibrilar em agachamentos e potência de quadríceps/glúteo.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '5-6', rpe: 8.5, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Desenvolvimento de força máxima para subidas e sprints na bike.' },
+        { exerciseId: 'lg04', name: 'Leg Press 45° com Foco em Quadríceps', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Pressão plantar contínua sem travar joelhos.' },
+        { exerciseId: 'lg10', name: 'Stiff com Barra (Cadeia Posterior)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Alongamento de isquiotibiais e força para fase de puxada do pedal.' },
+        { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-2-1-0', resistProfile: 'stretched', obs: '2s de pausa no fundo para transferir rigidez ao pedal.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Sessão de Bike Intervalada (VO2max & Subidas)',
+      description: 'Sessão específica no rolo ou estrada com tiros de alta potência.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Tiros de Potência VO2max na Bike', sets: 5, reps: '3 min', rpe: 9.0, rest: 180, cadence: '95 RPM', resistProfile: 'uniform', obs: 'Intensidade acima do limiar para expansão cardiovascular.' },
+        { exerciseId: 'lg08', name: 'Giro de Cadência Recuperativa', sets: 1, reps: '20 min', rpe: 6.0, rest: 0, cadence: '90 RPM', resistProfile: 'uniform', obs: 'Recuperação ativa em Zona 1/2.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Tronco & Postura de Guidão',
+      description: 'Estabilidade torácica, ombros e core para suportar horas pedalando.',
+      exercises: [
+        { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Trapézio médio e romboides para evitar dores cervicais.' },
+        { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Equilíbrio anterior do tronco.' },
+        { exerciseId: 'sh18', name: 'Face Pull na Polia com Rotação Externa', sets: 3, reps: '12-15', rpe: 7.5, rest: 60, cadence: '2-1-1-0', resistProfile: 'shortened', obs: 'Prevenção de postura curvada excessiva.' },
+        { exerciseId: 'ab06', name: 'Prancha Isométrica com Braços Estendidos', sets: 3, reps: '45s', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Resistência anti-extensão lombar.' }
+      ]
+    },
+    {
+      id: 'D',
+      name: 'Treino D · Endurance de Ciclismo (Longão Z2)',
+      description: 'Rodagem de base aeróbica contínua de 60 a 90 minutos.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Rodagem Contínua em Zona 2 (Longão)', sets: 1, reps: '75 min', rpe: 7.0, rest: 0, cadence: '85-90 RPM', resistProfile: 'uniform', obs: 'Biogênese mitocondrial e queima lipídica no pedal.' }
+      ]
+    }
+  ],
+
+  // ── 15. ESPORTES COLETIVOS (3 Dias · Futebol, Basquete, Vôlei & Agilidade) ──
+  EsportesColetivos: [
+    {
+      id: 'A',
+      name: 'Treino A · Força Reativa & Pliometria (Potência)',
+      description: 'Saltos, arrancadas e taxa de desenvolvimento de força (RFD).',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra com Trap Bar', sets: 4, reps: '5 reps', rpe: 8.0, rest: 120, cadence: 'Explosivo', resistProfile: 'uniform', obs: 'Produção rápida de força no solo.' },
+        { exerciseId: 'lg08', name: 'Saltos em Caixa com Extensão Tripla', sets: 4, reps: '6 saltos', rpe: 8.0, rest: 90, cadence: 'Pliométrico', resistProfile: 'uniform', obs: 'Potência vertical e amortecimento seguro.' },
+        { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Salto ou Carga', sets: 3, reps: '6 cada perna', rpe: 8.0, rest: 90, cadence: 'Explosivo', resistProfile: 'stretched', obs: 'Força unilateral indispensável para passadas no campo/quadra.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Agilidade & Mudança de Direção (COD)',
+      description: 'Drills de desaceleração, mobilidade lateral e estabilidade de joelho.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Drills de Mudança de Direção (Cones em T)', sets: 6, reps: '15m percurso', rpe: 8.5, rest: 60, cadence: 'Máx Agilidade', resistProfile: 'uniform', obs: 'Aceleração, freada e re-aceleração rápida.' },
+        { exerciseId: 'lg10', name: 'Flexão Nórdica ou Stiff Unilateral', sets: 3, reps: '6-8 reps', rpe: 8.5, rest: 90, cadence: '4-0-1-0', resistProfile: 'stretched', obs: 'Fortalecimento excêntrico de isquiotibiais (prevenção de estiramento).' },
+        { exerciseId: 'ab06', name: 'Prancha Lateral com Abdução de Quadril', sets: 3, reps: '30s / lado', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Glúteo médio firme para estabilizar o valgo de joelho.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Condicionamento Intermitente Específico',
+      description: 'Tiros intermitentes simulando sprints de partida de jogo.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Sprints Intermitentes 15s / 15s (Shuttle Run)', sets: 10, reps: '15s sprint', rpe: 9.0, rest: 15, cadence: 'Máx Pace', resistProfile: 'uniform', obs: 'Capacidade de repetir sprints em fadiga.' },
+        { exerciseId: 'pe18', name: 'Flexões com Empurrada Explosiva', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: 'Explosivo', resistProfile: 'uniform', obs: 'Potência de tronco para disputas de espaço.' },
+        { exerciseId: 'ab02', name: 'Rotação de Tronco no Cabo (Woodchopper)', sets: 3, reps: '12 / lado', rpe: 8.0, rest: 60, cadence: 'Controlado', resistProfile: 'shortened', obs: 'Potência rotacional para chutes e arremessos.' }
+      ]
+    }
+  ],
+
+  // ── 16. MISTO FORÇA + CARDIO (4 Dias · Equilíbrio Metabólico & Composição) ────
+  MistoCardio: [
+    {
+      id: 'A',
+      name: 'Treino A · Upper Força + Cardio Contínuo Z2',
+      description: 'Membros superiores na musculação com cardio oxidativo final.',
+      exercises: [
+        { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força básica de empurrar.' },
+        { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Espessura de costas e estabilidade.' },
+        { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 3, reps: '12-15', rpe: 8.5, rest: 45, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Deltoide medial.' },
+        { exerciseId: 'lg08', name: 'Cardio Pós-Treino em Zona 2 (Esteira/Bike)', sets: 1, reps: '25 min', rpe: 7.0, rest: 0, cadence: 'Constante', resistProfile: 'uniform', obs: 'Oxidação de lipídios sem interferir no ganho de força.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Lower Força & Cadeia Posterior',
+      description: 'Membros inferiores pesados com amplitude completa.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Quadríceps e glúteos.' },
+        { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '10-12', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Volume articular seguro.' },
+        { exerciseId: 'lg10', name: 'Stiff com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Isquiotibiais no alongamento.' },
+        { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '12-15', rpe: 8.5, rest: 45, cadence: '3-1-1-0', resistProfile: 'stretched', obs: 'Pausa no fundo.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Cardio HIIT / Ergômetros Específico',
+      description: 'Sessão cardiovascular metabólica dedicada sem musculação concorrente.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Remo Concept2 ou Esteira (HIIT 1m/1m)', sets: 8, reps: '1 min forte / 1 min leve', rpe: 8.5, rest: 60, cadence: 'Ritmo Forte', resistProfile: 'uniform', obs: 'Elevação de VO2max e depleção de glicogênio.' },
+        { exerciseId: 'ab05', name: 'Abdominal Rollout ou Prancha Frontal', sets: 3, reps: '12 reps / 45s', rpe: 8.0, rest: 45, cadence: 'Controlado', resistProfile: 'stretched', obs: 'Estabilização de core.' }
+      ]
+    },
+    {
+      id: 'D',
+      name: 'Treino D · Full Body Funcional & Core',
+      description: 'Treino global integrador para fechar a semana.',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra com Halteres / Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Cadeia posterior completa.' },
+        { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Peitoral superior.' },
+        { exerciseId: 'do11', name: 'Puxada Alta na Polia (Lat Pulldown)', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Dorsais com pegada aberta.' },
+        { exerciseId: 'lg08', name: 'Passada com Halteres (Walking Lunges)', sets: 3, reps: '10 passos / perna', rpe: 8.0, rest: 60, cadence: 'Controlado', resistProfile: 'uniform', obs: 'Glúteos e pernas.' }
+      ]
+    }
+  ],
+
+  // ── 17. CORRIDA / ENDURANCE PURA (4 Dias · Tiros, Ritmo & Rodagem Longa) ────
+  Corrida_Endurance: [
+    {
+      id: 'A',
+      name: 'Treino A · Tiros de Velocidade & VO2max (Pista / Esteira)',
+      description: 'Treino intervalado de alta intensidade para elevar a velocidade de pico e VO2.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Tiros Intervalados de 400m ou 800m', sets: 6, reps: '400m tiro', rpe: 9.0, rest: 90, cadence: 'Máx Ritmo', resistProfile: 'uniform', obs: 'Pace de tiro com recuperação trote/caminhada.' },
+        { exerciseId: 'ab06', name: 'Prancha Frontal e Lateral para Estabilidade', sets: 3, reps: '45s cada', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Core forte para economizar oscilação vertical de corrida.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Fortalecimento Específico & Anti-Lesão para Corredores',
+      description: 'Sessão de musculação preventiva e corretiva para cadeia de corrida.',
+      exercises: [
+        { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8-10 cada', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Equilíbrio e alinhamento de quadril e joelho.' },
+        { exerciseId: 'lg10', name: 'Stiff Unilateral com Halter', sets: 3, reps: '8 cada perna', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Isquiotibiais e estabilidade pélvica.' },
+        { exerciseId: 'lg20', name: 'Elevação de Panturrilha em Pé com Pausa', sets: 4, reps: '15 reps', rpe: 8.5, rest: 60, cadence: '3-2-1-0', resistProfile: 'stretched', obs: 'Rigidez do tendão de Aquiles para impulsão elástica.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Corrida em Ritmo de Prova (Tempo Run)',
+      description: 'Treino contínuo no limiar anaeróbio (L2) para treinar sustentação de pace.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Corrida Contínua em Ritmo de Limiar (Tempo Run)', sets: 1, reps: '35-50 min', rpe: 8.0, rest: 0, cadence: 'Ritmo Prova', resistProfile: 'uniform', obs: 'Controle de frequência cardíaca e economia de passada.' }
+      ]
+    },
+    {
+      id: 'D',
+      name: 'Treino D · Longão de Rodagem Contínua (Zona 2)',
+      description: 'Sessão de volume aeróbio prolongado em intensidade controlada.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Longão de Rodagem Contínua em Zona 2', sets: 1, reps: '60-90 min', rpe: 7.0, rest: 0, cadence: 'Z2 Confortável', resistProfile: 'uniform', obs: 'Base mitocondrial pura · ritmo conversacional sustentado.' }
+      ]
+    }
+  ],
+
+  // ── 18. CICLISMO / SPINNING ENDURANCE (3 Dias · VO2max, Cadência & Estrada) ─
+  Ciclismo_Endurance: [
+    {
+      id: 'A',
+      name: 'Treino A · Treino de Limiar & Sweet Spot (Bike / Rolo)',
+      description: 'Sessão focada na tolerância ao lactato e aumento do FTP.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Intervalos Sweet Spot (88-93% FTP)', sets: 4, reps: '8 min', rpe: 8.5, rest: 120, cadence: '85-90 RPM', resistProfile: 'uniform', obs: 'Constância de watts e cadência eficiente.' },
+        { exerciseId: 'ab06', name: 'Prancha Isométrica de Sustentação', sets: 3, reps: '45s', rpe: 7.5, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Core forte para não dissipar energia no pedal.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Força de Sustentação & Core de Pelotão',
+      description: 'Fortalecimento de membros inferiores e cadeia dorsal para a bike.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento Livre ou Frontal', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força na fase de compressão do pedal (1-5h do ciclo).' },
+        { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Dorsais e trapézio para apoio no guidão.' },
+        { exerciseId: 'lg10', name: 'Stiff com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Flexibilidade de cadeia posterior.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Longão de Endurance (Estrada / Smart Trainer)',
+      description: 'Treino de grande volume de pedal em Zona 2 contínua.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Rodagem Longa Contínua (Longão de Ciclismo)', sets: 1, reps: '90-120 min', rpe: 7.0, rest: 0, cadence: '85 RPM', resistProfile: 'uniform', obs: 'Hidratação contínua e reposição de carboidrato a cada 45 min.' }
+      ]
+    }
+  ],
+
+  // ── 19. NATAÇÃO (3 Dias · Capacidade Aeróbia & Força Escapular) ─────────────
+  Natacao: [
+    {
+      id: 'A',
+      name: 'Treino A · Volume Aeróbio Contínuo & Pacing na Piscina',
+      description: 'Séries aeróbias fracionadas de crawl para construir base aquática.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Série de Fundo na Piscina (Crawl)', sets: 6, reps: '200m a 400m', rpe: 8.0, rest: 45, cadence: 'Pace Médio', resistProfile: 'uniform', obs: 'Eficiência de braçada e deslizamento hidrodinâmico.' },
+        { exerciseId: 'ab06', name: 'Prancha Frontal com Respiração Controlada', sets: 3, reps: '45s', rpe: 7.5, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Alinhamento da linha de flutuação no nado.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Fortalecimento em Terra para Nadadores',
+      description: 'Musculação com foco em dorsais, manguito rotador e serrátil.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Barra Fixa com Pegada Neutra', sets: 4, reps: '6-8', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Potência na fase de tração aquática.' },
+        { exerciseId: 'sh18', name: 'Face Pull com Rotação Externa', sets: 3, reps: '12-15', rpe: 7.5, rest: 60, cadence: '2-1-1-0', resistProfile: 'shortened', obs: 'Saúde dos ombros do nadador.' },
+        { exerciseId: 'do08', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10 reps', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Dorsais e core lateral.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Tiros de Velocidade & Potência de Nado',
+      description: 'Tiros curtos na piscina com pernada potente e saída forte.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Tiros de 50m Crawl em Velocidade Máxima', sets: 10, reps: '50m tiro', rpe: 9.0, rest: 45, cadence: 'Máx Ritmo', resistProfile: 'uniform', obs: 'Potência anaeróbia e viradas rápidas.' },
+        { exerciseId: 'lg08', name: 'Pernada de Crawl com Prancha', sets: 4, reps: '100m pernada', rpe: 8.5, rest: 45, cadence: 'Forte', resistProfile: 'uniform', obs: 'Resistência de quadríceps e flexores do quadril.' }
+      ]
+    }
+  ],
+
+  // ── 20. LUTAS / ARTES MARCIAIS (3 Dias · Potência, Grip & Resiliência) ─────
+  Lutas: [
+    {
+      id: 'A',
+      name: 'Treino A · Força Explosiva & Potência Neuromuscular',
+      description: 'Puxadas potentes, empurradas e levantamentos para combate.',
+      exercises: [
+        { exerciseId: 'do16', name: 'Levantamento Terra Convencional / Trap Bar', sets: 4, reps: '4-6', rpe: 8.5, rest: 120, cadence: 'Explosivo', resistProfile: 'uniform', obs: 'Força bruta de cadeia posterior para quedas e clinch.' },
+        { exerciseId: 'pe01', name: 'Supino Reto com Saída Rápida', sets: 4, reps: '5-6', rpe: 8.0, rest: 90, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Potência de empurrada para controle de distância.' },
+        { exerciseId: 'do01', name: 'Barra Fixa com Pano / Toalha (Grip Pull-up)', sets: 3, reps: '6-8', rpe: 8.5, rest: 90, cadence: '2-0-1-0', resistProfile: 'stretched', obs: 'Pegada monstruosa para jiu-jitsu e judô.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Resiliência de Pescoço, Pegada (Grip) & Core Rotacional',
+      description: 'Fortalecimento cervical, antebraço e rotação torácica.',
+      exercises: [
+        { exerciseId: 'sh18', name: 'Farmers Walk Pesado com Halteres / Kettlebells', sets: 4, reps: '40m', rpe: 8.5, rest: 90, cadence: 'Firme', resistProfile: 'uniform', obs: 'Antebraços e trapézios sob carga máxima.' },
+        { exerciseId: 'ab02', name: 'Rotação de Tronco no Cabo / Medicine Ball', sets: 4, reps: '10-12 / lado', rpe: 8.0, rest: 60, cadence: 'Explosivo', resistProfile: 'shortened', obs: 'Transferência de força para golpes e giros.' },
+        { exerciseId: 'sh18', name: 'Isometria Cervical & Trapézio Superior', sets: 3, reps: '30s cada direção', rpe: 7.5, rest: 45, cadence: 'Isometria', resistProfile: 'uniform', obs: 'Proteção contra finalizações e impactos.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Resistência Lática & Condicionamento de Round',
+      description: 'Circuitos de 3 a 5 minutos simulando a duração dos rounds.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'AirBike ou Remo em Tiros de Round (3 min)', sets: 4, reps: '3 min round', rpe: 9.0, rest: 60, cadence: 'Intenso', resistProfile: 'uniform', obs: 'Simulação exata do desgaste metabólico da luta.' },
+        { exerciseId: 'lg07', name: 'Sprawls com Kettlebell ou Burpees Rápidos', sets: 4, reps: '12-15 reps', rpe: 8.5, rest: 45, cadence: 'Rápido', resistProfile: 'uniform', obs: 'Defesa de queda rápida em estado de fadiga.' }
+      ]
+    }
+  ],
+
+  // ── 21. CALISTENIA (3 Dias · Peso Corporal, Barras & Força Relativa) ────────
+  Calistenia: [
+    {
+      id: 'A',
+      name: 'Treino A · Tração (Pull) - Força Relativa em Barra Fixa',
+      description: 'Barras fixas estritas, remadas invertidas e core na barra.',
+      exercises: [
+        { exerciseId: 'do01', name: 'Barra Fixa Pronada Estrita (Pull-up)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Queixo acima da barra e descida completa sem balanço.' },
+        { exerciseId: 'do08', name: 'Remada Australiana nas Argolas ou Barra Baixa', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '2-1-1-0', resistProfile: 'uniform', obs: 'Retração escapular estrita no topo.' },
+        { exerciseId: 'ab03', name: 'Toes-to-Bar / Elevação de Joelhos na Barra', sets: 4, reps: '10-12', rpe: 8.0, rest: 60, cadence: '2-0-1-0', resistProfile: 'stretched', obs: 'Força de flexão de quadril e core suspenso.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Empurrar (Push) - Paralelas & Flexões Articuladas',
+      description: 'Mergulhos nas barras paralelas e variações avançadas de flexão.',
+      exercises: [
+        { exerciseId: 'pe19', name: 'Mergulho em Barras Paralelas (Dips)', sets: 4, reps: '8-10', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Cotovelos a 90° e extensão total no topo.' },
+        { exerciseId: 'pe18', name: 'Flexão Declinada ou Flexão Diamante', sets: 4, reps: '12-15', rpe: 8.0, rest: 60, cadence: '2-0-1-0', resistProfile: 'uniform', obs: 'Controle de alinhamento lombar e tensão contínua.' },
+        { exerciseId: 'sh01', name: 'Pike Push-up ou Flexão na Parede (Handstand)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '2-0-1-0', resistProfile: 'shortened', obs: 'Força vertical de ombros com peso corporal.' },
+        { exerciseId: 'ab06', name: 'Hollow Body Hold (Canoa Isométrica)', sets: 4, reps: '40s', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Lombar colada no chão · base ginástica.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Pernas com Peso Corporal & Equilíbrio (Pistol & Core)',
+      description: 'Agachamentos unilaterais, saltos e flexão de tronco.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Pistol Squat (Agachamento Unilateral Livre)', sets: 4, reps: '5-6 cada perna', rpe: 8.5, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Equilíbrio, força e mobilidade máxima de tornozelo.' },
+        { exerciseId: 'lg08', name: 'Passada Saltada / Jumping Lunges', sets: 3, reps: '12 saltos', rpe: 8.0, rest: 60, cadence: 'Pliométrico', resistProfile: 'uniform', obs: 'Potência elástica de membros inferiores.' },
+        { exerciseId: 'ab05', name: 'Dragon Flag ou Prancha Abdominal Avançada', sets: 3, reps: '6-8 reps / 45s', rpe: 8.5, rest: 60, cadence: 'Controlado', resistProfile: 'stretched', obs: 'Tensão máxima no reto abdominal.' }
+      ]
+    }
+  ],
+
+  // ── 22. AERÓBICO GERAL (3 Dias · Z2 Contínuo & Circuitos Aeróbios) ─────────
+  Aerobico_Geral: [
+    {
+      id: 'A',
+      name: 'Treino A · Cardio Contínuo de Baixo Impacto (Zona 2)',
+      description: 'Sessão contínua em esteira inclinada, elíptico ou bike.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Caminhada Inclinada ou Elíptico Z2', sets: 1, reps: '45 min', rpe: 6.5, rest: 0, cadence: 'Constante', resistProfile: 'uniform', obs: 'Manutenção da frequência cardíaca na faixa de 60-70% do FCmáx.' },
+        { exerciseId: 'ab06', name: 'Prancha Frontal com Apoio nos Joelhos/Pés', sets: 3, reps: '30-45s', rpe: 7.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Ativação suave de transverso do abdômen.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Circuito Metabólico Aeróbio Funcional',
+      description: 'Estações dinâmicas de baixo impacto para gasto calórico prazeroso.',
+      exercises: [
+        { exerciseId: 'lg01', name: 'Agachamento com Peso Corporal (Air Squat)', sets: 3, reps: '15-20', rpe: 7.0, rest: 45, cadence: 'Fluido', resistProfile: 'uniform', obs: 'Movimento articular amplo sem carga.' },
+        { exerciseId: 'pe18', name: 'Flexão de Braço Apoiada no Banco', sets: 3, reps: '10-12', rpe: 7.0, rest: 45, cadence: 'Controlado', resistProfile: 'uniform', obs: 'Tronco firme e sem dor nos ombros.' },
+        { exerciseId: 'lg08', name: 'Passos no Step ou Marcha Estacionária', sets: 3, reps: '2 min', rpe: 7.0, rest: 45, cadence: 'Ritmo', resistProfile: 'uniform', obs: 'Elevação aeróbia segura.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Intervalado Aeróbio Moderado (Zona 3)',
+      description: 'Variações de intensidade para ganho de aptidão cardiorrespiratória.',
+      exercises: [
+        { exerciseId: 'lg08', name: 'Intervalos Moderados na Esteira ou Bicicleta', sets: 6, reps: '2 min Z3 / 1 min leve', rpe: 7.5, rest: 60, cadence: 'Ritmo', resistProfile: 'uniform', obs: 'Oscilação controlada de ritmo cardiovascular.' }
+      ]
+    }
   ]
 };
 
 // Aliases oficiais canônicos para Bro Split (Seção 13)
 PERF_SPLIT_PRESETS['Bro Split'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['BroSplit'] = PERF_SPLIT_PRESETS.ABCDE;
-PERF_SPLIT_PRESETS['FuncionalMisto'] = PERF_SPLIT_PRESETS.CrossFit;
 
 /**
  * Dedução canônica determinística do split a partir da modalidade respondida na Anamnese.
- * Mapeia as opções do formulário e termos equivalentes para o split oficial correspondente.
+ * Mapeia 100% das opções do formulário e termos equivalentes para o split oficial correspondente.
  * @param {string} modality 
  * @param {string|number} [frequency] 
  * @returns {string|null}
@@ -20483,14 +21080,29 @@ PERF_SPLIT_PRESETS['FuncionalMisto'] = PERF_SPLIT_PRESETS.CrossFit;
 function perfInferSplitFromAnamnese(modality, frequency = null) {
   if (!modality || typeof modality !== 'string') return null;
   const m = modality.toLowerCase().trim();
+
+  // 1. Modalidades Híbridas & Racing (Alta Exigência)
   if (m.includes('hyrox') || m.includes('racing')) return 'HYROX';
+  if (m.includes('triathlon')) return 'Triathlon';
   if (m.includes('crossfit') || m.includes('metcon')) return 'CrossFit';
-  if ((m.includes('corrida') && m.includes('muscula')) || m.includes('endurance')) return 'RunningStrength';
   if (m.includes('hiit')) return 'HIIT_Forca';
-  if (m.includes('funcional')) return 'CrossFit';
-  if (m.includes('ciclismo') && m.includes('força')) return 'RunningStrength';
-  if (m.includes('calistenia')) return 'FullBody';
-  if (m.includes('musculação') || m.includes('hipertrofia') || m.includes('força')) {
+  if (m.includes('ciclismo') && (m.includes('força') || m.includes('forca') || m.includes('muscula'))) return 'Ciclismo_Forca';
+  if (m.includes('corrida') && (m.includes('muscula') || m.includes('concorrente'))) return 'RunningStrength';
+  if (m.includes('funcional misto')) return 'FuncionalMisto';
+  if (m.includes('esportes coletivos') || m.includes('futebol') || m.includes('basquete') || m.includes('volei') || m.includes('vôlei')) return 'EsportesColetivos';
+  if (m.includes('misto') && (m.includes('força') || m.includes('forca') || m.includes('cardio'))) return 'MistoCardio';
+
+  // 2. Modalidades Específicas & Puras
+  if (m.includes('luta') || m.includes('artes marciais') || m.includes('boxe') || m.includes('jiu') || m.includes('muay') || m.includes('judo') || m.includes('judô')) return 'Lutas';
+  if (m.includes('natação') || m.includes('natacao')) return 'Natacao';
+  if (m.includes('ciclismo') || m.includes('spinning')) return 'Ciclismo_Endurance';
+  if (m.includes('corrida') || m.includes('endurance')) return 'Corrida_Endurance';
+  if (m.includes('calistenia')) return 'Calistenia';
+  if (m.includes('aeróbico') || m.includes('aerobico')) return 'Aerobico_Geral';
+  if (m.includes('funcional')) return 'FuncionalMisto';
+
+  // 3. Musculação / Hipertrofia Clássica
+  if (m.includes('musculação') || m.includes('musculacao') || m.includes('hipertrofia') || m.includes('força') || m.includes('forca')) {
     const freqMatch = String(frequency || '').match(/\d+/);
     const freqNum = freqMatch ? parseInt(freqMatch[0], 10) : 4;
     if (freqNum <= 3) return 'PPL';
@@ -20499,6 +21111,10 @@ function perfInferSplitFromAnamnese(modality, frequency = null) {
     if (freqNum >= 6) return 'PPL';
     return 'PPL';
   }
+
+  // 4. Sedentário / Nenhum
+  if (m.includes('sedentário') || m.includes('sedentario') || m.includes('nenhum')) return 'FullBody';
+
   return null;
 }
 

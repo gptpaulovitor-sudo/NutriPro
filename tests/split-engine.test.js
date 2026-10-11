@@ -532,6 +532,47 @@ test('F5 COMPLEMENTAR 4: Runtime approveAITraining assina e persiste com split e
   assert.strictEqual(activeSplit, 'DUP');
 });
 
+test('F5 COMPLEMENTAR 5: Cobertura de 100% das Modalidades da Anamnese no Split Engine', () => {
+  const anamneseModalities = [
+    { label: 'Musculação / Força', freq: 4, expected: 'UpperLower' },
+    { label: 'Musculação / Força', freq: 3, expected: 'PPL' },
+    { label: 'Endurance & Corrida', expected: 'Corrida_Endurance' },
+    { label: 'Ciclismo', expected: 'Ciclismo_Endurance' },
+    { label: 'Natação', expected: 'Natacao' },
+    { label: 'Lutas / Artes Marciais', expected: 'Lutas' },
+    { label: 'Aeróbico Geral', expected: 'Aerobico_Geral' },
+    { label: 'Calistenia', expected: 'Calistenia' },
+    { label: 'HYROX / Fitness Racing', expected: 'HYROX' },
+    { label: 'Crossfit & Funcional', expected: 'CrossFit' },
+    { label: 'HIIT + Musculação', expected: 'HIIT_Forca' },
+    { label: 'Triathlon', expected: 'Triathlon' },
+    { label: 'Funcional Misto', expected: 'FuncionalMisto' },
+    { label: 'Corrida + Musculação', expected: 'RunningStrength' },
+    { label: 'Ciclismo + Força', expected: 'Ciclismo_Forca' },
+    { label: 'Esportes Coletivos', expected: 'EsportesColetivos' },
+    { label: 'Misto (Força + Cardio)', expected: 'MistoCardio' },
+    { label: 'Nenhum (Sedentário)', expected: 'FullBody' }
+  ];
+
+  for (const item of anamneseModalities) {
+    const deduced = sandbox.perfInferSplitFromAnamnese(item.label, item.freq);
+    assert.strictEqual(
+      deduced,
+      item.expected,
+      `Modalidade "${item.label}" da Anamnese deve deduzir split "${item.expected}", mas retornou "${deduced}"`
+    );
+
+    // Valida que o split deduzido é reconhecido no contrato canônico
+    const val = validateTrainingSplit(deduced);
+    assert.strictEqual(val.isValid, true, `Split "${deduced}" deve ser canônico válido`);
+
+    // Valida que o runtime constrói o microciclo de 7 dias sem erro
+    const schedule = sandbox.perfBuildWeeklySchedule(deduced);
+    assert.strictEqual(Array.isArray(schedule), true, `Schedule para "${deduced}" deve ser array`);
+    assert.strictEqual(schedule.length, 7, `Schedule para "${deduced}" deve conter 7 dias`);
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // EXECUÇÃO SEQUENCIAL DOS TESTES COM SUPORTE ASSÍNCRONO
 // ─────────────────────────────────────────────────────────────────────────────

@@ -230,7 +230,7 @@ const MECHANICS_COLOR: Record<string, string> = {
 interface SplitDefinition {
   id: string;
   name: string;
-  category: 'Híbrida & Racing' | 'Musculação Tradicional';
+  category: 'Híbrida & Racing' | 'Musculação Tradicional' | 'Modalidade Pura';
   daysCount: number;
   description: string;
   badge: string;
@@ -551,6 +551,449 @@ const TRAINING_SPLITS: Record<string, SplitDefinition> = {
       },
     ],
   },
+  Triathlon: {
+    id: 'Triathlon',
+    name: 'Triathlon (4 Dias)',
+    category: 'Híbrida & Racing',
+    daysCount: 4,
+    description: 'Natação técnica, ciclismo de limiar, corrida de ritmo e força preventiva articular.',
+    badge: '★ Triathlon',
+    icon: '🏊🚴🏃',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Natação Técnica & Intervalada',
+        exercises: [
+          { exerciseId: 'do01', name: 'Natação Intervalada na Piscina (Tiros 100m)', sets: 8, reps: '100m tiro', rpe: 8.0, rest: 30 },
+          { exerciseId: 'pe18', name: 'Flexões de Braço com Escápula Estável', sets: 3, reps: '12-15', rpe: 7.5, rest: 60 },
+          { exerciseId: 'ab06', name: 'Prancha Frontal e Isométrica (Plank)', sets: 3, reps: '45s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Ciclismo Intervalado de Limiar',
+        exercises: [
+          { exerciseId: 'hy03', name: 'Ciclismo em Limiar de Potência (Sweet Spot)', sets: 4, reps: '8 min', rpe: 8.5, rest: 120 },
+          { exerciseId: 'lg08', name: 'Giro Regenerativo de Alta Cadência', sets: 1, reps: '15 min', rpe: 6.5, rest: 0 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Corrida em Ritmo de Prova',
+        exercises: [
+          { exerciseId: 'hy05', name: 'Corrida Contínua em Zona 3/4 (Tempo Run)', sets: 1, reps: '35-45 min', rpe: 8.0, rest: 0 },
+          { exerciseId: 'lg20', name: 'Panturrilha Unilateral no Degrau', sets: 4, reps: '12-15', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'D',
+        name: 'Treino D — Força Preventiva para Triatletas',
+        exercises: [
+          { exerciseId: 'do16', name: 'Levantamento Terra com Trap Bar / Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8-10 cada', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh15', name: 'Face Pull na Polia com Rotação Externa', sets: 3, reps: '12-15', rpe: 7.5, rest: 60 },
+          { exerciseId: 'ab05', name: 'Abdominal Rollout (Roda Abdominal)', sets: 3, reps: '10 reps', rpe: 8.0, rest: 60 },
+        ],
+      },
+    ],
+  },
+  FuncionalMisto: {
+    id: 'FuncionalMisto',
+    name: 'Funcional Misto (3 Dias)',
+    category: 'Híbrida & Racing',
+    daysCount: 3,
+    description: 'Padrões motores fundamentais, mobilidade ativa, potência de core e circuito metabólico.',
+    badge: '★ Funcional',
+    icon: '⚡🤸',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Padrões Fundamentais & Mobilidade',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Goblet com Halter / Kettlebell', sets: 4, reps: '10-12', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do11', name: 'Remada Unilateral com Halter (Serrote)', sets: 4, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'pe18', name: 'Flexão de Braço no Solo (Push-up)', sets: 3, reps: '12-15', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab06', name: 'Prancha Lateral com Elevação de Quadril', sets: 3, reps: '30s / lado', rpe: 7.5, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Potência & Core Integrado',
+        exercises: [
+          { exerciseId: 'hy14', name: 'Kettlebell Swing Russo', sets: 4, reps: '15-20', rpe: 8.0, rest: 60 },
+          { exerciseId: 'hy10', name: 'Farmers Carry com Halteres / Kettlebells', sets: 4, reps: '40m', rpe: 8.5, rest: 90 },
+          { exerciseId: 'lg08', name: 'Avanço / Passada com Halteres', sets: 3, reps: '12 passos', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab03', name: 'Elevação de Pernas na Barra Fixa', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Circuito Metabólico Funcional',
+        exercises: [
+          { exerciseId: 'hy08', name: 'Burpees Dinâmicos no Solo', sets: 4, reps: '12 reps', rpe: 8.5, rest: 45 },
+          { exerciseId: 'hy02', name: 'Remo Concept2 RowErg', sets: 4, reps: '250m', rpe: 8.5, rest: 60 },
+          { exerciseId: 'hy13', name: 'Box Jump na Caixa (60cm)', sets: 3, reps: '12 cada', rpe: 8.0, rest: 60 },
+        ],
+      },
+    ],
+  },
+  Ciclismo_Forca: {
+    id: 'Ciclismo_Forca',
+    name: 'Ciclismo + Força (4 Dias)',
+    category: 'Híbrida & Racing',
+    daysCount: 4,
+    description: 'Potência máxima de quadríceps, sessões intervaladas na bike e resistência de tronco.',
+    badge: '★ Ciclismo & Força',
+    icon: '🚴💪',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Força de Pernas para Ciclismo',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra (Back Squat)', sets: 4, reps: '5-6', rpe: 8.5, rest: 150 },
+          { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg10', name: 'Stiff com Barra (Terra Romeno)', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '10-12', rpe: 8.5, rest: 60 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Sessão de Bike Intervalada',
+        exercises: [
+          { exerciseId: 'hy03', name: 'Tiros de Potência VO2max na Bike', sets: 5, reps: '3 min', rpe: 9.0, rest: 180 },
+          { exerciseId: 'lg08', name: 'Giro de Cadência Recuperativa', sets: 1, reps: '20 min', rpe: 6.0, rest: 0 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Tronco & Postura de Guidão',
+        exercises: [
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra (Pronada)', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh15', name: 'Face Pull na Polia com Rotação Externa', sets: 3, reps: '12-15', rpe: 7.5, rest: 60 },
+          { exerciseId: 'ab06', name: 'Prancha Isométrica de Sustentação', sets: 3, reps: '45s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'D',
+        name: 'Treino D — Longão de Ciclismo Z2',
+        exercises: [
+          { exerciseId: 'hy03', name: 'Rodagem Contínua em Zona 2 (Longão)', sets: 1, reps: '75 min', rpe: 7.0, rest: 0 },
+        ],
+      },
+    ],
+  },
+  EsportesColetivos: {
+    id: 'EsportesColetivos',
+    name: 'Esportes Coletivos (3 Dias)',
+    category: 'Híbrida & Racing',
+    daysCount: 3,
+    description: 'Força reativa, pliometria, aceleração/mudança de direção e condicionamento intermitente.',
+    badge: '★ Coletivos',
+    icon: '⚽🏀',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Força Reativa & Pliometria',
+        exercises: [
+          { exerciseId: 'do16', name: 'Levantamento Terra Convencional', sets: 4, reps: '5 reps', rpe: 8.0, rest: 120 },
+          { exerciseId: 'hy13', name: 'Box Jump na Caixa (60cm)', sets: 4, reps: '6 saltos', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '6 cada', rpe: 8.0, rest: 90 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Agilidade & Mudança de Direção',
+        exercises: [
+          { exerciseId: 'hy04', name: 'Tiros Curtos com Mudança de Direção', sets: 6, reps: '15m percurso', rpe: 8.5, rest: 60 },
+          { exerciseId: 'lg10', name: 'Flexão Nórdica ou Stiff Unilateral', sets: 3, reps: '6-8 reps', rpe: 8.5, rest: 90 },
+          { exerciseId: 'ab06', name: 'Prancha Lateral com Abdução de Quadril', sets: 3, reps: '30s / lado', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Condicionamento Intermitente',
+        exercises: [
+          { exerciseId: 'hy04', name: 'Sprints Intermitentes 15s / 15s', sets: 10, reps: '15s tiro', rpe: 9.0, rest: 15 },
+          { exerciseId: 'pe18', name: 'Flexões com Empurrada Explosiva', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab02', name: 'Rotação de Tronco no Cabo (Woodchopper)', sets: 3, reps: '12 / lado', rpe: 8.0, rest: 60 },
+        ],
+      },
+    ],
+  },
+  MistoCardio: {
+    id: 'MistoCardio',
+    name: 'Misto Força + Cardio (4 Dias)',
+    category: 'Híbrida & Racing',
+    daysCount: 4,
+    description: 'Equilíbrio metabólico e recomposição corporal com musculação e cardio estruturado.',
+    badge: '★ Misto',
+    icon: '⚡🏃',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Upper Força + Cardio Z2',
+        exercises: [
+          { exerciseId: 'pe01', name: 'Supino Reto com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 3, reps: '12-15', rpe: 8.5, rest: 45 },
+          { exerciseId: 'hy05', name: 'Cardio Pós-Treino em Zona 2', sets: 1, reps: '25 min', rpe: 7.0, rest: 0 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Lower Força & Posterior',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '10-12', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg10', name: 'Stiff com Barra', sets: 4, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg20', name: 'Panturrilha em Pé na Máquina', sets: 4, reps: '12-15', rpe: 8.5, rest: 45 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Cardio HIIT Dedicado',
+        exercises: [
+          { exerciseId: 'hy02', name: 'Remo Concept2 ou Esteira (HIIT 1m/1m)', sets: 8, reps: '1m tiro', rpe: 8.5, rest: 60 },
+          { exerciseId: 'ab05', name: 'Abdominal Rollout ou Prancha Frontal', sets: 3, reps: '12 reps', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'D',
+        name: 'Treino D — Full Body Funcional & Core',
+        exercises: [
+          { exerciseId: 'do16', name: 'Levantamento Terra com Halteres / Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'do04', name: 'Puxada Frontal Aberta na Polia', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'lg08', name: 'Passada com Halteres (Walking Lunges)', sets: 3, reps: '10 passos', rpe: 8.0, rest: 60 },
+        ],
+      },
+    ],
+  },
+  Corrida_Endurance: {
+    id: 'Corrida_Endurance',
+    name: 'Corrida / Endurance (4 Dias)',
+    category: 'Modalidade Pura',
+    daysCount: 4,
+    description: 'Tiros de velocidade na pista, fortalecimento anti-lesão, ritmo e longão em Zona 2.',
+    badge: 'Endurance',
+    icon: '🏃',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Tiros de Velocidade & VO2max',
+        exercises: [
+          { exerciseId: 'hy04', name: 'Tiros de 400m / 800m na Pista/Esteira', sets: 6, reps: '400m tiro', rpe: 9.0, rest: 90 },
+          { exerciseId: 'ab06', name: 'Prancha Frontal e Lateral para Estabilidade', sets: 3, reps: '45s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Fortalecimento Anti-Lesão de Corrida',
+        exercises: [
+          { exerciseId: 'lg07', name: 'Agachamento Búlgaro com Halteres', sets: 3, reps: '8-10 cada', rpe: 8.0, rest: 90 },
+          { exerciseId: 'lg10', name: 'Stiff Unilateral com Halter', sets: 3, reps: '8 cada perna', rpe: 8.0, rest: 60 },
+          { exerciseId: 'lg20', name: 'Elevação de Panturrilha em Pé com Pausa', sets: 4, reps: '15 reps', rpe: 8.5, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Corrida em Ritmo de Prova',
+        exercises: [
+          { exerciseId: 'hy05', name: 'Corrida Contínua em Ritmo de Limiar (Tempo Run)', sets: 1, reps: '40 min', rpe: 8.0, rest: 0 },
+        ],
+      },
+      {
+        id: 'D',
+        name: 'Treino D — Longão de Rodagem Contínua (Z2)',
+        exercises: [
+          { exerciseId: 'hy05', name: 'Longão de Rodagem em Zona 2 (60-90 min)', sets: 1, reps: '75 min', rpe: 7.0, rest: 0 },
+        ],
+      },
+    ],
+  },
+  Ciclismo_Endurance: {
+    id: 'Ciclismo_Endurance',
+    name: 'Ciclismo / Spinning (3 Dias)',
+    category: 'Modalidade Pura',
+    daysCount: 3,
+    description: 'Intervalos de Sweet Spot no rolo, força de sustentação e longão contínuo de estrada.',
+    badge: 'Endurance',
+    icon: '🚴',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Treino de Limiar & Sweet Spot',
+        exercises: [
+          { exerciseId: 'hy03', name: 'Intervalos Sweet Spot (88-93% FTP)', sets: 4, reps: '8 min', rpe: 8.5, rest: 120 },
+          { exerciseId: 'ab06', name: 'Prancha Isométrica de Sustentação', sets: 3, reps: '45s', rpe: 7.5, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Força de Sustentação & Core',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120 },
+          { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'lg10', name: 'Stiff com Halteres', sets: 3, reps: '10-12', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Longão de Endurance (Estrada / Rolo)',
+        exercises: [
+          { exerciseId: 'hy03', name: 'Rodagem Longa Contínua (Longão de Ciclismo)', sets: 1, reps: '90-120 min', rpe: 7.0, rest: 0 },
+        ],
+      },
+    ],
+  },
+  Natacao: {
+    id: 'Natacao',
+    name: 'Natação (3 Dias)',
+    category: 'Modalidade Pura',
+    daysCount: 3,
+    description: 'Séries aeróbias fracionadas de fundo, fortalecimento em terra e tiros curtos.',
+    badge: 'Endurance',
+    icon: '🏊',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Volume Aeróbio Contínuo & Pacing',
+        exercises: [
+          { exerciseId: 'do01', name: 'Série de Fundo na Piscina (Crawl)', sets: 6, reps: '200m a 400m', rpe: 8.0, rest: 45 },
+          { exerciseId: 'ab06', name: 'Prancha Frontal com Respiração Controlada', sets: 3, reps: '45s', rpe: 7.5, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Fortalecimento em Terra para Nadadores',
+        exercises: [
+          { exerciseId: 'do01', name: 'Barra Fixa com Pegada Neutra', sets: 4, reps: '6-8', rpe: 8.0, rest: 90 },
+          { exerciseId: 'sh15', name: 'Face Pull com Rotação Externa', sets: 3, reps: '12-15', rpe: 7.5, rest: 60 },
+          { exerciseId: 'do11', name: 'Remada Unilateral com Halter (Serrote)', sets: 3, reps: '10 reps', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Tiros de Velocidade & Pernada',
+        exercises: [
+          { exerciseId: 'do01', name: 'Tiros de 50m Crawl em Velocidade Máxima', sets: 10, reps: '50m tiro', rpe: 9.0, rest: 45 },
+          { exerciseId: 'lg08', name: 'Pernada de Crawl com Prancha', sets: 4, reps: '100m pernada', rpe: 8.5, rest: 45 },
+        ],
+      },
+    ],
+  },
+  Lutas: {
+    id: 'Lutas',
+    name: 'Lutas / Artes Marciais (3 Dias)',
+    category: 'Modalidade Pura',
+    daysCount: 3,
+    description: 'Força explosiva para quedas, resiliência cervical, pegada forte e rounds metabólicos.',
+    badge: 'Combate',
+    icon: '🥊',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Força Explosiva & Potência',
+        exercises: [
+          { exerciseId: 'do16', name: 'Levantamento Terra Convencional', sets: 4, reps: '4-6', rpe: 8.5, rest: 120 },
+          { exerciseId: 'pe01', name: 'Supino Reto com Saída Rápida', sets: 4, reps: '5-6', rpe: 8.0, rest: 90 },
+          { exerciseId: 'do01', name: 'Barra Fixa com Pano / Toalha (Grip Pull-up)', sets: 3, reps: '6-8', rpe: 8.5, rest: 90 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Pescoço, Grip & Core Rotacional',
+        exercises: [
+          { exerciseId: 'hy10', name: 'Farmers Carry com Halteres / Kettlebells', sets: 4, reps: '40m', rpe: 8.5, rest: 90 },
+          { exerciseId: 'ab02', name: 'Rotação de Tronco no Cabo / Medicine Ball', sets: 4, reps: '10-12 / lado', rpe: 8.0, rest: 60 },
+          { exerciseId: 'sh15', name: 'Isometria Cervical & Trapézio Superior', sets: 3, reps: '30s', rpe: 7.5, rest: 45 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Resistência Lática & Condicionamento',
+        exercises: [
+          { exerciseId: 'hy03', name: 'AirBike em Tiros de Round (3 min)', sets: 4, reps: '3 min round', rpe: 9.0, rest: 60 },
+          { exerciseId: 'hy08', name: 'Sprawls com Kettlebell ou Burpees Rápidos', sets: 4, reps: '12-15 reps', rpe: 8.5, rest: 45 },
+        ],
+      },
+    ],
+  },
+  Calistenia: {
+    id: 'Calistenia',
+    name: 'Calistenia (3 Dias)',
+    category: 'Modalidade Pura',
+    daysCount: 3,
+    description: 'Força relativa com peso corporal: barras estritas, mergulhos em paralelas e isometrias.',
+    badge: 'Peso Corporal',
+    icon: '🤸',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Tração (Pull) em Barra Fixa',
+        exercises: [
+          { exerciseId: 'do01', name: 'Barra Fixa Pronada Estrita (Pull-up)', sets: 4, reps: '6-8', rpe: 8.5, rest: 120 },
+          { exerciseId: 'do08', name: 'Remada Australiana nas Argolas ou Barra Baixa', sets: 4, reps: '10-12', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab03', name: 'Toes-to-Bar / Elevação de Joelhos na Barra', sets: 4, reps: '10-12', rpe: 8.0, rest: 60 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Empurrar (Push) em Paralelas',
+        exercises: [
+          { exerciseId: 'pe19', name: 'Mergulho em Barras Paralelas (Dips)', sets: 4, reps: '8-10', rpe: 8.5, rest: 90 },
+          { exerciseId: 'pe18', name: 'Flexão Declinada ou Diamante', sets: 4, reps: '12-15', rpe: 8.0, rest: 60 },
+          { exerciseId: 'sh01', name: 'Pike Push-up ou Flexão na Parede (Handstand)', sets: 3, reps: '8-10', rpe: 8.0, rest: 90 },
+          { exerciseId: 'ab06', name: 'Hollow Body Hold (Canoa Isométrica)', sets: 4, reps: '40s', rpe: 8.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Pernas com Peso Corporal & Equilíbrio',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Pistol Squat (Agachamento Unilateral Livre)', sets: 4, reps: '5-6 cada perna', rpe: 8.5, rest: 90 },
+          { exerciseId: 'lg08', name: 'Passada Saltada / Jumping Lunges', sets: 3, reps: '12 saltos', rpe: 8.0, rest: 60 },
+          { exerciseId: 'ab05', name: 'Dragon Flag ou Prancha Abdominal Avançada', sets: 3, reps: '6-8 reps', rpe: 8.5, rest: 60 },
+        ],
+      },
+    ],
+  },
+  Aerobico_Geral: {
+    id: 'Aerobico_Geral',
+    name: 'Aeróbico Geral (3 Dias)',
+    category: 'Modalidade Pura',
+    daysCount: 3,
+    description: 'Cardio contínuo de baixo impacto em Zona 2, circuitos aeróbios e caminhadas.',
+    badge: 'Cardio Z2',
+    icon: '⚡🚶',
+    routines: [
+      {
+        id: 'A',
+        name: 'Treino A — Cardio Contínuo de Baixo Impacto (Z2)',
+        exercises: [
+          { exerciseId: 'hy05', name: 'Caminhada Inclinada ou Elíptico Z2', sets: 1, reps: '45 min', rpe: 6.5, rest: 0 },
+          { exerciseId: 'ab06', name: 'Prancha Frontal com Apoio nos Joelhos/Pés', sets: 3, reps: '30-45s', rpe: 7.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'B',
+        name: 'Treino B — Circuito Metabólico Aeróbio',
+        exercises: [
+          { exerciseId: 'lg01', name: 'Agachamento com Peso Corporal (Air Squat)', sets: 3, reps: '15-20', rpe: 7.0, rest: 45 },
+          { exerciseId: 'pe18', name: 'Flexão de Braço Apoiada no Banco', sets: 3, reps: '10-12', rpe: 7.0, rest: 45 },
+          { exerciseId: 'lg08', name: 'Passos no Step ou Marcha Estacionária', sets: 3, reps: '2 min', rpe: 7.0, rest: 45 },
+        ],
+      },
+      {
+        id: 'C',
+        name: 'Treino C — Intervalado Aeróbio Moderado (Z3)',
+        exercises: [
+          { exerciseId: 'hy04', name: 'Intervalos Moderados na Esteira ou Bicicleta', sets: 6, reps: '2 min Z3 / 1 min leve', rpe: 7.5, rest: 60 },
+        ],
+      },
+    ],
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -579,6 +1022,28 @@ export default function PerformanceDashboard() {
   const [aiToast, setAiToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // ── Sincronização Inicial com Anamnese ──
+  const inferSplitFromModality = (mod?: string): string => {
+    const m = String(mod || '').toLowerCase().trim();
+    if (m.includes('hyrox') || m.includes('racing')) return 'HYROX';
+    if (m.includes('triathlon')) return 'Triathlon';
+    if (m.includes('crossfit') || m.includes('metcon')) return 'CrossFit';
+    if (m.includes('hiit')) return 'HIIT_Forca';
+    if (m.includes('ciclismo') && (m.includes('força') || m.includes('forca') || m.includes('muscula'))) return 'Ciclismo_Forca';
+    if (m.includes('corrida') && (m.includes('muscula') || m.includes('concorrente'))) return 'RunningStrength';
+    if (m.includes('funcional_misto') || m.includes('funcional misto')) return 'FuncionalMisto';
+    if (m.includes('esportes_coletivos') || m.includes('esportes coletivos') || m.includes('futebol') || m.includes('basquete')) return 'EsportesColetivos';
+    if (m.includes('misto_cardio') || m.includes('misto')) return 'MistoCardio';
+    if (m.includes('luta') || m.includes('artes_marciais') || m.includes('artes marciais') || m.includes('boxe')) return 'Lutas';
+    if (m.includes('natacao') || m.includes('natação')) return 'Natacao';
+    if (m.includes('ciclismo') || m.includes('spinning')) return 'Ciclismo_Endurance';
+    if (m.includes('corrida') || m.includes('endurance')) return 'Corrida_Endurance';
+    if (m.includes('calistenia')) return 'Calistenia';
+    if (m.includes('aerobico') || m.includes('aeróbico')) return 'Aerobico_Geral';
+    if (m.includes('funcional')) return 'FuncionalMisto';
+    if (m.includes('musculacao') || m.includes('musculação')) return 'PPL';
+    return 'HYROX';
+  };
+
   useEffect(() => {
     async function carregarAnamneseInicial() {
       try {
@@ -586,15 +1051,7 @@ export default function PerformanceDashboard() {
         const res = await getPatientAnamneseAction();
         if (res) {
           setPatientAnamnese(res);
-          const mod = res.anamnese.modalidadeTreino;
-          let splitSugerido = 'HYROX';
-          if (mod === 'hyrox') splitSugerido = 'HYROX';
-          else if (mod === 'crossfit') splitSugerido = 'CrossFit';
-          else if (mod === 'running_musculacao') splitSugerido = 'RunningStrength';
-          else if (mod === 'hiit_forca') splitSugerido = 'HIIT_Forca';
-          else if (mod === 'funcional_misto') splitSugerido = 'CrossFit';
-          else if (mod === 'musculacao') splitSugerido = 'PPL';
-          else splitSugerido = 'HYROX';
+          const splitSugerido = inferSplitFromModality(res.anamnese.modalidadeTreino);
 
           setSelectedSplit(splitSugerido);
           if (TRAINING_SPLITS[splitSugerido]) {
@@ -632,13 +1089,7 @@ export default function PerformanceDashboard() {
       const res = await getPatientAnamneseAction();
       if (res) {
         setPatientAnamnese(res);
-        const mod = res.anamnese.modalidadeTreino;
-        let splitSugerido = 'HYROX';
-        if (mod === 'hyrox') splitSugerido = 'HYROX';
-        else if (mod === 'crossfit') splitSugerido = 'CrossFit';
-        else if (mod === 'running_musculacao') splitSugerido = 'RunningStrength';
-        else if (mod === 'hiit_forca') splitSugerido = 'HIIT_Forca';
-        else if (mod === 'musculacao') splitSugerido = 'PPL';
+        const splitSugerido = inferSplitFromModality(res.anamnese.modalidadeTreino);
         handleSplitChange(splitSugerido);
       }
     } finally {
@@ -784,11 +1235,24 @@ export default function PerformanceDashboard() {
                   onChange={(e) => handleSplitChange(e.target.value)}
                   className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer pr-1"
                 >
-                  <optgroup label="Modalidades Híbridas & Racing">
+                  <optgroup label="Modalidades Híbridas &amp; Racing (Alta Exigência)">
                     <option value="HYROX" className="bg-slate-900 text-white">⚡ HYROX / Fitness Racing (3 Dias)</option>
                     <option value="CrossFit" className="bg-slate-900 text-white">🔥 CrossFit / Metcon (3 Dias)</option>
                     <option value="RunningStrength" className="bg-slate-900 text-white">🏃 Corrida + Musculação (4 Dias)</option>
                     <option value="HIIT_Forca" className="bg-slate-900 text-white">⚡ HIIT + Musculação (3 Dias)</option>
+                    <option value="Triathlon" className="bg-slate-900 text-white">🏊 Triathlon (4 Dias · Natação, Bike, Corrida &amp; Força)</option>
+                    <option value="FuncionalMisto" className="bg-slate-900 text-white">⚡ Funcional Misto (3 Dias · Mobilidade &amp; Metabólico)</option>
+                    <option value="Ciclismo_Forca" className="bg-slate-900 text-white">🚴 Ciclismo + Força (4 Dias · Potência no Pedal)</option>
+                    <option value="EsportesColetivos" className="bg-slate-900 text-white">⚽ Esportes Coletivos (3 Dias · Agilidade &amp; Pliometria)</option>
+                    <option value="MistoCardio" className="bg-slate-900 text-white">⚡ Misto Força + Cardio (4 Dias · Equilíbrio)</option>
+                  </optgroup>
+                  <optgroup label="Modalidades Específicas &amp; Puras">
+                    <option value="Corrida_Endurance" className="bg-slate-900 text-white">🏃 Corrida / Endurance (4 Dias · Tiros &amp; Rodagem)</option>
+                    <option value="Ciclismo_Endurance" className="bg-slate-900 text-white">🚴 Ciclismo / Spinning (3 Dias · Sweet Spot &amp; Rolo)</option>
+                    <option value="Natacao" className="bg-slate-900 text-white">🏊 Natação (3 Dias · Base Aeróbia &amp; Força)</option>
+                    <option value="Lutas" className="bg-slate-900 text-white">🥊 Lutas / Artes Marciais (3 Dias · Potência &amp; Rounds)</option>
+                    <option value="Calistenia" className="bg-slate-900 text-white">🤸 Calistenia (3 Dias · Peso Corporal &amp; Barras)</option>
+                    <option value="Aerobico_Geral" className="bg-slate-900 text-white">⚡ Aeróbico Geral (3 Dias · Zona 2 Contínuo)</option>
                   </optgroup>
                   <optgroup label="Divisões Clássicas de Hipertrofia">
                     <option value="PPL" className="bg-slate-900 text-white">🏋️ Push / Pull / Legs (PPL - 3 Dias)</option>

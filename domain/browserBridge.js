@@ -533,7 +533,18 @@ const VALID_TRAINING_SPLITS = Object.freeze([
   'CrossFit',
   'RunningStrength',
   'HIIT_Forca',
-  'FuncionalMisto'
+  'Triathlon',
+  'FuncionalMisto',
+  'Ciclismo_Forca',
+  'EsportesColetivos',
+  'MistoCardio',
+  // ── Modalidades Específicas & Puras ──
+  'Corrida_Endurance',
+  'Ciclismo_Endurance',
+  'Natacao',
+  'Lutas',
+  'Calistenia',
+  'Aerobico_Geral'
 ]);
 
 /**
@@ -552,8 +563,18 @@ function normalizeTrainingSplit(split) {
   if (lower === 'hyrox') return 'HYROX';
   if (lower === 'crossfit') return 'CrossFit';
   if (lower === 'runningstrength' || lower === 'running_strength' || lower === 'corrida_musculacao') return 'RunningStrength';
-  if (lower === 'hiit_forca' || lower === 'hiitforca') return 'HIIT_Forca';
+  if (lower === 'hiit_forca' || lower === 'hiitforca' || lower === 'hiit_musculacao') return 'HIIT_Forca';
   if (lower === 'funcionalmisto' || lower === 'funcional_misto') return 'FuncionalMisto';
+  if (lower === 'triathlon') return 'Triathlon';
+  if (lower === 'ciclismo_forca' || lower === 'ciclismoforca') return 'Ciclismo_Forca';
+  if (lower === 'esportescoletivos' || lower === 'esportes_coletivos') return 'EsportesColetivos';
+  if (lower === 'mistocardio' || lower === 'misto_cardio' || lower === 'misto') return 'MistoCardio';
+  if (lower === 'corrida_endurance' || lower === 'corrida' || lower === 'endurance') return 'Corrida_Endurance';
+  if (lower === 'ciclismo_endurance' || lower === 'ciclismo' || lower === 'spinning') return 'Ciclismo_Endurance';
+  if (lower === 'natacao' || lower === 'natação') return 'Natacao';
+  if (lower === 'lutas' || lower === 'artes marciais') return 'Lutas';
+  if (lower === 'calistenia') return 'Calistenia';
+  if (lower === 'aerobico_geral' || lower === 'aeróbico geral' || lower === 'aerobico') return 'Aerobico_Geral';
   return trimmed;
 }
 
