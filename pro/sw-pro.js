@@ -3,7 +3,7 @@
 // Escopo: /pro/ | Cache: nutriax-pro-v2.0.0
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-pro-v2.0.0';
+const CACHE_NAME = 'nutriax-pro-v2.1.0';
 
 const PRECACHE_ASSETS = [
   './',
@@ -22,6 +22,16 @@ const PRECACHE_ASSETS = [
   '../firebase-service.js',
   '../fasting-module.js',
   '../domain/contracts/TrainingPrescriptionDTO.js',
+  '../domain/training/ModalityCatalog.js',
+  '../domain/training/EquipmentService.js',
+  '../domain/training/RecoveryEngine.js',
+  '../domain/training/ProgressionEngine.js',
+  '../domain/training/ModalityEngineRegistry.js',
+  '../domain/training/InternalTrainingDatabase.js',
+  '../domain/training/DeterministicTrainingGenerator.js',
+  '../domain/training/TrainingGenerationStateMachine.js',
+  '../domain/training/index.js',
+  '../domain/browserBridge.js',
   '../lucide.min.js',
   '../chart.min.js',
   '../logo.png',

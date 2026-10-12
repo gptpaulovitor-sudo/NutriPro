@@ -24647,15 +24647,16 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       aiRawResponse = await aiGenerator(contextSnapshot, requirements, previousErrors);
     } catch (genErr) {
       console.error(`[generateAndValidateWorkout] Tentativa ${attempt}: erro na chamada da IA:`, genErr);
-      // Erros de quota (429) e timeout: acionam fallback determinístico local imediato
-      if (genErr.isQuotaError || genErr.isTimeout) {
+      // Erros de capacidade (503), quota (429) e timeout: acionam fallback determinístico local
+      const isCapacity503 = genErr.isCapacityError || genErr.status === 503 || String(genErr.message || '').includes('503') || String(genErr.message || '').toLowerCase().includes('overloaded') || String(genErr.message || '').toLowerCase().includes('alta demanda');
+      if (genErr.isQuotaError || genErr.isTimeout || isCapacity503) {
         const detGen = (typeof NutriDomain !== 'undefined' && NutriDomain.DeterministicTrainingGenerator) ||
           (typeof DeterministicTrainingGenerator !== 'undefined' ? DeterministicTrainingGenerator : null) ||
           (typeof window !== 'undefined' && window.DeterministicTrainingGenerator ? window.DeterministicTrainingGenerator : null);
 
         if (detGen && typeof detGen.generate === 'function') {
           try {
-            const fallbackReason = genErr.isQuotaError ? 'HTTP_429_QUOTA_EXCEEDED' : 'API_TIMEOUT_FALLBACK';
+            const fallbackReason = isCapacity503 ? 'HTTP_503_CAPACITY_OVERLOAD' : (genErr.isQuotaError ? 'HTTP_429_QUOTA_EXCEEDED' : 'API_TIMEOUT_FALLBACK');
             const contingencyResult = detGen.generate(contextSnapshot, {
               requirements,
               fallbackReason,
@@ -28601,7 +28602,10 @@ async function handleGenerateAITraining() {
     };
 
     perfWorkoutMeta = {
-      isAIGenerated: true,
+      isAIGenerated: !result.isContingency,
+      isContingency: !!result.isContingency,
+      splitSource: splitSource || (result.isContingency ? 'DETERMINISTIC' : 'AI'),
+      contingencyReason: result.contingencyReason || null,
       isClinicallyValidated: false,
       generatedAt: new Date().toISOString(),
       validatedAt: null,
@@ -28673,15 +28677,23 @@ async function handleGenerateAITraining() {
     await savePerformanceForPatient(generationPatientId);
 
     // Notificação Toast informativa
-    const toast = document.getElementById('perf-toast');
+    const toast = document.getElementById('perf-toast') || document.getElementById('perf-ai-toast');
     if (toast) {
       toast.style.display = 'flex';
-      const warningText = result.warnings.length > 0 ? `<br><span class="text-amber-300">⚠️ Alertas clínicos: ${result.warnings.join('; ')}</span>` : '';
-      toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 shrink-0 text-cyan-400"></i>
-        <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Treino Gerado pela IA · REQUER APROVAÇÃO</strong>
-        Divisão <strong>${chosenSplit}</strong> (${result.prescription.routines.length} rotinas) salva para revisão. Aprovação do profissional necessária para validação clínica.${warningText}</div>`;
+      const warningText = result.warnings.length > 0 ? `<br><span class="text-amber-300">⚠️ Alertas: ${result.warnings.join('; ')}</span>` : '';
+      if (result.isContingency || splitSource === 'DETERMINISTIC') {
+        toast.className = 'items-start gap-3 px-4 py-2.5 rounded-xl text-xs font-medium bg-[#171B1F] border border-amber-500/50 text-amber-300 shadow-lg';
+        toast.innerHTML = `<i data-lucide="shield-alert" class="w-4 h-4 shrink-0 text-amber-400"></i>
+          <div><strong class="block text-amber-400 font-bold text-[11px] uppercase tracking-wider mb-0.5">⚙️ Modo de Contingência Local Ativado (Sem IA)</strong>
+          API do Gemini indisponível (HTTP 503 / 429). O treino foi gerado com sucesso pelo motor determinístico (${chosenSplit}) e aguarda validação clínica.${warningText}</div>`;
+      } else {
+        toast.className = 'items-start gap-3 px-4 py-2.5 rounded-xl text-xs font-medium bg-[#171B1F] border border-cyan-500/30 text-zinc-200';
+        toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 shrink-0 text-cyan-400"></i>
+          <div><strong class="block text-white font-bold text-[11px] uppercase tracking-wider mb-0.5">Treino Gerado pela IA · REQUER APROVAÇÃO</strong>
+          Divisão <strong>${chosenSplit}</strong> (${result.prescription.routines.length} rotinas) salva para revisão. Aprovação do profissional necessária para validação clínica.${warningText}</div>`;
+      }
       if (window.lucide) window.lucide.createIcons();
-      setTimeout(() => { if (toast) toast.style.display = 'none'; }, 7000);
+      setTimeout(() => { if (toast) toast.style.display = 'none'; }, 8000);
     }
 
     if (typeof perfSwitchView === 'function') perfSwitchView('prescription', false);
