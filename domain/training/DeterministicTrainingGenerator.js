@@ -137,6 +137,11 @@
     ).trim();
 
     const rawModality = options.modalityId ||
+      context.modalityId ||
+      context.patient?.modalityId ||
+      context.mainModality ||
+      context.trainingGoal ||
+      context.preferredSplit ||
       context.targetSplit ||
       context.split ||
       context.trainingProfile?.mainModality ||

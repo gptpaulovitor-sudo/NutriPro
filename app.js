@@ -24647,8 +24647,49 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
       aiRawResponse = await aiGenerator(contextSnapshot, requirements, previousErrors);
     } catch (genErr) {
       console.error(`[generateAndValidateWorkout] Tentativa ${attempt}: erro na chamada da IA:`, genErr);
-      // Erros de quota (429) e timeout não devem ser rethentados — abortam imediatamente
+      // Erros de quota (429) e timeout: acionam fallback determinístico local imediato
       if (genErr.isQuotaError || genErr.isTimeout) {
+        const detGen = (typeof NutriDomain !== 'undefined' && NutriDomain.DeterministicTrainingGenerator) ||
+          (typeof DeterministicTrainingGenerator !== 'undefined' ? DeterministicTrainingGenerator : null) ||
+          (typeof window !== 'undefined' && window.DeterministicTrainingGenerator ? window.DeterministicTrainingGenerator : null);
+
+        if (detGen && typeof detGen.generate === 'function') {
+          try {
+            const fallbackReason = genErr.isQuotaError ? 'HTTP_429_QUOTA_EXCEEDED' : 'API_TIMEOUT_FALLBACK';
+            const contingencyResult = detGen.generate(contextSnapshot, {
+              requirements,
+              fallbackReason,
+              previousErrors: [String(genErr.message || genErr)]
+            });
+            if (contingencyResult && contingencyResult.status !== 'REJECT' && contingencyResult.prescription) {
+              const structural = validateAIPrescription({
+                ...contingencyResult.prescription,
+                splitSource: 'DETERMINISTIC'
+              });
+              if (structural.status !== 'REJECT' && structural.data) {
+                console.info(`[generateAndValidateWorkout] Contingência determinística ativada com sucesso após erro (${fallbackReason}).`);
+                return {
+                  status: 'PASS',
+                  isContingency: true,
+                  contingencyReason: fallbackReason,
+                  fatal: false,
+                  attempt,
+                  context: contextSnapshot,
+                  prescription: structural.data,
+                  warnings: [
+                    `Prescrição gerada pelo Motor Determinístico de Contingência (${fallbackReason}). Revise antes de validar.`,
+                    ...(contingencyResult.warnings || [])
+                  ],
+                  errors: [],
+                  requiresHumanReview: true
+                };
+              }
+            }
+          } catch (detErr) {
+            console.warn('[generateAndValidateWorkout] Falha ao acionar DeterministicTrainingGenerator:', detErr);
+          }
+        }
+
         return {
           status: 'REJECT',
           fatal: true,
@@ -24725,6 +24766,48 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
 
   // ── PASSO 3: Circuit Breaker — esgotadas as 3 tentativas ─────────────────
   console.error('[generateAndValidateWorkout] Circuit breaker ativado após 3 tentativas.');
+
+  // Tenta acionar o gerador determinístico de contingência local como fallback seguro
+  const detGen = (typeof NutriDomain !== 'undefined' && NutriDomain.DeterministicTrainingGenerator) ||
+    (typeof DeterministicTrainingGenerator !== 'undefined' ? DeterministicTrainingGenerator : null) ||
+    (typeof window !== 'undefined' && window.DeterministicTrainingGenerator ? window.DeterministicTrainingGenerator : null);
+
+  if (detGen && typeof detGen.generate === 'function') {
+    try {
+      const contingencyResult = detGen.generate(contextSnapshot, {
+        requirements,
+        fallbackReason: 'CIRCUIT_BREAKER_MAX_ATTEMPTS',
+        previousErrors: (lastResult && lastResult.errors) || previousErrors
+      });
+      if (contingencyResult && contingencyResult.status !== 'REJECT' && contingencyResult.prescription) {
+        const structural = validateAIPrescription({
+          ...contingencyResult.prescription,
+          splitSource: 'DETERMINISTIC'
+        });
+        if (structural.status !== 'REJECT' && structural.data) {
+          console.info('[generateAndValidateWorkout] Contingência determinística ativada com sucesso após circuit breaker.');
+          return {
+            status: 'PASS',
+            isContingency: true,
+            contingencyReason: 'CIRCUIT_BREAKER_MAX_ATTEMPTS',
+            fatal: false,
+            attempt: MAX_ATTEMPTS,
+            context: contextSnapshot,
+            prescription: structural.data,
+            warnings: [
+              'Prescrição gerada pelo Motor Determinístico de Contingência após esgotamento de tentativas com a IA. Revise antes de validar.',
+              ...(contingencyResult.warnings || [])
+            ],
+            errors: [],
+            requiresHumanReview: true
+          };
+        }
+      }
+    } catch (detErr) {
+      console.warn('[generateAndValidateWorkout] Falha na contingência determinística pós-circuit breaker:', detErr);
+    }
+  }
+
   return {
     status: 'REJECT',
     fatal: true,
@@ -27548,7 +27631,7 @@ function updateAITrainingBanner() {
   const btnApprove = document.getElementById("btnApproveAITraining");
   if (!banner) return;
 
-  if (perfWorkoutMeta && perfWorkoutMeta.isAIGenerated) {
+  if (perfWorkoutMeta && (perfWorkoutMeta.isAIGenerated || perfWorkoutMeta.isContingency || perfWorkoutMeta.splitSource === 'DETERMINISTIC')) {
     banner.classList.remove("hidden");
     if (perfWorkoutMeta.isClinicallyValidated) {
       if (badge) {
@@ -27562,10 +27645,15 @@ function updateAITrainingBanner() {
       }
     } else {
       if (badge) {
-        badge.className = "bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
-        badge.innerHTML = perfWorkoutMeta.status === 'WARNING'
-          ? "⚠️ Status: Alertas Clínicos Detectados · Requer Revisão"
-          : "⚠️ Status: Requer Validação Biomecânica";
+        if (perfWorkoutMeta.isContingency || perfWorkoutMeta.splitSource === 'DETERMINISTIC') {
+          badge.className = "bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+          badge.innerHTML = "⚙️ Contingência Local: Gerado Deterministicamente (Sem IA) · Requer Validação";
+        } else {
+          badge.className = "bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider";
+          badge.innerHTML = perfWorkoutMeta.status === 'WARNING'
+            ? "⚠️ Status: Alertas Clínicos Detectados · Requer Revisão"
+            : "⚠️ Status: Requer Validação Biomecânica";
+        }
       }
       if (btnApprove) {
         btnApprove.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3.5 py-2 rounded-xl text-xs shadow-lg shadow-emerald-950/60 flex items-center gap-1.5 transition-all cursor-pointer";
@@ -27781,11 +27869,53 @@ async function perfSetSplit(splitKey) {
     return;
   }
   const canonicalSplit = val.normalizedSplit || splitKey;
-  if (!PERF_SPLIT_PRESETS[canonicalSplit] && !PERF_SPLIT_PRESETS[splitKey]) return;
 
-  const presetKey = PERF_SPLIT_PRESETS[canonicalSplit] ? canonicalSplit : splitKey;
+  // 1. Tenta gerar via ModalityEngineRegistry especializado ou DeterministicTrainingGenerator
+  let generatedPlan = null;
+  const engineRegistry = (typeof NutriDomain !== 'undefined' && NutriDomain.ModalityEngineRegistry) ||
+    (typeof ModalityEngineRegistry !== 'undefined' ? ModalityEngineRegistry : null) ||
+    (typeof window !== 'undefined' && window.ModalityEngineRegistry ? window.ModalityEngineRegistry : null);
+
+  if (engineRegistry && typeof engineRegistry.generatePrescription === 'function') {
+    try {
+      let patientContext = null;
+      try {
+        if (typeof buildPerformanceContext === 'function' && activePatientId) {
+          patientContext = await buildPerformanceContext(activePatientId);
+        }
+      } catch (_) {}
+
+      const engineRes = engineRegistry.generatePrescription(canonicalSplit, patientContext, { isManualSelection: true });
+      if (engineRes && Array.isArray(engineRes.routines) && engineRes.routines.length > 0) {
+        generatedPlan = engineRes.routines.map(r => ({
+          id: r.id || r.routineId || 'A',
+          name: r.name || r.routineName || 'Treino',
+          description: r.description || '',
+          exercises: (r.exercises || []).map(ex => ({
+            name: ex.name || ex.exerciseName || 'Exercício',
+            sets: parseInt(ex.sets) || 3,
+            reps: String(ex.reps || '8-12'),
+            rpe: parseFloat(ex.rpe) || 8,
+            rest: parseInt(ex.rest != null ? ex.rest : (ex.restSeconds != null ? ex.restSeconds : 60)) || 60,
+            cadence: ex.cadence || '3-0-1-0',
+            obs: ex.obs || ex.notes || ''
+          }))
+        }));
+      }
+    } catch (e) {
+      console.warn('[perfSetSplit] Aviso ao consultar ModalityEngineRegistry:', e);
+    }
+  }
+
+  // 2. Fallback para catálogo PERF_SPLIT_PRESETS caso os motores não tenham gerado
+  if (!generatedPlan) {
+    if (!PERF_SPLIT_PRESETS[canonicalSplit] && !PERF_SPLIT_PRESETS[splitKey]) return;
+    const presetKey = PERF_SPLIT_PRESETS[canonicalSplit] ? canonicalSplit : splitKey;
+    generatedPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[presetKey]));
+  }
+
   perfActiveSplit = canonicalSplit;
-  perfWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[presetKey]));
+  perfWorkoutPlan = generatedPlan;
   perfTargetRoutine = perfWorkoutPlan[0]?.id || 'A';
   perfWeeklySchedule = perfBuildWeeklySchedule(canonicalSplit);
   perfWorkoutMeta = {
