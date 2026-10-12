@@ -11,7 +11,10 @@
       require('./EquipmentService'),
       require('./RecoveryEngine'),
       require('./ProgressionEngine'),
-      require('./ModalityEngineRegistry')
+      require('./ModalityEngineRegistry'),
+      require('./InternalTrainingDatabase'),
+      require('./DeterministicTrainingGenerator'),
+      require('./TrainingGenerationStateMachine')
     );
   } else {
     root.NutriDomain = root.NutriDomain || {};
@@ -20,7 +23,10 @@
       root.NutriDomain.EquipmentService,
       root.NutriDomain.RecoveryEngine,
       root.NutriDomain.ProgressionEngine,
-      root.NutriDomain.ModalityEngineRegistry
+      root.NutriDomain.ModalityEngineRegistry,
+      root.NutriDomain.InternalTrainingDatabase,
+      root.NutriDomain.DeterministicTrainingGenerator,
+      root.NutriDomain.TrainingGenerationStateMachine
     );
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (
@@ -28,7 +34,10 @@
   EquipmentService,
   RecoveryEngine,
   ProgressionEngine,
-  ModalityEngineRegistry
+  ModalityEngineRegistry,
+  InternalTrainingDatabase,
+  DeterministicTrainingGenerator,
+  TrainingGenerationStateMachine
 ) {
   'use strict';
 
@@ -37,6 +46,9 @@
     EquipmentService,
     RecoveryEngine,
     ProgressionEngine,
-    ModalityEngineRegistry
+    ModalityEngineRegistry,
+    InternalTrainingDatabase,
+    DeterministicTrainingGenerator,
+    TrainingGenerationStateMachine
   };
 });

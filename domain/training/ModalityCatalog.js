@@ -379,7 +379,15 @@
    */
   function resolveModalityId(input) {
     if (!input || typeof input !== 'string') return null;
-    const str = input.trim().toLowerCase();
+    const trimmed = input.trim();
+    if (MODALITY_IDS[trimmed]) return MODALITY_IDS[trimmed];
+    const upper = trimmed.toUpperCase();
+    if (MODALITY_IDS[upper]) return MODALITY_IDS[upper];
+    for (const v of Object.values(MODALITY_IDS)) {
+      if (v.toLowerCase() === trimmed.toLowerCase()) return v;
+    }
+
+    const str = trimmed.toLowerCase();
 
     // 1. Sedentário
     if (str.includes('sedentário') || str.includes('sedentario') || str.includes('nenhum')) {

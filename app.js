@@ -24661,8 +24661,10 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
         };
       }
       previousErrors = [`Erro na chamada da IA: ${String(genErr.message || genErr)}`];
-      // Aguarda 2s antes de nova tentativa para evitar rate limiting
-      await new Promise(r => setTimeout(r, 2000));
+      // Backoff exponencial com jitter (desempate aleatório para mitigar concorrência)
+      const jitterMs = Math.floor(Math.random() * 350);
+      const backoffMs = Math.min(8000, (1000 * Math.pow(2, attempt - 1)) + jitterMs);
+      await new Promise(r => setTimeout(r, backoffMs));
       continue; // tenta novamente
     }
 
@@ -24758,6 +24760,42 @@ async function defaultPerformanceAIGenerator(context, requirements = null, previ
   // Motor Clínico Determinístico de Contingência
   // Simula latência de processamento
   await new Promise(r => setTimeout(r, 150));
+
+  // 1. Tenta prioritariamente o Motor Determinístico de Contingência Canônico das 18 Modalidades
+  const detGenerator = (typeof NutriDomain !== 'undefined' && NutriDomain.DeterministicTrainingGenerator) ||
+    (typeof DeterministicTrainingGenerator !== 'undefined' ? DeterministicTrainingGenerator : null) ||
+    (typeof window !== 'undefined' && window.DeterministicTrainingGenerator ? window.DeterministicTrainingGenerator : null);
+
+  if (detGenerator && typeof detGenerator.generate === 'function') {
+    try {
+      const contingencyResult = detGenerator.generate(context, {
+        requirements,
+        previousErrors,
+        fallbackReason: (previousErrors && previousErrors.length > 0) ? 'VALIDATION_RETRY_FALLBACK' : 'AUTOMATIC_CONTINGENCY'
+      });
+      if (contingencyResult && contingencyResult.status !== 'REJECT' && contingencyResult.prescription) {
+        return {
+          split: contingencyResult.prescription.split,
+          splitSource: 'DETERMINISTIC',
+          frequency: contingencyResult.prescription.frequency || contingencyResult.prescription.routines?.length || 3,
+          routines: contingencyResult.prescription.routines.map(r => ({
+            id: r.id || 'A',
+            name: r.name || r.routineName || 'Treino',
+            exercises: (r.exercises || []).map(ex => ({
+              name: ex.name || ex.exerciseName || 'Exercício',
+              sets: parseInt(ex.sets) || 3,
+              reps: String(ex.reps || '8-12'),
+              rpe: parseFloat(ex.rpe) || 7.5,
+              rest: parseInt(ex.rest != null ? ex.rest : (ex.restSeconds != null ? ex.restSeconds : 60)) || 60,
+              obs: ex.obs || ex.notes || ''
+            }))
+          }))
+        };
+      }
+    } catch (detErr) {
+      console.warn('[defaultPerformanceAIGenerator] Aviso ao acionar DeterministicTrainingGenerator, utilizando fallback adaptativo:', detErr);
+    }
+  }
 
   const prohibited = (context.constraints?.prohibitedExercises || []).map(s => String(s).toLowerCase());
   const hasError = (term) => previousErrors.some(e => String(e).toLowerCase().includes(term));
@@ -28924,6 +28962,9 @@ window.GEMINI_MODEL = GEMINI_MODEL;
 window.runPerformanceAITests = runPerformanceAITests;
 window.runGeminiPerformanceAITests = runGeminiPerformanceAITests;
 window.runPersonalizationPerformanceTests = runPersonalizationPerformanceTests;
+window.InternalTrainingDatabase = (typeof NutriDomain !== 'undefined' && NutriDomain.InternalTrainingDatabase) || (typeof InternalTrainingDatabase !== 'undefined' ? InternalTrainingDatabase : null);
+window.DeterministicTrainingGenerator = (typeof NutriDomain !== 'undefined' && NutriDomain.DeterministicTrainingGenerator) || (typeof DeterministicTrainingGenerator !== 'undefined' ? DeterministicTrainingGenerator : null);
+window.TrainingGenerationStateMachine = (typeof NutriDomain !== 'undefined' && NutriDomain.TrainingGenerationStateMachine) || (typeof TrainingGenerationStateMachine !== 'undefined' ? TrainingGenerationStateMachine : null);
 
 // ═══════════════════════════════════════════════════════════
 // MOTOR PWA MOBILE & GERENCIADOR DE INSTALAÇÃO NO CELULAR

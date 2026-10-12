@@ -43,7 +43,6 @@
 
     const currentSets = Number(exercise.sets) || 3;
     const currentReps = String(exercise.reps || '8-10');
-    const currentLoad = Number(exercise.loadKg) || 0;
     const targetRpe = Number(exercise.rpe) || 8;
 
     // Extrai piso e teto da faixa de repetições (ex: "8-12" -> min 8, max 12)
@@ -51,7 +50,10 @@
     const minReps = match ? parseInt(match[1], 10) : parseInt(currentReps, 10) || 8;
     const maxReps = match ? parseInt(match[2], 10) : minReps;
 
-    if (!Array.isArray(historyLogs) || historyLogs.length === 0) {
+    const lastLog = (Array.isArray(historyLogs) && historyLogs.length > 0) ? historyLogs[historyLogs.length - 1] : null;
+    const currentLoad = Number(lastLog?.currentWeightKg || lastLog?.loadKg || exercise.loadKg || exercise.weightKg) || 0;
+
+    if (!lastLog) {
       return {
         decision: DECISIONS.MAINTAIN,
         action: 'MANTER',
@@ -63,9 +65,8 @@
       };
     }
 
-    const lastLog = historyLogs[historyLogs.length - 1];
-    const performedReps = Number(lastLog.repsCompleted) || 0;
-    const performedRpe = Number(lastLog.rpeExperienced) || targetRpe;
+    const performedReps = Number(lastLog.repsCompleted || lastLog.completedReps) || 0;
+    const performedRpe = Number(lastLog.rpeExperienced || lastLog.actualRpe) || targetRpe;
     const technicalQuality = lastLog.technicalQuality || 'BOA'; // 'EXCELENTE' | 'BOA' | 'COMPROMETIDA'
 
     if (technicalQuality === 'COMPROMETIDA' || performedRpe >= 10) {
@@ -315,6 +316,7 @@
     calculateSwimmingProgression,
     calculateCalisthenicsProgression,
     calculateSedentaryProgression,
-    calculateProgressionForModality
+    calculateProgressionForModality,
+    calculateProgression: calculateProgressionForModality
   };
 });
