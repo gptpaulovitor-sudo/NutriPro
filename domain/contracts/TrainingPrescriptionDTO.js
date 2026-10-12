@@ -40,7 +40,10 @@ const VALID_TRAINING_SPLITS = Object.freeze([
   'Natacao',
   'Lutas',
   'Calistenia',
-  'Aerobico_Geral'
+  'Aerobico_Geral',
+  // ── Introdução Segura ──
+  'Sedentario',
+  'Sedentary'
 ]);
 
 /**
@@ -72,6 +75,7 @@ function normalizeTrainingSplit(split) {
   if (lower === 'lutas' || lower === 'artes marciais') return 'Lutas';
   if (lower === 'calistenia') return 'Calistenia';
   if (lower === 'aerobico_geral' || lower === 'aeróbico geral' || lower === 'aerobico') return 'Aerobico_Geral';
+  if (lower === 'sedentario' || lower === 'sedentário' || lower === 'sedentary' || lower === 'nenhum') return 'Sedentario';
   return trimmed;
 }
 

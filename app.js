@@ -12959,7 +12959,20 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
           gif: guideData.gifUrl || GROUP_DEFAULT_GIFS[canonical.group] || GROUP_DEFAULT_GIFS['Peitoral'],
           steps: guideData.steps,
           breathing: guideData.breathing,
-          mistakes: guideData.mistakes
+          mistakes: guideData.mistakes,
+          // Propriedades Específicas por Modalidade
+          distanceKm: ex.distanceKm != null ? ex.distanceKm : undefined,
+          paceMinKm: ex.paceMinKm != null ? ex.paceMinKm : (ex.pace != null ? ex.pace : undefined),
+          durationMinutes: ex.durationMinutes != null ? ex.durationMinutes : undefined,
+          powerWatts: ex.powerWatts != null ? ex.powerWatts : undefined,
+          cadenceRpm: ex.cadenceRpm != null ? ex.cadenceRpm : undefined,
+          totalMeters: ex.totalMeters != null ? ex.totalMeters : undefined,
+          stroke: ex.stroke != null ? ex.stroke : undefined,
+          roundsCount: ex.roundsCount != null ? ex.roundsCount : undefined,
+          timeCapMinutes: ex.timeCapMinutes != null ? ex.timeCapMinutes : undefined,
+          dailyStepsTarget: ex.dailyStepsTarget != null ? ex.dailyStepsTarget : undefined,
+          progressionLevel: ex.progressionLevel != null ? ex.progressionLevel : undefined,
+          obs: ex.obs != null ? ex.obs : undefined
         };
       });
 
@@ -12967,6 +12980,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId) {
         id: r.id,
         name: r.name || `Treino ${r.id}`,
         badge: r.id,
+        modality: r.modality || (typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : 'PPL'),
         subtitle: `${dbExercises.length} exercícios estruturados · Volume: ${dbExercises.reduce((a, b) => a + (b.sets || 3), 0)} sets`,
         isCardio: r.id === 'Cardio',
         isOff: r.id === 'OFF',
@@ -16968,6 +16982,18 @@ function _perfBuildRawWeeklySchedule(splitKey) {
       { dayKey: 'd5', dayName: 'Dia 5', routineId: null, title: 'Caminhada Leve ao Ar Livre', focus: 'Passos Diários & Saúde Cardiovascular', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Carbo moderado', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Manutenção do gasto calórico basal' },
       { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Atividade Recreativa Livre', focus: 'Bem-estar', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Alimentação limpa', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Movimentação prazerosa' },
       { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Repouso e Regeneração', type: 'Off', carboTip: 'Carbo complexo', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Sono restaurador' }
+    ];
+  }
+  else if (normalizedKey === 'Sedentario' || normalizedKey === 'Sedentary') {
+    const r = PERF_SPLIT_PRESETS.Sedentario || [];
+    return [
+      { dayKey: 'd1', dayName: 'Dia 1', routineId: 'A', title: r[0]?.name || 'Treino A · Reativação Neuromotora Leve', focus: 'Caminhada Z1, mobilidade articular e padrões básicos sem impacto', type: 'Treino', carboTip: 'Refeição leve equilibrada rica em micronutrientes', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Iniciação segura de baixo impacto articular e ativação postural' },
+      { dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Meta de Passos & Descanso Ativo', focus: 'NEAT: 4.000 a 5.000 passos diários confortáveis', type: 'Cardio', cardioId: 'cardio_01', carboTip: 'Frutas frescas e hidratação regular', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Movimentação espontânea sem sobrecarga de estresse' },
+      { dayKey: 'd3', dayName: 'Dia 3', routineId: 'B', title: r[1]?.name || 'Treino B · Estabilidade & Postura Básica', focus: 'Core suave, sentar-e-levantar e controle respiratório', type: 'Treino', carboTip: 'Carboidratos integrais de lenta absorção', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Fortalecimento de sustentação sem dor articular' },
+      { dayKey: 'd4', dayName: 'Dia 4', routineId: null, title: 'Descanso e Alongamentos Suaves', focus: 'Alívio muscular e respiração diafragmática', type: 'Off', carboTip: 'Alimentação natural e balanceada', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Adaptação gradual do sistema musculoesquelético' },
+      { dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: r[2]?.name || 'Treino C · Resistência Muscular Funcional', focus: 'Padrões motores cotidianos e flexibilidade', type: 'Treino', carboTip: 'Lanche pré-treino leve com fruta ou aveia', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Consolidação de hábitos de movimento ativo' },
+      { dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Caminhada Recreativa ao Ar Livre', focus: 'Lazer ativo e exposição à luz natural', type: 'Cardio', cardioId: 'cardio_02', carboTip: 'Hidratação contínua ao longo do dia', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Promoção do bem-estar biopsicossocial' },
+      { dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)', focus: 'Supercompensação e Sono Reparador', type: 'Off', carboTip: 'Alimentação equilibrada com fibras', proteinTip: protStr, waterTip: waterStr, strategyTip: 'Preparação tranquila para a próxima semana' }
     ];
   }
   // ── Se houver um preset customizado cadastrado em PERF_SPLIT_PRESETS ────────
@@ -21115,6 +21141,46 @@ const PERF_SPLIT_PRESETS = {
         { exerciseId: 'lg08', name: 'Intervalos Moderados na Esteira ou Bicicleta', sets: 6, reps: '2 min Z3 / 1 min leve', rpe: 7.5, rest: 60, cadence: 'Ritmo', resistProfile: 'uniform', obs: 'Oscilação controlada de ritmo cardiovascular.' }
       ]
     }
+  ],
+
+  // ── 18. NENHUM / SEDENTÁRIO (Iniciação Gradual Segura & Baixo Impacto) ─────
+  Sedentario: [
+    {
+      id: 'A',
+      name: 'Treino A · Reativação Neuromotora Leve',
+      description: 'Adaptação musculoesquelética segura, ativação da circulação e mobilidade articular.',
+      modality: 'sedentary',
+      exercises: [
+        { exerciseId: 'sed_01', name: 'Caminhada Contínua Leve em Ritmo Confortável (Z1)', sets: 1, reps: '15-20 min', rpe: 4.0, rest: 60, cadence: 'Confortável', resistProfile: 'uniform', distanceKm: 1.5, durationMinutes: 20, obs: 'Ritmo conversacional leve sem falta de ar.' },
+        { exerciseId: 'sed_02', name: 'Mobilidade Articular de Tornozelos e Quadril', sets: 2, reps: '10 cada lado', rpe: 3.5, rest: 30, cadence: 'Fluido', resistProfile: 'bodyweight', obs: 'Movimentos suaves e sem dor articular.' },
+        { exerciseId: 'sed_03', name: 'Sentar e Levantar da Cadeira com Apoio', sets: 2, reps: '8-10', rpe: 4.5, rest: 60, cadence: 'Controlado', resistProfile: 'bodyweight', obs: 'Manter a postura ereta ao subir e descer.' },
+        { exerciseId: 'sed_04', name: 'Alongamento Suave de Peitoral e Coluna Torácica', sets: 2, reps: '30s sustentação', rpe: 3.0, rest: 30, cadence: 'Estático', resistProfile: 'bodyweight', obs: 'Alívio da tensão postural sentada prolongada.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Treino B · Estabilidade & Postura Básica',
+      description: 'Estímulo de baixa sobrecarga mecânica com foco no core e membros inferiores.',
+      modality: 'sedentary',
+      exercises: [
+        { exerciseId: 'sed_05', name: 'Caminhada Estacionária com Elevação Suave dos Joelhos', sets: 3, reps: '2 min', rpe: 4.0, rest: 60, cadence: 'Cadenciado', resistProfile: 'bodyweight', durationMinutes: 6, obs: 'Ativação cardiovascular segura em casa ou consultório.' },
+        { exerciseId: 'sed_06', name: 'Ponte de Glúteos no Solo / Colchonete', sets: 2, reps: '8-10', rpe: 4.0, rest: 45, cadence: '2-1-2-0', resistProfile: 'bodyweight', obs: 'Despertar dos glúteos e estabilização pélvica.' },
+        { exerciseId: 'sed_07', name: 'Flexão de Braços na Parede (Wall Push-up)', sets: 2, reps: '8-10', rpe: 4.0, rest: 60, cadence: '2-1-2-0', resistProfile: 'bodyweight', obs: 'Carga reduzida protegendo cotovelos e ombros.' },
+        { exerciseId: 'sed_08', name: 'Exercício de Respiração Diafragmática & Relaxamento', sets: 1, reps: '5 min', rpe: 2.0, rest: 0, cadence: 'Profundo', resistProfile: 'bodyweight', obs: 'Controle autonômico e redução do estresse basal.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Treino C · Resistência Muscular Funcional',
+      description: 'Padrões motores cotidianos com segurança biomecânica máxima.',
+      modality: 'sedentary',
+      exercises: [
+        { exerciseId: 'sed_09', name: 'Caminhada Leve com Mudanças Sutis de Ritmo', sets: 1, reps: '20 min', rpe: 4.5, rest: 60, cadence: 'Livre', resistProfile: 'uniform', distanceKm: 1.8, durationMinutes: 20, obs: 'Caminhada contínua em terreno plano.' },
+        { exerciseId: 'sed_10', name: 'Remada com Elástico Leve ou Toalha', sets: 2, reps: '10-12', rpe: 4.0, rest: 45, cadence: 'Controlado', resistProfile: 'band', obs: 'Ativação dos romboides e postura do tronco.' },
+        { exerciseId: 'sed_11', name: 'Elevação de Calcanhares em Pé com Apoio (Panturrilhas)', sets: 2, reps: '12-15', rpe: 4.0, rest: 45, cadence: '2-1-1-0', resistProfile: 'bodyweight', obs: 'Estímulo da bomba muscular da panturrilha para retorno venoso.' },
+        { exerciseId: 'sed_12', name: 'Meta Diária de Passos Confortáveis (NEAT)', sets: 1, reps: '4.000 a 6.000 passos', rpe: 3.0, rest: 0, cadence: 'Livre', resistProfile: 'daily', dailyStepsTarget: 5000, obs: 'Incentivo à movimentação espontânea diária.' }
+      ]
+    }
   ]
 };
 
@@ -21123,6 +21189,7 @@ PERF_SPLIT_PRESETS['Bro Split'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['BroSplit'] = PERF_SPLIT_PRESETS.ABCDE;
 PERF_SPLIT_PRESETS['MetconHibrido'] = PERF_SPLIT_PRESETS.Metcon;
 PERF_SPLIT_PRESETS['Metcon_Hibrido'] = PERF_SPLIT_PRESETS.Metcon;
+PERF_SPLIT_PRESETS['Sedentary'] = PERF_SPLIT_PRESETS.Sedentario;
 
 /**
  * Dedução canônica determinística do split a partir da modalidade respondida na Anamnese.
@@ -21168,7 +21235,7 @@ function perfInferSplitFromAnamnese(modality, frequency = null) {
   }
 
   // 4. Sedentário / Nenhum
-  if (m.includes('sedentário') || m.includes('sedentario') || m.includes('nenhum')) return 'FullBody';
+  if (m.includes('sedentário') || m.includes('sedentario') || m.includes('nenhum') || m.includes('inativo')) return 'Sedentario';
 
   return null;
 }
@@ -27884,11 +27951,96 @@ function renderPerfWorkoutPlan() {
                    <span class="text-purple-300 font-mono" title="${cadenceTooltip}">⏱️ ${cadenceLabel}</span>
                    ${resistBadge}
                 </div>
+                ${ex.obs ? `<div class="text-[10px] text-zinc-400 italic pt-0.5">💡 ${ex.obs}</div>` : ''}
               </div>
 
-              <!-- Bloco 2: Controles de Séries, Reps, RPE e Pausa (100% Responsivo no Celular) -->
+              <!-- Bloco 2: Controles de Séries, Reps, RPE, Pausa e Métricas Específicas da Modalidade -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-                <div class="grid grid-cols-4 sm:flex sm:items-center gap-1.5 bg-black/60 p-2 rounded-xl border border-zinc-800/80 w-full sm:w-auto">
+                <div class="grid grid-cols-4 sm:flex sm:items-center gap-1.5 bg-black/60 p-2 rounded-xl border border-zinc-800/80 w-full sm:w-auto overflow-x-auto">
+                  ${(() => {
+                    const extraModalityInputs = [];
+                    if (ex.distanceKm != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-wider" title="Distância em Km">Km</span>
+                          <input type="number" step="0.1" value="${ex.distanceKm}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','distanceKm',+this.value)"
+                            class="w-full sm:w-14 p-1 text-center font-bold text-xs sm:text-sm text-emerald-300 rounded bg-zinc-900 border border-emerald-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.paceMinKm != null || ex.pace != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-wider" title="Ritmo (Pace min/km)">Pace</span>
+                          <input type="text" value="${ex.paceMinKm || ex.pace || '5:30'}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','paceMinKm',this.value)"
+                            class="w-full sm:w-14 p-1 text-center font-bold text-xs sm:text-sm text-emerald-300 rounded bg-zinc-900 border border-emerald-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.powerWatts != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-amber-400 uppercase tracking-wider" title="Potência Alvo em Watts">Watts</span>
+                          <input type="number" step="5" value="${ex.powerWatts}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','powerWatts',+this.value)"
+                            class="w-full sm:w-14 p-1 text-center font-bold text-xs sm:text-sm text-amber-300 rounded bg-zinc-900 border border-amber-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.cadenceRpm != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-amber-400 uppercase tracking-wider" title="Cadência em RPM">RPM</span>
+                          <input type="number" step="5" value="${ex.cadenceRpm}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','cadenceRpm',+this.value)"
+                            class="w-full sm:w-14 p-1 text-center font-bold text-xs sm:text-sm text-amber-300 rounded bg-zinc-900 border border-amber-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.totalMeters != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase tracking-wider" title="Metros Nadados">Metros</span>
+                          <input type="number" step="25" value="${ex.totalMeters}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','totalMeters',+this.value)"
+                            class="w-full sm:w-16 p-1 text-center font-bold text-xs sm:text-sm text-cyan-300 rounded bg-zinc-900 border border-cyan-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.roundsCount != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-wider" title="Rounds">Rounds</span>
+                          <input type="number" min="1" max="50" value="${ex.roundsCount}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','roundsCount',+this.value)"
+                            class="w-full sm:w-12 p-1 text-center font-bold text-xs sm:text-sm text-rose-300 rounded bg-zinc-900 border border-rose-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.dailyStepsTarget != null) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-teal-400 uppercase tracking-wider" title="Meta de Passos Diários">Passos</span>
+                          <input type="number" step="500" value="${ex.dailyStepsTarget}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','dailyStepsTarget',+this.value)"
+                            class="w-full sm:w-16 p-1 text-center font-bold text-xs sm:text-sm text-teal-300 rounded bg-zinc-900 border border-teal-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    if (ex.durationMinutes != null && !ex.distanceKm && !ex.totalMeters) {
+                      extraModalityInputs.push(`
+                        <div class="flex flex-col items-center">
+                          <span class="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-wider" title="Duração (min)">Min</span>
+                          <input type="number" min="1" max="180" value="${ex.durationMinutes}"
+                            onchange="perfUpdateField('${routine.id}','${resolvedId}','durationMinutes',+this.value)"
+                            class="w-full sm:w-14 p-1 text-center font-bold text-xs sm:text-sm text-indigo-300 rounded bg-zinc-900 border border-indigo-700/60 ${focusBorder} outline-none">
+                        </div>
+                      `);
+                    }
+                    return extraModalityInputs.join('');
+                  })()}
                   
                   <!-- Séries -->
                   <div class="flex flex-col items-center">

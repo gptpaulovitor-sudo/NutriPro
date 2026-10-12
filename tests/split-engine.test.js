@@ -552,7 +552,7 @@ test('F5 COMPLEMENTAR 5: Cobertura de 100% das Modalidades da Anamnese no Split 
     { label: 'Ciclismo + Força', expected: 'Ciclismo_Forca' },
     { label: 'Esportes Coletivos', expected: 'EsportesColetivos' },
     { label: 'Misto (Força + Cardio)', expected: 'MistoCardio' },
-    { label: 'Nenhum (Sedentário)', expected: 'FullBody' }
+    { label: 'Nenhum (Sedentário)', expected: 'Sedentario' }
   ];
 
   for (const item of anamneseModalities) {

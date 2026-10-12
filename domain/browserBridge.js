@@ -19239,6 +19239,12 @@ module.exports = Object.freeze({
   const orchestration = rootRequire('./orchestration/index');
   const adapters = rootRequire('./adapters/index');
   const clinical = rootRequire('./clinical/index');
+  let training;
+  try {
+    training = rootRequire('./training/index');
+  } catch (_) {
+    training = (typeof window !== 'undefined' && window.NutriDomain && window.NutriDomain.Training) ? window.NutriDomain.Training : null;
+  }
 
   const NutriDomain = {
     contracts,
@@ -19250,6 +19256,7 @@ module.exports = Object.freeze({
     orchestration,
     adapters,
     clinical,
+    training,
     energyTarget: {
       calculateDeterministicEnergyTarget: math.calculateDeterministicEnergyTarget,
       DEFAULT_ENERGY_POLICY: math.DEFAULT_ENERGY_POLICY,

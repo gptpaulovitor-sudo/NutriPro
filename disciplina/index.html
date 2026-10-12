@@ -7593,27 +7593,129 @@
                 <span class="font-mono text-zinc-300">⏱️ ${ex.cadence}</span>
                 ${resistBadge}
               </div>
+              ${ex.obs ? `<div class="text-[10px] text-zinc-400 italic pt-1">💡 ${ex.obs}</div>` : ''}
             </div>
 
-            <!-- Grade de Parâmetros Prescritos (Séries, Reps, RPE, Pausa) e Checkbox -->
+            <!-- Grade de Parâmetros Prescritos (Métricas por Modalidade) e Checkbox -->
             <div class="flex items-center justify-between gap-2 pt-1">
               <div class="grid grid-cols-4 gap-1.5 text-center flex-1">
-                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${setsLabel}</span>
-                  <span class="text-xs font-black text-white font-mono">${ex.sets}</span>
-                </div>
-                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${repsLabel}</span>
-                  <span class="text-xs font-black text-white font-mono">${ex.reps}</span>
-                </div>
-                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${rpeLabel}</span>
-                  <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe}</span>
-                </div>
-                <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
-                  <span class="text-[8px] font-mono text-zinc-400 block uppercase">${pauseLabel}</span>
-                  <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
-                </div>
+                ${(() => {
+                  if (ex.distanceKm != null || ex.paceMinKm != null) {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-900/50">
+                        <span class="text-[8px] font-mono text-emerald-400 block uppercase">Distância</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.distanceKm || 0} km</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-900/50">
+                        <span class="text-[8px] font-mono text-emerald-400 block uppercase">Pace</span>
+                        <span class="text-xs font-black text-emerald-300 font-mono">${ex.paceMinKm || ex.reps || '5:30'}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 7}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
+                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
+                      </div>
+                    `;
+                  } else if (ex.powerWatts != null || ex.cadenceRpm != null) {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-amber-900/50">
+                        <span class="text-[8px] font-mono text-amber-400 block uppercase">Potência</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.powerWatts || 150}W</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-amber-900/50">
+                        <span class="text-[8px] font-mono text-amber-400 block uppercase">Cadência</span>
+                        <span class="text-xs font-black text-amber-300 font-mono">${ex.cadenceRpm || 85} rpm</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 7}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Duração</span>
+                        <span class="text-xs font-black text-blue-400 font-mono">${ex.durationMinutes ? `${ex.durationMinutes}m` : (ex.reps || '30m')}</span>
+                      </div>
+                    `;
+                  } else if (ex.totalMeters != null) {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-cyan-900/50">
+                        <span class="text-[8px] font-mono text-cyan-400 block uppercase">Metros</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.totalMeters}m</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-cyan-900/50">
+                        <span class="text-[8px] font-mono text-cyan-400 block uppercase">Séries</span>
+                        <span class="text-xs font-black text-cyan-300 font-mono">${ex.sets || 1}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 7}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
+                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
+                      </div>
+                    `;
+                  } else if (ex.dailyStepsTarget != null) {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-teal-900/50">
+                        <span class="text-[8px] font-mono text-teal-400 block uppercase">Passos</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.dailyStepsTarget.toLocaleString('pt-BR')}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-teal-900/50">
+                        <span class="text-[8px] font-mono text-teal-400 block uppercase">Meta</span>
+                        <span class="text-xs font-black text-teal-300 font-mono">NEAT</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                        <span class="text-xs font-black text-teal-400 font-mono">${ex.rpe || 3}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
+                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
+                      </div>
+                    `;
+                  } else if (ex.roundsCount != null) {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-rose-900/50">
+                        <span class="text-[8px] font-mono text-rose-400 block uppercase">Rounds</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.roundsCount}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-rose-900/50">
+                        <span class="text-[8px] font-mono text-rose-400 block uppercase">Reps / Meta</span>
+                        <span class="text-xs font-black text-rose-300 font-mono">${ex.reps || 'Máx'}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
+                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 8}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
+                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
+                      </div>
+                    `;
+                  } else {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${setsLabel}</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.sets}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${repsLabel}</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.reps}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${rpeLabel}</span>
+                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${pauseLabel}</span>
+                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
+                      </div>
+                    `;
+                  }
+                })()}
               </div>
 
               <!-- Checkbox de Conclusão do Exercício -->
