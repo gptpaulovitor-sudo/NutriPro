@@ -13933,7 +13933,18 @@ const PERF_EXERCISE_DB = [
   { id: 'ab05', name: 'Abdominal Rollout (Roda Abdominal)', group: 'Abdômen', mechanics: 'Composto', equipment: 'Acessório', primary: 'Core Global, Reto Abdominal & Transverso', secondary: 'Dorsal, Serrátil', resistProfile: 'stretched', cadence: '3-0-2-0', cadenceNote: 'Rollout: o reto abdominal e o transverso trabalham no comprimento máximo (tronco horizontal). Excêntrico 3s de controle é o mais desafiador — Lima & Pinto Cap.8.' },
   { id: 'ab06', name: 'Prancha Isométrica no Solo (Plank)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Peso Corporal', primary: 'Transverso do Abdômen & Reto Abdominal', secondary: 'Glúteos, Ombros', resistProfile: 'uniform', cadence: '0-0-0-0', cadenceNote: 'Prancha: esforço isométrico contínuo sem fase concêntrica/excêntrica. O tempo sob tensão (30-60s) é o parâmetro de progressão — ACSM Cap.7.' },
   { id: 'ab07', name: 'Russian Twist com Halter ou Anilha', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Halteres', primary: 'Oblíquos Interno e Externo', secondary: 'Reto Abdominal', resistProfile: 'stretched', cadence: '2-0-1-0', cadenceNote: 'Russian twist: oblíquos trabalham em maior comprimento na rotação oposta ao braço de resistência. Controle durante toda ADM — Lima & Pinto Cap.8.' },
-  { id: 'ab08', name: 'Abdominal na Máquina (Machine Crunch)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Reto Abdominal', secondary: 'Oblíquos', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Máquina de crunch: carga progressiva com trajetória guiada. Pico de ativação no encurtamento. 1s isométrico no pico de flexão — Lima & Pinto Cap.8.' }
+  { id: 'ab08', name: 'Abdominal na Máquina (Machine Crunch)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Máquina', primary: 'Reto Abdominal', secondary: 'Oblíquos', resistProfile: 'shortened', cadence: '3-1-1-0', cadenceNote: 'Máquina de crunch: carga progressiva com trajetória guiada. Pico de ativação no encurtamento. 1s isométrico no pico de flexão — Lima & Pinto Cap.8.' },
+
+  // ── CARDIO & ERGÔMETROS (METABÓLICO & CARDIOVASCULAR) ──
+  { id: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Dorsal, Tríceps & Core', secondary: 'Sistema Cardiorrespiratório', resistProfile: 'uniform', cadence: 's/m', cadenceNote: 'Ergômetro de tração superior e core.' },
+  { id: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Pernas, Dorsal & Bíceps', secondary: 'Sistema Cardiorrespiratório', resistProfile: 'uniform', cadence: 's/m', cadenceNote: 'Ergômetro de cadeia fechada e potência cíclica.' },
+  { id: 'hy03', name: 'AirBike / Echo Bike / CycleAir', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Sistema Cardiorrespiratório (Full-Body)', secondary: 'Quadríceps, Glúteos, Peito, Costas, Braços', resistProfile: 'uniform', cadence: 'Watts / RPM', cadenceNote: 'Ergômetro síncrono sem impacto articular.' },
+  { id: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', group: 'Cardio & Ergômetros', mechanics: 'Cardiovascular', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Sistema Cardiorrespiratório & Membros Inferiores', secondary: 'Panturrilhas, Core', resistProfile: 'uniform', cadence: 'Pace / km/h', cadenceNote: 'Tiros fracionados em esteira ergométrica.' },
+  { id: 'hy05', name: 'Corrida Contínua na Esteira (Ritmo Z3/Z4)', group: 'Cardio & Ergômetros', mechanics: 'Cardiovascular', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Endurance Cardiovascular & Muscular', secondary: 'Panturrilhas, Quadríceps', resistProfile: 'uniform', cadence: 'Pace / km/h', cadenceNote: 'Volume contínuo em esteira ergométrica.' },
+  { id: 'cardio_esteira', name: 'Esteira Ergométrica (Tiros ou Corrida)', group: 'Cardio & Ergômetros', mechanics: 'Cardiovascular', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Sistema Cardiorrespiratório', secondary: 'Membros Inferiores, Core', resistProfile: 'uniform', cadence: 'Pace / km/h', cadenceNote: 'Ergômetro de esteira.' },
+  { id: 'cardio_airbike', name: 'AirBike / Echo Bike (Ventilador)', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Sistema Cardiorrespiratório (Full-Body)', secondary: 'Membros Inferiores & Superiores', resistProfile: 'uniform', cadence: 'Watts / RPM', cadenceNote: 'Ergômetro de ar.' },
+  { id: 'cardio_rowerg', name: 'Remo Concept2 RowErg', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', category: 'Metabólico', primary: 'Sistema Cardiorrespiratório & Tração', secondary: 'Dorsais, Pernas, Core', resistProfile: 'uniform', cadence: 's/m', cadenceNote: 'Ergômetro de tração cíclica.' },
+  { id: 'cardio_recuperativo_z1', name: 'Cardio Recuperativo Z1/Z2 (Bike Suave / Caminhada Plana)', group: 'Cardio & Ergômetros', mechanics: 'Cardiovascular', equipment: 'Ergômetro', category: 'Regenerativo', primary: 'Flush Metabólico & Clearance de Lactato', secondary: 'Sistema Cardiorrespiratório', resistProfile: 'uniform', cadence: '50-60 RPM Leve', cadenceNote: 'Desaquecimento ativo sem impacto ou sobrecarga excêntrica.' }
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -16164,7 +16175,15 @@ function renderPerfPrescribedCardio() {
               <span class="text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700/80 px-2 py-0.5 rounded-full uppercase">
                 Cardio Prescrito
               </span>
-              <span class="text-[10px] font-mono text-zinc-400">⚡ Time Cap: <strong class="text-white">${cardio.timeCap}</strong></span>
+              ${(!cardio.isHiit && (cardio.intensityType === 'CONTINUOUS' || cardio.category === 'Zona 2' || /zona 2|regenerat|liss|aeróbic|mitocondrial/i.test(cardio.name || '') || /zona 2|regenerat|liss|aeróbic|mitocondrial/i.test(cardio.title || '')))
+                ? ''
+                : `<span class="text-[10px] font-mono text-zinc-400">⚡ Time Cap: <strong class="text-white">${(() => {
+                    const durVal = parseInt(cardio.minDurationMinutes || cardio.duration || 0);
+                    let capVal = parseInt(cardio.timeCap || 0);
+                    if (durVal > capVal && capVal > 0) capVal = durVal;
+                    return capVal > 0 ? `${capVal} min` : (cardio.timeCap || 'N/A');
+                  })()}</strong></span>`
+              }
               <span class="text-[10px] font-mono font-bold text-amber-400">🔥 Queima Estimada: ${cardio.calEst}</span>
             </div>
             <h3 class="text-base font-bold text-white tracking-tight mt-1">${cardio.title}</h3>
@@ -16347,8 +16366,10 @@ function perfBuildWeeklySchedule(splitKey) {
 function _perfBuildRawWeeklySchedule(splitKey) {
   const ctx = perfGetNutritionContext();
   const protStr = `${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia)`;
-  const waterStr = `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL (40 mL/kg)`;
-  const waterPlusStr = `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`;
+  const waterL = ((ctx.waterTargetMl || (ctx.currentWeight * 40)) / 1000).toFixed(1);
+  const waterStr = `${waterL}L (40 mL/kg)`;
+  const waterWorkoutStr = `${(parseFloat(waterL) + 0.5).toFixed(1)}L (+500mL intra)`;
+  const waterPlusStr = waterWorkoutStr;
   const preCarbG = ctx.isCutting ? '50-60g' : ctx.isBulking ? '80-100g' : '60-70g';
 
   // Normalização determinística do split (Seção 13: Bro Split e BroSplit são equivalentes à divisão ABCDE)
@@ -16368,7 +16389,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd2', dayName: 'Dia 2', routineId: 'B', title: 'Treino B · Lower Força',
         focus: 'Cadeia Posterior, Agachamento & Stiff', type: 'Treino',
         carboTip: `${preCarbG} carbo de baixo/médio IG (Batata doce / Arroz)`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Reposição de glicogênio para membros inferiores'
       },
       {
@@ -16376,7 +16397,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         focus: 'Oxidação Lipídica & Biogênese', type: 'Cardio', cardioId: 'cardio_01',
         carboTip: '30g carbo leve ou treino em estado estável',
         proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Anti-catabólico)`,
-        waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL + Eletrólitos`,
+        waterTip: `${waterWorkoutStr} + Eletrólitos`,
         strategyTip: 'Oxidação pura de ácidos graxos sem interferência na via mTOR'
       },
       {
@@ -16390,14 +16411,14 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd5', dayName: 'Dia 5', routineId: 'D', title: 'Treino D · Lower Hipertrofia',
         focus: 'Quadríceps, Hack Squat & Glúteos', type: 'Treino',
         carboTip: `${preCarbG} carbo denso pré e pós-treino (Arroz / Mandioca)`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Recarga glicêmica estruturada para regeneração tecidual'
       },
       {
         dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'Circuito Engine Híbrido',
         focus: 'Variação Biomecânica & Gasto Calórico', type: 'Cardio', cardioId: 'cardio_02',
         carboTip: 'Carboidratos moderados distribuídos ao longo do dia',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: `Déficit calórico planejado mantido (${ctx.caloricTarget} kcal)`
       },
       {
@@ -16405,7 +16426,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         focus: 'Regeneração Muscular & Supercompensação', type: 'Off',
         carboTip: 'Carboidratos complexos com fibras e vegetais abundantes',
         proteinTip: `${ctx.proteinGKg.toFixed(1)} g/kg (Recuperação estrutural contínua)`,
-        waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL + Sódio e Magnésio`,
+        waterTip: `${waterStr} + Sódio e Magnésio`,
         strategyTip: 'Supercompensação celular, sono reparador 8h & alívio do SNC'
       }
     ];
@@ -16485,7 +16506,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd2', dayName: 'Dia 2', routineId: null, title: 'Cardio Zona 2 Puro',
         focus: 'Base Aeróbia & Depuração', type: 'Cardio', cardioId: 'cardio_01',
         carboTip: '30-40g carbo leve para recuperação',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Biogênese mitocondrial sem fadiga neuromuscular'
       },
       {
@@ -16506,21 +16527,21 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd5', dayName: 'Dia 5', routineId: 'C', title: 'Treino C · Dia Metabólico',
         focus: 'Pump & Densidade (12-15 reps / RPE 9)', type: 'Treino',
         carboTip: `${preCarbG} carbo de rápida digestão`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Estresse metabólico e hipertrofia sarcoplasmática acelerada'
       },
       {
         dayKey: 'd6', dayName: 'Dia 6', routineId: null, title: 'HIIT Norueguês 4x4',
         focus: 'VO₂ Máx & Potência Cardiovascular', type: 'Cardio', cardioId: 'cardio_03',
         carboTip: '40g carbo de fácil absorção 1h antes',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Complacência ventricular e deslocamento do limiar anaeróbio L2'
       },
       {
         dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
         focus: 'Regeneração Sistêmica Completa', type: 'Off',
         carboTip: 'Alimentação equilibrada anti-inflamatória',
-        proteinTip: protStr, waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterStr}`,
         strategyTip: 'Sono profundo e consolidação das adaptações neuromusculares'
       }
     ];
@@ -16601,7 +16622,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
       {
         dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Pernas Completo',
         focus: 'Quadríceps, Isquiotibiais & Glúteos', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
+        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Volume completo de membros inferiores'
       },
       {
@@ -16643,7 +16664,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
       {
         dayKey: 'd3', dayName: 'Dia 3', routineId: 'C', title: 'Treino C · Pernas',
         focus: 'Agachamento, Hack & Posteriores', type: 'Treino',
-        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 600).toLocaleString('pt-BR')} mL`,
+        carboTip: `${preCarbG} carbo denso pré e pós`, proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Volume concentrado em membros inferiores'
       },
       {
@@ -16694,14 +16715,14 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 Mitocondrial',
         focus: 'Biogênese & Sensibilidade Insulínica', type: 'Cardio', cardioId: 'cardio_01',
         carboTip: '30-40g carbo de rápida digestão',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Oxidação de ácidos graxos sem fadiga neuromuscular'
       },
       {
         dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs',
         focus: 'Quadríceps, Isquiotibiais & Panturrilhas', type: 'Treino',
         carboTip: `${preCarbG} carbo denso pré-agachamento`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Recarga glicêmica peri-treino para suportar o volume de pernas'
       },
       {
@@ -16722,7 +16743,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
         focus: 'Regeneração Muscular & Repouso', type: 'Off',
         carboTip: 'Carbo complexo com fibras e hortaliças',
-        proteinTip: protStr, waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterStr}`,
         strategyTip: 'Recuperação neuromuscular completa e hidratação com eletrólitos'
       }
     ];
@@ -17030,14 +17051,14 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd3', dayName: 'Dia 3', routineId: null, title: 'Cardio Zona 2 Mitocondrial',
         focus: 'Biogênese & Sensibilidade Insulínica', type: 'Cardio', cardioId: 'cardio_01',
         carboTip: '30-40g carbo de rápida digestão',
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Oxidação de ácidos graxos sem fadiga neuromuscular'
       },
       {
         dayKey: 'd4', dayName: 'Dia 4', routineId: 'C', title: 'Treino C · Legs',
         focus: 'Quadríceps, Isquiotibiais & Panturrilhas', type: 'Treino',
         carboTip: `${preCarbG} carbo denso pré-agachamento`,
-        proteinTip: protStr, waterTip: `${(ctx.waterTargetMl + 500).toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterWorkoutStr}`,
         strategyTip: 'Recarga glicêmica peri-treino para suportar o volume de pernas'
       },
       {
@@ -17058,7 +17079,7 @@ function _perfBuildRawWeeklySchedule(splitKey) {
         dayKey: 'd7', dayName: 'Dia 7', routineId: null, title: 'Descanso Total (OFF)',
         focus: 'Regeneração Muscular & Repouso', type: 'Off',
         carboTip: 'Carbo complexo com fibras e hortaliças',
-        proteinTip: protStr, waterTip: `${ctx.waterTargetMl.toLocaleString('pt-BR')} mL`,
+        proteinTip: protStr, waterTip: `${waterStr}`,
         strategyTip: 'Recuperação neuromuscular completa e hidratação com eletrólitos'
       }
     ];
@@ -19256,7 +19277,14 @@ const PERF_ACTION_FAMILIES = [
   { key: 'triceps', rx: /triceps|testa|frances|pushdown|coice|kickback/i, group: 'Tríceps', defaultId: 'tr01' },
 
   // ABDÔMEN
-  { key: 'abdomen', rx: /abdominal|crunch|prancha|infra|supra|obliquo/i, group: 'Abdômen', defaultId: 'ab01' }
+  { key: 'abdomen', rx: /abdominal|crunch|prancha|infra|supra|obliquo/i, group: 'Abdômen', defaultId: 'ab01' },
+
+  // CARDIO & ERGÔMETROS (METABÓLICO & CARDIOVASCULAR)
+  { key: 'esteira', rx: /esteira|treadmill|corrida.*esteira|sprint.*esteira/i, group: 'Cardio & Ergômetros', defaultId: 'hy04' },
+  { key: 'airbike', rx: /airbike|air\s*bike|echo\s*bike|cycleair/i, group: 'Cardio & Ergômetros', defaultId: 'hy03' },
+  { key: 'remo', rx: /rowerg|rower|remo\s*concept|remo\s*seco/i, group: 'Cardio & Ergômetros', defaultId: 'hy02' },
+  { key: 'skierg', rx: /skierg|ski\s*erg/i, group: 'Cardio & Ergômetros', defaultId: 'hy01' },
+  { key: 'cardio_recuperativo', rx: /recuperativ|flush\s*metabolico|desaquecimento|soltura/i, group: 'Cardio & Ergômetros', defaultId: 'cardio_recuperativo_z1' }
 ];
 
 function perfSearchExerciseSemantic(rawTarget) {
@@ -19264,6 +19292,28 @@ function perfSearchExerciseSemantic(rawTarget) {
 
   const clean = rawTarget.trim();
   if (!clean || clean.toLowerCase() === 'geral' || clean === 'Exercício Biomecânico') return null;
+
+  // Atalhos de alta precisão para Ergômetros (Garantia clínica: nunca classificar como Halteres ou Barra)
+  if (/airbike|air\s*bike|echo\s*bike|cycleair/i.test(clean)) {
+    const airbikeEx = PERF_EXERCISE_DB.find(e => e.id === 'hy03' || e.id === 'cardio_airbike');
+    if (airbikeEx) return airbikeEx;
+  }
+  if (/esteira|treadmill/i.test(clean)) {
+    const esteiraEx = PERF_EXERCISE_DB.find(e => e.id === 'hy04' || e.id === 'cardio_esteira' || e.id === 'hy05');
+    if (esteiraEx) return esteiraEx;
+  }
+  if (/rowerg|remo\s*concept|remo\s*seco/i.test(clean)) {
+    const rowerEx = PERF_EXERCISE_DB.find(e => e.id === 'hy02' || e.id === 'cardio_rowerg');
+    if (rowerEx) return rowerEx;
+  }
+  if (/skierg|ski\s*erg/i.test(clean)) {
+    const skiergEx = PERF_EXERCISE_DB.find(e => e.id === 'hy01');
+    if (skiergEx) return skiergEx;
+  }
+  if (/recuperativ|flush\s*metabolico|desaquecimento\s*ativo/i.test(clean)) {
+    const recEx = PERF_EXERCISE_DB.find(e => e.id === 'cardio_recuperativo_z1');
+    if (recEx) return recEx;
+  }
 
   // Atalhos de alta precisão para Levantamento Terra Convencional vs Stiff
   if (/levantamento\s*terra|terra\s*convencional|deadlift/i.test(clean) && !/romen|stiff|rdl/i.test(clean)) {
@@ -20545,10 +20595,10 @@ const PERF_SPLIT_PRESETS = {
       name: 'Treino A · Ergômetros & Potência Aeróbica (HYROX)',
       description: 'Intervalos nos ergômetros Concept2 (SkiErg, Remo, AirBike) e esteira em ritmo de prova.',
       exercises: [
-        { exerciseId: 'pe18', name: 'SkiErg Concept2 (Intervalos de Potência)', sets: 5, reps: '500m', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Trabalho de dorsal e core em flexão explosiva · ritmo de prova.' },
-        { exerciseId: 'do01', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 4, reps: '750m', rpe: 8.0, rest: 90, cadence: 'Ritmo 26s/m', resistProfile: 'uniform', obs: 'Perna, quadril e dorsal em sincronia com respiração.' },
-        { exerciseId: 'lg01', name: 'AirBike / Echo Bike (Lactate Wash)', sets: 4, reps: '1 min', rpe: 9.0, rest: 120, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Tiros de potência máxima anaeróbia.' },
-        { exerciseId: 'lg08', name: 'Corrida na Esteira (Tiros Progressivos)', sets: 5, reps: '400m', rpe: 8.5, rest: 60, cadence: 'Ritmo Z4', resistProfile: 'uniform', obs: 'Simulação da transição pós-ergômetro em esteira inclinada 1%.' },
+        { exerciseId: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', sets: 5, reps: '500m', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Trabalho de dorsal e core em flexão explosiva · ritmo de prova.' },
+        { exerciseId: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', sets: 4, reps: '750m', rpe: 8.0, rest: 90, cadence: 'Ritmo 26s/m', resistProfile: 'uniform', obs: 'Perna, quadril e dorsal em sincronia com respiração.' },
+        { exerciseId: 'hy03', name: 'AirBike / Echo Bike (Lactate Wash)', sets: 4, reps: '1 min', rpe: 9.0, rest: 120, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Tiros de potência máxima anaeróbia.' },
+        { exerciseId: 'hy04', name: 'Corrida na Esteira (Tiros Progressivos)', sets: 5, reps: '400m', rpe: 8.5, rest: 60, cadence: 'Ritmo Z4', resistProfile: 'uniform', obs: 'Simulação da transição pós-ergômetro em esteira inclinada 1%.' },
         { exerciseId: 'ab06', name: 'Prancha Isométrica / Hollow Body Hold', sets: 4, reps: '45s', rpe: 8.0, rest: 45, cadence: 'Isometria', resistProfile: 'shortened', obs: 'Estabilização profunda de core para sustentação de postura.' }
       ]
     },
@@ -20570,10 +20620,10 @@ const PERF_SPLIT_PRESETS = {
       name: 'Treino C · Concorrente & Simulação de Prova HYROX',
       description: 'Simulação intercalada de corrida + estações em ritmo de prova contínuo.',
       exercises: [
-        { exerciseId: 'lg08', name: 'Corrida na Esteira (Ritmo de Aquecimento)', sets: 1, reps: '1000m', rpe: 7.0, rest: 60, cadence: 'Ritmo Z3', resistProfile: 'uniform', obs: '1 km de corrida contínua para ativação neuromuscular.' },
-        { exerciseId: 'do01', name: 'Remo RowErg + Burpees (Bi-set HYROX)', sets: 4, reps: '500m + 10 burp', rpe: 8.5, rest: 90, cadence: 'Sem pausa', resistProfile: 'uniform', obs: 'Transição imediata do remo para burpees.' },
-        { exerciseId: 'pe18', name: 'SkiErg + Wall Balls (Bi-set HYROX)', sets: 4, reps: '500m + 15 WB', rpe: 8.5, rest: 90, cadence: 'Sem pausa', resistProfile: 'uniform', obs: 'Trabalho de membros superiores e inferiores combinados.' },
-        { exerciseId: 'lg08', name: 'Passadas com Halteres + AirBike', sets: 3, reps: '20 passos + 15 cal', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Depleção glicogênica e trabalho de lactato muscular.' },
+        { exerciseId: 'hy05', name: 'Corrida na Esteira (Ritmo de Aquecimento)', sets: 1, reps: '1000m', rpe: 7.0, rest: 60, cadence: 'Ritmo Z3', resistProfile: 'uniform', obs: '1 km de corrida contínua para ativação neuromuscular.' },
+        { exerciseId: 'hy02', name: 'Remo RowErg + Burpees (Bi-set HYROX)', sets: 4, reps: '500m + 10 burp', rpe: 8.5, rest: 90, cadence: 'Sem pausa', resistProfile: 'uniform', obs: 'Transição imediata do remo para burpees.' },
+        { exerciseId: 'hy01', name: 'SkiErg + Wall Balls (Bi-set HYROX)', sets: 4, reps: '500m + 15 WB', rpe: 8.5, rest: 90, cadence: 'Sem pausa', resistProfile: 'uniform', obs: 'Trabalho de membros superiores e inferiores combinados.' },
+        { exerciseId: 'hy03', name: 'Passadas com Halteres + AirBike', sets: 3, reps: '20 passos + 15 cal', rpe: 8.5, rest: 90, cadence: 'Potente', resistProfile: 'uniform', obs: 'Depleção glicogênica e trabalho de lactato muscular.' },
         { exerciseId: 'sh18', name: 'Suitcase Carry (Caminhada Unilateral)', sets: 3, reps: '30m / lado', rpe: 8.0, rest: 60, cadence: 'Controlado', resistProfile: 'uniform', obs: 'Anti-flexão lateral de tronco e fortalecimento de oblíquos.' }
       ]
     }
@@ -20712,7 +20762,7 @@ const PERF_SPLIT_PRESETS = {
         { exerciseId: 'pe05', name: 'Supino Inclinado com Halteres', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Feixe clavicular.' },
         { exerciseId: 'sh06', name: 'Elevação Lateral com Halteres', sets: 4, reps: '10-12', rpe: 8.5, rest: 45, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Deltoide medial.' },
         { exerciseId: 'tr01', name: 'Tríceps na Polia com Barra Reta', sets: 3, reps: '10-12', rpe: 8.5, rest: 60, cadence: '3-1-1-0', resistProfile: 'shortened', obs: 'Pico de contração de tríceps.' },
-        { exerciseId: 'lg08', name: 'HIIT na Esteira (Sprints 30s/30s)', sets: 10, reps: '30s tiros', rpe: 9.0, rest: 30, cadence: 'Máx Pace', resistProfile: 'uniform', obs: '10 minutos de tiros a 15-18 km/h com 30s de caminhada.' }
+        { exerciseId: 'hy04', name: 'HIIT na Esteira (Sprints 30s/30s)', sets: 10, reps: '30s tiros', rpe: 9.0, rest: 30, cadence: 'Máx Pace', resistProfile: 'uniform', obs: '10 minutos de tiros a 15-18 km/h com 30s de caminhada em esteira ergométrica.' }
       ]
     },
     {
@@ -20723,18 +20773,18 @@ const PERF_SPLIT_PRESETS = {
         { exerciseId: 'do01', name: 'Barra Fixa Pronada', sets: 4, reps: '6-8', rpe: 8.5, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Largura dorsal completa.' },
         { exerciseId: 'do08', name: 'Remada Curvada com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Espessura dorsal.' },
         { exerciseId: 'bi01', name: 'Rosca Direta com Barra', sets: 3, reps: '8-10', rpe: 8.0, rest: 60, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Flexão de cotovelos.' },
-        { exerciseId: 'do01', name: 'HIIT no Remo Concept2 (Tiros 100m)', sets: 8, reps: '100m sprint', rpe: 9.0, rest: 45, cadence: 'Potência Máx', resistProfile: 'uniform', obs: 'Tiros máximos de potência com pausa ativa.' }
+        { exerciseId: 'hy02', name: 'HIIT no Remo Concept2 (Tiros 100m)', sets: 8, reps: '100m sprint', rpe: 9.0, rest: 45, cadence: 'Potência Máx', resistProfile: 'uniform', obs: 'Tiros máximos de potência com pausa ativa no ergômetro Concept2.' }
       ]
     },
     {
       id: 'C',
-      name: 'Treino C · Legs & HIIT AirBike',
-      description: 'Pernas pesadas seguidas de esvaziamento glicogênico na AirBike.',
+      name: 'Treino C · Pernas (Força RIR 2) + Recuperação Z1/Z2',
+      description: 'Pernas pesadas com desaquecimento ativo para clearance de lactato e zero interferência metabólica.',
       exercises: [
-        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '6-8', rpe: 8.5, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força básica de membros inferiores.' },
-        { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Volume de quadríceps.' },
-        { exerciseId: 'lg10', name: 'Stiff com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Cadeia posterior.' },
-        { exerciseId: 'lg01', name: 'HIIT na AirBike / Echo Bike (Tabata)', sets: 8, reps: '20s on / 10s off', rpe: 9.5, rest: 10, cadence: 'Máx Watts', resistProfile: 'uniform', obs: 'Protocolo Tabata de 4 minutos com consumo máximo de oxigênio.' }
+        { exerciseId: 'lg01', name: 'Agachamento Livre com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 150, cadence: '3-0-1-0', resistProfile: 'uniform', obs: 'Força básica de membros inferiores (RIR 2).' },
+        { exerciseId: 'lg04', name: 'Leg Press 45°', sets: 3, reps: '8-10', rpe: 8.0, rest: 90, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Volume de quadríceps com segurança lombar.' },
+        { exerciseId: 'lg10', name: 'Stiff com Barra', sets: 4, reps: '6-8', rpe: 8.0, rest: 120, cadence: '3-0-1-0', resistProfile: 'stretched', obs: 'Cadeia posterior e isquiotibiais (RIR 2).' },
+        { exerciseId: 'cardio_recuperativo_z1', name: 'Desaquecimento Ativo & Flush Metabólico Z1/Z2 (Bike Suave / Caminhada Plana)', sets: 1, reps: '15 min', rpe: 5.0, rest: 0, cadence: '50-60 RPM Leve', resistProfile: 'uniform', obs: 'Recuperação ativa pós-treino pesado de pernas (RIR 2). HIIT anaeróbio/Tabata de membros inferiores proibido para evitar concorrência metabólica e sobrecarga articular.' }
       ]
     }
   ],
@@ -28753,8 +28803,21 @@ function perfGeneratePDF() {
       const dbEx = PERF_EXERCISE_DB.find(e => e.id === ex.exerciseId) || {
         group: 'Geral', mechanics: 'Composto', equipment: 'Livre', primary: 'Músculo Alvo', secondary: 'Estabilizadores'
       };
+      // Safeguard de Biomecânica / Ergômetro para evitar "Halteres (Composto)" em cardios/ergômetros
+      let resolvedEquipment = dbEx.equipment || 'Livre';
+      let resolvedMechanics = dbEx.mechanics || 'Composto';
+      let resolvedPrimary = dbEx.primary || 'Músculo Alvo';
+      const exNameLower = (ex.name || '').toLowerCase();
+      if (exNameLower.includes('esteira') || exNameLower.includes('airbike') || exNameLower.includes('rowerg') || 
+          exNameLower.includes('skierg') || exNameLower.includes('remo') || exNameLower.includes('bike') || 
+          exNameLower.includes('ergômetro') || exNameLower.includes('ergometro') || exNameLower.includes('cardio') || 
+          exNameLower.includes('desaquecimento')) {
+        resolvedEquipment = 'Ergômetro';
+        resolvedMechanics = 'Cardiovascular';
+        if (!resolvedPrimary || resolvedPrimary === 'Músculo Alvo') resolvedPrimary = 'Aptidão Cardiorrespiratória & Metabólica';
+      }
       const rpeRir = ex.rpe >= 9 ? '1 RIR' : ex.rpe >= 8 ? '2 RIR' : '3 RIR';
-      const cadence = dbEx.mechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0';
+      const cadence = resolvedMechanics === 'Cardiovascular' ? 'Ritmo Constante' : resolvedMechanics === 'Isolador' ? '3-1-1-0' : '3-0-1-0';
 
       return `
         <tr style="border-bottom: 1px solid #e5e7eb; font-size: 11px;">
@@ -28766,7 +28829,7 @@ function perfGeneratePDF() {
                 🎬 GIF Execução
               </a>
             </div>
-            <span style="color: #4b5563; font-size: 10px;">🎯 ${dbEx.primary} • <em>${dbEx.equipment} (${dbEx.mechanics})</em></span>
+            <span style="color: #4b5563; font-size: 10px;">🎯 ${resolvedPrimary} • <em>${resolvedEquipment} (${resolvedMechanics})</em></span>
           </td>
           <td style="padding: 8px 6px; text-align: center; font-family: monospace; color: #6b7280; font-size: 10px;">${cadence}</td>
           <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #111827; font-size: 12px; background: #f9fafb;">${ex.sets}</td>
@@ -28887,9 +28950,24 @@ function perfGeneratePDF() {
               <strong style="font-size: 13px; color: #9a3412; margin-left: 6px;">${cProto.title}</strong>
               <span style="font-size: 11px; color: #c2410c; margin-left: 4px;">(${cProto.subtitle})</span>
             </div>
-            <div style="font-size: 11px; font-family: monospace; color: #c2410c; font-weight: bold;">
-              Duração: ${presDuration} min (Time Cap: ${cProto.timeCap}) • Queima Est.: ${cProto.calEst}
-            </div>
+            ${(() => {
+              const isContinuousProtocol = (cProto.intensityType === 'CONTINUOUS' ||
+                cProto.category === 'Zona 2' ||
+                cProto.isHiit === false ||
+                (cProto.title && /zona 2|regenerat|liss|aeróbic|mitocondrial/i.test(cProto.title)) ||
+                (cProto.name && /zona 2|regenerat|liss|aeróbic|mitocondrial/i.test(cProto.name)));
+              let timeCapLabel = '';
+              if (!isContinuousProtocol && cProto.timeCap) {
+                let capMin = parseInt(cProto.timeCap) || 0;
+                if (presDuration > capMin && capMin > 0) {
+                  capMin = presDuration;
+                }
+                timeCapLabel = ` (Time Cap: ${capMin > 0 ? capMin + ' min' : cProto.timeCap})`;
+              }
+              return `<div style="font-size: 11px; font-family: monospace; color: #c2410c; font-weight: bold;">
+                Duração: ${presDuration} min${timeCapLabel} • Queima Est.: ${cProto.calEst}
+              </div>`;
+            })()}
           </div>
 
           <p style="font-size: 11px; color: #7c2d12; margin: 0 0 8px 0;">

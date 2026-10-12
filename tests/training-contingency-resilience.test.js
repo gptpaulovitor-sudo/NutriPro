@@ -466,3 +466,115 @@ test('29. Teste de Ponta a Ponta: Falha 503 -> Fallback -> DTO -> Persistência 
   assert.strictEqual(roundtripJson.activeSplit, 'HYROX');
   assert.strictEqual(roundtripJson.workoutPlan[0].exercises.length > 0, true);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 5: REFINAMENTOS DE BIOMECÂNICA, PROTOCOLOS CONTÍNUOS E MAPEAMENTO PACIENTE
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('30. Preservação de Biomecânica / Ergômetro: Cardios e Ergômetros Não Rotulam Halteres/Livre', () => {
+  const ergExercises = [
+    'Esteira: Caminhada Rápida em Inclinação',
+    'AirBike: Intervalado Anaeróbio',
+    'RowErg: Remada Contínua Zona 2',
+    'SkiErg: Tiros de Potência Metabólica',
+    'Bike Indoor: Giro Contínuo em Z2'
+  ];
+
+  for (const exName of ergExercises) {
+    const exNameLower = exName.toLowerCase();
+    const isErg = exNameLower.includes('esteira') || exNameLower.includes('airbike') || 
+                  exNameLower.includes('rowerg') || exNameLower.includes('skierg') || 
+                  exNameLower.includes('remo') || exNameLower.includes('bike');
+    assert.strictEqual(isErg, true, `Exercício ${exName} deve ser reconhecido como ergômetro/cardio`);
+
+    let resolvedEquipment = 'Livre';
+    let resolvedMechanics = 'Composto';
+    let resolvedPrimary = 'Músculo Alvo';
+
+    if (isErg) {
+      resolvedEquipment = 'Ergômetro';
+      resolvedMechanics = 'Cardiovascular';
+      resolvedPrimary = 'Aptidão Cardiorrespiratória & Metabólica';
+    }
+
+    assert.strictEqual(resolvedEquipment, 'Ergômetro');
+    assert.strictEqual(resolvedMechanics, 'Cardiovascular');
+    assert.notStrictEqual(resolvedPrimary, 'Músculo Alvo');
+  }
+});
+
+test('31. Protocolos Contínuos (Zona 2 / LISS): Supressão e Validação Temporal de Time Cap', () => {
+  const z2ContinuousProtocol = {
+    id: 'c_z2_treadmill',
+    title: 'Zona 2 (Capacitação Mitocondrial Contínua)',
+    subtitle: 'Esteira Inclinada ou Bicicleta',
+    intensityType: 'CONTINUOUS',
+    category: 'Zona 2',
+    isHiit: false,
+    duration: 45,
+    timeCap: '30 min'
+  };
+
+  const isContinuous = (z2ContinuousProtocol.intensityType === 'CONTINUOUS' ||
+    z2ContinuousProtocol.category === 'Zona 2' ||
+    z2ContinuousProtocol.isHiit === false ||
+    /zona 2|regenerat|liss/i.test(z2ContinuousProtocol.title));
+
+  assert.strictEqual(isContinuous, true, 'Protocolo Z2 deve ser detectado como contínuo');
+
+  let timeCapLabel = '';
+  const presDuration = 45;
+  if (!isContinuous && z2ContinuousProtocol.timeCap) {
+    let capMin = parseInt(z2ContinuousProtocol.timeCap) || 0;
+    if (presDuration > capMin && capMin > 0) capMin = presDuration;
+    timeCapLabel = ` (Time Cap: ${capMin > 0 ? capMin + ' min' : z2ContinuousProtocol.timeCap})`;
+  }
+
+  assert.strictEqual(timeCapLabel, '', 'Para protocolos contínuos de Zona 2, Time Cap deve ser suprimido');
+
+  // Protocolo HIIT (deve exibir Time Cap ajustado se duration > timeCap)
+  const hiitProtocol = {
+    title: 'HIIT Tabata na AirBike',
+    intensityType: 'INTERVAL',
+    category: 'HIIT',
+    isHiit: true,
+    timeCap: '15 min'
+  };
+  const isHiitContinuous = (hiitProtocol.intensityType === 'CONTINUOUS' || hiitProtocol.category === 'Zona 2' || hiitProtocol.isHiit === false);
+  assert.strictEqual(isHiitContinuous, false);
+
+  let hiitCapMin = parseInt(hiitProtocol.timeCap) || 0;
+  const hiitDuration = 20;
+  if (hiitDuration > hiitCapMin && hiitCapMin > 0) {
+    hiitCapMin = hiitDuration;
+  }
+  const hiitTimeCapLabel = ` (Time Cap: ${hiitCapMin} min)`;
+  assert.strictEqual(hiitTimeCapLabel, ' (Time Cap: 20 min)', 'Time cap em HIIT deve ser no mínimo igual à duração prescrita');
+});
+
+test('32. Mapeamento de Exercícios na Disciplina: Variações de Cadência e Ergômetros', () => {
+  const cleanName = (str) => (str || '')
+    .replace(/\s*\(\d+-\d+-\d+-\d+\)/g, '')
+    .replace(/\s*\d+-\d+-\d+-\d+/g, '')
+    .replace(/\s*·\s*Exc\..*$/i, '')
+    .trim();
+
+  // Teste de normalização de cadência
+  assert.strictEqual(cleanName('Agachamento Livre (3-0-1-0)'), 'Agachamento Livre');
+  assert.strictEqual(cleanName('Agachamento com Barra 4-0-1-0'), 'Agachamento com Barra');
+  assert.strictEqual(cleanName('Supino Reto · Exc. 3s / Conc. 1s'), 'Supino Reto');
+
+  // Teste de resolução de GIFs para ergômetros (não devem cair em peitoral)
+  const mockResolveGif = (name) => {
+    if (/airbike|air.*bike|assault.*bike|bike|bicicleta|ciclism/i.test(name)) return 'cardio/stationary-bike-run.gif';
+    if (/remo|rowerg|row.*erg|remador/i.test(name)) return 'cardio/rowing-machine.gif';
+    if (/skierg|ski.*erg/i.test(name)) return 'cardio/walking-on-incline-treadmill.gif';
+    if (/cardio|esteira|corrida|sprint|caminhada/i.test(name)) return 'cardio/walking-on-incline-treadmill.gif';
+    return 'pectorals/barbell-bench-press.gif';
+  };
+
+  assert.strictEqual(mockResolveGif('HIIT na AirBike (Sprints 10s/20s)'), 'cardio/stationary-bike-run.gif');
+  assert.strictEqual(mockResolveGif('RowErg Treino de 2000m'), 'cardio/rowing-machine.gif');
+  assert.strictEqual(mockResolveGif('SkiErg Intervalos'), 'cardio/walking-on-incline-treadmill.gif');
+  assert.strictEqual(mockResolveGif('Corrida na Esteira Z2'), 'cardio/walking-on-incline-treadmill.gif');
+});

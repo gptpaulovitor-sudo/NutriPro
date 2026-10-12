@@ -188,11 +188,11 @@ const EXERCISE_DATABASE: Exercise[] = [
   { id: 'ab08', name: 'Abdominal na Máquina (Machine Crunch)', group: 'Abdômen', mechanics: 'Isolador', equipment: 'Máquina', primaryMuscle: 'Reto Abdominal', secondaryMuscles: 'Oblíquos' },
 
   // ── CARDIO & ERGÔMETROS (HYROX, CONCORRENTE, INTERVALOS) ──
-  { id: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Dorsal, Tríceps & Core', secondaryMuscles: 'Ombros, Glúteos' },
-  { id: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Pernas, Dorsal & Bíceps', secondaryMuscles: 'Core, Trapézio' },
-  { id: 'hy03', name: 'AirBike / Echo Bike / CycleAir', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Quadríceps & Glúteos', secondaryMuscles: 'Peito, Costas, Braços' },
-  { id: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Membros Inferiores & Potência Anaeróbia', secondaryMuscles: 'Core, Panturrilhas' },
-  { id: 'hy05', name: 'Corrida Contínua na Esteira (Ritmo Z3/Z4)', group: 'Cardio & Ergômetros', mechanics: 'Composto', equipment: 'Máquina', primaryMuscle: 'Endurance Cardiovascular & Muscular', secondaryMuscles: 'Panturrilhas, Quadríceps' },
+  { id: 'hy01', name: 'SkiErg Concept2 (Intervalos de Potência)', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', primaryMuscle: 'Dorsal, Tríceps & Core', secondaryMuscles: 'Ombros, Glúteos' },
+  { id: 'hy02', name: 'Remo Concept2 RowErg (Capacidade Aeróbica)', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', primaryMuscle: 'Pernas, Dorsal & Bíceps', secondaryMuscles: 'Core, Trapézio' },
+  { id: 'hy03', name: 'AirBike / Echo Bike / CycleAir', group: 'Cardio & Ergômetros', mechanics: 'Metabólico', equipment: 'Ergômetro', primaryMuscle: 'Sistema Cardiorrespiratório (Full-Body)', secondaryMuscles: 'Quadríceps, Glúteos, Braços' },
+  { id: 'hy04', name: 'Tiros de Velocidade na Esteira (Sprints)', group: 'Cardio & Ergômetros', mechanics: 'Cardiovascular', equipment: 'Ergômetro', primaryMuscle: 'Membros Inferiores & Potência Anaeróbia', secondaryMuscles: 'Core, Panturrilhas' },
+  { id: 'hy05', name: 'Corrida Contínua na Esteira (Ritmo Z3/Z4)', group: 'Cardio & Ergômetros', mechanics: 'Cardiovascular', equipment: 'Ergômetro', primaryMuscle: 'Endurance Cardiovascular & Muscular', secondaryMuscles: 'Panturrilhas, Quadríceps' },
 
   // ── FUNCIONAL / HYROX & PESO LIVRE (ESTAÇÕES OFICIAIS & CALISTENIA) ──
   { id: 'hy06', name: 'Sled Push (Empurrar Trenó com Carga)', group: 'Funcional / HYROX', mechanics: 'Composto', equipment: 'Acessório', primaryMuscle: 'Quadríceps, Glúteos & Panturrilhas', secondaryMuscles: 'Core, Ombros' },

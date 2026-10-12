@@ -3862,7 +3862,16 @@
       if (/prancha|plank/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif';
       if (/abdominal|crunch|infra|supra|core/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif';
 
-      if (/cardio|esteira|caminhada|treadmill|corrida|bike|bicicleta|eliptico/i.test(name) || /cardio/i.test(group)) {
+      if (/airbike|air.*bike|assault.*bike|bike|bicicleta|ciclism|spin/i.test(name)) {
+        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run.gif';
+      }
+      if (/remo|rowerg|row.*erg|remador/i.test(name)) {
+        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/rowing-machine.gif';
+      }
+      if (/skierg|ski.*erg/i.test(name)) {
+        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
+      }
+      if (/cardio|esteira|caminhada|treadmill|corrida|sprint|tiro|eliptico/i.test(name) || /cardio/i.test(group)) {
         return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
       }
 
@@ -8025,14 +8034,74 @@
       let decodedName = '';
       try { if (encodedName) decodedName = decodeURIComponent(encodedName); } catch (_) { decodedName = encodedName; }
 
+      // Normaliza nome base removendo cadências e anotações (ex: "Agachamento Livre (3-0-1-0)" -> "Agachamento Livre")
+      const cleanName = (str) => (str || '')
+        .replace(/\s*\(\d+-\d+-\d+-\d+\)/g, '')
+        .replace(/\s*\d+-\d+-\d+-\d+/g, '')
+        .replace(/\s*·\s*Exc\..*$/i, '')
+        .replace(/\s*\(Sprints.*?\)/i, '')
+        .trim();
+
+      const normalizedSearchName = cleanName(decodedName).toLowerCase();
+
       let foundEx = null;
+
+      // 1. Procura em WORKOUT_DATABASE
       for (const rKey in WORKOUT_DATABASE) {
         if (!WORKOUT_DATABASE[rKey] || !Array.isArray(WORKOUT_DATABASE[rKey].exercises)) continue;
-        const match = WORKOUT_DATABASE[rKey].exercises.find(e => 
-          (e.id && exId && e.id === exId) || 
-          (decodedName && e.name && e.name.toLowerCase() === decodedName.toLowerCase())
+        const match = WORKOUT_DATABASE[rKey].exercises.find(e => {
+          if (e.id && exId && e.id === exId) return true;
+          if (decodedName && e.name && e.name.toLowerCase() === decodedName.toLowerCase()) return true;
+          if (normalizedSearchName && e.name && cleanName(e.name).toLowerCase() === normalizedSearchName) return true;
+          return false;
+        });
+        if (match) { foundEx = JSON.parse(JSON.stringify(match)); break; }
+      }
+
+      // 2. Procura em PERF_EXERCISE_DB se disponível
+      if (!foundEx && typeof PERF_EXERCISE_DB !== 'undefined' && Array.isArray(PERF_EXERCISE_DB)) {
+        const dbMatch = PERF_EXERCISE_DB.find(e => 
+          (e.id && exId && e.id === exId) ||
+          (normalizedSearchName && e.name && cleanName(e.name).toLowerCase() === normalizedSearchName)
         );
-        if (match) { foundEx = match; break; }
+        if (dbMatch) {
+          foundEx = {
+            id: dbMatch.id,
+            name: dbMatch.name,
+            group: dbMatch.group || 'Geral',
+            equip: `${dbMatch.equipment || 'Livre'} · ${dbMatch.mechanics || 'Composto'}`,
+            primary: dbMatch.primary || 'Músculo Alvo',
+            secondary: dbMatch.secondary || 'Estabilizadores',
+            cadence: dbMatch.cadence || '3-0-1-0',
+            sets: 3, reps: '8-12', rpe: 8, rest: 60,
+            steps: dbMatch.steps || ['Execute com amplitude completa, alinhamento biomecânico e controle escapular.'],
+            breathing: dbMatch.breathing || 'Inspire na fase excêntrica e expire na concêntrica.',
+            mistakes: dbMatch.mistakes || 'Evite compensações articulares.'
+          };
+        }
+      }
+
+      // 3. Detecção e tutorial contextual para Ergômetros / Cardio / Esteira
+      const isCardioOrErg = /esteira|treadmill|corrida|sprint|airbike|air.*bike|assault.*bike|skierg|ski.*erg|rowerg|row.*erg|remo|bike|bicicleta|caminhada|cardio|erg[oô]metro/i.test(decodedName);
+      if (isCardioOrErg && (!foundEx || foundEx.group === 'Geral')) {
+        foundEx = {
+          id: exId || 'erg_cardio',
+          name: decodedName || 'Cardio / Ergômetro',
+          group: 'Cardio & Ergômetro',
+          equip: 'Ergômetro · Cardiovascular',
+          primary: 'Aptidão Cardiorrespiratória & Capacidade Aeróbia',
+          secondary: 'Membros Inferiores & Sistema Cardiovascular',
+          cadence: 'Ritmo Constante',
+          sets: 1, reps: 'Intervalado/Contínuo', rpe: 8, rest: 60,
+          steps: [
+            'Ajuste o equipamento (altura do banco, pedais, correias do pé ou velocidade/inclinação inicial).',
+            'Inicie com aquecimento progressivo de 2 a 3 minutos para adaptação neuromuscular e circulatória.',
+            'Mantenha a frequência cardíaca (bpm), potência (Watts) ou ritmo (Pace) dentro da zona prescrita.',
+            'Preserve respiração rítmica coordenada (expiração profunda) e postura estável do core.'
+          ],
+          breathing: 'Respiração nasal em Zona 2 ou combinada em alta intensidade (HIIT).',
+          mistakes: 'Evite inclinação excessiva do tronco, apoio forçado nos corrimões ou oscilações desnecessárias.'
+        };
       }
 
       if (!foundEx && decodedName) {

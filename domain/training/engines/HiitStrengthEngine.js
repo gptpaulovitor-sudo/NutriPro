@@ -143,12 +143,12 @@
       },
       {
         id: 'C',
-        routineName: 'Treino C · Pernas Completo (Força) + Sprint AirBike (15s/45s)',
-        sessionType: 'DUPLO_MOTOR_FORCA_E_HIIT',
+        routineName: 'Treino C · Pernas Completo (Força RIR 2) + Cardio Recuperativo Z1/Z2',
+        sessionType: 'DUPLO_MOTOR_FORCA_E_RECUPERACAO',
         modality: 'hiit_musculacao',
-        coordinationOrder: 'FORCA_PRIMEIRO_DEPOIS_HIIT',
+        coordinationOrder: 'FORCA_PRIMEIRO_DEPOIS_RECUPERACAO',
         exercises: [
-          // Módulo 1: Musculação
+          // Módulo 1: Musculação (Alta Intensidade Miofibrilar)
           {
             exerciseId: 'lg01',
             exerciseName: '[MÓDULO FORÇA] Agachamento Livre com Barra',
@@ -158,7 +158,7 @@
             loadKg: 80,
             rpe: 8.0,
             restSeconds: 150,
-            notes: 'Força básica de quadríceps com excêntrica de 3s.'
+            notes: 'Força básica de quadríceps com excêntrica de 3s (RIR 2).'
           },
           {
             exerciseId: 'lg10',
@@ -169,24 +169,22 @@
             loadKg: 70,
             rpe: 8.0,
             restSeconds: 120,
-            notes: 'Cadeia posterior e isquiotibiais.'
+            notes: 'Cadeia posterior e isquiotibiais (RIR 2).'
           },
-          // Módulo 2: HIIT com zero impacto articular
+          // Módulo 2: Cardio Recuperativo Z1/Z2 (Salvaguarda Clínica Anti-Concorrência)
+          // Regra Fisiológica: se força de pernas possui carga alta (RIR <= 2), HIIT glicolítico de pernas é proibido.
           {
-            exerciseId: 'hiit_airbike_sprint',
-            exerciseName: '[MÓDULO HIIT] Tiros Tabata / Alactatos na AirBike (Zero Impacto)',
-            module: 'HIIT',
-            sets: 6,
-            reps: '15s máx watts / 45s leve',
-            durationMinutes: 6,
-            workDurationSec: 15,
-            restDurationSec: 45,
-            workRestRatio: '1:3',
-            hiitModality: 'AirBike / Echo Bike',
-            heartRateZone: 'Zona 5',
-            rpe: 9.5,
-            restSeconds: 45,
-            notes: 'Elimina impacto no solo após o agachamento preservando tendões e meniscos.'
+            exerciseId: 'cardio_recuperativo_z1',
+            exerciseName: '[MÓDULO RECUPERAÇÃO] Desaquecimento Ativo & Flush Metabólico Z1/Z2 (Bike Suave / Caminhada Plana)',
+            module: 'CARDIO_RECUPERATIVO',
+            sets: 1,
+            reps: '15 min contínuos',
+            durationMinutes: 15,
+            hiitModality: 'Bike Spinning ou Esteira Plana (Sem Impacto)',
+            heartRateZone: 'Zona 1 a Zona 2 (<65% FCmáx)',
+            rpe: 5.0,
+            restSeconds: 0,
+            notes: 'Proteção neuromuscular: após musculação pesada de pernas (RIR 2), HIIT glicolítico em ergômetros de perna é estritamente proibido para evitar concorrência metabólica severa e sobrecarga excêntrica. Prescrito flush ativo Z1/Z2 para depuração de lactato.'
           }
         ]
       }
@@ -199,17 +197,52 @@
     };
   }
 
+  /**
+   * Avalia compatibilidade metabólica entre força e cardio acoplado
+   * @param {Array} exercises 
+   * @returns {{ isSafe: boolean, conflictReason: string|null }}
+   */
+  function auditMetabolicConcurrency(exercises = []) {
+    const hasHeavyLegs = exercises.some(e =>
+      (e.module === 'FORCA' || !e.module) &&
+      (e.exerciseId === 'lg01' || e.exerciseId === 'lg10' || /perna|squat|agacha|stiff|leg/i.test(e.exerciseName || '')) &&
+      (Number(e.rpe) >= 8.0)
+    );
+
+    const hasIntenseLegHiit = exercises.some(e =>
+      (e.module === 'HIIT') &&
+      (/airbike|echo|esteira.*sprint|tabata.*perna|sprint/i.test(e.exerciseName || '') || /airbike/i.test(e.hiitModality || '')) &&
+      (Number(e.rpe) >= 8.5)
+    );
+
+    if (hasHeavyLegs && hasIntenseLegHiit) {
+      return {
+        isSafe: false,
+        conflictReason: 'Concorrência metabólica severa detectada: musculação pesada de pernas (RIR <= 2) associada a HIIT glicolítico de alta intensidade no mesmo dia. Cardio deve ser convertido para Zona 1/2 recuperativo.'
+      };
+    }
+
+    return { isSafe: true, conflictReason: null };
+  }
+
   function validateRoutine(routine) {
     const errors = [];
     if (!routine || !Array.isArray(routine.exercises) || routine.exercises.length === 0) {
       errors.push('Rotina HIIT + Musculação deve conter exercícios.');
       return { isValid: false, errors };
     }
+
+    const audit = auditMetabolicConcurrency(routine.exercises);
+    if (!audit.isSafe) {
+      errors.push(audit.conflictReason);
+    }
+
     return { isValid: errors.length === 0, errors };
   }
 
   return {
     generateRoutines,
+    auditMetabolicConcurrency,
     validateRoutine
   };
 });
