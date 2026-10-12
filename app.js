@@ -19771,7 +19771,7 @@ function perfQuickSearchExercise(query = '') {
             class="px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center gap-1">
             <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> GIF
           </button>
-          <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}');`}"
+          <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}', '${perfTargetRoutine}');`}"
             class="flex-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${alreadyAdded ? 'bg-zinc-800 text-zinc-500 cursor-default' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_8px_rgba(59,130,246,0.4)]'}">
             <i data-lucide="${alreadyAdded ? 'check' : 'plus'}" class="w-3 h-3"></i>
             <span>${alreadyAdded ? 'Adicionado' : `+ Treino ${perfTargetRoutine}`}</span>
@@ -19834,7 +19834,7 @@ function perfSearchInGuideModal(query = '') {
             <i data-lucide="shuffle" class="w-3 h-3"></i> Trocar
           </button>
         ` : `
-          <button onclick="perfAddExercise('${ex.id}'); perfCloseExerciseGuide();"
+          <button onclick="perfAddExercise('${ex.id}', '${currentRoutineId || perfTargetRoutine}'); perfCloseExerciseGuide();"
             class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-300 hover:text-white bg-emerald-950/90 hover:bg-emerald-800 border border-emerald-600/70 transition-all flex items-center gap-1">
             <i data-lucide="plus" class="w-3 h-3"></i> Adicionar
           </button>
@@ -20149,7 +20149,7 @@ function renderPerfCatalog() {
                 class="p-1.5 rounded-lg text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/60 hover:text-white transition-all shadow-[0_0_8px_rgba(59,130,246,0.2)]">
                 <i data-lucide="play-circle" class="w-3.5 h-3.5 text-blue-400"></i>
               </button>
-              <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}')`}"
+              <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}', '${perfTargetRoutine}')`}"
                 ${alreadyAdded ? 'disabled' : ''}
                 title="${alreadyAdded ? 'Já adicionado a este treino' : `Adicionar ao Treino ${perfTargetRoutine}`}"
                 class="p-1.5 rounded-lg transition-all ${alreadyAdded ? 'text-blue-400 cursor-default bg-blue-950/40 border border-blue-800/40' : 'text-white bg-blue-600 hover:bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]'}">
@@ -28342,7 +28342,7 @@ function renderPerfWorkoutPlan() {
           <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
           <span class="text-[11px] leading-tight">Progressão: <strong>+1 rep por série</strong> antes de subir a carga.</span>
         </div>
-        <button onclick="perfSwitchView('catalog', true)" class="${textAddEx} font-bold transition-colors flex items-center gap-1 text-[11px] sm:text-xs">
+        <button onclick="perfSetTarget('${routine.id}'); perfSwitchView('catalog', true);" class="${textAddEx} font-bold transition-colors flex items-center gap-1 text-[11px] sm:text-xs">
           <span>+ Adicionar Exercício nesta Rotina</span>
         </button>
       </div>`;
@@ -28364,13 +28364,20 @@ function perfSetTarget(routineId) {
     label.className = `font-bold ${isColor2 ? 'text-purple-400' : 'text-blue-400'}`;
   }
   renderPerfWorkoutPlan();
+  if (typeof renderPerfExerciseList === 'function') renderPerfExerciseList();
+  if (typeof renderPerfCatalog === 'function') renderPerfCatalog();
+  if (typeof perfQuickSearchExercise === 'function') {
+    const input = document.getElementById('perf-quick-search-input');
+    perfQuickSearchExercise(input ? input.value : '');
+  }
 }
 
-function perfAddExercise(exerciseId) {
+function perfAddExercise(exerciseId, targetRoutineId = null) {
+  const effectiveRoutine = targetRoutineId || perfTargetRoutine || (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
   const ex = PERF_EXERCISE_DB.find(e => e.id === exerciseId);
   if (!ex) return;
   perfWorkoutPlan = perfWorkoutPlan.map(routine => {
-    if (routine.id !== perfTargetRoutine) return routine;
+    if (routine.id !== effectiveRoutine) return routine;
     if (routine.exercises.some(e => (e.exerciseId || e.id) === exerciseId)) return routine;
     return {
       ...routine, exercises: [...routine.exercises, {
