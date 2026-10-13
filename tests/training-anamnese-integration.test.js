@@ -422,3 +422,58 @@ test('9. ExerciseCatalog e SplitPresets são a fonte canônica única compartilh
   assert.strictEqual(pageTsxCode.includes('setTimeout(resolve, 1800)'), false, 'page.tsx não deve ter mock estático de setTimeout 1800ms');
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 8: EXPORTAÇÃO PDF — PROTOCOLOS CARDIO & HIIT INTERVALADOS
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('10. Gerador de PDF e agenda capturam protocolos intervalados e HIIT (ex: HIIT Norueguês 4x4)', () => {
+  const appJsCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  // 1. Verifica que a condição de filtro do PDF inclui explicitamente HIIT e intervalados
+  assert.ok(appJsCode.includes("t === 'hiit'"), 'Deve capturar d.type === "hiit"');
+  assert.ok(appJsCode.includes("t === 'intervalado'"), 'Deve capturar d.type === "intervalado"');
+  assert.ok(appJsCode.includes("t.includes('hiit')"), 'Deve capturar tipos compostos com HIIT');
+  assert.ok(appJsCode.includes("title.includes('noruegu')"), 'Deve identificar HIIT Norueguês pelo título');
+
+  // 2. Simula execução lógica do filtro com dias contínuos e intervalados
+  const mockSchedule = [
+    { dayKey: 'd1', dayName: 'Dia 1', type: 'Treino', title: 'Treino A · Peito e Tríceps' },
+    { dayKey: 'd2', dayName: 'Dia 2', type: 'Cardio', title: 'Zona 2 Mitocondrial', cardioId: 'cardio_01' },
+    { dayKey: 'd3', dayName: 'Dia 3', type: 'Treino', title: 'Treino B · Costas e Bíceps' },
+    { dayKey: 'd4', dayName: 'Dia 4', type: 'Off', title: 'Descanso' },
+    { dayKey: 'd5', dayName: 'Dia 5', type: 'Treino + Cardio', title: 'Treino C + Cardio Z2', cardioId: 'cardio_01' },
+    { dayKey: 'd6', dayName: 'Dia 6', type: 'HIIT', title: 'HIIT Norueguês 4x4', cardioId: 'cardio_03' },
+    { dayKey: 'd7', dayName: 'Dia 7', type: 'Off', title: 'Descanso Total' },
+  ];
+
+  const isCardioOrHiitDay = (d) => {
+    if (!d) return false;
+    const t = String(d.type || '').trim().toLowerCase();
+    const title = String(d.title || '').trim().toLowerCase();
+    return (
+      !!d.cardio ||
+      !!d.cardioSession ||
+      !!d.cardioId ||
+      !!d.hasCardioPost ||
+      !!d.hasHiitPost ||
+      !!d.isHiit ||
+      t === 'cardio' ||
+      t === 'hiit' ||
+      t === 'intervalado' ||
+      t === 'treino + cardio' ||
+      t === 'treino + hiit' ||
+      t.includes('cardio') ||
+      t.includes('hiit') ||
+      title.includes('hiit') ||
+      title.includes('noruegu')
+    );
+  };
+
+  const captured = mockSchedule.filter(isCardioOrHiitDay);
+  assert.strictEqual(captured.length, 3, 'Deve capturar 3 sessões (Z2 puro, Treino+Cardio e HIIT Norueguês)');
+  const hiitDay = captured.find(c => c.type === 'HIIT' || c.title.includes('Norueguês'));
+  assert.ok(hiitDay, 'HIIT Norueguês deve estar obrigatoriamente presente na lista');
+  assert.strictEqual(hiitDay.cardioId, 'cardio_03');
+});
+
+

@@ -8336,11 +8336,17 @@ async function exportImpactReportPDF(patientId = activePatientId) {
   const imc = height > 0 ? Number((currentWeight / (height * height)).toFixed(2)) : 31.0;
   const rcEst = height > 0 ? Number((waist / (height * 100)).toFixed(2)) : 0.52;
 
+  const isScheduleCardioOrHiit = (d) => !!d && (
+    d.cardio || d.cardioSession || d.cardioId || d.hasCardioPost || d.hasHiitPost || d.isHiit ||
+    d.type === 'Cardio' || d.type === 'HIIT' || d.type === 'Treino + Cardio' || d.type === 'Treino + HIIT' ||
+    (typeof d.type === 'string' && (d.type.includes('Cardio') || d.type.includes('HIIT'))) ||
+    (typeof d.title === 'string' && (d.title.includes('HIIT') || d.title.includes('Noruegu')))
+  );
   const cardioDays = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
-    ? perfWeeklySchedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.hasCardioPost || !!d.cardioSession).length
+    ? perfWeeklySchedule.filter(isScheduleCardioOrHiit).length
     : 2;
   const cardioDayNamesList = (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule))
-    ? perfWeeklySchedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.hasCardioPost || !!d.cardioSession).map(d => d.dayName || d.dayKey).join(' e ')
+    ? perfWeeklySchedule.filter(isScheduleCardioOrHiit).map(d => d.dayName || d.dayKey).join(' e ')
     : 'Dia 2 e Dia 5';
 
   const splitName = (typeof perfActiveSplit !== 'undefined' && perfActiveSplit) ? perfActiveSplit : "PHAT (5 Dias · Hipertrofia/Força)";
@@ -29054,8 +29060,8 @@ function perfGeneratePDF() {
   let pdfTrainCount = 0;
   const scheduleRows = perfWeeklySchedule.map((d, idx) => {
     const isTrain = d.type === 'Treino';
-    const isCardio = d.type === 'Cardio';
-    const isTrainAndCardio = d.type === 'Treino + Cardio';
+    const isCardio = d.type === 'Cardio' || d.type === 'HIIT' || d.type === 'Intervalado' || !!d.cardio;
+    const isTrainAndCardio = d.type === 'Treino + Cardio' || d.type === 'Treino + HIIT' || d.type === 'HIIT + Treino' || !!d.hasCardioPost || !!d.hasHiitPost;
 
     let isColor2 = false;
     if (isTrain || isTrainAndCardio) {
@@ -29068,9 +29074,10 @@ function perfGeneratePDF() {
       pdfTrainCount++;
     }
 
-    const typeColor = isTrain ? (isColor2 ? '#7e22ce' : '#1e40af') : isTrainAndCardio ? '#b45309' : isCardio ? '#b45309' : '#6b7280';
-    const typeBg = isTrain ? (isColor2 ? '#faf5ff' : '#eff6ff') : isTrainAndCardio ? '#fffbeb' : isCardio ? '#fffbeb' : '#f9fafb';
-    const borderColor = isTrain ? (isColor2 ? '#e9d5ff' : '#bfdbfe') : isTrainAndCardio ? '#fed7aa' : isCardio ? '#fed7aa' : '#e5e7eb';
+    const isHiitType = d.type === 'HIIT' || d.type === 'Treino + HIIT' || d.type === 'HIIT + Treino' || String(d.title || '').toLowerCase().includes('hiit');
+    const typeColor = isTrain ? (isColor2 ? '#7e22ce' : '#1e40af') : isTrainAndCardio ? (isHiitType ? '#dc2626' : '#b45309') : isCardio ? (isHiitType ? '#dc2626' : '#b45309') : '#6b7280';
+    const typeBg = isTrain ? (isColor2 ? '#faf5ff' : '#eff6ff') : isTrainAndCardio ? (isHiitType ? '#fef2f2' : '#fffbeb') : isCardio ? (isHiitType ? '#fef2f2' : '#fffbeb') : '#f9fafb';
+    const borderColor = isTrain ? (isColor2 ? '#e9d5ff' : '#bfdbfe') : isTrainAndCardio ? (isHiitType ? '#fecaca' : '#fed7aa') : isCardio ? (isHiitType ? '#fecaca' : '#fed7aa') : '#e5e7eb';
     const dayLabel = `DIA ${idx + 1}`;
 
     return `
@@ -29091,21 +29098,85 @@ function perfGeneratePDF() {
     `;
   }).join('');
 
-  // Coleta todos os dias de Cardio prescritos na Agenda Semanal (puro ou integrado)
-  const cardioDays = perfWeeklySchedule.filter(d => d.type === 'Cardio' || d.type === 'Treino + Cardio' || !!d.hasCardioPost || !!d.cardioSession);
+  // Coleta todos os dias de Cardio & HIIT prescritos na Agenda Semanal (contínuos, intervalados, puros ou integrados)
+  const isCardioOrHiitDay = (d) => {
+    if (!d) return false;
+    const t = String(d.type || '').trim().toLowerCase();
+    const title = String(d.title || '').trim().toLowerCase();
+    const focus = String(d.focus || '').trim().toLowerCase();
+    return (
+      !!d.cardio ||
+      !!d.cardioSession ||
+      !!d.cardioId ||
+      !!d.hasCardioPost ||
+      !!d.hasHiitPost ||
+      !!d.isHiit ||
+      t === 'cardio' ||
+      t === 'hiit' ||
+      t === 'intervalado' ||
+      t === 'treino + cardio' ||
+      t === 'treino + hiit' ||
+      t === 'hiit + treino' ||
+      t.includes('cardio') ||
+      t.includes('hiit') ||
+      t.includes('interval') ||
+      title.includes('hiit') ||
+      title.includes('noruegu') ||
+      title.includes('cardio') ||
+      focus.includes('vo₂') ||
+      focus.includes('vo2')
+    );
+  };
+
+  const cardioDays = perfWeeklySchedule.filter(isCardioOrHiitDay);
 
   let cardioSectionsHtml = '';
   if (cardioDays.length > 0) {
     cardioSectionsHtml = cardioDays.map((cd, idx) => {
-      const protoId = cd.cardioSession?.protocolId || cd.cardioId;
-      const cProto = (protoId && typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
+      let protoId = cd.cardioSession?.protocolId || cd.cardioSession?.cardioId || cd.cardioId || cd.protocolId || (typeof cd.cardio === 'string' ? cd.cardio : cd.cardio?.id);
+      let cProto = (protoId && typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB))
         ? PERF_CARDIO_DB.find(c => c.id === protoId)
         : null;
+
+      // Se não encontrou por ID exato, busca por correspondência de título ou inteligência de categoria
+      if (!cProto && typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB)) {
+        const cdTitle = String(cd.title || '').toLowerCase();
+        const cdFocus = String(cd.focus || '').toLowerCase();
+        const cdType = String(cd.type || '').toLowerCase();
+
+        // 1. Busca por nome do protocolo (ex: "HIIT Norueguês 4x4", "Zona 2")
+        cProto = PERF_CARDIO_DB.find(c => {
+          const cName = String(c.name || '').toLowerCase();
+          const cTitle = String(c.title || '').toLowerCase();
+          return (
+            (cdTitle && (cdTitle.includes(cName) || cName.includes(cdTitle) || cdTitle.includes(cTitle))) ||
+            (cdTitle.includes('noruegu') && c.id === 'cardio_03')
+          );
+        });
+
+        // 2. Se for sessão intervalada / HIIT explícita
+        if (!cProto && (cdType.includes('hiit') || cdTitle.includes('hiit') || cdFocus.includes('hiit') || cd.isHiit)) {
+          cProto = PERF_CARDIO_DB.find(c => c.id === 'cardio_03') || PERF_CARDIO_DB.find(c => c.category === 'HIIT' || c.isHiit);
+        }
+
+        // 3. Fallback seguro para cardio contínuo caso seja marcado como cardio
+        if (!cProto && (cdType.includes('cardio') || cd.cardioSession || cd.cardio)) {
+          cProto = PERF_CARDIO_DB.find(c => c.id === 'cardio_01') || PERF_CARDIO_DB[0];
+        }
+      }
+
       if (!cProto) return '';
 
       const presDuration = cd.cardioSession?.durationMinutes || cd.cardioSession?.duration || parseInt(cProto.timeCap) || 45;
 
-      const cBlocksHtml = cProto.blocks.map(b => `
+      const blocks = (Array.isArray(cProto.blocks) && cProto.blocks.length > 0)
+        ? cProto.blocks
+        : [
+            { num: 1, name: 'Aquecimento & Calibração', items: ['Aquecimento progressivo no ergômetro (5-8 min)'] },
+            { num: 2, name: 'Estímulo Principal', items: [`Execução do protocolo prescrito (${presDuration} min)`] }
+          ];
+
+      const cBlocksHtml = blocks.map(b => `
         <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px; font-size: 11px;">
           <strong style="color: #c2410c; display: block; margin-bottom: 4px; font-size: 11.5px;">Bloco ${b.num} — ${b.name}</strong>
           <ul style="margin: 0; padding-left: 14px; color: #374151; font-size: 10.5px;">
@@ -29116,12 +29187,18 @@ function perfGeneratePDF() {
 
       const cDayLabel = (cd.dayKey && cd.dayKey.startsWith('d')) ? `DIA ${cd.dayKey.replace('d', '')}` : (cd.dayName && cd.dayName.startsWith('Dia ')) ? cd.dayName.toUpperCase() : `DIA ${idx + 1}`;
 
+      const isHiitSession = cProto.category === 'HIIT' || cProto.isHiit === true || cd.type === 'HIIT' || String(cd.title || '').toLowerCase().includes('hiit');
+      const badgeText = isHiitSession ? `HIIT & Potência · ${cDayLabel}` : `Cardio & Engine · ${cDayLabel}`;
+      const badgeBg = isHiitSession ? '#dc2626' : '#ea580c';
+      const cardBorder = isHiitSession ? '#f87171' : '#f97316';
+      const cardBg = isHiitSession ? '#fef2f2' : '#fff7ed';
+
       return `
-        <div style="page-break-inside: avoid; border: 1px solid #f97316; border-radius: 8px; background: #fff7ed; padding: 12px; margin-bottom: 16px;">
+        <div style="page-break-inside: avoid; border: 1px solid ${cardBorder}; border-radius: 8px; background: ${cardBg}; padding: 12px; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #fed7aa; padding-bottom: 6px; margin-bottom: 8px;">
             <div>
-              <span style="background: #ea580c; color: #ffffff; font-size: 9.5px; font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px;">
-                Cardio &amp; Engine · ${cDayLabel}
+              <span style="background: ${badgeBg}; color: #ffffff; font-size: 9.5px; font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px;">
+                ${badgeText}
               </span>
               <strong style="font-size: 13px; color: #9a3412; margin-left: 6px;">${cProto.title}</strong>
               <span style="font-size: 11px; color: #c2410c; margin-left: 4px;">(${cProto.subtitle})</span>
@@ -29155,7 +29232,7 @@ function perfGeneratePDF() {
           </div>
 
           <div style="font-size: 10px; color: #9a3412; border-top: 1px solid #fed7aa; padding-top: 6px;">
-            ⚠️ <strong>Restrições Técnicas:</strong> ${cProto.restrictions.join(' • ')}
+            ⚠️ <strong>Restrições Técnicas:</strong> ${(cProto.restrictions || []).join(' • ')}
           </div>
         </div>
       `;
