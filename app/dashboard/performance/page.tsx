@@ -44,6 +44,142 @@ import {
 } from '@/domain/training/SplitPresets';
 import { TrainingGenerationStateMachine } from '@/domain/training';
 // ─────────────────────────────────────────────────────────────────────────────
+// CONTRATOS & CANONICAL CARDIO TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+export interface CardioSession {
+  sessionId: string;
+  protocolId: string;
+  protocolTitle: string;
+  cardioId: string;
+  day: string;
+  dayKey: string;
+  durationMinutes: number;
+  intensityZone: string;
+  heartRateZone: string;
+  targetBpm: string;
+  intensityType: string;
+  isHiit: boolean;
+  recoveryDemand?: string;
+  modalityFamily?: string;
+  tiro?: string;
+  descansoAtivo?: string;
+  ciclo?: string;
+  subtitle?: string;
+  foco?: string;
+  calEst?: string;
+  dinamica?: string;
+  equipment?: string[];
+  blocks?: Array<{ num: number; name: string; items: string[] }>;
+  restrictions?: string[];
+  rationale?: string;
+}
+
+export interface CardioPrescriptionState {
+  id: string;
+  patientId: string;
+  frequencyWeekly: number;
+  totalWeeklyMinutes: number;
+  sessions: CardioSession[];
+}
+
+export const DEFAULT_CARDIO_PRESCRIPTION: CardioPrescriptionState = {
+  id: 'presc_cardio_canonical',
+  patientId: 'paciente_ativo',
+  frequencyWeekly: 2,
+  totalWeeklyMinutes: 70,
+  sessions: [
+    {
+      sessionId: 'session_1',
+      protocolId: 'cardio_01',
+      cardioId: 'cardio_01',
+      protocolTitle: 'Protocolo "Zona 2 Mitocondrial Puro"',
+      subtitle: 'Aerobic Base Builder · Zero Interferência com a via mTOR',
+      day: 'Dia 2',
+      dayKey: 'd2',
+      durationMinutes: 45,
+      intensityZone: 'Z2',
+      heartRateZone: 'Z2',
+      targetBpm: '112-130 bpm',
+      intensityType: 'CONTINUOUS',
+      isHiit: false,
+      calEst: '~420-480 kcal',
+      dinamica: 'Contínua em Estado Estável (Respiração Nasal)',
+      foco: 'Biogênese mitocondrial e oxidação pura de ácidos graxos em Zona 2 (60-70% FCM / 112-130 bpm). Ideal para dias pré-treino de pernas sem dano excêntrico.',
+      blocks: [
+        {
+          num: 1,
+          name: 'Oxidação Lipídica no Remo',
+          items: ['Remo Seco (RowErg): 15 min contínuos em Zona 2 (Pace constante 2:15 a 2:25/500m / FC < 130 bpm)'],
+        },
+        {
+          num: 2,
+          name: 'Cadência Cíclica sem Impacto',
+          items: ['AirBike / Bike Ergométrica: 15 min contínuos (RPM estável 50-55 / Zero picos anaeróbios)'],
+        },
+        {
+          num: 3,
+          name: 'Caminhada Inclinada Anti-impacto',
+          items: ['Esteira Inclinada: 15 min (Inclinação 8,0% a 10,0% / Velocidade 5,5 a 6,0 km/h)'],
+        },
+      ],
+      restrictions: [
+        'Manter a Frequência Cardíaca rigorosamente na Zona 2 (60-70% FCM).',
+        'Se a FC ultrapassar a Zona 2, reduzir a velocidade da esteira em 0,5 km/h imediatamente.',
+      ],
+      rationale: 'Base aeróbia mitocondrial pura sem dano excêntrico e sem interferência na sinalização de hipertrofia.',
+    },
+    {
+      sessionId: 'session_2',
+      protocolId: 'cardio_03',
+      cardioId: 'cardio_03',
+      protocolTitle: 'Protocolo "HIIT Norueguês 4x4 (Elite VO₂ Máx)"',
+      subtitle: 'Potência Aeróbica Máxima & Complacência Ventricular',
+      day: 'Dia 6',
+      dayKey: 'd6',
+      durationMinutes: 25,
+      intensityZone: 'Z4/Z5',
+      heartRateZone: 'Z4/Z5',
+      targetBpm: '160-175 bpm',
+      intensityType: 'INTERVALS',
+      isHiit: true,
+      tiro: '4 min em Z4/Z5 (85-95% FCM / 160-175 bpm)',
+      descansoAtivo: '3 min recuperação ativa em Z2 (65% FCM)',
+      ciclo: '4 ciclos de tiros 4x4 com descanso ativo',
+      calEst: '~400-470 kcal',
+      dinamica: 'Intervalada de Alta Intensidade (4 tiros de 4 min em Z4/Z5 com 3 min de recuperação ativa)',
+      foco: 'Aumento máximo do VO₂ Máx, complacência ventricular e tolerância à acidose intramuscular sem gerar fadiga residual prolongada.',
+      blocks: [
+        {
+          num: 1,
+          name: 'Aquecimento Progressivo',
+          items: ['Esteira / Bike: 5 min em Zona 2 (60-70% FCM) para elevação gradual da temperatura central'],
+        },
+        {
+          num: 2,
+          name: 'Ciclo Principal 4x4 (Tiros & Descanso Ativo)',
+          items: [
+            'Tiro 1: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+            'Tiro 2: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+            'Tiro 3: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+            'Tiro 4: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+          ],
+        },
+        {
+          num: 3,
+          name: 'Resfriamento & Remoção de Lactato',
+          items: ['Caminhada Plana: 3 min em Zona 1 (< 60% FCM) para normalização hemodinâmica'],
+        },
+      ],
+      restrictions: [
+        'Proibição de parada passiva nos intervalos de 3 min: Manter caminhada ou giro leve de pernas a 65% FCM para depuração de lactato.',
+        'Não realizar no dia anterior a treinos pesados de agachamento.',
+      ],
+      rationale: 'Estímulo de alta densidade mitocondrial e VO₂ Máx sem acúmulo de fadiga excêntrica residual.',
+    },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PerformanceDashboard() {
@@ -60,6 +196,9 @@ export default function PerformanceDashboard() {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutRoutine[]>(() => {
     return JSON.parse(JSON.stringify(TRAINING_SPLITS.HYROX.routines));
   });
+
+  // ── Prescrição Cardiovascular & Engine ──
+  const [cardioPrescription, setCardioPrescription] = useState<CardioPrescriptionState>(DEFAULT_CARDIO_PRESCRIPTION);
 
   // ── Rotina selecionada para adicionar exercício ──
   const [targetRoutineId, setTargetRoutineId] = useState<string>('A');
@@ -83,6 +222,9 @@ export default function PerformanceDashboard() {
           if (savedData) {
             try {
               const parsed = JSON.parse(savedData);
+              if (parsed.cardioPrescription && Array.isArray(parsed.cardioPrescription.sessions) && parsed.cardioPrescription.sessions.length > 0) {
+                setCardioPrescription(parsed.cardioPrescription);
+              }
               if (parsed.workoutPlan && Array.isArray(parsed.workoutPlan) && parsed.workoutPlan.length > 0) {
                 setWorkoutPlan(parsed.workoutPlan);
                 if (parsed.selectedSplit) {
@@ -156,6 +298,7 @@ export default function PerformanceDashboard() {
         patientName: patientAnamnese?.nome,
         selectedSplit,
         workoutPlan,
+        cardioPrescription,
         updatedAt: new Date().toISOString(),
       };
       if (typeof window !== 'undefined') {
@@ -163,7 +306,7 @@ export default function PerformanceDashboard() {
       }
       setAiToast({
         type: 'success',
-        message: `Periodização de treino salva com sucesso para ${patientAnamnese?.nome || 'o paciente'}! (${workoutPlan.length} rotinas)`,
+        message: `Periodização de treino e prescrição de cardio salvas com sucesso para ${patientAnamnese?.nome || 'o paciente'}! (${workoutPlan.length} rotinas · ${cardioPrescription.sessions.length} sessões de cardio)`,
       });
       setTimeout(() => setAiToast(null), 4000);
     } catch (err) {
@@ -784,6 +927,202 @@ export default function PerformanceDashboard() {
             </div>
             );
           })}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              PRESCRIÇÃO CARDIOVASCULAR & PERIODIZAÇÃO INTEGRADA (Cardio Engine)
+          ═══════════════════════════════════════════════════════════════════ */}
+          <div className="pt-2 space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400">
+                  <Flame className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    Prescrição Cardiovascular Individualizada
+                    <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full">
+                      {cardioPrescription.sessions.length} Sessões / Semana
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Dimensionada deterministicamente com alternância entre base mitocondrial e potência VO₂ Máx
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-mono font-bold text-orange-400 bg-orange-950/40 border border-orange-500/30 px-2.5 py-1 rounded-lg">
+                  ⏱️ {cardioPrescription.totalWeeklyMinutes} min / semana
+                </span>
+              </div>
+            </div>
+
+            {/* Mapeamento de cartões de cardio: sem filtros restritivos e sem limitador slice */}
+            <div className="grid grid-cols-1 gap-4">
+              {cardioPrescription.sessions.map((s, idx) => {
+                const isHiit = Boolean(s.isHiit || s.intensityType === 'INTERVALS' || s.protocolId === 'cardio_03');
+
+                return (
+                  <div
+                    key={s.sessionId || s.protocolId || idx}
+                    className={`border rounded-xl overflow-hidden shadow-lg transition-all p-5 space-y-4 ${
+                      isHiit
+                        ? 'bg-gradient-to-br from-orange-950/20 via-slate-900 to-slate-950 border-orange-500/40 hover:border-orange-500/60 shadow-[0_0_20px_rgba(249,115,22,0.1)]'
+                        : 'bg-gradient-to-br from-emerald-950/20 via-slate-900 to-slate-950 border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
+                    }`}
+                  >
+                    {/* Cabeçalho da Sessão: Dia e Identificação */}
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`w-3 h-3 rounded-full ${
+                            isHiit
+                              ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]'
+                              : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                          }`}
+                        />
+                        <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                          {s.day} · Sessão #{idx + 1}
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                              isHiit
+                                ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                            }`}
+                          >
+                            {isHiit ? 'HIIT / Intervalado' : 'Contínuo · Z2'}
+                          </span>
+                        </h4>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
+                            isHiit
+                              ? 'bg-orange-950/60 text-orange-200 border-orange-500/40'
+                              : 'bg-emerald-950/60 text-emerald-200 border-emerald-500/40'
+                          }`}
+                        >
+                          🎯 {s.heartRateZone} · {s.targetBpm}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700">
+                          ⏱️ {s.durationMinutes} min
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Título & Racional Fisiológico */}
+                    <div>
+                      <h5 className={`text-sm font-bold leading-snug ${isHiit ? 'text-orange-300' : 'text-emerald-300'}`}>
+                        {s.protocolTitle}
+                      </h5>
+                      {s.subtitle && (
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">{s.subtitle}</p>
+                      )}
+                      {s.rationale && (
+                        <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1.5">
+                          <span className="text-amber-400 font-bold">🎯 Diretriz Clínica:</span> {s.rationale}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Bloco Específico de Destaque HIIT: Tempos de Tiro e Descanso Ativo */}
+                    {isHiit && (s.tiro || s.descansoAtivo || s.ciclo) && (
+                      <div className="p-3 rounded-xl bg-orange-950/30 border border-orange-500/30 space-y-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-orange-400 uppercase tracking-wider">
+                          <Flame className="w-3.5 h-3.5 text-orange-400" />
+                          <span>Parâmetros de Carga Intermitente (HIIT)</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          {s.tiro && (
+                            <div className="p-2.5 rounded-lg bg-black/60 border border-orange-500/20">
+                              <span className="text-orange-400 font-bold block text-[11px]">⚡ Tempo de Tiro (Estímulo Z4/Z5):</span>
+                              <span className="text-slate-200 font-mono text-xs">{s.tiro}</span>
+                            </div>
+                          )}
+                          {s.descansoAtivo && (
+                            <div className="p-2.5 rounded-lg bg-black/60 border border-orange-500/20">
+                              <span className="text-amber-400 font-bold block text-[11px]">⏱️ Descanso Ativo (Recuperação Z2):</span>
+                              <span className="text-slate-200 font-mono text-xs">{s.descansoAtivo}</span>
+                            </div>
+                          )}
+                        </div>
+                        {s.ciclo && (
+                          <div className="text-[11px] text-orange-300/90 font-mono flex items-center gap-1.5 pt-0.5">
+                            <span className="text-orange-400 font-bold">🔄 Protocolo:</span> {s.ciclo}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Foco e Diretriz Biomecânica */}
+                    {s.foco && (
+                      <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                        <strong className="text-slate-200 font-bold flex items-center gap-1.5 mb-1">
+                          <Activity className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Diretriz & Foco Biomecânico:</span>
+                        </strong>
+                        <p className="text-[11px] text-slate-400 leading-normal">{s.foco}</p>
+                      </div>
+                    )}
+
+                    {/* Estrutura de Execução (Blocos Continuous ou Intervals) */}
+                    {s.blocks && s.blocks.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          <span className="flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-blue-400" />
+                            <span>{isHiit ? 'Blocos de Intervals & Tiros:' : 'Estrutura de Execução Contínua:'}</span>
+                          </span>
+                          <span className="text-[10px] font-mono font-normal text-slate-500">{s.dinamica}</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {s.blocks.map((b) => (
+                            <div key={b.num} className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 text-xs">
+                              <div className="text-[11px] font-bold text-slate-200 mb-1 flex items-center justify-between">
+                                <span>Bloco {b.num} — {b.name}</span>
+                              </div>
+                              <ul className="space-y-1 text-[11px] text-slate-400">
+                                {b.items.map((it, iIdx) => (
+                                  <li key={iIdx} className="flex items-start gap-1.5">
+                                    <span className={isHiit ? 'text-orange-400' : 'text-emerald-400'}>•</span>
+                                    <span>{it}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Orientações e Restrições Clínicas */}
+                    {s.restrictions && s.restrictions.length > 0 && (
+                      <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                        <strong className="text-slate-300 font-semibold flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Orientações & Recomendações:</span>
+                        </strong>
+                        <ul className="space-y-0.5 pl-1">
+                          {s.restrictions.map((r, rIdx) => (
+                            <li key={rIdx} className="flex items-start gap-1.5">
+                              <span className="text-slate-600">›</span>
+                              <span>{r}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Rodapé do Cartão */}
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                      <span>🔥 Queima Est.: <strong className="text-slate-300">{s.calEst || '~400 kcal'}</strong></span>
+                      <span className="text-slate-400">{s.dinamica || s.intensityType}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Botão salvar periodização */}
           <button

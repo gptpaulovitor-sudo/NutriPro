@@ -16056,15 +16056,21 @@ function renderPerfPrescribedCardio() {
               ? (PERF_CARDIO_DB.find(p => p.id === s.protocolId) || PERF_CARDIO_DB[0])
               : { blocks: [], hardware: 'Monitor Cardíaco', restrictions: ['Manter zona alvo'] };
 
-            const isHiit = Boolean(s.isHiit ?? protoObj?.isHiit ?? false);
+            const isHiit = Boolean(s.isHiit ?? protoObj?.isHiit ?? (s.protocolId === 'cardio_03' || s.protocolId === 'cardio_04' || s.intensityType === 'INTERVALS'));
             const badgeColor = isHiit ? 'border-orange-500/60 bg-orange-950/60 text-orange-300' : 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300';
             const eqList = Array.isArray(protoObj.equipment) ? protoObj.equipment.join(', ') : (protoObj.equipment || protoObj.hardware || 'Ergômetro');
-            const blocks = Array.isArray(protoObj.blocks) ? protoObj.blocks : [];
-            const restrictions = Array.isArray(protoObj.restrictions) ? protoObj.restrictions : [];
-            const subtitle = protoObj.subtitle || '';
-            const foco = protoObj.foco || '';
-            const calEst = protoObj.calEst || '~300-400 kcal';
-            const dinamica = protoObj.dinamica || s.intensityType || 'Contínua em Estado Estável';
+            const blocks = (Array.isArray(s.blocks) && s.blocks.length > 0)
+              ? s.blocks
+              : (Array.isArray(protoObj.blocks) && protoObj.blocks.length > 0)
+                ? protoObj.blocks
+                : [];
+            const restrictions = (Array.isArray(s.restrictions) && s.restrictions.length > 0) ? s.restrictions : (Array.isArray(protoObj.restrictions) ? protoObj.restrictions : []);
+            const subtitle = s.subtitle || protoObj.subtitle || '';
+            const foco = s.foco || protoObj.foco || '';
+            const calEst = s.calEst || protoObj.calEst || '~300-400 kcal';
+            const dinamica = s.dinamica || protoObj.dinamica || s.intensityType || (isHiit ? 'Intervalada de Alta Intensidade' : 'Contínua em Estado Estável');
+            const tiro = s.tiro || protoObj.tiro || (isHiit ? '4 min em Z4/Z5 (85-95% FCM)' : null);
+            const descansoAtivo = s.descansoAtivo || protoObj.descansoAtivo || (isHiit ? '3 min recuperação ativa em Z2 (65% FCM)' : null);
 
             return `
               <div class="p-4 rounded-xl bg-black/75 border border-zinc-800 hover:border-amber-500/50 transition-all space-y-3.5 shadow-md flex flex-col justify-between">
@@ -16080,19 +16086,33 @@ function renderPerfPrescribedCardio() {
                         ${s.heartRateZone} · ${s.targetBpm}
                       </span>
                       <span class="text-[10px] font-mono text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-700/60">
-                        ${protoObj.category || 'Zona 2'}
+                        ${isHiit ? 'HIIT / Intervalado' : (protoObj.category || 'Zona 2')}
                       </span>
                     </div>
                   </div>
 
                   <!-- Título, Subtítulo & Racional -->
                   <div>
-                    <h4 class="text-sm font-bold text-amber-300 leading-snug">${s.protocolTitle}</h4>
+                    <h4 class="text-sm font-bold ${isHiit ? 'text-orange-300' : 'text-amber-300'} leading-snug">${s.protocolTitle}</h4>
                     ${subtitle ? `<p class="text-xs text-amber-400/80 font-medium mt-0.5">${subtitle}</p>` : ''}
                     <p class="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
                       <span class="text-amber-500 font-bold">🎯 Match:</span> ${s.rationale}
                     </p>
                   </div>
+
+                  <!-- Parâmetros Específicos de Tiro e Descanso Ativo (HIIT) -->
+                  ${isHiit && (tiro || descansoAtivo) ? `
+                    <div class="p-2.5 rounded-lg bg-orange-950/40 border border-orange-500/30 text-xs text-orange-200 space-y-1.5">
+                      <div class="flex items-center gap-1.5 text-orange-400 font-bold text-[11px] uppercase tracking-wider">
+                        <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-400"></i>
+                        <span>Parâmetros de Carga Intermitente (HIIT):</span>
+                      </div>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                        ${tiro ? `<div class="p-1.5 rounded bg-black/60 border border-orange-500/20"><strong class="text-orange-400 block">⚡ Tempo de Tiro:</strong><span class="font-mono text-zinc-200">${tiro}</span></div>` : ''}
+                        ${descansoAtivo ? `<div class="p-1.5 rounded bg-black/60 border border-orange-500/20"><strong class="text-amber-400 block">⏱️ Descanso Ativo:</strong><span class="font-mono text-zinc-200">${descansoAtivo}</span></div>` : ''}
+                      </div>
+                    </div>
+                  ` : ''}
 
                   <!-- Diretriz & Foco Biomecânico -->
                   ${foco ? `
@@ -17169,8 +17189,9 @@ function renderPerfWeeklySchedule() {
   const html = perfWeeklySchedule.map((day, idx) => {
     const isTreinoCardio = day.type === 'Treino + Cardio' || !!day.hasCardioPost;
     const isTreino = (day.type === 'Treino' || isTreinoCardio);
-    const isCardio = day.type === 'Cardio' && !isTreinoCardio;
-    const isOff = day.type === 'Off';
+    const isHiit = (day.type === 'HIIT' || day.isHiit || day.cardioSession?.isHiit || day.cardioId === 'cardio_03' || day.cardioId === 'cardio_04');
+    const isCardio = (day.type === 'Cardio' || isHiit) && !isTreinoCardio;
+    const isOff = day.type === 'Off' && !isHiit && !isTreino;
     const dayLabel = `DIA ${idx + 1}`;
 
     let isColor2 = false;
@@ -17208,6 +17229,13 @@ function renderPerfWeeklySchedule() {
         dayNumColor = 'text-blue-400';
         shadowGlow = 'shadow-[0_0_15px_rgba(59,130,246,0.15)]';
       }
+    } else if (isHiit) {
+      // Destaque Especial: Treino HIIT / Intervalado (Ex: Dia 6 HIIT Norueguês)
+      borderClass = 'border-orange-500/80 bg-gradient-to-b from-orange-950/40 via-black to-zinc-950 hover:border-orange-400';
+      badgeClass = 'bg-orange-900/80 text-orange-200 border-orange-500/60 shadow-[0_0_8px_rgba(249,115,22,0.3)] font-bold';
+      titleHoverClass = 'group-hover:text-orange-300';
+      dayNumColor = 'text-orange-400';
+      shadowGlow = 'shadow-[0_0_15px_rgba(249,115,22,0.2)]';
     } else if (isCardio) {
       borderClass = 'border-amber-600/60 bg-gradient-to-b from-amber-950/40 via-black to-zinc-950 hover:border-amber-400';
       badgeClass = 'bg-amber-900/80 text-amber-300 border-amber-600/60 shadow-[0_0_8px_rgba(245,158,11,0.2)]';
@@ -17222,7 +17250,7 @@ function renderPerfWeeklySchedule() {
       shadowGlow = 'shadow-[0_0_15px_rgba(0,0,0,0.4)]';
     }
 
-    let icon = isTreinoCardio ? 'zap' : isTreino ? 'dumbbell' : isCardio ? 'flame' : 'coffee';
+    let icon = isTreinoCardio ? 'zap' : isTreino ? 'dumbbell' : isHiit ? 'flame' : isCardio ? 'activity' : 'coffee';
 
     return `
       <div onclick="perfFocusDay('${day.dayKey}')"
@@ -19942,20 +19970,23 @@ function renderPerfCardioProtocols(targetFocusId = null) {
     if (perfCardioActiveFilter === "Compromised") return c.category === "Compromised" || (Array.isArray(c.adaptationTags) && c.adaptationTags.includes("compromised_running"));
     if (perfCardioActiveFilter === "Engine") return c.category === "Engine";
     if (perfCardioActiveFilter === "Zona 2") return c.category === "Zona 2";
+    if (perfCardioActiveFilter === "HIIT") return c.category === "HIIT" || c.isHiit;
     return true;
   });
 
   container.innerHTML = filtered.map((c, idx) => {
     const isCompromised = c.category === "Compromised" || (Array.isArray(c.adaptationTags) && c.adaptationTags.includes("compromised_running"));
     const isZ2 = c.category === "Zona 2";
+    const isHiitProto = c.category === "HIIT" || c.isHiit;
 
     let badgeBorder = isCompromised ? "border-amber-500/60 bg-amber-950/60 text-amber-300" :
       isZ2 ? "border-emerald-500/60 bg-emerald-950/60 text-emerald-300" :
+      isHiitProto ? "border-orange-500/60 bg-orange-950/60 text-orange-300" :
         "border-purple-500/60 bg-purple-950/60 text-purple-300";
 
-    // Identifica com precisão cirúrgica em quais dias este cardio está realmente prescrito na agenda semanal (incluindo dias combinados)
+    // Identifica com precisão cirúrgica em quais dias este cardio está realmente prescrito na agenda semanal (incluindo dias combinados e HIIT)
     const activePrescribedDays = perfWeeklySchedule
-      .filter(d => (d.type === "Cardio" || d.type === "Treino + Cardio") && d.cardioId === c.id)
+      .filter(d => (d.type === "Cardio" || d.type === "Treino + Cardio" || d.type === "HIIT" || d.isHiit || d.cardioSession?.isHiit) && (d.cardioId === c.id || d.cardioSession?.protocolId === c.id))
       .map(d => d.dayName || `Dia ${d.dayKey.replace("d", "")}`);
 
     const isPrescribed = activePrescribedDays.length > 0;
@@ -24393,13 +24424,17 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
         ? `${cleanFocus} · Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes} min pós-força)`
         : `Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes} min pós-força)`;
     } else {
-      targetDay.type = 'Cardio';
+      const isHiit = Boolean(cs.isHiit || cs.intensityType === 'INTERVALS' || cs.protocolId === 'cardio_03' || cs.protocolId === 'cardio_04' || cs.protoObj?.isHiit);
+      targetDay.type = isHiit ? 'HIIT' : 'Cardio';
+      targetDay.isHiit = isHiit;
       targetDay.hasCardioPost = false;
       targetDay.routineId = null;
       targetDay.cardioId = cs.protocolId;
       targetDay.cardioSession = cs;
-      targetDay.title = `Cardio ${cs.heartRateZone || 'Z2'}`;
-      targetDay.focus = `Cardio Regenerativo · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z2'})`;
+      targetDay.title = isHiit ? (cs.protocolTitle || 'HIIT Norueguês 4x4') : `Cardio ${cs.heartRateZone || 'Z2'}`;
+      targetDay.focus = isHiit
+        ? (cs.foco || `HIIT Alta Intensidade · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z4/Z5'})`)
+        : `Cardio Regenerativo · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z2'})`;
     }
   });
 
