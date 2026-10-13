@@ -19767,11 +19767,11 @@ function perfQuickSearchExercise(query = '') {
           </div>
         </div>
         <div class="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800">
-          <button onclick="perfOpenExerciseGuide('${ex.id}', '${perfTargetRoutine}', '${encodeURIComponent(ex.name)}')"
+          <button onclick="perfOpenExerciseGuide('${ex.id}', perfTargetRoutine, '${encodeURIComponent(ex.name)}')"
             class="px-2 py-1 rounded-lg text-[10px] font-bold text-blue-300 hover:text-white bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all flex items-center gap-1">
             <i data-lucide="play-circle" class="w-3 h-3 text-blue-400"></i> GIF
           </button>
-          <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}', '${perfTargetRoutine}');`}"
+          <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}', perfTargetRoutine);`}"
             class="flex-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${alreadyAdded ? 'bg-zinc-800 text-zinc-500 cursor-default' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_8px_rgba(59,130,246,0.4)]'}">
             <i data-lucide="${alreadyAdded ? 'check' : 'plus'}" class="w-3 h-3"></i>
             <span>${alreadyAdded ? 'Adicionado' : `+ Treino ${perfTargetRoutine}`}</span>
@@ -19834,7 +19834,7 @@ function perfSearchInGuideModal(query = '') {
             <i data-lucide="shuffle" class="w-3 h-3"></i> Trocar
           </button>
         ` : `
-          <button onclick="perfAddExercise('${ex.id}', '${currentRoutineId || perfTargetRoutine}'); perfCloseExerciseGuide();"
+          <button onclick="perfAddExercise('${ex.id}', '${ currentRoutineId }' || perfTargetRoutine); perfCloseExerciseGuide();"
             class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-300 hover:text-white bg-emerald-950/90 hover:bg-emerald-800 border border-emerald-600/70 transition-all flex items-center gap-1">
             <i data-lucide="plus" class="w-3 h-3"></i> Adicionar
           </button>
@@ -20149,7 +20149,7 @@ function renderPerfCatalog() {
                 class="p-1.5 rounded-lg text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/60 hover:text-white transition-all shadow-[0_0_8px_rgba(59,130,246,0.2)]">
                 <i data-lucide="play-circle" class="w-3.5 h-3.5 text-blue-400"></i>
               </button>
-              <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}', '${perfTargetRoutine}')`}"
+              <button onclick="${alreadyAdded ? '' : `perfAddExercise('${ex.id}', perfTargetRoutine)`}"
                 ${alreadyAdded ? 'disabled' : ''}
                 title="${alreadyAdded ? 'Já adicionado a este treino' : `Adicionar ao Treino ${perfTargetRoutine}`}"
                 class="p-1.5 rounded-lg transition-all ${alreadyAdded ? 'text-blue-400 cursor-default bg-blue-950/40 border border-blue-800/40' : 'text-white bg-blue-600 hover:bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]'}">
