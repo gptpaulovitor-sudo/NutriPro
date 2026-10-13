@@ -25194,7 +25194,6 @@ async function defaultPerformanceAIGenerator(context, requirements = null, previ
     routines: fallbackRoutines
   };
 }
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════════════════════
