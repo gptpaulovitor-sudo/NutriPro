@@ -4411,6 +4411,7 @@
       { key: 'E', name: 'Treino E · Pull B', badge: 'E' },
       { key: 'F', name: 'Treino F · Legs B', badge: 'F' },
       { key: 'Cardio', name: 'Cardio Zona 2', badge: 'Z2' },
+      { key: 'HIIT', name: 'HIIT Norueguês 4x4', badge: 'HIIT' },
       { key: 'OFF', name: 'OFF · Descanso', badge: 'OFF' }
     ];
 
@@ -4426,7 +4427,8 @@
                       WEEKLY_SCHEDULE_DATA.find(d => d.dayKey === `d${todayDay}`) ||
                       WEEKLY_SCHEDULE_DATA[0];
         if (match) {
-          const rKey = match.routineKey || (match.type === 'Off' || match.type === 'off' ? 'OFF' : (match.type === 'Cardio' ? 'Cardio' : 'A'));
+          const isHiitMatch = match.type === 'HIIT' || match.type === 'hiit' || match.isHiit || match.cardioId === 'cardio_03';
+          const rKey = match.routineKey || (match.type === 'Off' || match.type === 'off' ? 'OFF' : (isHiitMatch ? 'HIIT' : (match.type === 'Cardio' ? 'Cardio' : 'A')));
           return { dayNum: match.dayNum || todayDay, routineKey: rKey };
         }
       }
@@ -4616,6 +4618,33 @@
                   const reqPNum = storeP.get(pIdNum);
                   reqPNum.onsuccess = () => {
                     if (reqPNum.result) tryApply(reqPNum.result);
+                  };
+                }
+              };
+            } catch (_) {}
+          }
+
+          // 3. Fallback resiliente para Periodização e Treino no IndexedDB (Dexie: performanceMetabolica)
+          if (idb.objectStoreNames.contains('performanceMetabolica')) {
+            try {
+              const txPerf = idb.transaction('performanceMetabolica', 'readonly');
+              const storePerf = txPerf.objectStore('performanceMetabolica');
+              const pIdNum = !isNaN(Number(patientId)) ? Number(patientId) : null;
+              const reqPerf = storePerf.get(patientId);
+              reqPerf.onsuccess = () => {
+                let perfRec = reqPerf.result;
+                const tryApplyPerf = (r) => {
+                  if (r && (r.workoutPlan || r.cardioPrescription || r.workoutDatabase || r.split)) {
+                    applyPerformancePayload(r);
+                    if (typeof renderAll === 'function') renderAll();
+                  }
+                };
+                if (perfRec) {
+                  tryApplyPerf(perfRec);
+                } else if (pIdNum !== null) {
+                  const reqPerfNum = storePerf.get(pIdNum);
+                  reqPerfNum.onsuccess = () => {
+                    if (reqPerfNum.result) tryApplyPerf(reqPerfNum.result);
                   };
                 }
               };
@@ -5215,19 +5244,409 @@
     });
 
     // 5. PROCESSAMENTO E PERSISTÊNCIA LOCAL
-        function _buildPatientCardioRoutine(cardioProto, cardioPrescription) {
+    // ── Catálogo Canônico de Protocolos Cardiovasculares e HIIT (Espelho do Dashboard & PDF) ──
+    const CANONICAL_CARDIO_CATALOG = {
+      cardio_01: {
+        id: 'cardio_01',
+        name: 'Zona 2 Mitocondrial Puro',
+        title: 'Protocolo "Zona 2 Mitocondrial Puro"',
+        subtitle: 'Aerobic Base Builder · Zero Interferência com a via mTOR',
+        category: 'Zona 2',
+        modality: 'Remo / AirBike / Caminhada Inclinada (Tri-Modal Z2)',
+        intensityZone: 'Z2',
+        intensityType: 'CONTINUOUS',
+        isHiit: false,
+        foco: 'Biogênese mitocondrial e oxidação pura de ácidos graxos em Zona 2 (60-70% FCM / 112-130 bpm).',
+        timeCap: '45 min',
+        minDurationMinutes: 15,
+        maxDurationMinutes: 60,
+        dinamica: 'Contínua em Estado Estável (Steady State / Respiração Nasal)',
+        equipment: 'Ergômetro (RowErg / AirBike / Esteira)',
+        blocks: [
+          { num: 1, name: 'Oxidação Lipídica no Remo', items: ['Remo Seco (RowErg): 15 min contínuos em Zona 2 (Pace constante 2:15 a 2:25/500m / FC < 130 bpm)'] },
+          { num: 2, name: 'Cadência Cíclica sem Impacto', items: ['AirBike / Bike Ergométrica: 15 min contínuos (RPM estável 50-55 / Zero picos anaeróbios)'] },
+          { num: 3, name: 'Caminhada Inclinada Anti-impacto', items: ['Esteira Inclinada: 15 min (Inclinação 8,0% a 10,0% / Velocidade 5,5 a 6,0 km/h / Respiração nasal)'] }
+        ],
+        restrictions: [
+          'Manter a Frequência Cardíaca rigorosamente na Zona 2 (60-70% FCM).',
+          'Se a FC ultrapassar a Zona 2, reduzir a velocidade da esteira em 0,5 km/h imediatamente.'
+        ]
+      },
+      cardio_02: {
+        id: 'cardio_02',
+        name: 'Circuito Engine Híbrido Multiplanar',
+        title: 'Protocolo "Circuito Engine Híbrido Multiplanar"',
+        subtitle: 'Recuperação Ativa & Estabilidade Cardiovascular',
+        category: 'Engine',
+        modality: 'Engine Híbrido Cíclico',
+        intensityZone: 'Z2/Z3',
+        intensityType: 'CIRCUIT',
+        isHiit: false,
+        foco: 'Variação multiarticular contínua para recomposição corporal e recuperação ativa.',
+        timeCap: '45 min',
+        equipment: 'Ergômetro (RowErg / AirBike / Esteira)',
+        blocks: [
+          { num: 1, name: 'Tração & Volume Alveolar', items: ['Remo Seco (RowErg): 15 min em Pace constante (Zona 2 / drive potente de pernas)'] },
+          { num: 2, name: 'Potência Cíclica Superior/Inferior', items: ['AirBike / Echo Bike: 15 min com RPM estável (Zona 2/3 / trabalho síncrono)'] },
+          { num: 3, name: 'Locomoção Inclinada Anti-Impacto', items: ['Esteira Inclinada: 15 min (Inclinação 6,0% a 8,0% / 6,0 a 6,5 km/h)'] }
+        ]
+      },
+      cardio_03: {
+        id: 'cardio_03',
+        name: 'HIIT Norueguês 4x4',
+        title: 'Protocolo "HIIT Norueguês 4x4 (Elite VO₂ Máx)"',
+        subtitle: 'Potência Aeróbica Máxima & Complacência Ventricular',
+        category: 'HIIT',
+        modality: 'HIIT Intervalado 4x4',
+        intensityZone: 'Z4/Z5',
+        heartRateZone: 'Z4/Z5',
+        targetBpm: '160-175 bpm',
+        intensityType: 'INTERVALS',
+        isHiit: true,
+        tiro: '4 min em Z4/Z5 (85-95% FCM / 160-175 bpm)',
+        descansoAtivo: '3 min recuperação ativa em Z2 (65% FCM)',
+        ciclo: '4 ciclos de tiros 4x4 com descanso ativo',
+        calEst: '~400-470 kcal',
+        foco: 'Aumento máximo do VO₂ Máx, complacência ventricular e tolerância à acidose intramuscular sem gerar fadiga residual prolongada.',
+        timeCap: '25 min',
+        dinamica: 'Intervalada de Alta Intensidade (4 tiros de 4 min em Z4/Z5 com 3 min de recuperação ativa)',
+        equipment: 'Ergômetro (Esteira / Bike / Remo)',
+        blocks: [
+          {
+            num: 1,
+            name: 'Aquecimento Progressivo',
+            items: ['Esteira / Bike: 5 min em Zona 2 (60-70% FCM) para elevação gradual da temperatura central']
+          },
+          {
+            num: 2,
+            name: 'Ciclo Principal 4x4 (Tiros & Descanso Ativo)',
+            items: [
+              'Tiro 1: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+              'Tiro 2: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+              'Tiro 3: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)',
+              'Tiro 4: 4 min em Zona 4/5 (85-95% FCM / 160-175 bpm) + 3 min recuperação ativa em Zona 2 (65% FCM)'
+            ]
+          },
+          {
+            num: 3,
+            name: 'Resfriamento & Remoção de Lactato',
+            items: ['Caminhada Plana: 3 min em Zona 1 (< 60% FCM) para normalização hemodinâmica']
+          }
+        ],
+        restrictions: [
+          'Proibição de parada passiva nos intervalos de 3 min: Manter caminhada ou giro leve de pernas a 65% FCM para depuração de lactato.',
+          'Não realizar no dia anterior a treinos pesados de agachamento.'
+        ]
+      },
+      cardio_04: {
+        id: 'cardio_04',
+        name: 'Sprint Interval Training (SIT)',
+        title: 'Protocolo "Sprint Interval Training (SIT) Anti-Catabólico"',
+        category: 'HIIT',
+        intensityZone: 'Z5',
+        intensityType: 'SPRINTS',
+        isHiit: true,
+        foco: 'Potência anaeróbia alática e sinalização mitocondrial rápida para cutting agressivo.',
+        equipment: 'Ergômetro (AirBike / Echo Bike / Esteira)',
+        timeCap: '20 min'
+      },
+      cardio_05: {
+        id: 'cardio_05',
+        name: 'Recuperação Ativa & Caminhada Z1',
+        title: 'Protocolo "Regenerativo & Depuração de Lactato"',
+        category: 'Regenerativo',
+        intensityZone: 'Z1',
+        intensityType: 'CONTINUOUS',
+        isHiit: false,
+        foco: 'Aporte de fluxo sanguíneo e restauração parassimpática sem acúmulo de fadiga.',
+        equipment: 'Ergômetro / Solo',
+        timeCap: '30 min'
+      }
+    };
+    window.CANONICAL_CARDIO_CATALOG = CANONICAL_CARDIO_CATALOG;
+    window.PERF_CARDIO_CATALOG = CANONICAL_CARDIO_CATALOG;
+
+    // Gerador determinístico de Agenda Semanal Canônica de 7 Dias para o paciente (Sincronizado com page.tsx e PDF)
+    function buildCanonicalWeeklyScheduleForPatient(split, workoutPlan, cardioPrescription) {
+      const normSplit = String(split || 'DUP').trim().toUpperCase();
+      const sessions = (cardioPrescription && Array.isArray(cardioPrescription.sessions)) ? cardioPrescription.sessions : [];
+      const z2Session = sessions.find(s => s.protocolId === 'cardio_01' || (!s.isHiit && s.intensityType !== 'INTERVALS')) || sessions[0] || null;
+      const hiitSession = sessions.find(s => s.protocolId === 'cardio_03' || s.isHiit || s.intensityType === 'INTERVALS') || sessions[1] || null;
+
+      // Split Canônico DUP (3 dias de força/hipertrofia/potência + Dia 2 Cardio Z2 + Dia 6 HIIT Norueguês 4x4 + 2 Dias OFF)
+      if (normSplit === 'DUP' || (!normSplit && Array.isArray(workoutPlan) && workoutPlan.length === 3)) {
+        return [
+          {
+            dayNum: 1,
+            dayKey: 'd1',
+            dayName: 'DIA 1',
+            routineKey: 'A',
+            type: 'Treino',
+            color: 'blue',
+            title: 'Treino A · Dia Neural (Força)',
+            sub: 'Carga Máxima (3-5 reps / RPE 9)',
+            synergy: {
+              carbo: '80-100g carbo denso pré-treino + Creatina 5g',
+              prot: '2.0-2.2 g/kg',
+              water: '4.500 mL',
+              focus: 'Restauração de ATP-CP e recrutamento de unidades motoras'
+            }
+          },
+          {
+            dayNum: 2,
+            dayKey: 'd2',
+            dayName: 'DIA 2',
+            routineKey: 'Cardio',
+            type: 'Cardio',
+            color: 'amber',
+            cardioId: 'cardio_01',
+            cardioSession: z2Session,
+            title: 'Cardio Zona 2 Mitocondrial Puro',
+            sub: 'Biogênese mitocondrial sem interferência mTOR (45 min)',
+            synergy: {
+              carbo: '40-50g carbo leve para recuperação',
+              prot: '2.0 g/kg',
+              water: '4.500 mL',
+              focus: 'Oxidação de ácidos graxos e expansão da densidade capilar'
+            }
+          },
+          {
+            dayNum: 3,
+            dayKey: 'd3',
+            dayName: 'DIA 3',
+            routineKey: 'B',
+            type: 'Treino',
+            color: 'blue',
+            title: 'Treino B · Dia Hipertrófico',
+            sub: 'Tensão Contínua (8-10 reps / RPE 8)',
+            synergy: {
+              carbo: '80-100g carbo pré-treino',
+              prot: '2.0-2.2 g/kg',
+              water: '4.500 mL',
+              focus: 'Tensão mecânica sob alongamento e síntese miofibrilar'
+            }
+          },
+          {
+            dayNum: 4,
+            dayKey: 'd4',
+            dayName: 'DIA 4',
+            routineKey: 'OFF',
+            type: 'Off',
+            color: 'zinc',
+            title: 'Descanso Total · Regeneração Sistêmica',
+            sub: 'Supercompensação e restauração do SNC',
+            synergy: {
+              carbo: 'Manter carboidratos complexos estáveis',
+              prot: '2.0 g/kg fracionado',
+              water: '4.000 mL',
+              focus: 'Reparo tecidual e sensibilidade à insulina'
+            }
+          },
+          {
+            dayNum: 5,
+            dayKey: 'd5',
+            dayName: 'DIA 5',
+            routineKey: 'C',
+            type: 'Treino',
+            color: 'blue',
+            title: 'Treino C · Dia Potência / Metabólico',
+            sub: 'Densidade & Potência (12-15 reps / RPE 9)',
+            synergy: {
+              carbo: '80-100g carbo pré-treino rápido',
+              prot: '2.0-2.2 g/kg',
+              water: '4.500 mL',
+              focus: 'Estresse metabólico, vascularização e pump anabólico'
+            }
+          },
+          {
+            dayNum: 6,
+            dayKey: 'd6',
+            dayName: 'DIA 6',
+            routineKey: 'HIIT',
+            type: 'HIIT',
+            color: 'orange',
+            isHiit: true,
+            cardioId: 'cardio_03',
+            cardioSession: hiitSession,
+            title: 'HIIT Norueguês 4x4 (Elite VO₂ Máx)',
+            sub: '4 ciclos de tiros 4x4 com descanso ativo · Ergômetro',
+            synergy: {
+              carbo: '40g carbo de fácil absorção 1h antes',
+              prot: '2.0 g/kg',
+              water: '4.500 mL',
+              focus: 'Complacência ventricular e potência cardiorrespiratória'
+            }
+          },
+          {
+            dayNum: 7,
+            dayKey: 'd7',
+            dayName: 'DIA 7',
+            routineKey: 'OFF',
+            type: 'Off',
+            color: 'zinc',
+            title: 'Descanso Total · Regeneração Sistêmica',
+            sub: 'Recarga de glicogênio e sono anabólico',
+            synergy: {
+              carbo: 'Carboidratos limpos e anti-inflamatórios',
+              prot: '2.0 g/kg',
+              water: '4.000 mL',
+              focus: 'Recuperação neuromuscular profunda para o próximo microciclo'
+            }
+          }
+        ];
+      }
+
+      // Demais divisões (PPL, UpperLower, HYROX, etc.)
+      const routines = Array.isArray(workoutPlan) && workoutPlan.length > 0 ? workoutPlan : [
+        { id: 'A', name: 'Treino A' }, { id: 'B', name: 'Treino B' }, { id: 'C', name: 'Treino C' }
+      ];
+      const sched = [];
+      let rIdx = 0;
+      for (let d = 1; d <= 7; d++) {
+        if (d === 2 && z2Session) {
+          sched.push({
+            dayNum: d, dayKey: `d${d}`, dayName: `DIA ${d}`, routineKey: 'Cardio', type: 'Cardio', color: 'amber',
+            cardioId: 'cardio_01', cardioSession: z2Session,
+            title: z2Session.protocolTitle || 'Cardio Zona 2 Mitocondrial Puro',
+            sub: 'Oxidação Lipídica & Biogênese Mitocondrial',
+            synergy: { carbo: '40g carbo leve', prot: '2.0 g/kg', water: '4.500 mL', focus: 'Base aeróbia pura' }
+          });
+        } else if (d === 6 && (hiitSession || sessions.length > 1)) {
+          const s = hiitSession || sessions[1];
+          sched.push({
+            dayNum: d, dayKey: `d${d}`, dayName: `DIA ${d}`, routineKey: 'HIIT', type: 'HIIT', color: 'orange',
+            isHiit: true, cardioId: s?.protocolId || 'cardio_03', cardioSession: s,
+            title: s?.protocolTitle || 'HIIT Norueguês 4x4 (Elite VO₂ Máx)',
+            sub: '4 ciclos de tiros 4x4 com descanso ativo · Ergômetro',
+            synergy: { carbo: '40g carbo 1h antes', prot: '2.0 g/kg', water: '4.500 mL', focus: 'VO₂ Máx e acidose' }
+          });
+        } else if (d === 7 || (rIdx >= routines.length && d > 4)) {
+          sched.push({
+            dayNum: d, dayKey: `d${d}`, dayName: `DIA ${d}`, routineKey: 'OFF', type: 'Off', color: 'zinc',
+            title: 'Descanso Total · Regeneração', sub: 'Restauração do SNC e síntese proteica',
+            synergy: { carbo: 'Carbos complexos', prot: '2.0 g/kg', water: '4.000 mL', focus: 'Regeneração' }
+          });
+        } else if (rIdx < routines.length) {
+          const r = routines[rIdx++];
+          sched.push({
+            dayNum: d, dayKey: `d${d}`, dayName: `DIA ${d}`, routineKey: r.id, type: 'Treino', color: 'blue',
+            title: r.name || `Treino ${r.id}`, sub: r.subtitle || 'Exercícios estruturados',
+            synergy: { carbo: '80-100g carbo pré-treino', prot: '2.0-2.2 g/kg', water: '4.500 mL', focus: 'Estímulo anabólico' }
+          });
+        } else {
+          sched.push({
+            dayNum: d, dayKey: `d${d}`, dayName: `DIA ${d}`, routineKey: 'OFF', type: 'Off', color: 'zinc',
+            title: 'Descanso Total · Regeneração', sub: 'Supercompensação muscular',
+            synergy: { carbo: 'Carbos limpos', prot: '2.0 g/kg', water: '4.000 mL', focus: 'Regeneração' }
+          });
+        }
+      }
+      return sched;
+    }
+
+    function _buildPatientCardioRoutine(cardioProto, cardioPrescription) {
       if (!cardioProto) {
+        cardioProto = CANONICAL_CARDIO_CATALOG['cardio_01'];
+      }
+      if (typeof cardioProto === 'string') {
+        cardioProto = CANONICAL_CARDIO_CATALOG[cardioProto] || CANONICAL_CARDIO_CATALOG['cardio_01'];
+      }
+
+      const isHiit = Boolean(
+        cardioProto.isHiit ||
+        cardioProto.intensityType === 'INTERVALS' ||
+        cardioProto.id === 'cardio_03' ||
+        (cardioProto.name && /hiit|noruegu/i.test(cardioProto.name)) ||
+        (cardioProto.title && /hiit|noruegu/i.test(cardioProto.title))
+      );
+
+      const exercises = [];
+      const equipStr = cardioProto.equipment
+        ? (Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : cardioProto.equipment)
+        : 'Ergômetro (Esteira / Bike / Remo)';
+
+      if (isHiit) {
+        // Rotina de HIIT Intervalado (ex: HIIT Norueguês 4x4)
+        if (Array.isArray(cardioProto.blocks) && cardioProto.blocks.length > 0) {
+          cardioProto.blocks.forEach((b, idx) => {
+            const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || b.cadence || '');
+            const isIntervalBlock = idx === 1 || /tiro|4x4|interval/i.test(b.name || itemDesc);
+            exercises.push({
+              num: idx + 1,
+              id: `hiit_b_${idx + 1}`,
+              name: b.name || `Bloco ${idx + 1}`,
+              group: 'Cardio HIIT',
+              equip: equipStr,
+              primary: isIntervalBlock ? 'Potência Aeróbia & VO₂ Máx' : 'Aquecimento / Remoção de Lactato',
+              secondary: isIntervalBlock ? 'Complacência Ventricular' : 'Estabilidade Cardiovascular',
+              cadence: isIntervalBlock ? '4 tiros de 4 min em Z4/Z5 com 3 min Z2' : (b.cadence || 'Cadência Ritmada'),
+              resist: isIntervalBlock ? 'Zona 4/5 (160-175 bpm)' : 'Zona 2 / Zona 1',
+              sets: isIntervalBlock ? 4 : 1,
+              reps: isIntervalBlock ? '4 min tiro + 3 min ativo' : (idx === 0 ? '5 min' : '3 min'),
+              rpe: isIntervalBlock ? 9 : (idx === 0 ? 6 : 4),
+              rest: 0,
+              tiro: isIntervalBlock ? (cardioProto.tiro || '4 min em Z4/Z5 (85-95% FCM / 160-175 bpm)') : undefined,
+              descansoAtivo: isIntervalBlock ? (cardioProto.descansoAtivo || '3 min recuperação ativa em Z2 (65% FCM)') : undefined,
+              ciclo: isIntervalBlock ? (cardioProto.ciclo || '4 ciclos de tiros 4x4 com descanso ativo') : undefined,
+              intensityType: isIntervalBlock ? 'INTERVALS' : 'CONTINUOUS',
+              gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+              steps: Array.isArray(b.items) && b.items.length > 0 ? b.items : [itemDesc || 'Execução sob protocolo 4x4.'],
+              breathing: isIntervalBlock ? 'Respiração forçada no tiro; nasal ritmada no descanso ativo.' : 'Respiração nasal constante.',
+              mistakes: 'Proibida parada passiva no descanso: manter caminhada ou giro a 65% FCM para depurar lactato.'
+            });
+          });
+        } else {
+          exercises.push(
+            {
+              num: 1, id: 'hiit_warmup', name: 'Aquecimento Progressivo', group: 'Cardio HIIT', equip: equipStr,
+              primary: 'Elevação da Temperatura Central & Ativação Enzimática', secondary: 'Prevenção de Lesões',
+              cadence: 'Ritmo contínuo Z2', resist: 'Zona 2 (60-70% FCM)', sets: 1, reps: '5 min', rpe: 6, rest: 0,
+              gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+              steps: ['Esteira ou Bike em ritmo leve para elevação gradual da temperatura central.'],
+              breathing: 'Respiração nasal fluida.', mistakes: 'Iniciar em intensidade muito alta.'
+            },
+            {
+              num: 2, id: 'hiit_main_4x4', name: 'Ciclo Principal 4x4 (Tiros & Descanso Ativo)', group: 'Cardio HIIT', equip: equipStr,
+              primary: 'Aumento Máximo do VO₂ Máx & Complacência Ventricular', secondary: 'Tolerância ao Lactato Intramuscular',
+              cadence: '4 tiros de 4 min em Z4/Z5 com 3 min Z2', resist: 'Zona 4/5 (160-175 bpm)', sets: 4, reps: '4 min + 3 min', rpe: 9, rest: 0,
+              tiro: cardioProto.tiro || '4 min em Z4/Z5 (85-95% FCM / 160-175 bpm)',
+              descansoAtivo: cardioProto.descansoAtivo || '3 min recuperação ativa em Z2 (65% FCM)',
+              ciclo: cardioProto.ciclo || '4 ciclos de tiros 4x4 com descanso ativo',
+              intensityType: 'INTERVALS',
+              gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+              steps: [
+                'Tiro 1: 4 min em Z4/Z5 (160-175 bpm) + 3 min recuperação ativa em Z2 (65% FCM)',
+                'Tiro 2: 4 min em Z4/Z5 (160-175 bpm) + 3 min recuperação ativa em Z2 (65% FCM)',
+                'Tiro 3: 4 min em Z4/Z5 (160-175 bpm) + 3 min recuperação ativa em Z2 (65% FCM)',
+                'Tiro 4: 4 min em Z4/Z5 (160-175 bpm) + 3 min recuperação ativa em Z2 (65% FCM)'
+              ],
+              breathing: 'Respiração rápida e profunda no tiro; inspire pelo nariz e expire pela boca no descanso ativo.',
+              mistakes: 'Parada passiva total nos intervalos de 3 min. Manter movimento ativo para depurar lactato.'
+            },
+            {
+              num: 3, id: 'hiit_cooldown', name: 'Resfriamento & Remoção de Lactato', group: 'Cardio HIIT', equip: equipStr,
+              primary: 'Normalização Hemodinâmica & Retorno Venoso', secondary: 'Depuração Sistêmica de Metabólitos',
+              cadence: 'Desaceleração progressiva Z1', resist: 'Zona 1 (< 60% FCM)', sets: 1, reps: '3 min', rpe: 4, rest: 0,
+              gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+              steps: ['Caminhada plana em ritmo confortável até a normalização da frequência cardíaca.'],
+              breathing: 'Respiração nasal lenta e relaxada.', mistakes: 'Interrupção abrupta do esforço.'
+            }
+          );
+        }
+
         return {
-          id: 'Cardio',
-          name: 'Cardio Estruturado',
-          badge: 'Z2',
-          subtitle: 'Oxidação lipídica e biogênese mitocondrial',
+          id: 'HIIT',
+          name: cardioProto.title || cardioProto.name || 'HIIT Norueguês 4x4 (Elite VO₂ Máx)',
+          badge: 'HIIT',
+          subtitle: `${cardioProto.timeCap || '25 min'} · 4 ciclos de tiros 4x4 · ${cardioProto.foco || 'Complacência Ventricular e VO₂ Máx'}`,
           isCardio: true,
+          isHiit: true,
           isOff: false,
-          exercises: []
+          exercises: exercises
         };
       }
-      const exercises = [];
+
+      // Rotina de Cardio Contínuo (Zona 2)
       if (Array.isArray(cardioProto.blocks) && cardioProto.blocks.length > 0) {
         cardioProto.blocks.forEach((b, idx) => {
           const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || b.cadence || '');
@@ -5238,14 +5657,14 @@
             id: `card_b_${idx + 1}`,
             name: b.name || `Bloco ${idx + 1}`,
             group: 'Cardio',
-            equip: cardioProto.equipment ? (Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : cardioProto.equipment) : 'Ergômetro',
+            equip: equipStr,
             primary: cardioProto.category || 'Zona 2 Base Aeróbica',
             secondary: cardioProto.foco || 'Oxidação Lipídica',
             cadence: b.cadence || 'Cadência Ritmada sem Impacto',
             resist: cardioProto.intensityZone || 'Zona 2',
             sets: 1,
             reps: bDuration,
-            rpe: cardioProto.isHiit ? 8 : 6,
+            rpe: 6,
             rest: 0,
             gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
             steps: [itemDesc || 'Manter o ritmo constante na frequência cardíaca prescrita.'],
@@ -5260,14 +5679,14 @@
             id: `card_c_${idx + 1}`,
             name: `${c.modality || 'Ergômetro'} (${c.durationMinutes || 15} min)`,
             group: 'Cardio',
-            equip: c.equipment || 'Ergômetro',
+            equip: c.equipment ? (c.equipment.includes('Ergômetro') ? c.equipment : `Ergômetro · ${c.equipment}`) : 'Ergômetro',
             primary: `${c.intensity || 'Zona 2'} · Oxidação Mitocondrial`,
             secondary: cardioProto.foco || 'Oxidação de Gordura',
             cadence: 'Cadência contínua',
             resist: c.intensity || 'Zona 2',
             sets: 1,
             reps: `${c.durationMinutes || 15} min`,
-            rpe: cardioProto.isHiit ? 8 : 6,
+            rpe: 6,
             rest: 0,
             gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
             steps: ['Mantenha a frequência cardíaca na faixa prescrita durante todo o bloco.'],
@@ -5281,14 +5700,14 @@
           id: 'card_m_1',
           name: cardioProto.name || cardioProto.title || 'Cardio Prescrito',
           group: 'Cardio',
-          equip: Array.isArray(cardioProto.equipment) ? cardioProto.equipment.join(' / ') : (cardioProto.equipment || 'Esteira / Bike / Remo'),
+          equip: equipStr,
           primary: cardioProto.category || 'Oxidação Lipídica & Zona 2',
           secondary: cardioProto.foco || 'Biogênese Mitocondrial',
           cadence: cardioProto.dinamica || 'Contínua em Estado Estável',
           resist: cardioProto.intensityZone || 'Zona 2 (112-130 bpm)',
           sets: 1,
           reps: cardioProto.timeCap || '45 min',
-          rpe: cardioProto.isHiit ? 8 : 6,
+          rpe: 6,
           rest: 0,
           gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
           steps: ['Execute na intensidade e frequência cardíaca prescritas.'],
@@ -5303,6 +5722,7 @@
         badge: cardioProto.intensityZone || 'Z2',
         subtitle: `${cardioProto.timeCap || '45 min'} · ${cardioProto.foco || cardioProto.subtitle || 'Oxidação pura de ácidos graxos'}`,
         isCardio: true,
+        isHiit: false,
         isOff: false,
         exercises: exercises
       };
@@ -5430,23 +5850,37 @@
           WORKOUT_DATABASE['OFF'] = fallbackOff;
         }
 
-        if (!WORKOUT_DATABASE['Cardio']) {
-          if (dataPayload.prescribedCardio) {
-            WORKOUT_DATABASE['Cardio'] = _buildPatientCardioRoutine(dataPayload.prescribedCardio, dataPayload.cardioPrescription);
-          } else if (fallbackCardio) {
-            WORKOUT_DATABASE['Cardio'] = fallbackCardio;
-          }
+        // Garante registro estruturado de Cardio Z2 e HIIT Norueguês 4x4
+        const cardioSessions = (dataPayload.cardioPrescription?.sessions || patientState.cardioPrescription?.sessions || []);
+        const z2Proto = cardioSessions.find(s => s.protocolId === 'cardio_01' || (!s.isHiit && s.intensityType !== 'INTERVALS')) || dataPayload.prescribedCardio || 'cardio_01';
+        const hiitProto = cardioSessions.find(s => s.protocolId === 'cardio_03' || s.isHiit || s.intensityType === 'INTERVALS') || 'cardio_03';
+
+        if (!WORKOUT_DATABASE['Cardio'] || WORKOUT_DATABASE['Cardio'].isHiit) {
+          WORKOUT_DATABASE['Cardio'] = _buildPatientCardioRoutine(z2Proto, dataPayload.cardioPrescription || patientState.cardioPrescription);
+        }
+        if (!WORKOUT_DATABASE['HIIT']) {
+          WORKOUT_DATABASE['HIIT'] = _buildPatientCardioRoutine(hiitProto, dataPayload.cardioPrescription || patientState.cardioPrescription);
         }
         appliedWorkout = true;
       }
 
-      // Normaliza e aplica agenda semanal preservando dados de cardio
-      if (Array.isArray(dataPayload.weeklySchedule) && dataPayload.weeklySchedule.length > 0) {
-        const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'Off': 'zinc', 'off': 'zinc' };
-        const _normalized = dataPayload.weeklySchedule.map((d, idx) => {
+      // Normaliza e aplica agenda semanal preservando dados de cardio e HIIT (Dia 2 Z2 e Dia 6 HIIT)
+      let scheduleSource = dataPayload.weeklySchedule;
+      if (!Array.isArray(scheduleSource) || scheduleSource.length === 0) {
+        scheduleSource = buildCanonicalWeeklyScheduleForPatient(
+          dataPayload.activeSplit || patientState.activeSplit || 'DUP',
+          dataPayload.workoutPlan,
+          dataPayload.cardioPrescription || patientState.cardioPrescription
+        );
+      }
+
+      if (Array.isArray(scheduleSource) && scheduleSource.length > 0) {
+        const _colorMap = { 'Treino': 'blue', 'Treino + Cardio': 'amber', 'Cardio': 'amber', 'HIIT': 'orange', 'Off': 'zinc', 'off': 'zinc' };
+        const _normalized = scheduleSource.map((d, idx) => {
           const isOff = d.type === 'Off' || d.type === 'off';
           const isCardio = d.type === 'Cardio';
-          const routineKey = d.routineKey || d.routineId || (isOff ? 'OFF' : (isCardio ? 'Cardio' : null));
+          const isHiit = d.type === 'HIIT' || d.isHiit || d.routineKey === 'HIIT' || d.cardioId === 'cardio_03';
+          const routineKey = d.routineKey || d.routineId || (isOff ? 'OFF' : (isHiit ? 'HIIT' : (isCardio ? 'Cardio' : null)));
           const synergy = d.synergy || {
             carbo: d.carboTip || '',
             prot: d.proteinTip || '',
@@ -5457,13 +5891,14 @@
             dayNum: idx + 1,
             dayKey: d.dayKey || `d${idx + 1}`,
             dayName: (d.dayName || ('DIA ' + (idx + 1))).toUpperCase(),
-            type: d.type || 'Treino',
-            color: _colorMap[d.type] || 'blue',
+            type: isHiit ? 'HIIT' : (d.type || 'Treino'),
+            color: isHiit ? 'orange' : (_colorMap[d.type] || 'blue'),
             routineKey: routineKey,
-            title: d.title || (isOff ? 'Descanso Total' : (isCardio ? 'Cardio' : routineKey ? `Treino ${routineKey}` : 'Treino')),
+            isHiit: !!isHiit,
+            title: d.title || (isOff ? 'Descanso Total' : (isHiit ? 'HIIT Norueguês 4x4' : (isCardio ? 'Cardio' : routineKey ? `Treino ${routineKey}` : 'Treino'))),
             sub: d.focus || d.sub || '',
             hasCardioPost: !!d.hasCardioPost,
-            cardioId: d.cardioId || null,
+            cardioId: d.cardioId || (isHiit ? 'cardio_03' : (isCardio ? 'cardio_01' : null)),
             cardioSession: d.cardioSession || null,
             synergy: synergy
           };
@@ -5542,6 +5977,29 @@
       const patientIdLower = patientIdClean.toLowerCase();
       const patientIdSlug = patientIdLower.replace(/\s+/g, '-');
       const patientIdNum = !isNaN(Number(patientIdClean)) ? Number(patientIdClean) : null;
+
+      // ── 0. Cache Busting & Gestão de Cache no Arranque (Força descarga do payload do page.tsx) ──
+      const DISCIPLINE_CACHE_VERSION = 'v3.3_perf_canonical_hiit_2026';
+      try {
+        const storedCacheVer = localStorage.getItem('nutriax_discipline_cache_version');
+        if (storedCacheVer !== DISCIPLINE_CACHE_VERSION) {
+          console.info(`[NutriAx CacheBust] Invalidação de cache legado (${storedCacheVer} -> ${DISCIPLINE_CACHE_VERSION}). Limpando mocks e sincronizando periodização...`);
+          // Purga rotinas mock legadas no localStorage do paciente se existirem (ex: PHAT A-F com 6 rotinas)
+          const pStorageKey = getDisciplineStorageKey();
+          if (pStorageKey) {
+            const rawStored = localStorage.getItem(pStorageKey);
+            if (rawStored) {
+              const parsedStored = JSON.parse(rawStored);
+              if (parsedStored.workoutDatabase && (parsedStored.workoutDatabase['D'] || parsedStored.workoutDatabase['E'])) {
+                delete parsedStored.workoutDatabase;
+                delete parsedStored.selectedRoutineKey;
+                localStorage.setItem(pStorageKey, JSON.stringify(parsedStored));
+              }
+            }
+          }
+          localStorage.setItem('nutriax_discipline_cache_version', DISCIPLINE_CACHE_VERSION);
+        }
+      } catch (_) {}
 
       // ── A. Aplica estado de interação salvo localmente (checks, água, sono) PRIMEIRO ──
       let needsPersistReset = false;
@@ -5635,7 +6093,7 @@
         console.warn('Erro ao carregar state local', e);
       }
 
-      // ── B. Tenta carregar payload do plano prescrito (multi-key cascade) ──
+      // ── B. Tenta carregar payload do plano prescrito e periodização de treino ──
       let dataPayload = null;
       const payloadKeysToTry = [
         `nutriax_patient_payload_${patientIdClean}`,
@@ -5663,6 +6121,48 @@
             }
           }
         } catch (_) { }
+      }
+
+      // B.1 Busca na Periodização e Prescrição de Treino / Cardio (NUTRIAX_PERFORMANCE_*)
+      // Salvo pelo dashboard de performance (page.tsx e app.js)
+      let perfPayload = null;
+      const perfKeysToTry = [
+        `NUTRIAX_PERFORMANCE_${patientIdClean}`,
+        `NUTRIAX_PERFORMANCE_${patientIdSlug}`,
+        ...(patientIdNum !== null ? [`NUTRIAX_PERFORMANCE_${patientIdNum}`] : []),
+        'NUTRIAX_PERFORMANCE_LAST_ACTIVE',
+        'NUTRIAX_PERFORMANCE_default',
+        `nutriax_performance_${patientIdClean}`,
+        `nutriax_performance_${patientIdSlug}`
+      ];
+
+      for (const pk of perfKeysToTry) {
+        try {
+          const rawPerf = localStorage.getItem(pk);
+          if (rawPerf) {
+            const parsedPerf = JSON.parse(rawPerf);
+            const actualRecord = (pk === 'NUTRIAX_PERFORMANCE_LAST_ACTIVE' && parsedPerf.record) ? parsedPerf.record : parsedPerf;
+            if (actualRecord && (actualRecord.workoutPlan || actualRecord.cardioPrescription || actualRecord.workoutDatabase || actualRecord.selectedSplit || actualRecord.split)) {
+              perfPayload = actualRecord;
+              break;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (perfPayload) {
+        if (!dataPayload) {
+          dataPayload = {};
+        }
+        if (perfPayload.workoutPlan) dataPayload.workoutPlan = perfPayload.workoutPlan;
+        if (perfPayload.cardioPrescription) dataPayload.cardioPrescription = perfPayload.cardioPrescription;
+        if (perfPayload.prescribedCardio) dataPayload.prescribedCardio = perfPayload.prescribedCardio;
+        if (perfPayload.selectedSplit || perfPayload.split) dataPayload.activeSplit = perfPayload.selectedSplit || perfPayload.split;
+        if (perfPayload.patientName && (!dataPayload.patientName || dataPayload.patientName === 'Paciente')) {
+          dataPayload.patientName = perfPayload.patientName;
+        }
+        if (perfPayload.workoutDatabase) dataPayload.workoutDatabase = perfPayload.workoutDatabase;
+        if (perfPayload.weeklySchedule) dataPayload.weeklySchedule = perfPayload.weeklySchedule;
       }
 
       // Fallback para prescrição estruturada salva em localStorage se payload não tiver refeições
@@ -7086,16 +7586,19 @@
       const container = document.getElementById('weeklyScheduleCarousel');
       if (!container) return;
 
-      // Rotinas Prescritas de A a F (idêntico ao ambiente do nutricionista, sem impor dias numéricos fixos)
-      const routineOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'Cardio', 'OFF'];
+      // Rotinas Prescritas de A a F, Cardio, HIIT e OFF
+      const routineOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'Cardio', 'HIIT', 'OFF'];
+      const extraKeys = Object.keys(WORKOUT_DATABASE).filter(k => !routineOrder.includes(k));
+      const activeKeys = [...routineOrder.filter(k => WORKOUT_DATABASE[k]), ...extraKeys];
       let sourceList = [];
 
-      routineOrder.forEach((k, idx) => {
+      activeKeys.forEach((k, idx) => {
         if (WORKOUT_DATABASE[k]) {
           const dbItem = WORKOUT_DATABASE[k];
           const schedMatch = (Array.isArray(WEEKLY_SCHEDULE_DATA) ? WEEKLY_SCHEDULE_DATA : []).find(d => d.routineKey === k);
           const isOff = dbItem.isOff || k === 'OFF';
-          const isCardio = dbItem.isCardio || k === 'Cardio';
+          const isHiit = dbItem.isHiit || k === 'HIIT' || schedMatch?.isHiit || schedMatch?.type === 'HIIT';
+          const isCardio = (dbItem.isCardio || k === 'Cardio') && !isHiit;
           const exCount = Array.isArray(dbItem.exercises) ? dbItem.exercises.length : 0;
           const setsCount = Array.isArray(dbItem.exercises)
             ? dbItem.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets) || 0), 0)
@@ -7104,10 +7607,11 @@
           sourceList.push({
             routineKey: k,
             dayNum: schedMatch ? schedMatch.dayNum : (idx + 1),
-            dayName: schedMatch ? schedMatch.dayName : `TREINO ${k}`,
+            dayName: schedMatch ? schedMatch.dayName : (isHiit ? 'DIA 6' : `TREINO ${k}`),
             badge: dbItem.badge || k,
-            type: schedMatch ? schedMatch.type : (isOff ? 'Off' : (isCardio ? 'Cardio' : 'Treino')),
-            title: (schedMatch && schedMatch.title) ? schedMatch.title : (dbItem.name || `Treino ${k}`),
+            isHiit: isHiit,
+            type: schedMatch ? schedMatch.type : (isOff ? 'Off' : (isHiit ? 'HIIT' : (isCardio ? 'Cardio' : 'Treino'))),
+            title: (schedMatch && schedMatch.title) ? schedMatch.title : (dbItem.name || (isHiit ? 'HIIT Norueguês 4x4' : `Treino ${k}`)),
             sub: (schedMatch && (schedMatch.sub || schedMatch.focus))
               ? (schedMatch.sub || schedMatch.focus)
               : (dbItem.subtitle || (exCount > 0 ? `${exCount} exercícios · ${setsCount} séries` : '')),
@@ -7122,16 +7626,18 @@
       if (sourceList.length === 0 && Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0) {
         const seen = new Set();
         WEEKLY_SCHEDULE_DATA.forEach((d, idx) => {
-          const rKey = d.routineKey || (d.type === 'Off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
+          const rKey = d.routineKey || (d.type === 'Off' ? 'OFF' : (d.type === 'HIIT' || d.isHiit ? 'HIIT' : (d.type === 'Cardio' ? 'Cardio' : 'A')));
           if (!seen.has(rKey)) {
             seen.add(rKey);
+            const isHiitD = d.type === 'HIIT' || d.isHiit || rKey === 'HIIT';
             sourceList.push({
               routineKey: rKey,
               dayNum: d.dayNum || (idx + 1),
-              dayName: d.dayName || `TREINO ${rKey}`,
+              dayName: d.dayName || (isHiitD ? 'DIA 6' : `TREINO ${rKey}`),
               badge: rKey,
-              type: d.type || 'Treino',
-              title: d.title || `Treino ${rKey}`,
+              isHiit: isHiitD,
+              type: d.type || (isHiitD ? 'HIIT' : 'Treino'),
+              title: d.title || (isHiitD ? 'HIIT Norueguês 4x4' : `Treino ${rKey}`),
               sub: d.sub || d.focus || '',
               exCount: 0,
               setsCount: 0,
@@ -7148,36 +7654,40 @@
           (d.routineKey === selectedRoutineKey && isSelected && patientState.workoutDone);
 
         const colorBorder = isSelected
-          ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]'
+          ? (d.isHiit
+              ? 'border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.7)] bg-orange-950/90 scale-[1.02]'
+              : 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]')
           : (isCompleted
             ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600'
-            : 'border-zinc-800 bg-black/60 hover:border-zinc-700');
+            : (d.isHiit
+                ? 'border-orange-900/50 bg-black/70 hover:border-orange-600'
+                : 'border-zinc-800 bg-black/60 hover:border-zinc-700'));
 
         const badgeColor = isCompleted
           ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
           : (isSelected
-            ? 'bg-blue-900 text-blue-200 border-blue-500 font-bold'
-            : (d.type === 'Treino + Cardio'
-              ? 'bg-amber-950 text-amber-300 border-amber-800'
-              : (d.type === 'Cardio'
-                ? 'bg-amber-950 text-amber-300 border-amber-800'
-                : (d.type === 'Off' || d.type === 'off'
-                  ? 'bg-zinc-900 text-zinc-400 border-zinc-800'
-                  : 'bg-zinc-900 text-zinc-300 border-zinc-800'))));
+            ? (d.isHiit ? 'bg-orange-900 text-orange-200 border-orange-500 font-bold' : 'bg-blue-900 text-blue-200 border-blue-500 font-bold')
+            : (d.isHiit
+                ? 'bg-orange-950 text-orange-300 border-orange-800'
+                : (d.type === 'Treino + Cardio'
+                  ? 'bg-amber-950 text-amber-300 border-amber-800'
+                  : (d.type === 'Cardio'
+                    ? 'bg-amber-950 text-amber-300 border-amber-800'
+                    : (d.type === 'Off' || d.type === 'off'
+                      ? 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                      : 'bg-zinc-900 text-zinc-300 border-zinc-800')))));
 
         const badgeText = isCompleted
           ? '✅ Feito'
           : (isSelected
             ? '🎯 Em execução'
-            : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type));
+            : (d.isHiit ? '🔥 HIIT' : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type)));
 
-        // Rótulo da rotina alinhado ao ambiente do nutricionista (TREINO A, B, C... CARDIO, DESCANSO)
-        // SEM definir "DIA X"
-        const routineLetter = d.badge || (d.routineKey ? d.routineKey : (d.type === 'Off' ? 'OFF' : 'Z2'));
+        const routineLetter = d.badge || (d.routineKey ? d.routineKey : (d.type === 'Off' ? 'OFF' : (d.isHiit ? 'HIIT' : 'Z2')));
         const routineBadge = d.routineKey
-          ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`))
-          : (d.type === 'Off' ? 'DESCANSO' : 'CARDIO');
-        const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.type === 'Cardio' ? 'Cardio' : 'A'));
+          ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'HIIT' ? 'HIIT 4x4' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)))
+          : (d.type === 'Off' ? 'DESCANSO' : (d.type === 'HIIT' ? 'HIIT 4x4' : 'CARDIO'));
+        const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.isHiit ? 'HIIT' : (d.type === 'Cardio' ? 'Cardio' : 'A')));
 
         const exInfo = d.exCount > 0 ? `${d.exCount} exercícios · ${d.setsCount} séries` : '';
 
@@ -7187,9 +7697,9 @@
             class="min-w-[160px] max-w-[195px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
-                <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 font-black text-xs ${isSelected ? 'text-blue-300 border-blue-500/60' : 'text-zinc-200'}">${routineLetter}</span>
-                <span class="uppercase tracking-wider text-[9px] ${isSelected ? 'text-blue-200 font-bold' : 'text-zinc-400'}">${routineBadge}</span>
+                <span class="w-2 h-2 rounded-full ${isSelected ? (d.isHiit ? 'bg-orange-400 animate-ping' : 'bg-blue-400 animate-ping') : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
+                <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 font-black text-xs ${isSelected ? (d.isHiit ? 'text-orange-300 border-orange-500/60' : 'text-blue-300 border-blue-500/60') : 'text-zinc-200'}">${routineLetter}</span>
+                <span class="uppercase tracking-wider text-[9px] ${isSelected ? (d.isHiit ? 'text-orange-200 font-bold' : 'text-blue-200 font-bold') : 'text-zinc-400'}">${routineBadge}</span>
               </span>
               <span class="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded border ${badgeColor}">
                 ${badgeText}
@@ -7525,7 +8035,7 @@
       // Oculta/Exibe a diretriz de progressão dependendo do tipo
       const progEl = document.getElementById('workoutFooterProgression');
       if (progEl) {
-        progEl.style.display = (routine.isOff || routine.isCardio) ? 'none' : 'flex';
+        progEl.style.display = (routine.isOff || routine.isCardio || routine.isHiit) ? 'none' : 'flex';
       }
 
       const exList = Array.isArray(routine.exercises) ? routine.exercises : [];
@@ -7704,6 +8214,25 @@
                         <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
                       </div>
                     `;
+                  } else if (ex.intensityType === 'INTERVALS' || ex.tiro != null || routine.isHiit) {
+                    return `
+                      <div class="p-1.5 rounded-lg bg-orange-950/40 border border-orange-500/50">
+                        <span class="text-[8px] font-mono text-orange-400 block uppercase">Tiro</span>
+                        <span class="text-xs font-black text-white font-mono">${ex.tiro ? '4 min' : (ex.reps || '4 min')}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-blue-950/40 border border-blue-500/50">
+                        <span class="text-[8px] font-mono text-blue-400 block uppercase">Descanso</span>
+                        <span class="text-xs font-black text-blue-300 font-mono">${ex.descansoAtivo ? '3 min Z2' : '3 min'}</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-amber-400 block uppercase">Ciclos</span>
+                        <span class="text-xs font-black text-amber-300 font-mono">${ex.sets || 4}x</span>
+                      </div>
+                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Zona Alvo</span>
+                        <span class="text-xs font-black text-rose-400 font-mono">Z4/Z5</span>
+                      </div>
+                    `;
                   } else {
                     return `
                       <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
@@ -7750,15 +8279,18 @@
 
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
       const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey];
-      const isRoutineCardio = (selectedRoutineKey === 'Cardio' || currentRoutine?.isCardio);
+      const isRoutineCardio = (selectedRoutineKey === 'Cardio' || selectedRoutineKey === 'HIIT' || currentRoutine?.isCardio || currentRoutine?.isHiit);
       const isRoutineOff = (selectedRoutineKey === 'OFF' || currentRoutine?.isOff);
 
       const dayHasCardio = !!(dayData && (
         dayData.type === 'Treino + Cardio' ||
         dayData.type === 'Cardio' ||
+        dayData.type === 'HIIT' ||
+        dayData.isHiit ||
         dayData.hasCardioPost ||
         dayData.cardioSession != null ||
-        (dayData.title && dayData.title.toLowerCase().includes('cardio'))
+        dayData.cardioId != null ||
+        (dayData.title && /cardio|hiit|noruegu/i.test(dayData.title))
       ));
 
       const shouldShowCardio = (dayHasCardio || isRoutineCardio) && !isRoutineOff;
@@ -7766,33 +8298,52 @@
 
       if (!shouldShowCardio) return;
 
-      // Resolução da sessão de cardio do dia
+      // Resolução da sessão de cardio ou HIIT do dia (Garante que o Dia 6 mapeie o HIIT Norueguês 4x4)
+      const isDay6OrHiit = (selectedScheduleDay === 6 || selectedRoutineKey === 'HIIT' || dayData?.type === 'HIIT' || dayData?.isHiit || dayData?.cardioId === 'cardio_03');
+
       const session = dayData?.cardioSession ||
-        (patientState.cardioPrescription?.sessions && patientState.cardioPrescription.sessions.find(s =>
-          s.dayKey === dayData?.dayKey || s.dayNumber === selectedScheduleDay || String(s.day || '').toLowerCase() === String(dayData?.dayName || '').toLowerCase()
-        )) ||
-        patientState.cardioPrescription?.sessions?.[0] ||
+        (patientState.cardioPrescription?.sessions && patientState.cardioPrescription.sessions.find(s => {
+          if (isDay6OrHiit) {
+            return s.protocolId === 'cardio_03' || s.isHiit || s.intensityType === 'INTERVALS' || s.dayKey === 'd6' || String(s.day || '').includes('6');
+          }
+          return s.dayKey === dayData?.dayKey || s.dayNumber === selectedScheduleDay || String(s.day || '').toLowerCase() === String(dayData?.dayName || '').toLowerCase();
+        })) ||
+        (isDay6OrHiit
+          ? (patientState.cardioPrescription?.sessions?.find(s => s.protocolId === 'cardio_03' || s.isHiit) || patientState.cardioPrescription?.sessions?.[1])
+          : patientState.cardioPrescription?.sessions?.[0]
+        ) ||
         null;
 
-      const protoId = session?.protocolId || dayData?.cardioId || patientState.prescribedCardio?.id || 'cardio_01';
+      const protoId = session?.protocolId || dayData?.cardioId || (isDay6OrHiit ? 'cardio_03' : (patientState.prescribedCardio?.id || 'cardio_01'));
       const proto = (patientState.cardioDatabase && patientState.cardioDatabase.find(p => p.id === protoId)) ||
+        (typeof CANONICAL_CARDIO_CATALOG !== 'undefined' && CANONICAL_CARDIO_CATALOG[protoId]) ||
         (typeof PERF_CARDIO_CATALOG !== 'undefined' && PERF_CARDIO_CATALOG[protoId]) ||
-        patientState.prescribedCardio ||
+        (protoId === 'cardio_03' ? CANONICAL_CARDIO_CATALOG['cardio_03'] : patientState.prescribedCardio) ||
         null;
 
-      const duration = session?.durationMinutes || session?.duration || (proto?.minDurationMinutes || (proto?.timeCap ? parseInt(proto.timeCap) : 45));
-      const zone = session?.heartRateZone || session?.intensityZone || proto?.intensityZone || proto?.category || 'Zona 2';
-      const bpm = session?.bpmTarget || session?.targetBpm || session?.bpm || proto?.bpmAlvo || proto?.bpmTarget || (proto?.hardware ? (proto.hardware.match(/\\d+-\\d+\\s*bpm/)?.[0] || '112-130 bpm') : '112-130 bpm');
-      const isStandalone = dayData?.type === 'Cardio' || isRoutineCardio;
+      const isHiit = Boolean(
+        isDay6OrHiit ||
+        session?.isHiit ||
+        session?.intensityType === 'INTERVALS' ||
+        proto?.isHiit ||
+        protoId === 'cardio_03' ||
+        (proto?.name && /hiit|noruegu/i.test(proto.name))
+      );
+
+      const duration = session?.durationMinutes || session?.duration || (proto?.minDurationMinutes || (proto?.timeCap ? parseInt(proto.timeCap) : (isHiit ? 25 : 45)));
+      const zone = session?.heartRateZone || session?.intensityZone || proto?.intensityZone || (isHiit ? 'Z4/Z5' : 'Zona 2');
+      const bpm = session?.bpmTarget || session?.targetBpm || session?.bpm || proto?.bpmAlvo || proto?.bpmTarget || (isHiit ? '160-175 bpm' : '112-130 bpm');
+      const isStandalone = dayData?.type === 'Cardio' || dayData?.type === 'HIIT' || isRoutineCardio;
 
       // Badge Tag
       const badgeTag = document.getElementById('cardioBadgeTag');
       if (badgeTag) {
         const dayLabel = dayData?.dayName || `DIA ${selectedScheduleDay}`;
-        badgeTag.textContent = `${dayLabel} · ${isStandalone ? 'SESSÃO PRINCIPAL' : 'PÓS-FORÇA'}`;
-        if (zone.includes('HIIT') || zone.includes('Z4') || zone.includes('Z5')) {
-          badgeTag.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-950/80 text-orange-300 border border-orange-700/80';
+        if (isHiit) {
+          badgeTag.textContent = `${dayLabel} · 🔥 ALTA INTENSIDADE (HIIT)`;
+          badgeTag.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-950/90 text-orange-300 border border-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.3)]';
         } else {
+          badgeTag.textContent = `${dayLabel} · ${isStandalone ? 'SESSÃO PRINCIPAL' : 'PÓS-FORÇA'}`;
           badgeTag.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#171B1F] text-amber-300 border border-amber-800/80';
         }
       }
@@ -7800,13 +8351,15 @@
       // Nome do Cardio
       const nameEl = document.getElementById('cardioName');
       if (nameEl) {
-        nameEl.textContent = `Cardio ${duration} min · ${zone}`;
+        nameEl.textContent = isHiit
+          ? `HIIT 4x4 ${duration} min · ${zone} (VO₂ Máx)`
+          : `Cardio ${duration} min · ${zone}`;
       }
 
       // Subtítulo do Cardio
       const subEl = document.getElementById('cardioSubtitle');
       if (subEl) {
-        const pTitle = session?.protocolTitle || session?.protocolName || proto?.title || proto?.name || 'Cardio Estruturado Individualizado';
+        const pTitle = session?.protocolTitle || session?.protocolName || proto?.title || proto?.name || (isHiit ? 'Protocolo "HIIT Norueguês 4x4 (Elite VO₂ Máx)"' : 'Cardio Estruturado Individualizado');
         const cleanTitle = pTitle.replace(/^Protocolo\s*["']?|["']?$/gi, '').trim();
         subEl.textContent = `${cleanTitle} · FC Alvo: ${bpm}`;
       }
@@ -7815,15 +8368,51 @@
       const container = document.getElementById('cardioDetailsContainer');
       if (container) {
         let guideHtml = '';
-        if (proto && Array.isArray(proto.blocks) && proto.blocks.length > 0) {
-          guideHtml = `
-            <div class="grid grid-cols-1 sm:grid-cols-${Math.min(proto.blocks.length, 3)} gap-2.5">
-              ${proto.blocks.map((b, idx) => {
+        const equipStr = session?.equipment || proto?.equipment
+          ? (Array.isArray(proto?.equipment) ? proto.equipment.join(' / ') : (proto?.equipment || session?.equipment))
+          : 'Ergômetro (Esteira / Bike / Remo)';
+
+        if (isHiit) {
+          // Cards de Destaque dos Parâmetros de HIIT (Tiro, Descanso Ativo, Ciclos e Ergômetro)
+          guideHtml += `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              <div class="p-2.5 rounded-xl bg-orange-950/30 border border-orange-500/40 text-center">
+                <span class="text-[8px] font-mono uppercase text-orange-400 block font-bold">⚡ Tiro</span>
+                <span class="text-[11px] font-black text-white font-mono block mt-0.5">4 min (Z4/Z5)</span>
+                <span class="text-[8px] text-zinc-400 block">85-95% FCM</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/40 text-center">
+                <span class="text-[8px] font-mono uppercase text-blue-400 block font-bold">🔄 Descanso Ativo</span>
+                <span class="text-[11px] font-black text-white font-mono block mt-0.5">3 min (Z2)</span>
+                <span class="text-[8px] text-zinc-400 block">65% FCM (Sem Parar)</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
+                <span class="text-[8px] font-mono uppercase text-zinc-400 block font-bold">🔁 Repetições</span>
+                <span class="text-[11px] font-black text-amber-400 font-mono block mt-0.5">4 Ciclos</span>
+                <span class="text-[8px] text-zinc-500 block">Total: 28 min</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
+                <span class="text-[8px] font-mono uppercase text-zinc-400 block font-bold">⚙️ Equipamento</span>
+                <span class="text-[11px] font-black text-emerald-400 font-mono block mt-0.5">Ergômetro</span>
+                <span class="text-[8px] text-zinc-500 block">Esteira / Bike / Remo</span>
+              </div>
+            </div>
+          `;
+        }
+
+        const blocksToRender = (session?.blocks && session.blocks.length > 0)
+          ? session.blocks
+          : (proto?.blocks && proto.blocks.length > 0 ? proto.blocks : null);
+
+        if (blocksToRender) {
+          guideHtml += `
+            <div class="grid grid-cols-1 sm:grid-cols-${Math.min(blocksToRender.length, 3)} gap-2.5">
+              ${blocksToRender.map((b, idx) => {
                 const itemDesc = (Array.isArray(b.items) && b.items.length > 0) ? b.items.join(' ') : (b.guide || '');
                 const cadenceText = b.cadence ? `<p class="text-[9px] font-mono text-zinc-500">${b.cadence}</p>` : '';
                 return `
-                  <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
-                    <span class="text-[10px] font-mono font-bold text-white block">${idx + 1}. ${b.name || `Bloco ${idx + 1}`}</span>
+                  <div class="p-3 rounded-xl ${isHiit && idx === 1 ? 'bg-orange-950/20 border-orange-500/40' : 'bg-[#171B1F] border-[#272C31]'} border space-y-1">
+                    <span class="text-[10px] font-mono font-bold ${isHiit && idx === 1 ? 'text-orange-300' : 'text-white'} block">${idx + 1}. ${b.name || `Bloco ${idx + 1}`}</span>
                     ${cadenceText}
                     <p class="text-[10px] text-zinc-400 leading-relaxed">${itemDesc}</p>
                   </div>
@@ -7832,7 +8421,7 @@
             </div>
           `;
         } else if (proto && Array.isArray(proto.components) && proto.components.length > 0) {
-          guideHtml = `
+          guideHtml += `
             <div class="grid grid-cols-1 sm:grid-cols-${Math.min(proto.components.length, 3)} gap-2.5">
               ${proto.components.map((c, idx) => `
                 <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
@@ -7843,11 +8432,10 @@
             </div>
           `;
         } else {
-          const equipStr = proto?.equipment ? (Array.isArray(proto.equipment) ? proto.equipment.join(' / ') : proto.equipment) : 'Esteira / Bike / Remo';
-          const dinamica = proto?.dinamica || 'Contínua em Estado Estável (Respiração Nasal)';
-          const foco = proto?.foco || 'Oxidação pura de ácidos graxos sem interferência anabólica.';
+          const dinamica = proto?.dinamica || session?.dinamica || (isHiit ? 'Intervalada de Alta Intensidade (4 tiros de 4 min com 3 min ativos)' : 'Contínua em Estado Estável (Respiração Nasal)');
+          const foco = proto?.foco || session?.foco || (isHiit ? 'Aumento máximo do VO₂ Máx e complacência ventricular.' : 'Oxidação pura de ácidos graxos sem interferência anabólica.');
 
-          guideHtml = `
+          guideHtml += `
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div class="p-3 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1">
                 <span class="text-[10px] font-mono font-bold text-white block">Equipamento &amp; Dinâmica</span>
@@ -7861,11 +8449,12 @@
           `;
         }
 
-        if (proto && Array.isArray(proto.restrictions) && proto.restrictions.length > 0) {
+        const restrictions = session?.restrictions || proto?.restrictions;
+        if (Array.isArray(restrictions) && restrictions.length > 0) {
           guideHtml += `
-            <div class="p-2.5 rounded-xl bg-amber-950/20 border border-amber-800/40 text-[10px] text-amber-300 flex items-start gap-2 mt-2">
+            <div class="p-2.5 rounded-xl ${isHiit ? 'bg-orange-950/20 border-orange-800/50 text-orange-300' : 'bg-amber-950/20 border-amber-800/40 text-amber-300'} border text-[10px] flex items-start gap-2 mt-2.5">
               <span class="shrink-0">⚠️</span>
-              <div>${proto.restrictions.join(' ')}</div>
+              <div>${restrictions.join(' ')}</div>
             </div>
           `;
         }
@@ -9488,7 +10077,23 @@
     window.addEventListener('storage', (e) => {
       // INVARIANTE 2 & 8: localStorage NUNCA concede autorização nem altera o paciente ativo
       if (!_authorizedPatientId) return;
-      if (e.key && e.key === `nutriax_patient_payload_${_authorizedPatientId}`) {
+      const pKey = String(_authorizedPatientId).trim();
+      const pSlug = pKey.toLowerCase().replace(/\s+/g, '-');
+
+      const isPerfKey = e.key && (
+        e.key === `NUTRIAX_PERFORMANCE_${pKey}` ||
+        e.key === `NUTRIAX_PERFORMANCE_${pSlug}` ||
+        e.key === 'NUTRIAX_PERFORMANCE_LAST_ACTIVE' ||
+        e.key === 'NUTRIAX_PERFORMANCE_default' ||
+        e.key.startsWith('NUTRIAX_PERFORMANCE_') ||
+        e.key === 'nutriax_sync_active_patient' ||
+        e.key === 'nutriax_sync_timestamp' ||
+        e.key.startsWith('nutriax_performance_') ||
+        e.key === `nutriax_patient_payload_${pKey}` ||
+        e.key === `nutriax_patient_payload_${pSlug}`
+      );
+
+      if (isPerfKey) {
         try {
           loadState();
           renderAll();

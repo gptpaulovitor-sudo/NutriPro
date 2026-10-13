@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════
 // NutriAx Disciplina — Service Worker Exclusivo do Paciente
-// Escopo: /disciplina/ | Cache: nutriax-disciplina-v1.0.0
+// Escopo: /disciplina/ | Cache: nutriax-disciplina-v1.0.2
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-disciplina-v1.0.0';
+const CACHE_NAME = 'nutriax-disciplina-v1.0.2';
 
 const PRECACHE_ASSETS = [
   './',
