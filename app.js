@@ -13791,7 +13791,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // =========================================================================
 
 // Banco Extensivo de Exercícios Biomecânicos (Delavier, Nick Evans, Jim Stoppani)
-const PERF_EXERCISE_DB = [
+// FONTE CANÔNICA: Consome NutriDomain.ExerciseCatalog.EXERCISE_DATABASE quando disponível
+const PERF_EXERCISE_DB = (typeof NutriDomain !== 'undefined' && NutriDomain.ExerciseCatalog?.EXERCISE_DATABASE) ? NutriDomain.ExerciseCatalog.EXERCISE_DATABASE : [
   // ── PEITORAL (BARRAS, HALTERES, CABOS, MÁQUINAS, LIVRES) ──
   // Fonte: Schoenfeld — "Science and Dev. of Muscle Hypertrophy" Cap.2/3 | Lima & Pinto — Cinesiologia Cap.4
   { id: 'pe01', name: 'Supino Reto com Barra', group: 'Peitoral', mechanics: 'Composto', equipment: 'Barra', primary: 'Peitoral Maior (Feixe Esternocostal)', secondary: 'Deltoide Anterior, Tríceps Braquial', resistProfile: 'shortened', cadence: '3-0-1-0', cadenceNote: 'Pico de torque entre 0-60° de abdução horizontal (encurtamento). Exc. 3s acumula tensão mecânica máxima sem perder força intramuscular — Schoenfeld Cap.3.' },
@@ -20181,8 +20182,9 @@ function renderPerfCatalog() {
 
 // ════════════════════════════════════════════════════════════════════════════
 // PRESETS DE DIVISÕES DE TREINO (6 SPLITS CONSAGRADOS E PERIODIZADOS)
+// FONTE CANÔNICA: Consome NutriDomain.SplitPresets.PERF_SPLIT_PRESETS quando disponível
 // ════════════════════════════════════════════════════════════════════════════
-const PERF_SPLIT_PRESETS = {
+const PERF_SPLIT_PRESETS = (typeof NutriDomain !== 'undefined' && NutriDomain.SplitPresets?.PERF_SPLIT_PRESETS) ? NutriDomain.SplitPresets.PERF_SPLIT_PRESETS : {
   // ── 1. PUSH / PULL / LEGS (3 a 6 Dias · Hipertrofia & Recomposição) ──────
   PPL: [
     {
@@ -21249,6 +21251,9 @@ PERF_SPLIT_PRESETS['Sedentary'] = PERF_SPLIT_PRESETS.Sedentario;
  * @returns {string|null}
  */
 function perfInferSplitFromAnamnese(modality, frequency = null) {
+  if (typeof NutriDomain !== 'undefined' && typeof NutriDomain.SplitPresets?.inferSplitFromModality === 'function') {
+    return NutriDomain.SplitPresets.inferSplitFromModality(modality, frequency);
+  }
   if (!modality || typeof modality !== 'string') return null;
   const m = modality.toLowerCase().trim();
 

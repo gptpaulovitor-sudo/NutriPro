@@ -381,3 +381,44 @@ test('8. Validação Estrutural da Extração da Anamnese em app.js', () => {
   // 4. Invariante: peso 115.8 hardcoded foi completamente removido
   assert.strictEqual(appJsCode.includes('115.8'), false, 'Não deve existir peso 115.8 hardcoded em app.js');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 7: FONTES DE VERDADE UNIFICADAS (ExerciseCatalog & SplitPresets)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('9. ExerciseCatalog e SplitPresets são a fonte canônica única compartilhada', () => {
+  const { ExerciseCatalog, SplitPresets } = require('../domain/training');
+
+  // 1. ExerciseCatalog
+  assert.ok(ExerciseCatalog, 'ExerciseCatalog deve ser exportado');
+  assert.ok(Array.isArray(ExerciseCatalog.EXERCISE_DATABASE), 'EXERCISE_DATABASE deve ser array');
+  assert.ok(ExerciseCatalog.EXERCISE_DATABASE.length >= 130, 'Deve conter catálogo completo de exercícios');
+  
+  // Verifica estações HYROX unificadas
+  const hy06 = ExerciseCatalog.findExerciseById('hy06');
+  assert.ok(hy06 && /sled push/i.test(hy06.name), 'Deve conter estações HYROX como Sled Push');
+
+  // 2. SplitPresets
+  assert.ok(SplitPresets, 'SplitPresets deve ser exportado');
+  assert.ok(SplitPresets.TRAINING_SPLITS.HYROX, 'Deve conter split HYROX');
+  assert.ok(SplitPresets.TRAINING_SPLITS.PHAT, 'Deve conter split PHAT');
+  assert.ok(SplitPresets.TRAINING_SPLITS.PPL, 'Deve conter split PPL');
+  assert.ok(SplitPresets.TRAINING_SPLITS.UpperLower, 'Deve conter split UpperLower');
+  assert.ok(SplitPresets.TRAINING_SPLITS.Sedentario, 'Deve conter split Sedentario');
+
+  // 3. Inferência canônica unificada
+  assert.strictEqual(SplitPresets.inferSplitFromModality('HYROX Racing'), 'HYROX');
+  assert.strictEqual(SplitPresets.inferSplitFromModality('Corrida e Musculação'), 'RunningStrength');
+  assert.strictEqual(SplitPresets.inferSplitFromModality('Musculação', 4), 'UpperLower');
+  assert.strictEqual(SplitPresets.inferSplitFromModality('Musculação', 5), 'PHAT');
+  assert.strictEqual(SplitPresets.inferSplitFromModality('Musculação', 3), 'PPL');
+  assert.strictEqual(SplitPresets.inferSplitFromModality('Sedentário'), 'Sedentario');
+
+  // 4. Verificação de desduplicação em page.tsx
+  const pageTsxCode = fs.readFileSync(path.join(__dirname, '..', 'app', 'dashboard', 'performance', 'page.tsx'), 'utf8');
+  assert.ok(pageTsxCode.includes('@/domain/training/ExerciseCatalog'), 'page.tsx deve importar ExerciseCatalog canônico');
+  assert.ok(pageTsxCode.includes('@/domain/training/SplitPresets'), 'page.tsx deve importar SplitPresets canônico');
+  assert.ok(pageTsxCode.includes('TrainingGenerationStateMachine'), 'page.tsx deve importar TrainingGenerationStateMachine');
+  assert.strictEqual(pageTsxCode.includes('setTimeout(resolve, 1800)'), false, 'page.tsx não deve ter mock estático de setTimeout 1800ms');
+});
+

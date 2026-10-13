@@ -14,7 +14,9 @@
       require('./ModalityEngineRegistry'),
       require('./InternalTrainingDatabase'),
       require('./DeterministicTrainingGenerator'),
-      require('./TrainingGenerationStateMachine')
+      require('./TrainingGenerationStateMachine'),
+      require('./ExerciseCatalog'),
+      require('./SplitPresets')
     );
   } else {
     root.NutriDomain = root.NutriDomain || {};
@@ -26,7 +28,9 @@
       root.NutriDomain.ModalityEngineRegistry,
       root.NutriDomain.InternalTrainingDatabase,
       root.NutriDomain.DeterministicTrainingGenerator,
-      root.NutriDomain.TrainingGenerationStateMachine
+      root.NutriDomain.TrainingGenerationStateMachine,
+      root.NutriDomain.ExerciseCatalog,
+      root.NutriDomain.SplitPresets
     );
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (
@@ -37,7 +41,9 @@
   ModalityEngineRegistry,
   InternalTrainingDatabase,
   DeterministicTrainingGenerator,
-  TrainingGenerationStateMachine
+  TrainingGenerationStateMachine,
+  ExerciseCatalog,
+  SplitPresets
 ) {
   'use strict';
 
@@ -49,6 +55,8 @@
     ModalityEngineRegistry,
     InternalTrainingDatabase,
     DeterministicTrainingGenerator,
-    TrainingGenerationStateMachine
+    TrainingGenerationStateMachine,
+    ExerciseCatalog,
+    SplitPresets
   };
 });
