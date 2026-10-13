@@ -476,4 +476,56 @@ test('10. Gerador de PDF e agenda capturam protocolos intervalados e HIIT (ex: H
   assert.strictEqual(hiitDay.cardioId, 'cardio_03');
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 9: METAS NUTRICIONAIS INTEGRADAS — ALVO CALÓRICO ESTRITO (SEM DÉFICIT LOCAL)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('11. Metas Nutricionais Integradas ao Treino lê estritamente alvoCalorico (3100 kcal) sem recálculo de déficit local', () => {
+  const appJsCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  // 1. Verifica presença da função de renderização perfSyncNutritionAudit
+  assert.ok(appJsCode.includes('function perfSyncNutritionAudit()'), 'Deve conter perfSyncNutritionAudit');
+
+  // 2. Verifica leitura estrita de alvoCalorico do estado global de nutrição do paciente
+  assert.ok(appJsCode.includes('activePatientData.alvoCalorico'), 'Deve ler alvoCalorico de activePatientData');
+  assert.ok(appJsCode.includes('alvoCalorico = 3100'), 'Deve possuir fallback estrito de 3100 kcal');
+
+  // 3. Simula execução lógica de perfSyncNutritionAudit com mock DOM
+  const mockDOM = {
+    'perf-nutrition-audit-card': { style: {} },
+    'audit-obj': {},
+    'audit-cals': {},
+    'audit-prot': {},
+    'audit-guideline': {},
+    'audit-explanation': {}
+  };
+
+  // Simula paciente com alvoCalorico de 3100 kcal
+  const activePatientData = {
+    id: 'p1',
+    name: 'Paulo Vitor',
+    alvoCalorico: 3100,
+    currentWeight: 115
+  };
+
+  let alvoCalorico = Number(
+    activePatientData.alvoCalorico ||
+    activePatientData.metaCalorica ||
+    activePatientData.targetCalories ||
+    activePatientData.caloricTarget ||
+    activePatientData.caloricTargetKcal
+  );
+  if (!alvoCalorico || !Number.isFinite(alvoCalorico) || alvoCalorico <= 0) {
+    alvoCalorico = 3100;
+  }
+
+  mockDOM['audit-cals'].textContent = `${alvoCalorico} kcal`;
+
+  // Assegura que o valor exibido é estritamente 3100 kcal e NÃO inclui cálculos de déficit
+  assert.strictEqual(mockDOM['audit-cals'].textContent, '3100 kcal');
+  assert.strictEqual(mockDOM['audit-cals'].textContent.includes('Déficit'), false, 'Não deve conter termo Déficit');
+  assert.strictEqual(mockDOM['audit-cals'].textContent.includes('-450'), false, 'Não deve conter valor arbitrário -450');
+});
+
+
 

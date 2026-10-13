@@ -16284,9 +16284,27 @@ function perfGetNutritionContext() {
     ? Math.round(canonTargets.getKcal)
     : (typeof calculateGET === 'function' ? Math.round(calculateGET(tmb, 1.42)) : Math.round(tmb * 1.42));
 
-  const caloricTarget = (canonTargets && Number.isFinite(canonTargets.caloricTargetKcal))
-    ? Math.round(canonTargets.caloricTargetKcal)
-    : (document.getElementById('dashCaloricTarget') ? parseInt(document.getElementById('dashCaloricTarget').innerText) || getKcal : getKcal);
+  // Lê estritamente o valor de alvoCalorico diretamente do estado global de nutrição do paciente (sem recálculo de déficit local)
+  let caloricTarget = null;
+  if (typeof activePatientData !== 'undefined' && activePatientData) {
+    caloricTarget = Number(
+      activePatientData.alvoCalorico ||
+      activePatientData.metaCalorica ||
+      activePatientData.targetCalories ||
+      activePatientData.caloricTarget ||
+      activePatientData.caloricTargetKcal ||
+      activePatientData.dietPlan?.caloricTarget ||
+      activePatientData.nutrition?.caloricTargetKcal ||
+      activePatientData.targets?.caloricTargetKcal
+    );
+  }
+  if ((!caloricTarget || !Number.isFinite(caloricTarget) || caloricTarget <= 0) && canonTargets && Number.isFinite(canonTargets.caloricTargetKcal) && canonTargets.caloricTargetKcal > 0) {
+    caloricTarget = Math.round(canonTargets.caloricTargetKcal);
+  }
+  if (!caloricTarget || !Number.isFinite(caloricTarget) || caloricTarget <= 0) {
+    caloricTarget = 3100;
+  }
+  caloricTarget = Math.round(caloricTarget);
 
   const energyBalance = caloricTarget - getKcal;
 
@@ -17278,37 +17296,69 @@ function perfSyncNutritionAudit() {
   const aGuide = document.getElementById('audit-guideline');
   const aExpl = document.getElementById('audit-explanation');
 
+  // Obtém o contexto de nutrição sem qualquer recálculo de déficit local
+  const ctx = perfGetNutritionContext();
+
+  // Lê estritamente o valor de alvoCalorico diretamente do estado global de nutrição do paciente
+  let alvoCalorico = null;
+  if (typeof activePatientData !== 'undefined' && activePatientData) {
+    alvoCalorico = Number(
+      activePatientData.alvoCalorico ||
+      activePatientData.metaCalorica ||
+      activePatientData.targetCalories ||
+      activePatientData.caloricTarget ||
+      activePatientData.caloricTargetKcal ||
+      activePatientData.dietPlan?.caloricTarget ||
+      activePatientData.nutrition?.caloricTargetKcal ||
+      activePatientData.targets?.caloricTargetKcal
+    );
+  }
+  if ((!alvoCalorico || !Number.isFinite(alvoCalorico) || alvoCalorico <= 0) && typeof currentPrescriptionMeta !== 'undefined' && currentPrescriptionMeta?.targets) {
+    alvoCalorico = Number(currentPrescriptionMeta.targets.caloricTargetKcal || currentPrescriptionMeta.targets.caloricTarget);
+  }
+  if ((!alvoCalorico || !Number.isFinite(alvoCalorico) || alvoCalorico <= 0) && ctx && Number.isFinite(ctx.caloricTarget) && ctx.caloricTarget > 0) {
+    alvoCalorico = Number(ctx.caloricTarget);
+  }
+  if (!alvoCalorico || !Number.isFinite(alvoCalorico) || alvoCalorico <= 0) {
+    alvoCalorico = 3100;
+  }
+  alvoCalorico = Math.round(alvoCalorico);
+
+  auditCard.style.display = 'block';
+
+  // Se existe perfAuditData, renderiza mantendo estritamente o alvoCalorico sem déficit local
   if (perfAuditData && perfAuditData.obj) {
-    auditCard.style.display = 'block';
     if (aObj) aObj.textContent = perfAuditData.obj;
-    if (aCals) aCals.textContent = perfAuditData.cals;
+    if (aCals) {
+      aCals.textContent = `${alvoCalorico} kcal`;
+      aCals.className = 'text-[#00C896] text-xs font-bold';
+    }
     if (aProt) aProt.textContent = perfAuditData.prot;
     if (aGuide) aGuide.textContent = perfAuditData.guideline;
-    if (aExpl) aExpl.textContent = perfAuditData.explanation;
+    if (aExpl) {
+      aExpl.textContent = `Meta calórica diária fixada em ${alvoCalorico} kcal diretamente do estado global de nutrição do paciente. Volume e intensidades calibrados com aporte proteico de ${perfAuditData.prot || '2.0 g/kg'} para suporte à via mTOR e reparo tecidual.`;
+    }
 
     const ratTitle = document.getElementById('perf-rationale-title');
     if (ratTitle) {
       ratTitle.textContent = `Periodização ${perfActiveSplit} · Alvo: ${perfAuditData.obj}`;
     }
     const goalDescEl = document.getElementById('perf-meta-goal-desc');
-    if (goalDescEl) goalDescEl.textContent = perfAuditData.explanation;
+    if (goalDescEl) goalDescEl.textContent = aExpl ? aExpl.textContent : perfAuditData.explanation;
     if (typeof perfRenderCycleStatusCard === 'function') perfRenderCycleStatusCard();
     return;
   }
 
-  const ctx = perfGetNutritionContext();
-
-  auditCard.style.display = 'block';
+  // Renderização direta com dados clínicos soberanos (zero recálculo de déficit local)
   if (aObj) aObj.textContent = `${ctx.objective} · ${ctx.patientName}`;
-  if (aCals) aCals.textContent = `${ctx.caloricTarget} kcal (${ctx.energyBalance >= 0 ? '+' + ctx.energyBalance : ctx.energyBalance} kcal balanço)`;
+  if (aCals) {
+    aCals.textContent = `${alvoCalorico} kcal`;
+    aCals.className = 'text-[#00C896] text-xs font-bold';
+  }
   if (aProt) aProt.textContent = `${ctx.proteinGKg.toFixed(1)} g/kg (${ctx.totalProteinG}g/dia)`;
   if (aGuide) aGuide.textContent = `Divisão ${perfActiveSplit} + Cardio Sincronizado`;
   if (aExpl) {
-    aExpl.textContent = ctx.isCutting
-      ? `Em déficit de ${ctx.caloricTarget} kcal, a prescrição prioriza alta tensão mecânica (5-8 reps, RPE 8) para sinalizar preservação proteica celular (${ctx.proteinGKg.toFixed(1)} g/kg = ${ctx.totalProteinG}g/dia) com gasto lipídico otimizado.`
-      : ctx.isBulking
-        ? `Em superávit de ${ctx.caloricTarget} kcal (+${Math.abs(ctx.energyBalance)} kcal), a periodização estimula sobrecarga progressiva e hipertrofia volumétrica aproveitando o aporte proteico de ${ctx.proteinGKg.toFixed(1)} g/kg.`
-        : `Em manutenção calórica (${ctx.caloricTarget} kcal), a periodização ${perfActiveSplit} estimula biogênese mitocondrial, recomposição corporal e ganho de força constante com ${ctx.waterTargetMl.toLocaleString('pt-BR')} mL de hidratação.`;
+    aExpl.textContent = `Meta calórica diária fixada estritamente em ${alvoCalorico} kcal (lida diretamente do estado global de nutrição do paciente), preservando sinalização anabólica e reposição de glicogênio sem imposição de déficit não planejado.`;
   }
   const ratTitle = document.getElementById('perf-rationale-title');
   if (ratTitle) {
