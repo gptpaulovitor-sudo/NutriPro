@@ -268,8 +268,11 @@
       const routineId = routine.id || String.fromCharCode(65 + rIdx); // A, B, C...
       const routineName = String(routine.routineName || routine.name || `Treino ${routineId}`).trim();
       const rawExercises = Array.isArray(routine.exercises) ? routine.exercises : [];
+      const filteredRawExercises = (EquipmentService && typeof EquipmentService.filterExercisesByEquipment === 'function')
+        ? EquipmentService.filterExercisesByEquipment(rawExercises, enrichedEngineContext)
+        : rawExercises;
 
-      const normalizedExercises = rawExercises.map((ex, eIdx) => {
+      const normalizedExercises = filteredRawExercises.map((ex, eIdx) => {
         const exName = String(ex.exerciseName || ex.name || `Exercício ${eIdx + 1}`).trim();
         const sets = Number.isInteger(Number(ex.sets)) && Number(ex.sets) >= 1 ? Number(ex.sets) : 3;
         const reps = ex.reps != null ? String(ex.reps).trim() : '8-12';

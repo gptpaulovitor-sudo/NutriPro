@@ -7,14 +7,25 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('../EquipmentService'));
   } else {
     root.NutriDomain = root.NutriDomain || {};
     root.NutriDomain.Engines = root.NutriDomain.Engines || {};
-    root.NutriDomain.Engines.StrengthEngine = factory();
+    root.NutriDomain.Engines.StrengthEngine = factory(root.NutriDomain.EquipmentService);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (EquipmentService) {
   'use strict';
+
+  function filterExercisesByEquipment(catalog, patientAnamnesis) {
+    if (EquipmentService && typeof EquipmentService.filterExercisesByEquipment === 'function') {
+      return EquipmentService.filterExercisesByEquipment(catalog, patientAnamnesis);
+    }
+    const globalFilter = typeof globalThis !== 'undefined' && globalThis.NutriDomain?.EquipmentService?.filterExercisesByEquipment;
+    if (typeof globalFilter === 'function') {
+      return globalFilter(catalog, patientAnamnesis);
+    }
+    return catalog;
+  }
 
   function generateRoutines(context = {}, options = {}) {
     const frequency = Number(options.frequency || context.frequency) || 4;
@@ -256,10 +267,17 @@
       }
     ];
 
+    // Aplicação estrita das regras da anamnese (whitelist de equipamentos, restrições e otimização biomecânica)
+    const patientAnamnesis = { ...context, ...options };
+    const filteredRoutines = routines.map(routine => ({
+      ...routine,
+      exercises: filterExercisesByEquipment(routine.exercises, patientAnamnesis)
+    }));
+
     return {
       modality: 'musculacao_forca',
       split: splitKey,
-      routines: routines
+      routines: filteredRoutines
     };
   }
 
@@ -281,6 +299,7 @@
 
   return {
     generateRoutines,
-    validateRoutine
+    validateRoutine,
+    filterExercisesByEquipment
   };
 });

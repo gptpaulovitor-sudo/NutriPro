@@ -8323,13 +8323,13 @@ async function exportImpactReportPDF(patientId = activePatientId) {
   const evals = data.evals || [];
   const latestEval = evals.length > 0 ? evals[evals.length - 1] : null;
 
-  const age = parseInt(p.age, 10) || 39;
-  const height = parseFloat(p.height) || 1.93;
-  const currentWeight = parseFloat(latestEval?.weight || p.currentWeight) || 115.8;
-  const leanMass = parseFloat(latestEval?.leanMass) || (currentWeight * 0.819);
+  const age = parseInt(p.age, 10) || 30;
+  const height = parseFloat(p.height) || 1.75;
+  const currentWeight = parseFloat(latestEval?.weight || p.currentWeight || p.usualWeight) || 75.0;
+  const leanMass = parseFloat(latestEval?.leanMass) || (currentWeight * (p.gender === 'Feminino' ? 0.75 : 0.82));
   const fatMass = parseFloat(latestEval?.fatMass) || (currentWeight - leanMass);
   const fatPercent = parseFloat(latestEval?.fatPercent) || Number(((fatMass / currentWeight) * 100).toFixed(2));
-  const waist = parseFloat(latestEval?.waist) || 101.0;
+  const waist = parseFloat(latestEval?.waist) || 85.0;
   const objective = p.objective || "Hipertrofia & Recomposição";
   const emissionDate = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -16242,14 +16242,14 @@ function perfGetNutritionContext() {
   const patientSelect = document.getElementById('activePatientSelect');
   const patientName = document.getElementById("headerPatientName")?.innerText?.trim() ||
     document.getElementById("perfPatientName")?.innerText?.trim() ||
-    (patientSelect?.options && patientSelect?.selectedIndex >= 0 ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paulo Vitor Ribeiro de Sousa');
+    (patientSelect?.options && patientSelect?.selectedIndex >= 0 ? patientSelect.options[patientSelect.selectedIndex]?.text : 'Paciente');
 
   const headerWeightText = document.getElementById('headerPatientWeight')?.innerText?.replace('kg', '')?.trim();
   const perfWeightText = document.getElementById('perfPatientWeight')?.innerText?.replace('kg', '')?.trim();
   const anamneseWeightVal = document.getElementById('anamneseWeight')?.value;
   const dashWeightText = document.getElementById('dashWeight')?.innerText?.replace('kg', '')?.trim();
 
-  let currentWeight = 115.8;
+  let currentWeight = 70.0;
   if (typeof activePatientData !== 'undefined' && activePatientData) {
     const pw = parseFloat(activePatientData.currentWeight || activePatientData.weight || activePatientData.usualWeight);
     if (pw > 0) currentWeight = pw;
@@ -21594,7 +21594,95 @@ async function buildPerformanceContext(patientId = activePatientId) {
     statusBadge: goalProj.statusBadge || null
   } : null;
 
-  // ── 9. RESTRIÇÕES, LIMITAÇÕES & EQUIPAMENTOS ──────────────────────────────
+  // ── 9. RESTRIÇÕES, LIMITAÇÕES & EQUIPAMENTOS (ANAMNESE REAL) ──────────────
+  // 9.a Extração de Equipamentos Disponíveis (Ergômetros, Barras, Halteres)
+  const rawEquipSources = [];
+  if (p.anamnese && p.anamnese.equipamentosDisponiveis) {
+    rawEquipSources.push(p.anamnese.equipamentosDisponiveis);
+  }
+  if (p.equipamentosDisponiveis) rawEquipSources.push(p.equipamentosDisponiveis);
+  if (p.availableEquipment) rawEquipSources.push(p.availableEquipment);
+  if (p.cardioPreferences && Array.isArray(p.cardioPreferences.availableEquipment)) {
+    rawEquipSources.push(p.cardioPreferences.availableEquipment);
+  }
+
+  const extractedAvailableEquipment = (() => {
+    const set = new Set();
+    rawEquipSources.forEach(src => {
+      if (Array.isArray(src)) {
+        src.forEach(item => {
+          if (typeof item === 'string' && item.trim()) set.add(item.trim());
+        });
+      } else if (typeof src === 'string' && src.trim()) {
+        src.split(/[,;\n]+/).forEach(item => {
+          if (item.trim()) set.add(item.trim());
+        });
+      }
+    });
+    if (set.size === 0) {
+      set.add('Full Gym');
+    }
+    return [...set];
+  })();
+
+  const equipStrLower = extractedAvailableEquipment.join(' ').toLowerCase();
+  const equipmentDetails = {
+    hasSkiErg: equipStrLower.includes('skierg') || equipStrLower.includes('ski erg'),
+    hasRowErg: equipStrLower.includes('rowerg') || equipStrLower.includes('remo'),
+    hasAirBike: equipStrLower.includes('airbike') || equipStrLower.includes('air bike') || equipStrLower.includes('echo bike'),
+    hasTreadmill: equipStrLower.includes('esteira'),
+    hasBike: equipStrLower.includes('bike') || equipStrLower.includes('bicicleta') || equipStrLower.includes('spinning'),
+    hasBarbell: equipStrLower.includes('barra') || equipStrLower.includes('full gym') || equipStrLower.includes('academia'),
+    hasDumbbells: equipStrLower.includes('halter') || equipStrLower.includes('full gym') || equipStrLower.includes('academia'),
+    hasLegPress: equipStrLower.includes('leg press') || equipStrLower.includes('full gym') || equipStrLower.includes('academia'),
+    hasCrossover: equipStrLower.includes('crossover') || equipStrLower.includes('polia') || equipStrLower.includes('full gym') || equipStrLower.includes('academia'),
+    hasGymComplete: equipStrLower.includes('full gym') || equipStrLower.includes('academia') || equipStrLower.includes('completa'),
+    raw: extractedAvailableEquipment
+  };
+
+  // 9.b Extração de Rotinas e Divisões Relatadas na Anamnese (PHAT, Upper/Lower, PPL, etc.)
+  const routineHistory = (() => {
+    const splitsReported = [];
+    const notes = [
+      p.routineNotes,
+      p.anamnese?.rotina,
+      p.anamnese?.divisaoRotina,
+      p.anamnese?.historicoRotina,
+      p.workoutType,
+      p.clinicalNotes
+    ].filter(Boolean).join(' ');
+
+    const lowerNotes = notes.toLowerCase();
+    if (lowerNotes.includes('phat')) splitsReported.push('PHAT');
+    if (lowerNotes.includes('upper') || lowerNotes.includes('lower') || lowerNotes.includes('superior') || lowerNotes.includes('inferior') || lowerNotes.includes('uplower')) {
+      splitsReported.push('UpperLower');
+    }
+    if (lowerNotes.includes('ppl') || lowerNotes.includes('push') || lowerNotes.includes('pull')) {
+      splitsReported.push('PPL');
+    }
+    if (lowerNotes.includes('fullbody') || lowerNotes.includes('full body') || lowerNotes.includes('fbody')) {
+      splitsReported.push('FullBody');
+    }
+    if (lowerNotes.includes('hyrox')) splitsReported.push('HYROX');
+
+    return {
+      reportedSplits: [...new Set(splitsReported)],
+      currentReportedSplit: p.anamnese?.divisaoRotina || p.anamnese?.historicoRotina || (splitsReported[0] || null),
+      notes: notes
+    };
+  })();
+
+  // 9.c Análise de Restrições Estritas, Notas Clínicas e Blacklist de Modalidades
+  const allNotesText = [
+    p.clinicalNotes,
+    p.routineNotes,
+    p.dietaryRestrictions,
+    p.anamnese?.observacoes,
+    p.anamnese?.restricoes,
+    p.anamnese?.notas,
+    p.anamnese?.rotina
+  ].filter(Boolean).join(' ').toLowerCase();
+
   const extractedProhibitedExercises = (() => {
     const list = Array.isArray(p.prohibitedExercises) ? [...p.prohibitedExercises] : [];
     if (Array.isArray(p.clinicalConstraints)) {
@@ -21602,19 +21690,69 @@ async function buildPerformanceContext(patientId = activePatientId) {
         if (typeof c === 'string') list.push(c);
       });
     }
+    if (p.anamnese?.exerciciosProibidos) {
+      if (Array.isArray(p.anamnese.exerciciosProibidos)) list.push(...p.anamnese.exerciciosProibidos);
+      else if (typeof p.anamnese.exerciciosProibidos === 'string') list.push(p.anamnese.exerciciosProibidos);
+    }
     return [...new Set(list.filter(Boolean))];
   })();
 
+  const extractedProhibitedModalities = (() => {
+    const list = Array.isArray(p.prohibitedModalities) ? [...p.prohibitedModalities] : [];
+    if (p.anamnese?.modalidadesProibidas) {
+      if (Array.isArray(p.anamnese.modalidadesProibidas)) list.push(...p.anamnese.modalidadesProibidas);
+      else if (typeof p.anamnese.modalidadesProibidas === 'string') list.push(p.anamnese.modalidadesProibidas);
+    }
+    // Detecção clínica estrita: bloqueio para corrida de rua ou treinos de 21km
+    if (/bloqueio.*corrida|recusa.*corrida|n[aã]o.*corr(e|ida)|sem.*corrida|proibido.*corrida|evitar.*corrida|bloqueio.*21km|recusa.*21km|n[aã]o.*faz.*corrida/i.test(allNotesText)) {
+      list.push('corrida', 'corrida_rua', 'rua_21km');
+    }
+    return [...new Set(list.map(s => String(s).toLowerCase().trim()).filter(Boolean))];
+  })();
+
+  const isFastingTrainingProhibited = (() => {
+    if (p.prohibitFastingTraining === true || p.allowFastingTraining === false) return true;
+    if (p.anamnese?.treinoJejum === false || p.anamnese?.recusaJejum === true) return true;
+    return /n[aã]o.*(treina|adere|faz|tolera).*jejum|recusa.*jejum|sem.*treino.*jejum|proibido.*jejum/i.test(allNotesText);
+  })();
+
+  // 9.d Otimização Biomecânica via Acessórios de Suporte (Cinturão / Joelheiras)
+  const supportAccessories = (() => {
+    const hasBelt = /cintur[aã]o|cinto de levantamento|lifting belt/i.test(allNotesText) ||
+      p.supportAccessories?.belt === true ||
+      p.anamnese?.acessoriosSuporte?.cinturao === true;
+
+    const hasKneeSleeves = /joelheira|joelheiras|knee sleeve|knee sleeves|faixa de joelho/i.test(allNotesText) ||
+      p.supportAccessories?.kneeSleeves === true ||
+      p.anamnese?.acessoriosSuporte?.joelheiras === true;
+
+    return {
+      belt: !!hasBelt,
+      kneeSleeves: !!hasKneeSleeves,
+      rawDetected: [hasBelt ? 'cinturão' : null, hasKneeSleeves ? 'joelheiras' : null].filter(Boolean)
+    };
+  })();
+
+  const heavyCompoundPriority = supportAccessories.belt || supportAccessories.kneeSleeves;
+
   const extractedInjuries = (() => {
     const list = Array.isArray(p.injuries) ? [...p.injuries] : [];
+    if (p.anamnese?.lesoes && Array.isArray(p.anamnese.lesoes)) list.push(...p.anamnese.lesoes);
     return [...new Set(list.filter(Boolean))];
   })();
 
   const constraints = {
     injuries: extractedInjuries,
     prohibitedExercises: extractedProhibitedExercises,
+    prohibitedModalities: extractedProhibitedModalities,
     clinicalConstraints: Array.isArray(p.clinicalConstraints) ? p.clinicalConstraints : [],
-    availableEquipment: p.availableEquipment || 'Full Gym',
+    availableEquipment: extractedAvailableEquipment,
+    equipmentDetails: equipmentDetails,
+    routineHistory: routineHistory,
+    supportAccessories: supportAccessories,
+    heavyCompoundPriority: heavyCompoundPriority,
+    isFastingTrainingProhibited: isFastingTrainingProhibited,
+    allowFastingTraining: !isFastingTrainingProhibited,
     prescribedCardioId: typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
   };
 
@@ -24885,6 +25023,27 @@ async function generateAndValidateWorkout(patientId, aiGenerator) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
+ * Helper para filtragem e adaptação de exercícios segundo a Anamnese do paciente
+ * @param {Array<Object>} catalog
+ * @param {Object} patientAnamnesis
+ * @returns {Array<Object>}
+ */
+function filterExercisesByEquipment(catalog, patientAnamnesis) {
+  const equipService = (typeof NutriDomain !== 'undefined' && NutriDomain.EquipmentService) ||
+    (typeof EquipmentService !== 'undefined' ? EquipmentService : null) ||
+    (typeof window !== 'undefined' && window.EquipmentService ? window.EquipmentService : null);
+
+  if (equipService && typeof equipService.filterExercisesByEquipment === 'function') {
+    return equipService.filterExercisesByEquipment(catalog, patientAnamnesis);
+  }
+  return catalog;
+}
+
+if (typeof window !== 'undefined') {
+  window.filterExercisesByEquipment = filterExercisesByEquipment;
+}
+
+/**
  * @param {Object} context      - PerformanceContext DTO
  * @param {Object} requirements - TrainingGenerationRequirements DTO (pode ser null)
  * @param {string[]} previousErrors - Erros da tentativa anterior
@@ -24974,7 +25133,7 @@ async function defaultPerformanceAIGenerator(context, requirements = null, previ
       return {
         id: routine.id,
         name: routine.name,
-        exercises: safeExercises
+        exercises: filterExercisesByEquipment(safeExercises, context)
       };
     });
 
@@ -24986,44 +25145,50 @@ async function defaultPerformanceAIGenerator(context, requirements = null, previ
     };
   }
 
-  // Fallback seguro clássico PPL
+  // Fallback seguro clássico PPL passado pelo crivo da anamnese
+  const fallbackRoutines = [
+    {
+      id: 'A', name: 'Treino A · Push Performance',
+      exercises: [
+        safeEx('Supino Reto com Barra', 'Supino com Halteres', 4, '6-8', 7.5, 120, 'Fadiga central controlada.'),
+        safeEx('Desenvolvimento Militar em Pé', 'Desenvolvimento Halteres', 3, '6-8', 7.5, 120, 'Força de empurrar.'),
+        safeEx('Supino Inclinado com Halteres', 'Crucifixo Inclinado', 3, '8-10', 8, 90, 'Peitoral superior.'),
+        safeEx('Elevação Lateral com Halteres', 'Elevação Cabo', 3, '10-12', 8, 60, 'Deltoide medial.'),
+        safeEx('Tríceps na Polia com Barra Reta', 'Tríceps Corda', 3, '10-12', 8, 60, 'Tríceps.')
+      ]
+    },
+    {
+      id: 'B', name: 'Treino B · Pull Performance',
+      exercises: [
+        safeEx('Barra Fixa', 'Puxada Frontal', 4, '6-8', 7.5, 120, 'Tração funcional.'),
+        safeEx('Remada Curvada com Barra', 'Remada Baixa', 4, '6-8', 7.5, 120, 'Força de costas.'),
+        safeEx('Puxada Frontal Aberta', 'Puxada Triângulo', 3, '8-10', 8, 90, 'Latíssimo.'),
+        safeEx('Face Pull com Corda', 'Crucifixo Invertido', 3, '12-15', 7.5, 60, 'Estabilidade escapular.'),
+        safeEx('Rosca Direta com Barra', 'Rosca com Halteres', 3, '8-10', 8, 60, 'Bíceps.')
+      ]
+    },
+    {
+      id: 'C', name: 'Treino C · Legs Performance',
+      exercises: [
+        safeEx('Agachamento Livre com Barra', 'Leg Press 45°', 4, '6-8', 7.5, 150, 'Padrão de agachamento.'),
+        safeEx('Stiff com Barra', 'Mesa Flexora', 4, '6-8', 7.5, 120, 'Cadeia posterior.'),
+        safeEx('Leg Press 45°', 'Hack Squat', 3, '8-10', 8, 90, 'Membros inferiores.'),
+        safeEx('Cadeira Flexora Sentada', 'Mesa Flexora', 3, '10-12', 8, 60, 'Isquiotibiais.'),
+        safeEx('Panturrilha em Pé', 'Panturrilha no Leg', 4, '10-12', 8, 60, 'Tendão de Aquiles.')
+      ]
+    }
+  ].map(routine => ({
+    ...routine,
+    exercises: filterExercisesByEquipment(routine.exercises, context)
+  }));
+
   return {
     split: 'PPL',
     splitSource: 'AI',
-    frequency: 3,
-    routines: [
-      {
-        id: 'A', name: 'Treino A · Push Performance',
-        exercises: [
-          safeEx('Supino Reto com Barra', 'Supino com Halteres', 4, '6-8', 7.5, 120, 'Fadiga central controlada.'),
-          safeEx('Desenvolvimento Militar em Pé', 'Desenvolvimento Halteres', 3, '6-8', 7.5, 120, 'Força de empurrar.'),
-          safeEx('Supino Inclinado com Halteres', 'Crucifixo Inclinado', 3, '8-10', 8, 90, 'Peitoral superior.'),
-          safeEx('Elevação Lateral com Halteres', 'Elevação Cabo', 3, '10-12', 8, 60, 'Deltoide medial.'),
-          safeEx('Tríceps na Polia com Barra Reta', 'Tríceps Corda', 3, '10-12', 8, 60, 'Tríceps.')
-        ]
-      },
-      {
-        id: 'B', name: 'Treino B · Pull Performance',
-        exercises: [
-          safeEx('Barra Fixa', 'Puxada Frontal', 4, '6-8', 7.5, 120, 'Tração funcional.'),
-          safeEx('Remada Curvada com Barra', 'Remada Baixa', 4, '6-8', 7.5, 120, 'Força de costas.'),
-          safeEx('Puxada Frontal Aberta', 'Puxada Triângulo', 3, '8-10', 8, 90, 'Latíssimo.'),
-          safeEx('Face Pull com Corda', 'Crucifixo Invertido', 3, '12-15', 7.5, 60, 'Estabilidade escapular.'),
-          safeEx('Rosca Direta com Barra', 'Rosca com Halteres', 3, '8-10', 8, 60, 'Bíceps.')
-        ]
-      },
-      {
-        id: 'C', name: 'Treino C · Legs Performance',
-        exercises: [
-          safeEx('Agachamento Livre com Barra', 'Leg Press 45°', 4, '6-8', 7.5, 150, 'Padrão de agachamento.'),
-          safeEx('Stiff com Barra', 'Mesa Flexora', 4, '6-8', 7.5, 120, 'Cadeia posterior.'),
-          safeEx('Leg Press 45°', 'Hack Squat', 3, '8-10', 8, 90, 'Membros inferiores.'),
-          safeEx('Cadeira Flexora Sentada', 'Mesa Flexora', 3, '10-12', 8, 60, 'Isquiotibiais.'),
-          safeEx('Panturrilha em Pé', 'Panturrilha no Leg', 4, '10-12', 8, 60, 'Tendão de Aquiles.')
-        ]
-      }
-    ]
+    frequency: fallbackRoutines.length,
+    routines: fallbackRoutines
   };
+}
 }
 
 // ════════════════════════════════════════════════════════════════════════════

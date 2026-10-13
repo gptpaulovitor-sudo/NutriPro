@@ -1051,6 +1051,29 @@ export default function PerformanceDashboard() {
         const res = await getPatientAnamneseAction();
         if (res) {
           setPatientAnamnese(res);
+          const patientKey = `NUTRIAX_PERFORMANCE_${res.id || 'default'}`;
+          const savedData = typeof window !== 'undefined' ? localStorage.getItem(patientKey) : null;
+          if (savedData) {
+            try {
+              const parsed = JSON.parse(savedData);
+              if (parsed.workoutPlan && Array.isArray(parsed.workoutPlan) && parsed.workoutPlan.length > 0) {
+                setWorkoutPlan(parsed.workoutPlan);
+                if (parsed.selectedSplit) {
+                  setSelectedSplit(parsed.selectedSplit);
+                }
+                setTargetRoutineId(parsed.workoutPlan[0]?.id || 'A');
+                setAiToast({
+                  type: 'success',
+                  message: `Periodização de treino recuperada com sucesso para ${res.nome || 'o paciente'}.`,
+                });
+                setTimeout(() => setAiToast(null), 4000);
+                return;
+              }
+            } catch (storageErr) {
+              console.warn('[Performance] Erro ao analisar periodização do localStorage:', storageErr);
+            }
+          }
+
           const splitSugerido = inferSplitFromModality(res.anamnese.modalidadeTreino);
 
           setSelectedSplit(splitSugerido);
@@ -1094,6 +1117,35 @@ export default function PerformanceDashboard() {
       }
     } finally {
       setIsSyncingAnamnese(false);
+    }
+  };
+
+  const handleSavePeriodization = () => {
+    try {
+      const patientId = patientAnamnese?.id || 'default';
+      const storageKey = `NUTRIAX_PERFORMANCE_${patientId}`;
+      const payload = {
+        patientId,
+        patientName: patientAnamnese?.nome,
+        selectedSplit,
+        workoutPlan,
+        updatedAt: new Date().toISOString(),
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+      }
+      setAiToast({
+        type: 'success',
+        message: `Periodização de treino salva com sucesso para ${patientAnamnese?.nome || 'o paciente'}! (${workoutPlan.length} rotinas)`,
+      });
+      setTimeout(() => setAiToast(null), 4000);
+    } catch (err) {
+      console.error('[Performance] Erro ao salvar periodização:', err);
+      setAiToast({
+        type: 'error',
+        message: 'Erro ao salvar periodização no armazenamento local.',
+      });
+      setTimeout(() => setAiToast(null), 4000);
     }
   };
 
@@ -1595,7 +1647,11 @@ export default function PerformanceDashboard() {
           })}
 
           {/* Botão salvar periodização */}
-          <button className="w-full py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all mt-2 text-sm tracking-wide">
+          <button
+            onClick={handleSavePeriodization}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all mt-2 text-sm tracking-wide flex items-center justify-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4" />
             Salvar Periodização
           </button>
         </div>

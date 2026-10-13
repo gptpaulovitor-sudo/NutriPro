@@ -8,17 +8,28 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('../EquipmentService'));
   } else {
     root.NutriDomain = root.NutriDomain || {};
     root.NutriDomain.Engines = root.NutriDomain.Engines || {};
-    root.NutriDomain.Engines.HiitStrengthEngine = factory();
+    root.NutriDomain.Engines.HiitStrengthEngine = factory(root.NutriDomain.EquipmentService);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (EquipmentService) {
   'use strict';
 
+  function filterExercisesByEquipment(catalog, patientAnamnesis) {
+    if (EquipmentService && typeof EquipmentService.filterExercisesByEquipment === 'function') {
+      return EquipmentService.filterExercisesByEquipment(catalog, patientAnamnesis);
+    }
+    const globalFilter = typeof globalThis !== 'undefined' && globalThis.NutriDomain?.EquipmentService?.filterExercisesByEquipment;
+    if (typeof globalFilter === 'function') {
+      return globalFilter(catalog, patientAnamnesis);
+    }
+    return catalog;
+  }
+
   function generateRoutines(context = {}, options = {}) {
-    const routines = [
+    const rawRoutines = [
       {
         id: 'A',
         routineName: 'Treino A · Peitoral & Ombros (Força) + HIIT Esteira (30s/30s)',
@@ -190,10 +201,17 @@
       }
     ];
 
+    // Aplicação estrita das regras da anamnese (whitelist de equipamentos, restrições e otimização biomecânica)
+    const patientAnamnesis = { ...context, ...options };
+    const filteredRoutines = rawRoutines.map(routine => ({
+      ...routine,
+      exercises: filterExercisesByEquipment(routine.exercises, patientAnamnesis)
+    }));
+
     return {
       modality: 'hiit_musculacao',
       split: 'HIIT_Forca',
-      routines: routines
+      routines: filteredRoutines
     };
   }
 
@@ -243,6 +261,7 @@
   return {
     generateRoutines,
     auditMetabolicConcurrency,
-    validateRoutine
+    validateRoutine,
+    filterExercisesByEquipment
   };
 });
