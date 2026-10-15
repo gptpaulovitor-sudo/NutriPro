@@ -15989,8 +15989,21 @@ function renderPerfPrescribedCardio() {
   if (perfCardioPrescription && Array.isArray(perfCardioPrescription.sessions) && perfCardioPrescription.sessions.length > 0) {
     const p = perfCardioPrescription;
     const req = p.requirements || {};
-    const sessions = p.sessions;
-    const totalMin = p.totalWeeklyMinutes || sessions.reduce((s, c) => s + (c.durationMinutes || 0), 0);
+    // Coleta todas as sessões prescritas garantindo inclusão de dias nativos com cardio ativo
+    const scheduleCardioSessions = (Array.isArray(perfWeeklySchedule) ? perfWeeklySchedule : [])
+      .filter(d => (d.type === 'Treino + Cardio' || d.type === 'Cardio' || d.type === 'HIIT' || d.hasCardioPost || d.cardioId) && d.cardioSession)
+      .map(d => d.cardioSession);
+    const sessionsMap = new Map();
+    (p.sessions || []).forEach(s => {
+      const k = s.dayKey || s.day || s.protocolId;
+      sessionsMap.set(k, s);
+    });
+    scheduleCardioSessions.forEach(s => {
+      const k = s.dayKey || s.day || s.protocolId;
+      if (!sessionsMap.has(k)) sessionsMap.set(k, s);
+    });
+    const sessions = Array.from(sessionsMap.values());
+    const totalMin = sessions.reduce((s, c) => s + (c.durationMinutes || 0), 0);
 
     const allDriving = [...(req.frequency?.drivingFactors || []), ...(req.volume?.drivingFactors || [])];
     const allLimiting = [...(req.frequency?.limitingFactors || []), ...(req.volume?.limitingFactors || [])];
@@ -17971,9 +17984,11 @@ function perfRender() {
           }
           trainCount++;
         }
-        const colorClass = d.type === 'Treino'
-          ? (isColor2 ? 'text-purple-400' : 'text-blue-400')
-          : d.type === 'Cardio' ? 'text-amber-400' : 'text-zinc-500';
+        const colorClass = (d.type === 'Treino + Cardio')
+          ? 'text-amber-300'
+          : d.type === 'Treino'
+            ? (isColor2 ? 'text-purple-400' : 'text-blue-400')
+            : (d.type === 'Cardio' || d.type === 'HIIT') ? 'text-amber-400' : 'text-zinc-500';
         const titleShort = (d.title || '').replace('Treino ', '');
         btn.innerHTML = `<span class="font-bold ${colorClass}">DIA ${num}</span> <span class="text-[10px] ${d.type === 'Off' ? 'text-zinc-500' : 'text-zinc-300'} truncate max-w-[85px]">${titleShort}</span>`;
       }
@@ -21455,8 +21470,14 @@ async function buildPerformanceContext(patientId = activePatientId) {
     return 'Não informado';
   })();
 
-  // Frequência semanal numérica (ex: "5x/semana" -> 5)
+  // Frequência semanal numérica de musculação (prioriza o split/plano ativo se existente)
   const workoutFrequencyDays = (() => {
+    if (typeof perfWorkoutPlan !== 'undefined' && Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length > 0) {
+      return perfWorkoutPlan.length;
+    }
+    if (typeof perfActiveSplit !== 'undefined' && perfActiveSplit && typeof PERF_SPLIT_PRESETS !== 'undefined' && Array.isArray(PERF_SPLIT_PRESETS[perfActiveSplit])) {
+      return PERF_SPLIT_PRESETS[perfActiveSplit].length;
+    }
     if (typeof p.workoutFrequency === 'number') return p.workoutFrequency;
     const match = String(p.workoutFrequency || '').match(/(\d+)/);
     if (match) return parseInt(match[1], 10);
@@ -29229,13 +29250,16 @@ function perfGeneratePDF() {
         const cdFocus = String(cd.focus || '').toLowerCase();
         const cdType = String(cd.type || '').toLowerCase();
 
-        // 1. Busca por nome do protocolo (ex: "HIIT Norueguês 4x4", "Zona 2")
+        // 1. Busca por nome do protocolo (ex: "HIIT Norueguês 4x4", "Zona 2", "Circuito Engine")
         cProto = PERF_CARDIO_DB.find(c => {
           const cName = String(c.name || '').toLowerCase();
           const cTitle = String(c.title || '').toLowerCase();
+          const cId = String(c.id || '').toLowerCase();
           return (
             (cdTitle && (cdTitle.includes(cName) || cName.includes(cdTitle) || cdTitle.includes(cTitle))) ||
-            (cdTitle.includes('noruegu') && c.id === 'cardio_03')
+            (cdTitle.includes('noruegu') && cId === 'cardio_03') ||
+            ((cdTitle.includes('circuito') || cdTitle.includes('engine')) && cId === 'cardio_02') ||
+            ((cdTitle.includes('zona 2') || cdTitle.includes('z2')) && (cId === 'cardio_01' || cId.includes('z2')))
           );
         });
 
@@ -29244,10 +29268,19 @@ function perfGeneratePDF() {
           cProto = PERF_CARDIO_DB.find(c => c.id === 'cardio_03') || PERF_CARDIO_DB.find(c => c.category === 'HIIT' || c.isHiit);
         }
 
-        // 3. Fallback seguro para cardio contínuo caso seja marcado como cardio
-        if (!cProto && (cdType.includes('cardio') || cd.cardioSession || cd.cardio)) {
+        // 3. Busca por circuito ou engine
+        if (!cProto && (cdTitle.includes('engine') || cdTitle.includes('circuito') || cdFocus.includes('cardiovascular'))) {
+          cProto = PERF_CARDIO_DB.find(c => c.id === 'cardio_02') || PERF_CARDIO_DB.find(c => c.category === 'Circuito Engine');
+        }
+
+        // 4. Fallback seguro para cardio contínuo caso seja marcado como cardio
+        if (!cProto && (cdType.includes('cardio') || cd.cardioSession || cd.cardio || cdTitle.includes('cardio') || cdFocus.includes('recuperação'))) {
           cProto = PERF_CARDIO_DB.find(c => c.id === 'cardio_01') || PERF_CARDIO_DB[0];
         }
+      }
+
+      if (!cProto && typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB) && PERF_CARDIO_DB.length > 0) {
+        cProto = PERF_CARDIO_DB[0];
       }
 
       if (!cProto) return '';
