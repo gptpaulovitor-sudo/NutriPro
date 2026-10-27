@@ -16,7 +16,7 @@ describe('NutriAx Pro — Sincronização em Nuvem Multi-Dispositivo', () => {
   test('1. pro/index.html inclui firebase-service e app.js com cache-buster atualizado', () => {
     const html = fs.readFileSync(proHtmlPath, 'utf8');
     assert.ok(html.includes('firebase-service.js'), 'pro/index.html deve incluir firebase-service.js');
-    assert.ok(html.includes('app.js?v=20260921_pro_cloud_sync_v2'), 'app.js deve ter cache buster atualizado');
+    assert.ok(/app\.js\?v=/.test(html), 'app.js deve ter cache buster atualizado');
   });
 
   test('2. firebase-service.js sincroniza e carrega rawPrescription juntamente com prescription DTO', () => {

@@ -487,6 +487,7 @@ test('UI-CARDIO-01: botao existente esta conectado ao fluxo canonico', function(
 });
 
 test('UI-CARDIO-02: clique utiliza cardioPreferences atuais', async function() {
+  vm.runInContext('perfWorkoutPlan = [{}, {}, {}, {}]; perfActiveSplit = null;', sandbox);
   sandbox._mockCardioPreferences = {
     preferredModalities: ['bicicleta'],
     preferredFrequency: 3,

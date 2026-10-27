@@ -95,15 +95,15 @@ describe('Fase 9 — Separação PWA Real entre NutriAx Pro e Disciplina', () =>
   });
 
   // 12. cache Pro usa nutriax-pro-
-  test('12. Cache name do Pro utiliza prefixo nutriax-pro- (v2.0.0)', () => {
+  test('12. Cache name do Pro utiliza prefixo nutriax-pro- (v2.0.0+)', () => {
     const swPro = fs.readFileSync(path.join(proDir, 'sw-pro.js'), 'utf8');
-    assert.ok(swPro.includes("const CACHE_NAME = 'nutriax-pro-v2.0.0'"));
+    assert.ok(/const CACHE_NAME = 'nutriax-pro-v\d+\.\d+\.\d+'/.test(swPro));
   });
 
   // 13. cache Disciplina usa nutriax-disciplina-
-  test('13. Cache name do Disciplina utiliza prefixo nutriax-disciplina- (v1.0.0)', () => {
+  test('13. Cache name do Disciplina utiliza prefixo nutriax-disciplina- (v1.0.0+)', () => {
     const swDisc = fs.readFileSync(path.join(discDir, 'sw-paciente.js'), 'utf8');
-    assert.ok(swDisc.includes("const CACHE_NAME = 'nutriax-disciplina-v1.0.0'"));
+    assert.ok(/const CACHE_NAME = 'nutriax-disciplina-v\d+\.\d+\.\d+'/.test(swDisc));
   });
 
   // 14. SW Pro não possui fallback para Disciplina

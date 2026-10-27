@@ -26,7 +26,9 @@ describe('NutriAx Disciplina - Retenção de Marcações e Checks Diários', () 
           style: {},
           innerHTML: '',
           textContent: '',
-          value: '8'
+          value: '8',
+          setAttribute: () => {},
+          getAttribute: () => null
         };
       }
       return domElements[id];
@@ -81,7 +83,11 @@ describe('NutriAx Disciplina - Retenção de Marcações e Checks Diários', () 
       },
       setTimeout: setTimeout,
       clearTimeout: clearTimeout,
-      setInterval: setInterval,
+      setInterval: (fn, ms) => {
+        const id = setInterval(fn, ms);
+        if (id && typeof id.unref === 'function') id.unref();
+        return id;
+      },
       clearInterval: clearInterval,
       Date: Date,
       Math: Math,

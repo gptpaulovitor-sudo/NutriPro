@@ -3782,6 +3782,166 @@
     // ═══════════════════════════════════════════════════════════
     // MOTOR DE DEMONSTRAÇÃO VISUAL & GIFS DE BIOMECÂNICA (60 FPS)
     // ═══════════════════════════════════════════════════════════
+    const CANONICAL_EXERCISE_GIFS = {
+      // PEITORAL
+      pe01: 'pectorals/barbell-bench-press.gif',
+      pe02: 'pectorals/barbell-incline-bench-press.gif',
+      pe03: 'pectorals/barbell-decline-bench-press.gif',
+      pe04: 'pectorals/dumbbell-bench-press.gif',
+      pe05: 'pectorals/dumbbell-incline-bench-press.gif',
+      pe06: 'pectorals/dumbbell-decline-bench-press.gif',
+      pe07: 'pectorals/dumbbell-fly.gif',
+      pe08: 'pectorals/dumbbell-incline-fly.gif',
+      pe09: 'pectorals/dumbbell-decline-fly.gif',
+      pe10: 'pectorals/cable-standing-up-straight-crossovers.gif',
+      pe11: 'pectorals/cable-standing-fly.gif',
+      pe12: 'pectorals/cable-low-fly.gif',
+      pe13: 'pectorals/lever-seated-fly.gif',
+      pe14: 'pectorals/lever-chest-press.gif',
+      pe15: 'pectorals/lever-incline-chest-press.gif',
+      pe16: 'pectorals/smith-bench-press.gif',
+      pe17: 'pectorals/smith-incline-bench-press.gif',
+      pe18: 'pectorals/push-up.gif',
+      pe19: 'pectorals/chest-dip.gif',
+      pe20: 'pectorals/dumbbell-pullover.gif',
+
+      // DORSAL / COSTAS
+      do01: 'lats/pull-up.gif',
+      do02: 'lats/chin-up.gif',
+      do03: 'lats/close-grip-chin-up.gif',
+      do04: 'lats/cable-bar-lateral-pulldown.gif',
+      do05: 'lats/cable-lateral-pulldown-with-v-bar.gif',
+      do06: 'lats/cable-underhand-pulldown.gif',
+      do07: 'lats/cable-straight-arm-pulldown.gif',
+      do08: 'upper-back/barbell-bent-over-row.gif',
+      do09: 'upper-back/barbell-reverse-grip-bent-over-row.gif',
+      do10: 'upper-back/lever-reverse-t-bar-row.gif',
+      do11: 'upper-back/dumbbell-one-arm-bent-over-row.gif',
+      do12: 'upper-back/cable-seated-row.gif',
+      do13: 'upper-back/cable-seated-wide-grip-row.gif',
+      do14: 'upper-back/lever-seated-row.gif',
+      do15: 'lats/lever-front-pulldown.gif',
+      do16: 'glutes/barbell-deadlift.gif',
+      do17: 'glutes/lever-reverse-hyperextension.gif',
+
+      // PERNAS & GLÚTEOS
+      lg01: 'glutes/barbell-full-squat-back-pov.gif',
+      lg02: 'glutes/barbell-front-squat.gif',
+      lg03: 'glutes/sled-hack-squat.gif',
+      lg04: 'glutes/sled-45-leg-press.gif',
+      lg05: 'glutes/lever-horizontal-one-leg-press.gif',
+      lg06: 'quads/lever-leg-extension.gif',
+      lg07: 'quads/dumbbell-single-leg-split-squat.gif',
+      lg08: 'glutes/dumbbell-lunge.gif',
+      lg09: 'quads/sissy-squat.gif',
+      lg10: 'glutes/barbell-romanian-deadlift.gif',
+      lg11: 'glutes/dumbbell-romanian-deadlift.gif',
+      lg12: 'hamstrings/lever-lying-leg-curl.gif',
+      lg13: 'hamstrings/lever-seated-leg-curl.gif',
+      lg14: 'hamstrings/standing-single-leg-curl.gif',
+      lg15: 'glutes/barbell-glute-bridge-two-legs-on-bench-male.gif',
+      lg16: 'glutes/barbell-glute-bridge.gif',
+      lg17: 'abductors/lever-seated-hip-abduction.gif',
+      lg18: 'adductors/lever-seated-hip-adduction.gif',
+      lg19: 'glutes/cable-standing-hip-extension.gif',
+      lg20: 'calves/lever-standing-calf-raise.gif',
+      lg21: 'calves/lever-seated-calf-raise.gif',
+      lg22: 'calves/sled-45-calf-press.gif',
+      lg23: 'glutes/barbell-sumo-deadlift.gif',
+      lg24: 'glutes/single-leg-bridge-with-outstretched-leg.gif',
+      lg25: 'glutes/dumbbell-lunge.gif',
+
+      // OMBROS & TRAPÉZIO
+      sh01: 'delts/barbell-standing-close-grip-military-press.gif',
+      sh02: 'delts/dumbbell-seated-shoulder-press.gif',
+      sh03: 'delts/dumbbell-arnold-press-v-2.gif',
+      sh04: 'delts/lever-shoulder-press-v-2.gif',
+      sh05: 'delts/smith-seated-shoulder-press.gif',
+      sh06: 'delts/dumbbell-lateral-raise.gif',
+      sh07: 'delts/cable-lateral-raise.gif',
+      sh08: 'delts/lever-lateral-raise.gif',
+      sh09: 'delts/dumbbell-incline-raise.gif',
+      sh10: 'delts/dumbbell-front-raise-v-2.gif',
+      sh11: 'delts/barbell-front-raise.gif',
+      sh12: 'delts/cable-front-raise.gif',
+      sh13: 'delts/dumbbell-rear-lateral-raise.gif',
+      sh14: 'delts/dumbbell-rear-fly.gif',
+      sh15: 'delts/cable-rear-delt-row-with-rope.gif',
+      sh16: 'delts/barbell-upright-row-v-2.gif',
+      sh17: 'delts/cable-upright-row.gif',
+      sh18: 'traps/barbell-shrug.gif',
+      sh19: 'traps/dumbbell-shrug.gif',
+      sh20: 'traps/smith-shrug.gif',
+      sh21: 'delts/cable-standing-rear-delt-row-with-rope.gif',
+      sh22: 'delts/cable-kneeling-rear-delt-row-with-rope-male.gif',
+      sh23: 'delts/cable-lateral-raise.gif',
+
+      // BÍCEPS & ANTEBRAÇO
+      bi01: 'biceps/barbell-curl.gif',
+      bi02: 'biceps/ez-barbell-curl.gif',
+      bi03: 'biceps/dumbbell-alternate-biceps-curl-with-arm-blaster.gif',
+      bi04: 'biceps/dumbbell-hammer-curl.gif',
+      bi05: 'biceps/cable-hammer-curl-with-rope.gif',
+      bi06: 'biceps/barbell-preacher-curl.gif',
+      bi07: 'biceps/dumbbell-one-arm-hammer-preacher-curl.gif',
+      bi08: 'biceps/lever-preacher-curl-v-2.gif',
+      bi09: 'biceps/dumbbell-incline-biceps-curl.gif',
+      bi10: 'biceps/dumbbell-concentration-curl.gif',
+      bi11: 'biceps/cable-close-grip-curl.gif',
+      bi12: 'biceps/ez-barbell-spider-curl-1628.gif',
+      bi13: 'biceps/cable-overhead-curl.gif',
+      bi14: 'biceps/barbell-curl.gif',
+      bi15: 'biceps/barbell-reverse-curl.gif',
+      bi16: 'forearms/barbell-wrist-curl-v-2.gif',
+
+      // TRÍCEPS
+      tr01: 'triceps/cable-pushdown.gif',
+      tr02: 'triceps/cable-pushdown-with-rope-attachment.gif',
+      tr03: 'triceps/cable-reverse-grip-pushdown.gif',
+      tr04: 'triceps/barbell-lying-triceps-extension-skull-crusher.gif',
+      tr05: 'triceps/dumbbell-lying-triceps-extension.gif',
+      tr06: 'triceps/barbell-seated-overhead-triceps-extension.gif',
+      tr07: 'triceps/cable-overhead-triceps-extension-rope-attachment.gif',
+      tr08: 'triceps/barbell-close-grip-bench-press.gif',
+      tr09: 'triceps/triceps-dip.gif',
+      tr10: 'triceps/bench-dip-knees-bent.gif',
+      tr11: 'triceps/dumbbell-kickback.gif',
+      tr12: 'triceps/cable-kickback.gif',
+      tr13: 'triceps/lever-seated-dip.gif',
+
+      // ABDÔMEN
+      ab01: 'abs/weighted-crunch.gif',
+      ab02: 'abs/cable-kneeling-crunch.gif',
+      ab03: 'abs/hanging-leg-raise.gif',
+      ab04: 'abs/vertical-leg-raise-on-parallel-bars.gif',
+      ab05: 'abs/wheel-rollerout.gif',
+      ab06: 'abs/weighted-front-plank.gif',
+      ab07: 'abs/weighted-russian-twist-legs-up.gif',
+      ab08: 'abs/lever-seated-crunch-chest-pad.gif',
+
+      // CARDIO & ERGÔMETROS
+      hy01: 'cardio/ski-step.gif',
+      hy02: 'upper-back/cable-seated-row.gif',
+      hy03: 'cardio/stationary-bike-run-v-3.gif',
+      hy04: 'cardio/run.gif',
+      hy05: 'cardio/run-equipment.gif',
+      cardio_esteira: 'cardio/walking-on-incline-treadmill.gif',
+      cardio_airbike: 'cardio/stationary-bike-run-v-3.gif',
+      cardio_rowerg: 'upper-back/cable-seated-row.gif',
+      cardio_recuperativo_z1: 'cardio/stationary-bike-walk.gif',
+
+      // FUNCIONAL / HYROX
+      hy06: 'glutes/sled-hack-squat.gif',
+      hy07: 'delts/cable-rear-delt-row-with-rope.gif',
+      hy08: 'cardio/burpee.gif',
+      hy09: 'glutes/dumbbell-lunge.gif',
+      hy10: 'traps/dumbbell-shrug.gif',
+      hy11: 'upper-back/medicine-ball-overhead-slam.gif',
+      hy12: 'delts/barbell-thruster.gif',
+      hy13: 'calves/box-jump-down-with-one-leg-stabilization.gif',
+      hy14: 'glutes/kettlebell-swing.gif'
+    };
+
     const GROUP_DEFAULT_GIFS = {
       'Peitoral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
       'Dorsal': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif',
@@ -3792,100 +3952,187 @@
       'Braços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
       'Abdômen': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
       'Cardio': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+      'Cardio & Ergômetros': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+      'Funcional / HYROX': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+      'Funcional': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+      'HYROX': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+      'Glúteo': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif',
+      'Glúteos': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif',
+      'Panturrilha': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif',
+      'Panturrilhas': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif',
+      'Antebraço': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/forearms/barbell-wrist-curl-v-2.gif',
+      'Antebraços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/forearms/barbell-wrist-curl-v-2.gif',
+      'Trapézio': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/traps/barbell-shrug.gif',
+      'Core': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif',
+      'Mobilidade': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/roller-back-stretch.gif',
+      'Regeneração': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
+      'Descanso / Recuperação': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
+      'Recuperação': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
       'Geral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif'
     };
 
     function resolveExerciseGif(ex) {
       if (!ex) return GROUP_DEFAULT_GIFS['Peitoral'];
 
-      if (ex.gif && typeof ex.gif === 'string' && ex.gif.trim().startsWith('http')) {
-        let clean = ex.gif.trim();
-        if (clean.includes('shoulders/dumbbell-seated-shoulder-press.gif')) {
-          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif';
-        }
-        if (clean.includes('glutes/dumbbell-lunges.gif')) {
-          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif';
-        }
-        if (clean.includes('glutes/dumbbell-sumo-squat.gif')) {
-          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/smith-sumo-squat.gif';
-        }
-        if (clean.includes('glutes/bodyweight-single-leg-hip-thrust.gif')) {
-          return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif';
-        }
-        return clean;
+      const exId = String(ex.exerciseId || ex.id || '').trim().toLowerCase();
+      if (exId && CANONICAL_EXERCISE_GIFS[exId]) {
+        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/' + CANONICAL_EXERCISE_GIFS[exId];
       }
 
       const name = String(ex.name || '').toLowerCase();
       const group = String(ex.group || '').toLowerCase();
 
-      // Mapeamento semântico por nome do exercício
-      if (/supino.*inclinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-incline-bench-press.gif';
-      if (/supino.*declinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-decline-bench-press.gif';
-      if (/supino/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
-      if (/crucifixo|voador|peck/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-fly.gif';
-      if (/crossover/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/cable-standing-fly.gif';
-      if (/flex[aã]o/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/push-up.gif';
-      if (/paralela|dip/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/chest-dip.gif';
+      if (ex.gif && typeof ex.gif === 'string' && ex.gif.trim().startsWith('http')) {
+        let clean = ex.gif.trim();
+        const isBenchPress = clean.includes('barbell-bench-press.gif');
+        const isLegitBench = /peitoral|peito/i.test(group) || /supino|flex[aã]o|mergulho|crucifixo/i.test(name);
+        if (!isBenchPress || isLegitBench) {
+          if (clean.includes('shoulders/dumbbell-seated-shoulder-press.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif';
+          if (clean.includes('glutes/dumbbell-lunges.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif';
+          if (clean.includes('glutes/dumbbell-sumo-squat.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-sumo-deadlift.gif';
+          if (clean.includes('glutes/bodyweight-single-leg-hip-thrust.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/single-leg-bridge-with-outstretched-leg.gif';
+          if (clean.includes('delts/dumbbell-shrug.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/traps/dumbbell-shrug.gif';
+          if (clean.includes('triceps/cable-standing-one-arm-overhead-triceps-extension.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-overhead-triceps-extension-rope-attachment.gif';
+          if (clean.includes('cardio/stationary-bike-run.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run-v-3.gif';
+          if (clean.includes('cardio/rowing-machine.gif')) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif';
+          if (clean.includes('calves/sled-calf-press-on-leg-press.gif') && /leg\s*press/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-leg-press.gif';
+          return clean;
+        }
+      }
 
-      if (/puxad|pulldown/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif';
-      if (/barra.*fixa|chin.*up|pull.*up/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/pull-up.gif';
-      if (/remada.*sentad|remada.*baixa/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif';
-      if (/remada.*cavalinho|t-bar/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/lever-reverse-t-bar-row.gif';
-      if (/remada.*unilateral|serrote/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/dumbbell-one-arm-bent-over-row.gif';
-      if (/remada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/barbell-bent-over-row.gif';
-
-      if (/terra.*romeno|stiff/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-romanian-deadlift.gif';
-      if (/terra|deadlift/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-deadlift.gif';
-      if (/leg.*press/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-degrees-one-leg-press.gif';
-      if (/extensor/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif';
-      if (/flexor/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/hamstrings/lever-lying-leg-curl.gif';
-      if (/hack/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-hack-squat.gif';
-      if (/afundo|avan[cç]o|lunge|b[uú]lgaro/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif';
-      if (/eleva[cç][aã]o.*p[eé]lvica|hip.*thrust|gl[uú]teo.*bridge/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif';
-      if (/agachamento/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif';
-      if (/panturrilha|g[eê]meos/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif';
-
-      if (/desenvolvimento|militar|arnold/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif';
+      // REGRAS DE PRECEDÊNCIA ESTRITA
+      // 1. OMBROS & DELTOIDE POSTERIOR (antes de crucifixo e remada)
+      if (/crucifixo.*inver|deltoide.*posterior|face.*pull/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif';
+      if (/remada.*alta|upright.*row/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-upright-row-v-2.gif';
+      if (/desenvolvimento.*arnold/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-arnold-press-v-2.gif';
+      if (/desenvolvimento.*militar|desenvolvimento.*em.*p[eé]/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-standing-close-grip-military-press.gif';
+      if (/desenvolvimento/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-seated-shoulder-press.gif';
+      if (/eleva[cç][aã]o.*lateral.*polia|eleva[cç][aã]o.*lateral.*cabo/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-lateral-raise.gif';
       if (/eleva[cç][aã]o.*lateral/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-lateral-raise.gif';
-      if (/eleva[cç][aã]o.*frontal/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-front-raise.gif';
-      if (/crucifixo.*inverso|face.*pull|deltoide.*posterior/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif';
-      if (/encolhimento|trap[eé]zio/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-shrug.gif';
+      if (/eleva[cç][aã]o.*frontal/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-front-raise-v-2.gif';
+      if (/encolhimento|trap[eé]zio/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/traps/barbell-shrug.gif';
 
-      if (/rosca.*martelo/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/cable-hammer-curl-with-rope.gif';
-      if (/rosca.*scott/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/lever-preacher-curl.gif';
-      if (/rosca|b[ií]ceps/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif';
-
+      // 2. TRÍCEPS SUPINO FECHADO & MERGULHO
+      if (/supino.*fechad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-close-grip-bench-press.gif';
       if (/tr[ií]ceps.*testa/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-lying-triceps-extension-skull-crusher.gif';
-      if (/tr[ií]ceps.*franc[eê]s/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-standing-one-arm-overhead-triceps-extension.gif';
-      if (/tr[ií]ceps|corda|pulley/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif';
+      if (/tr[ií]ceps.*franc[eê]s/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-seated-overhead-triceps-extension.gif';
+      if (/tr[ií]ceps.*corda/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown-with-rope-attachment.gif';
+      if (/tr[ií]ceps.*coice/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-kickback.gif';
+      if (/tr[ií]ceps.*banco/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/bench-dip-knees-bent.gif';
+      if (/tr[ií]ceps.*paralela|tr[ií]ceps.*mergulho/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/triceps-dip.gif';
+      if (/tr[ií]ceps/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-pushdown.gif';
 
-      if (/prancha|plank/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif';
-      if (/abdominal|crunch|infra|supra|core/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif';
+      // 3. FUNCIONAL & HYROX
+      if (/burpee/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/burpee.gif';
+      if (/thruster/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif';
+      if (/kettlebell.*swing|kb.*swing/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/kettlebell-swing.gif';
+      if (/box.*jump/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/box-jump-down-with-one-leg-stabilization.gif';
+      if (/wall.*ball/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/medicine-ball-overhead-slam.gif';
+      if (/sled.*push|empurrar.*tren[oó]/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-hack-squat.gif';
+      if (/sled.*pull|puxar.*tren[oó]/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif';
+      if (/farmer.*carry|farmers/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/traps/dumbbell-shrug.gif';
 
-      if (/airbike|air.*bike|assault.*bike|bike|bicicleta|ciclism|spin/i.test(name)) {
-        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run.gif';
-      }
-      if (/remo|rowerg|row.*erg|remador/i.test(name)) {
-        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/rowing-machine.gif';
-      }
-      if (/skierg|ski.*erg/i.test(name)) {
-        return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
-      }
+      // 4. CARDIO & ERGÔMETROS
+      if (/skierg|ski.*erg/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/ski-step.gif';
+      if (/airbike|echo.*bike|assault.*bike|cycleair/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run-v-3.gif';
+      if (/remo.*erg|rowerg|row.*erg|remador.*concept/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif';
+      if (/esteira.*sprint|tiro.*esteira|sprint.*esteira/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run.gif';
+      if (/esteira.*corrida|corrida.*esteira/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run-equipment.gif';
+      if (/caminhada.*inclinada|esteira.*inclinada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
+      if (/cardio.*recuperativo|bike.*suave/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-walk.gif';
+      if (/bike|bicicleta|ciclism|spin/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run-v-3.gif';
       if (/cardio|esteira|caminhada|treadmill|corrida|sprint|tiro|eliptico/i.test(name) || /cardio/i.test(group)) {
         return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
       }
 
-      // 2. Fallback pelo grupo muscular
+      // 5. REGENERAÇÃO & MOBILIDADE
+      if (/sono|dormir|sleep/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif';
+      if (/libera[cç][aã]o|miofascial|mobilidade/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/roller-back-stretch.gif';
+      if (/hidrata[cç][aã]o|eletrol[ií]t|recupera[cç][aã]o/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/sphinx.gif';
+
+      // 6. PERNAS & GLÚTEOS (padrões específicos primeiro)
+      if (/agachamento.*b[uú]lgar|bulgarian/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/dumbbell-single-leg-split-squat.gif';
+      if (/agachamento.*frontal|front.*squat/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-front-squat.gif';
+      if (/agachamento.*sumo|sumo.*squat|sumo.*deadlift/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-sumo-deadlift.gif';
+      if (/agachamento.*hack|hack.*squat/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-hack-squat.gif';
+      if (/agachamento/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-full-squat-back-pov.gif';
+      if (/terra.*romeno|stiff/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-romanian-deadlift.gif';
+      if (/terra|deadlift/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-deadlift.gif';
+      if (/leg.*press.*45|leg.*45/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-leg-press.gif';
+      if (/leg.*press.*horizontal|leg.*unilateral/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/lever-horizontal-one-leg-press.gif';
+      if (/leg.*press/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-leg-press.gif';
+      if (/extensor|cadeira.*extensora/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif';
+      if (/flexor|mesa.*flexora|cadeira.*flexora/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/hamstrings/lever-lying-leg-curl.gif';
+      if (/afundo|avan[cç]o|lunge|passada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif';
+      if (/eleva[cç][aã]o.*p[eé]lvica|hip.*thrust|gl[uú]teo.*bridge/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif';
+      if (/abdutora|abdu[cç][aã]o/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abductors/lever-seated-hip-abduction.gif';
+      if (/adutora|adu[cç][aã]o/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/adductors/lever-seated-hip-adduction.gif';
+      if (/panturrilha.*leg|g[eê]meos.*leg/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/sled-45-calf-press.gif';
+      if (/panturrilha.*sentad|g[eê]meos.*sentad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-seated-calf-raise.gif';
+      if (/panturrilha|g[eê]meos/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif';
+
+      // 7. PEITORAL
+      if (/supino.*inclinad.*halter/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-incline-bench-press.gif';
+      if (/supino.*inclinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-incline-bench-press.gif';
+      if (/supino.*declinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-decline-bench-press.gif';
+      if (/supino.*halter/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-bench-press.gif';
+      if (/supino.*m[aá]quina|articulad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/lever-chest-press.gif';
+      if (/supino/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
+      if (/crucifixo.*inclinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-incline-fly.gif';
+      if (/crucifixo|voador|peck.*deck/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-fly.gif';
+      if (/crossover/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/cable-standing-fly.gif';
+      if (/flex[aã]o/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/push-up.gif';
+      if (/paralela|mergulho|chest.*dip/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/chest-dip.gif';
+      if (/pullover/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/dumbbell-pullover.gif';
+
+      // 8. DORSAL / COSTAS
+      if (/puxad.*tri[aâ]ngulo|puxad.*fechada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-lateral-pulldown-with-v-bar.gif';
+      if (/puxad.*supinada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-underhand-pulldown.gif';
+      if (/puxad|pulldown/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-bar-lateral-pulldown.gif';
+      if (/barra.*fixa.*supinad|chin.*up/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/chin-up.gif';
+      if (/barra.*fixa|pull.*up/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/pull-up.gif';
+      if (/pulldown.*corda|bra[cç]os.*estendid/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-straight-arm-pulldown.gif';
+      if (/remada.*sentad|remada.*baixa/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif';
+      if (/remada.*cavalinho|t-bar/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/lever-reverse-t-bar-row.gif';
+      if (/remada.*unilateral|serrote/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/dumbbell-one-arm-bent-over-row.gif';
+      if (/remada.*articulad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/lever-seated-row.gif';
+      if (/remada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/barbell-bent-over-row.gif';
+
+      // 9. BÍCEPS & ANTEBRAÇO
+      if (/rosca.*martelo/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-hammer-curl.gif';
+      if (/rosca.*scott|preacher/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-preacher-curl.gif';
+      if (/rosca.*inclinad/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-incline-biceps-curl.gif';
+      if (/rosca.*concentrada/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-concentration-curl.gif';
+      if (/rosca.*inversa/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-reverse-curl.gif';
+      if (/rosca.*punho/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/forearms/barbell-wrist-curl-v-2.gif';
+      if (/rosca|b[ií]ceps/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif';
+
+      // 10. ABDÔMEN
+      if (/prancha|plank/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif';
+      if (/russian.*twist/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-russian-twist-legs-up.gif';
+      if (/infra|eleva[cç][aã]o.*pernas/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/hanging-leg-raise.gif';
+      if (/abdominal.*m[aá]quina/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/lever-seated-crunch-chest-pad.gif';
+      if (/abdominal|crunch|supra|core/i.test(name)) return 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif';
+
+      // 11. FALLBACK PELO GRUPO MUSCULAR
+      if (/cardio|erg[oô]metro/i.test(group)) return GROUP_DEFAULT_GIFS['Cardio & Ergômetros'];
+      if (/funcional|hyrox/i.test(group)) return GROUP_DEFAULT_GIFS['Funcional / HYROX'];
       if (/peito|peitoral/i.test(group)) return GROUP_DEFAULT_GIFS['Peitoral'];
       if (/costas|dorsal/i.test(group)) return GROUP_DEFAULT_GIFS['Dorsal'];
-      if (/perna|gl[uú]teo|quadr[ií]ceps|posterior/i.test(group)) return GROUP_DEFAULT_GIFS['Pernas'];
+      if (/gl[uú]teo/i.test(group)) return GROUP_DEFAULT_GIFS['Glúteo'];
+      if (/panturrilha/i.test(group)) return GROUP_DEFAULT_GIFS['Panturrilha'];
+      if (/perna|quadr[ií]ceps|posterior|isquiotibial/i.test(group)) return GROUP_DEFAULT_GIFS['Pernas'];
+      if (/trap[eé]zio/i.test(group)) return GROUP_DEFAULT_GIFS['Trapézio'];
       if (/ombro|deltoide/i.test(group)) return GROUP_DEFAULT_GIFS['Ombros'];
+      if (/antebra[cç]o/i.test(group)) return GROUP_DEFAULT_GIFS['Antebraço'];
       if (/b[ií]ceps/i.test(group)) return GROUP_DEFAULT_GIFS['Bíceps'];
       if (/tr[ií]ceps/i.test(group)) return GROUP_DEFAULT_GIFS['Tríceps'];
       if (/bra[cç]o/i.test(group)) return GROUP_DEFAULT_GIFS['Braços'];
       if (/abd[oô]men|core/i.test(group)) return GROUP_DEFAULT_GIFS['Abdômen'];
+      if (/mobilidade/i.test(group)) return GROUP_DEFAULT_GIFS['Mobilidade'];
+      if (/regenera[cç][aã]o|recupera[cç][aã]o|descanso/i.test(group)) return GROUP_DEFAULT_GIFS['Regeneração'];
 
-      return GROUP_DEFAULT_GIFS['Peitoral'];
+      return GROUP_DEFAULT_GIFS['Geral'];
     }
     window.resolveExerciseGif = resolveExerciseGif;
     window.GROUP_DEFAULT_GIFS = GROUP_DEFAULT_GIFS;
@@ -4028,7 +4275,7 @@
             num: 2, id: 'lg04', name: 'Leg Press 45°', group: 'Pernas', equip: 'Máquina · Composto',
             primary: 'Quadríceps & Glúteos', secondary: 'Isquiotibiais, Adutores',
             cadence: '3-0-1-0 · Exc. 3s / Conc. 1s', resist: 'Pico Alongado', sets: 4, reps: '8-10', rpe: 8, rest: 90,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-degrees-one-leg-press.gif',
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-leg-press.gif',
             steps: ['Pés na largura dos ombros no meio da plataforma.', 'Desça a carga até 90° de flexão de joelho sem desgrudar a lombar do encosto.', 'Empurre sem travar os joelhos em hiperextensão no topo.'],
             breathing: 'Inspire na descida e expire na extensão das pernas.', mistakes: 'Nunca fazer retroversão pélvica tirando a lombar do encosto.'
           },
@@ -4110,7 +4357,7 @@
             num: 5, id: 'sh07', name: 'Elevação Lateral na Polia Baixa (Unilateral)', group: 'Ombros', equip: 'Cabo · Isolador',
             primary: 'Deltoide Medial (Tensão Contínua)', secondary: 'Supraespinhal',
             cadence: '3-1-1-0 · Exc. 3s / P.topo 1s / Conc. 1s', resist: 'Pico Alongado', sets: 4, reps: '12-15', rpe: 8, rest: 60,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/lever-lateral-raise.gif',
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-lateral-raise.gif',
             steps: ['Cabo passando por trás ou pela frente do corpo na polia baixa.', 'Eleve o braço até a linha do ombro mantendo tensão contínua desde a base.', 'Descida em 3 segundos com controle estrito.'],
             breathing: 'Expire na elevação e inspire no retorno.', mistakes: 'Não usar impulso do tronco para levantar o cabo.'
           },
@@ -4270,7 +4517,7 @@
             num: 1, id: 'rec_sleep', name: 'Sono Anabólico Reparador (8-9h de Sono Profundo)', group: 'Regeneração', equip: 'Quarto Escuro e Frio',
             primary: 'Secreção de GH, Reparo Miofibrilar e Restauração do SNC', secondary: 'Sensibilidade à Insulina e Otimização Imunológica',
             cadence: '8 a 9 horas ininterruptas', resist: 'Zero Luz Azul', sets: 1, reps: '8-9 horas', rpe: 1, rest: 0,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif',
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
             steps: ['Desligue telas e reduza a luz ambiente 1 hora antes de dormir.', 'Mantenha a temperatura do quarto fresca (19-21°C).', 'Garanta 8 a 9 horas de sono para maximizar a síntese proteica miofibrilar.'],
             breathing: 'Respiração diafragmática profunda 4-7-8.', mistakes: 'Uso de telas na cama ou ingestão de cafeína após as 14h.'
           },
@@ -4278,7 +4525,7 @@
             num: 2, id: 'rec_mob', name: 'Mobilidade Articular e Liberação Miofascial Leve', group: 'Mobilidade', equip: 'Rolo de Liberação / Solo',
             primary: 'Descompressão da Coluna, Quadril e Torácica', secondary: 'Fluxo Sanguíneo e Redução de Rigidez',
             cadence: '15-20 minutos suaves', resist: 'Baixa Intensidade', sets: 1, reps: '15-20 min', rpe: 2, rest: 0,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-romanian-deadlift.gif',
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/roller-back-stretch.gif',
             steps: ['Execute 10-15 minutos de mobilidade de tornozelo, quadril e torácica.', 'Use o rolo de espuma nos pontos de maior tensão muscular.', 'Mantenha movimentos suaves sem dor excessiva.'],
             breathing: 'Respiração nasal lenta e relaxada.', mistakes: 'Aplicar pressão excessiva gerando dor aguda.'
           },
@@ -4286,7 +4533,7 @@
             num: 3, id: 'rec_elec', name: 'Hidratação Eletrolítica & Síntese Proteica Fracionada', group: 'Nutrição', equip: 'Garrafa de Água + Dieta',
             primary: 'Reposição de Sódio, Potássio e Magnésio', secondary: 'Aporte de 30-40g de Proteína a cada 3-4 horas',
             cadence: 'Fracionado ao longo do dia', resist: 'Meta: 4.632 mL', sets: 5, reps: 'Refeições', rpe: 1, rest: 0,
-            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif',
+            gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/sphinx.gif',
             steps: ['Beba no mínimo 4.632 mL de água ao longo do dia.', 'Mantenha as refeições nos horários prescritos.', 'Aproveite carboidratos complexos para recarregar o glicogênio.'],
             breathing: 'Mantenha-se relaxado.', mistakes: 'Não cortar carboidratos no dia de descanso.'
           }
@@ -5879,8 +6126,8 @@
         const _normalized = scheduleSource.map((d, idx) => {
           const isOff = d.type === 'Off' || d.type === 'off';
           const isCardio = d.type === 'Cardio';
-          const isHiit = d.type === 'HIIT' || d.isHiit || d.routineKey === 'HIIT' || d.cardioId === 'cardio_03';
-          const routineKey = d.routineKey || d.routineId || (isOff ? 'OFF' : (isHiit ? 'HIIT' : (isCardio ? 'Cardio' : null)));
+          const isHiit = d.type === 'HIIT' || d.routineKey === 'HIIT' || (!isCardio && (d.isHiit || d.cardioId === 'cardio_03'));
+          const routineKey = d.routineKey || d.routineId || (isOff ? 'OFF' : (isCardio ? 'Cardio' : (isHiit ? 'HIIT' : null)));
           const synergy = d.synergy || {
             carbo: d.carboTip || '',
             prot: d.proteinTip || '',
@@ -8316,6 +8563,7 @@
 
       const protoId = session?.protocolId || dayData?.cardioId || (isDay6OrHiit ? 'cardio_03' : (patientState.prescribedCardio?.id || 'cardio_01'));
       const proto = (patientState.cardioDatabase && patientState.cardioDatabase.find(p => p.id === protoId)) ||
+        (patientState.prescribedCardio && (!protoId || patientState.prescribedCardio.id === protoId) ? patientState.prescribedCardio : null) ||
         (typeof CANONICAL_CARDIO_CATALOG !== 'undefined' && CANONICAL_CARDIO_CATALOG[protoId]) ||
         (typeof PERF_CARDIO_CATALOG !== 'undefined' && PERF_CARDIO_CATALOG[protoId]) ||
         (protoId === 'cardio_03' ? CANONICAL_CARDIO_CATALOG['cardio_03'] : patientState.prescribedCardio) ||
@@ -8400,9 +8648,12 @@
           `;
         }
 
+        const matchedPrescSession = patientState.cardioPrescription?.sessions?.find(s => s.dayKey === dayData?.dayKey || s.protocolId === protoId || s.dayNumber === selectedScheduleDay);
         const blocksToRender = (session?.blocks && session.blocks.length > 0)
           ? session.blocks
-          : (proto?.blocks && proto.blocks.length > 0 ? proto.blocks : null);
+          : ((matchedPrescSession?.blocks && matchedPrescSession.blocks.length > 0)
+              ? matchedPrescSession.blocks
+              : (proto?.blocks && proto.blocks.length > 0 ? proto.blocks : null));
 
         if (blocksToRender) {
           guideHtml += `

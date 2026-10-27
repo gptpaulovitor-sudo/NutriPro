@@ -18413,7 +18413,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não tire os calcanhares da plataforma.'
   },
   lg04: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-degrees-one-leg-press.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-45-leg-press.gif',
     steps: [
       'Pés na largura dos ombros no meio da plataforma do Leg Press 45°.',
       'Destrave e desça a plataforma até flexão profunda de joelhos sem arredondar a pelve (retroversão).',
@@ -18423,7 +18423,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não faça retroversão pélvica tirando a lombar do encosto nem trave os joelhos em hiperextensão.'
   },
   lg05: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/sled-calf-press-on-leg-press.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/lever-horizontal-one-leg-press.gif',
     steps: [
       'Sentado no Leg Press horizontal, empurre a plataforma até quase estender as pernas.',
       'Retorne controlando o peso sem deixar as placas baterem.'
@@ -18529,7 +18529,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não hiperestenda a lombar no topo (o movimento vem da extensão pura do quadril).'
   },
   lg16: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/resistance-band-hip-thrusts-on-knees-female.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif',
     steps: [
       'Elevação pélvica na máquina articulada.',
       'Empurre a almofada estendendo o quadril com foco absoluto no glúteo máximo.'
@@ -18595,7 +18595,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha as travas de segurança do Leg engatadas em nível seguro.'
   },
   lg23: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/smith-sumo-squat.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-sumo-deadlift.gif',
     steps: [
       'Pés afastados além da largura dos ombros com pontas viradas para fora a 45°.',
       'Segure um halter pesado entre as pernas com braços estendidos.',
@@ -18606,7 +18606,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não deixe os joelhos caírem para dentro (valgo dinâmico).'
   },
   lg24: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/single-leg-bridge-with-outstretched-leg.gif',
     steps: [
       'Costas apoiadas no banco na altura das escápulas, um pé firme no chão.',
       'Eleve a outra perna dobrada a 90° e segure um halter sobre a pelve (opcional).',
@@ -18814,7 +18814,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha a cabeça neutra.'
   },
   sh21: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-standing-rear-delt-row-with-rope.gif',
     steps: [
       'Posicione-se no centro do crossover com as polias ajustadas na altura dos ombros ou ligeiramente acima.',
       'Segure o cabo esquerdo com a mão direita e o cabo direito com a mão esquerda (cabos cruzados à frente).',
@@ -18825,9 +18825,9 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não transforme o movimento em remada flexionando excessivamente os cotovelos nem use impulso lombar.'
   },
   sh22: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-rear-lateral-raise-support-head.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-kneeling-rear-delt-row-with-rope-male.gif',
     steps: [
-      'Com o tronco inclinado a 45° ou paralelo ao solo, segure os cabos cruzados da polia baixa.',
+      'Com o tronco inclinado ou ajoelhado, segure os cabos cruzados da polia.',
       'Abra os braços lateralmente focando exclusivamente na contração do deltoide posterior.',
       'Segure 1 segundo no topo e retorne controlando a descida.'
     ],
@@ -18874,7 +18874,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não inicie já supinado (perde o benefício da rotação do rádio).'
   },
   bi04: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-hammer-curl-on-exercise-ball.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-hammer-curl.gif',
     steps: [
       'Segure os halteres com pegada neutra (palmas voltadas para dentro).',
       'Flexione os braços com foco prioritário no braquiorradial e braquial anterior.'
@@ -18902,7 +18902,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não solte o peso de forma desgovernada no final da extensão.'
   },
   bi07: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/cable-one-arm-preacher-curl.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-one-arm-hammer-preacher-curl.gif',
     steps: [
       'Rosca Scott unilateral com halter no banco.',
       'Isolamento cirúrgico de cada braço corrigindo assimetrias.'
@@ -19042,7 +19042,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha os braços paralelos.'
   },
   tr06: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-standing-overhead-triceps-extension.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-seated-overhead-triceps-extension.gif',
     steps: [
       'Sentado, segure um halter pesado com as duas mãos acima da cabeça.',
       'Desça o halter atrás da nuca flexionando os cotovelos.',
@@ -19071,7 +19071,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não use pegadas muito fechadas (menos de 20cm) que sobrecarreguem os punhos.'
   },
   tr09: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/triceps-dip-bench-leg.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/triceps-dip.gif',
     steps: [
       'Nas barras paralelas, mantenha o tronco reto e vertical.',
       'Desça flexionando os cotovelos para trás até 90° e empurre com os tríceps.'
@@ -19098,7 +19098,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não deixe o cotovelo cair durante as repetições.'
   },
   tr12: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/dumbbell-one-arm-kickback.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-kickback.gif',
     steps: [
       'Tríceps coice no cabo sem manopla (segurando a esfera da polia).',
       'Tensão contínua no pico de encurtamento do tríceps.'
@@ -19193,6 +19193,187 @@ const PERF_EXERCISE_GUIDE_MAP = {
     ],
     breathing: 'Expire na flexão e inspire no retorno.',
     mistakes: 'Ajuste a carga para não sobrecarregar a região lombar.'
+  },
+
+  // ── CARDIO & ERGÔMETROS ──
+  hy01: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/ski-step.gif',
+    steps: [
+      'Em pé diante do SkiErg com pés na largura dos ombros.',
+      'Inicie a puxada com flexão de tronco e extensão de braços para baixo.',
+      'Finalize estendendo os braços além dos quadris e retorne de forma cíclica.'
+    ],
+    breathing: 'Expire na descida explosiva e inspire na subida.',
+    mistakes: 'Não puxe apenas com os braços; use o peso do corpo e o core.'
+  },
+  hy02: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif',
+    steps: [
+      'Sentado no remo ergômetro com pés fixos nas pedaleiras.',
+      'Inicie a remada com a impulsão das pernas (leg drive), seguida da inclinação do tronco e puxada dos braços.',
+      'Retorne estendendo os braços, inclinando o tronco e flexionando as pernas.'
+    ],
+    breathing: 'Expire na fase de tração e inspire na recuperação.',
+    mistakes: 'Não curve as costas nem dobre as pernas antes dos braços passarem os joelhos.'
+  },
+  hy03: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run-v-3.gif',
+    steps: [
+      'Ajuste o selim para ligeira flexão de joelho no ponto mais baixo do pedal.',
+      'Coordene a força das pernas empurrando/puxando com a ação alternada dos braços.',
+      'Mantenha cadência ritmada com tronco estável.'
+    ],
+    breathing: 'Respiração ritmada de acordo com a intensidade da cadência.',
+    mistakes: 'Não relaxe o tronco nem balance os quadris de um lado para o outro.'
+  },
+  hy04: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run.gif',
+    steps: [
+      'Corrida de alta intensidade/sprint na esteira.',
+      'Mantenha contato no mediopé com boa frequência de passadas.',
+      'Braços oscilando coordenados e tronco ligeiramente inclinado.'
+    ],
+    breathing: 'Respiração profunda e ritmada com as passadas.',
+    mistakes: 'Não apoie nas barras laterais nem corra na ponta extrema dos pés.'
+  },
+  hy05: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run-equipment.gif',
+    steps: [
+      'Corrida contínua na esteira ergométrica em intensidade de endurance (Z3/Z4).',
+      'Postura ereta, ombros relaxados e olhar voltado para frente.',
+      'Ritmo uniforme sem oscilações bruscas de velocidade.'
+    ],
+    breathing: 'Respiração constante e controlada, inspirando pelo nariz e expirando pela boca.',
+    mistakes: 'Não olhe para os pés nem apoie as mãos nos apoios da esteira.'
+  },
+  cardio_esteira: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+    steps: [
+      'Caminhada ou trote na esteira ergométrica.',
+      'Mantenha postura neutra com passadas firmes e cadência estável.',
+      'Braços oscilando naturalmente ao lado do corpo.'
+    ],
+    breathing: 'Respiração aeróbica contínua.',
+    mistakes: 'Não segurar nos suportes laterais.'
+  },
+  cardio_airbike: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-run-v-3.gif',
+    steps: [
+      'Pedaladas vigorosas integrando impulsão de membros inferiores e alavancas superiores.',
+      'Mantenha potência contínua na resistência do ventilador.'
+    ],
+    breathing: 'Respiração compassada.',
+    mistakes: 'Não sobrecarregue os punhos.'
+  },
+  cardio_rowerg: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/cable-seated-row.gif',
+    steps: [
+      'Tração cíclica no remo ergômetro Concept2.',
+      'Sequência pernas-tronco-braços na puxada e braços-tronco-pernas na volta.'
+    ],
+    breathing: 'Inspire na recuperação e expire na puxada.',
+    mistakes: 'Não arredonde a coluna torácica e lombar.'
+  },
+  cardio_recuperativo_z1: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-walk.gif',
+    steps: [
+      'Pedalada leve ou caminhada de baixa intensidade em Zona 1.',
+      'Foco em retorno venoso, clearance de lactato e regeneração tecidual.'
+    ],
+    breathing: 'Respiração puramente nasal e confortável.',
+    mistakes: 'Não aumente a intensidade; o objetivo é regeneração.'
+  },
+
+  // ── FUNCIONAL / HYROX ──
+  hy06: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/sled-hack-squat.gif',
+    steps: [
+      'Posicione os braços nos apoios verticais do trenó mantendo coluna neutra a 45°.',
+      'Empurre o solo com as pontas dos pés em passadas curtas e potentes.',
+      'Mantenha o quadril e core ativados sem hiperextensão lombar.'
+    ],
+    breathing: 'Respiração ritmada e potente a cada passo.',
+    mistakes: 'Não flexione a coluna lombar nem empurre apenas com os braços.'
+  },
+  hy07: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-rear-delt-row-with-rope.gif',
+    steps: [
+      'Segure a corda de tração do trenó com joelhos semiflexionados e base estável.',
+      'Puxe a corda alternando as mãos com braçada potente trazendo o trenó.',
+      'Mantenha o centro de gravidade baixo e costas alinhadas.'
+    ],
+    breathing: 'Expire a cada puxada forte.',
+    mistakes: 'Não arredonde a coluna nem perca a base firme dos pés.'
+  },
+  hy08: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/burpee.gif',
+    steps: [
+      'Flexione o tronco, apoie as mãos no solo e lance as pernas para trás até deitar.',
+      'Suba com apoio nos braços, traga os pés de volta próximos às mãos.',
+      'Exploda em um salto horizontal estendendo quadril e joelhos.'
+    ],
+    breathing: 'Expire na subida do burpee e inspire no pouso.',
+    mistakes: 'Amorteça a aterrissagem flexionando os joelhos para proteger as articulações.'
+  },
+  hy09: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif',
+    steps: [
+      'Apoie o saco de areia sobre os ombros ou em abraço frontal.',
+      'Dê um passo à frente flexionando ambos os joelhos a 90° com controle.',
+      'Projete o corpo para frente alternando os passos de forma contínua.'
+    ],
+    breathing: 'Inspire na descida e expire ao subir e projetar o passo.',
+    mistakes: 'Não incline excessivamente o tronco nem bata o joelho de trás com força no chão.'
+  },
+  hy10: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/traps/dumbbell-shrug.gif',
+    steps: [
+      'Segure dois halteres ou kettlebells pesados ao lado do corpo com pegada firme.',
+      'Caminhe com passadas curtas, ombros firmes e abdômen totalmente engajado.',
+      'Mantenha a postura ereta sem inclinações laterais.'
+    ],
+    breathing: 'Respiração torácica rápida e controlada mantendo o abdômen tensionado.',
+    mistakes: 'Não relaxe as escápulas nem deixe a carga balançar nas laterais.'
+  },
+  hy11: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/medicine-ball-overhead-slam.gif',
+    steps: [
+      'Segure a medicine ball na altura do peito e agache até as coxas ficarem paralelas.',
+      'Suba explosivamente estendendo pernas e arremesse a bola no alvo na parede.',
+      'Receba a bola já amortecendo no agachamento do próximo ciclo.'
+    ],
+    breathing: 'Inspire no agachamento e expire no arremesso vigoroso.',
+    mistakes: 'Não deixe a bola cair nos joelhos; mantenha as mãos prontas para o rebote.'
+  },
+  hy12: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+    steps: [
+      'Barra apoiada na linha frontal dos ombros com pegada firme.',
+      'Execute um agachamento frontal completo com tronco o mais vertical possível.',
+      'Suba com aceleração máxima transferindo o impulso das pernas para o desenvolvimento dos ombros acima da cabeça.'
+    ],
+    breathing: 'Inspire ao descer no agachamento e expire no topo do desenvolvimento.',
+    mistakes: 'Não separe o movimento em dois tempos (é um único movimento fluido de transferência).'
+  },
+  hy13: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/box-jump-down-with-one-leg-stabilization.gif',
+    steps: [
+      'Em pé diante da caixa com pés na largura dos ombros.',
+      'Flexione joelhos e projete os braços para trás acumulando potência elástica.',
+      'Salte e aterrisse suavemente sobre a caixa com os dois pés simultâneos e joelhos amortecidos.'
+    ],
+    breathing: 'Expire na decolagem e inspire na aterrissagem controlada.',
+    mistakes: 'Não aterrisse com as pernas rígidas (amorteça sempre na flexão).'
+  },
+  hy14: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/kettlebell-swing.gif',
+    steps: [
+      'Segure o kettlebell com ambas as mãos, inicie o movimento empurrando o quadril para trás (hip hinge).',
+      'Estenda o quadril explosivamente contraindo glúteos e abdômen, elevando o peso pela inércia.',
+      'Deixe o kettlebell descer controladamente voltando à flexão de quadril.'
+    ],
+    breathing: 'Expire na extensão de quadril e inspire na descida.',
+    mistakes: 'Não agache os joelhos em excesso nem eleve o peso apenas com a força dos braços.'
   }
 };
 
@@ -19252,6 +19433,22 @@ const GROUP_DEFAULT_GIFS = {
   'Braços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
   'Abdômen': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif',
   'Cardio': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+  'Cardio & Ergômetros': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+  'Funcional / HYROX': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+  'Funcional': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+  'HYROX': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/barbell-thruster.gif',
+  'Glúteo': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif',
+  'Glúteos': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif',
+  'Panturrilha': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif',
+  'Panturrilhas': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/lever-standing-calf-raise.gif',
+  'Antebraço': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/forearms/barbell-wrist-curl-v-2.gif',
+  'Antebraços': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/forearms/barbell-wrist-curl-v-2.gif',
+  'Trapézio': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/traps/barbell-shrug.gif',
+  'Core': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif',
+  'Mobilidade': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/roller-back-stretch.gif',
+  'Regeneração': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
+  'Descanso / Recuperação': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
+  'Recuperação': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
   'Geral': 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif'
 };
 
