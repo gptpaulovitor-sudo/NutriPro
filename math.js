@@ -78,41 +78,49 @@ function calculateGET(tmb, activityFactor = 1.42) {
 function calculateBodyComposition(gender = "Masculino", age = 30, weightKg = 70, heightM = 1.75, skinfolds = {}) {
   const isMale = String(gender).toLowerCase().startsWith("m");
   const a = Math.max(10, parseFloat(age) || 30);
-  const w = Math.max(20, parseFloat(weightKg) || 70);
-  const h = Math.max(0.5, parseFloat(heightM) || 1.75);
+  const w = parseFloat(weightKg) || 0;
+  const h = parseFloat(heightM) || 0;
 
-  const sum7 =
-    (parseFloat(skinfolds.chest) || 0) +
-    (parseFloat(skinfolds.axillary) || 0) +
-    (parseFloat(skinfolds.triceps) || 0) +
-    (parseFloat(skinfolds.subscapular) || 0) +
-    (parseFloat(skinfolds.abdominal) || 0) +
-    (parseFloat(skinfolds.suprailiac) || 0) +
-    (parseFloat(skinfolds.thigh) || 0);
+  const requiredFolds = ['chest', 'axillary', 'triceps', 'subscapular', 'abdominal', 'suprailiac', 'thigh'];
+  const hasAllFolds = skinfolds && typeof skinfolds === 'object' && requiredFolds.every(k => {
+    const v = parseFloat(skinfolds[k]);
+    return Number.isFinite(v) && v > 0;
+  });
 
-  let bodyDensity = 1.08;
-  let protocol = "Jackson Pollock 7 dobras";
-
-  if (sum7 > 0) {
-    if (isMale) {
-      bodyDensity =
-        1.112 -
-        0.00043499 * sum7 +
-        0.00000055 * Math.pow(sum7, 2) -
-        0.00028826 * a;
-    } else {
-      bodyDensity =
-        1.097 -
-        0.00046971 * sum7 +
-        0.00000056 * Math.pow(sum7, 2) -
-        0.00012828 * a;
-    }
-  } else {
-    protocol = "Estimativa Básica";
-    bodyDensity = isMale ? 1.065 : 1.045;
+  if (!hasAllFolds || w <= 0 || h <= 0) {
+    const missing = requiredFolds.filter(k => !(parseFloat(skinfolds?.[k]) > 0));
+    return {
+      isValid: false,
+      status: "INSUFFICIENT_DATA",
+      protocolEffective: "Jackson-Pollock 7 Dobras (Incompleto)",
+      sumSkinfolds: null,
+      bodyDensity: null,
+      bodyFatPercent: null,
+      fatMassKg: null,
+      leanMassKg: null,
+      ffmi: null,
+      fmi: null,
+      missingSkinfolds: missing
+    };
   }
 
-  // Previne divisão por zero ou densidade inválida
+  const sum7 = requiredFolds.reduce((acc, k) => acc + parseFloat(skinfolds[k]), 0);
+
+  let bodyDensity;
+  if (isMale) {
+    bodyDensity =
+      1.112 -
+      0.00043499 * sum7 +
+      0.00000055 * Math.pow(sum7, 2) -
+      0.00028826 * a;
+  } else {
+    bodyDensity =
+      1.097 -
+      0.00046971 * sum7 +
+      0.00000056 * Math.pow(sum7, 2) -
+      0.00012828 * a;
+  }
+
   if (bodyDensity <= 0 || isNaN(bodyDensity)) {
     bodyDensity = 1.065;
   }
@@ -131,7 +139,9 @@ function calculateBodyComposition(gender = "Masculino", age = 30, weightKg = 70,
   const fmi = heightSq > 0 ? fatMassKg / heightSq : 0;
 
   return {
-    protocolEffective: protocol,
+    isValid: true,
+    status: "PASS",
+    protocolEffective: "Jackson Pollock 7 dobras",
     sumSkinfolds: Number(sum7.toFixed(2)),
     bodyDensity: Number(bodyDensity.toFixed(4)),
     bodyFatPercent: Number(bodyFatPercent.toFixed(2)),
@@ -161,89 +171,146 @@ function classifyRCEst(rcEst) {
 
 /**
  * 5. Calculate Anthropometric Ratios & Indices
+ * Suporta tanto chamada por objeto { waistCm, hipCm, ... } quanto posicional clássica.
  */
 function calculateAnthropometricIndices(
-  waistCm = 80,
-  hipCm = 100,
-  heightM = 1.75,
-  weightKg = 70,
-  leanMassKg = 55,
-  gender = "Masculino",
-  age = 30,
-  armCircCm = 32,
-  tricepsFoldMm = 8,
-  calfCircCm = 36
+  paramsOrWaist = 80,
+  maybeHip = 100,
+  maybeHeight = 1.75,
+  maybeWeight = 70,
+  maybeLeanMass = 55,
+  maybeGender = "Masculino",
+  maybeAge = 30,
+  maybeArm = 32,
+  maybeTriceps = 8,
+  maybeCalf = 36
 ) {
-  const isMale = String(gender).toLowerCase().startsWith("m");
-  const h = Math.max(0.5, parseFloat(heightM) || 1.75);
-  const w = Math.max(20, parseFloat(weightKg) || 70);
+  let waistCm, hipCm, heightM, weightKg, leanMassKg, gender, age, armCircCm, tricepsFoldMm, calfCircCm;
+
+  if (typeof paramsOrWaist === "object" && paramsOrWaist !== null) {
+    waistCm = paramsOrWaist.waistCm;
+    hipCm = paramsOrWaist.hipCm;
+    heightM = paramsOrWaist.heightM;
+    weightKg = paramsOrWaist.weightKg;
+    leanMassKg = paramsOrWaist.leanMassKg;
+    gender = paramsOrWaist.gender;
+    age = paramsOrWaist.age;
+    armCircCm = paramsOrWaist.armCircCm;
+    tricepsFoldMm = paramsOrWaist.tricepsFoldMm;
+    calfCircCm = paramsOrWaist.calfCircCm;
+  } else {
+    waistCm = paramsOrWaist;
+    hipCm = maybeHip;
+    heightM = maybeHeight;
+    weightKg = maybeWeight;
+    leanMassKg = maybeLeanMass;
+    gender = maybeGender;
+    age = maybeAge;
+    armCircCm = maybeArm;
+    tricepsFoldMm = maybeTriceps;
+    calfCircCm = maybeCalf;
+  }
+
+  const isMale = String(gender || "Masculino").toLowerCase().startsWith("m");
+  const h = parseFloat(heightM) || 0;
+  const w = parseFloat(weightKg) || 0;
   const a = Math.max(10, parseFloat(age) || 30);
-  const heightCm = h * 100;
   const waist = parseFloat(waistCm) || 0;
   const hip = parseFloat(hipCm) || 0;
+  const arm = parseFloat(armCircCm) || 0;
+  const tri = parseFloat(tricepsFoldMm) || 0;
+  const calf = parseFloat(calfCircCm) || 0;
 
   // Waist-to-Hip Ratio (RCQ)
-  const rcq = waist > 0 && hip > 0 ? waist / hip : 0;
-  let rcqClass = "Adequado";
-  if (isMale && rcq >= 0.9) rcqClass = "Atenção / Risco aumentado";
-  if (!isMale && rcq >= 0.85) rcqClass = "Atenção / Risco aumentado";
+  let rcq = null;
+  let rcqClass = "Não avaliado";
+  if (waist > 0 && hip > 0) {
+    rcq = Number((waist / hip).toFixed(2));
+    rcqClass = "Adequado";
+    if (isMale && rcq >= 0.9) rcqClass = "Atenção / Risco aumentado";
+    if (!isMale && rcq >= 0.85) rcqClass = "Atenção / Risco aumentado";
+  }
 
   // Waist-to-Height Ratio (RCEst = cintura / estatura em cm)
-  const rcEst = waist > 0 && heightCm > 0 ? waist / heightCm : 0;
-  const rcEstClass = classifyRCEst(rcEst);
+  let rcEst = null;
+  let rcEstClass = "Não avaliado";
+  if (waist > 0 && h > 0) {
+    const heightCm = h * 100;
+    rcEst = Number((waist / heightCm).toFixed(2));
+    rcEstClass = classifyRCEst(rcEst);
+  }
 
-  // Skeletal Muscle Mass (MME - Lee et al.)
-  const genderVal = isMale ? 1 : 0;
-  const mme = h * (0.244 * w + 7.8) - 0.098 * a + 6.6 * genderVal;
-  const immeSmi = h > 0 ? mme / (h * h) : 0;
+  // Skeletal Muscle Mass (MME - Lee et al. 2000)
+  // Fórmula: MME (kg) = 0.244 * Peso (kg) + 7.80 * Estatura (m) + 6.6 * Sexo - 0.098 * Idade - 3.3
+  let mme = null;
+  let immeSmi = null;
+  if (w > 0 && h > 0) {
+    const genderVal = isMale ? 1 : 0;
+    const mmeVal = (0.244 * w) + (7.80 * h) + (6.6 * genderVal) - (0.098 * a) - 3.3;
+    mme = Number(mmeVal.toFixed(2));
+    immeSmi = Number((mme / (h * h)).toFixed(2));
+  }
 
-  // Corrected Arm Muscle Area (AMBc)
-  const arm = parseFloat(armCircCm) || 30;
-  const tri = parseFloat(tricepsFoldMm) || 8;
-  const cmb = arm - Math.PI * (tri / 10);
-  const sexCorrection = isMale ? 10 : 6.5;
-  const ambc = Math.max(1, (Math.pow(cmb, 2) / (4 * Math.PI)) - sexCorrection);
+  // Corrected Arm Muscle Area (AMBc - Heymsfield et al. 1982)
+  let ambc = null;
+  let ambcClass = "Não avaliado";
+  if (arm > 0 && tri > 0) {
+    const cmb = arm - Math.PI * (tri / 10);
+    const sexCorrection = isMale ? 10 : 6.5;
+    const ambcVal = Math.max(0, (Math.pow(cmb, 2) / (4 * Math.PI)) - sexCorrection);
+    ambc = Number(ambcVal.toFixed(2));
+    ambcClass = ambc > 40 ? "Elevada" : ambc >= 25 ? "Adequada" : "Reduzida";
+  }
 
   // Anthropometric Muscle Score (0 - 100)
-  let muscleScore = 80;
-  if (immeSmi > 10.5 && ambc > 35) {
-    muscleScore = 95;
-  } else if (immeSmi > 8.5) {
-    muscleScore = 85;
+  let muscleScore = null;
+  if (immeSmi !== null && ambc !== null) {
+    muscleScore = 80;
+    if (immeSmi > 10.5 && ambc > 35) {
+      muscleScore = 95;
+    } else if (immeSmi > 8.5) {
+      muscleScore = 85;
+    }
   }
 
   // Conicity Index (Valdez 1991)
-  const waistM = waist / 100;
-  const conicity = (w > 0 && h > 0 && waistM > 0)
-    ? waistM / (0.109 * Math.sqrt(w / h))
-    : 1.15;
-  let conicityClass = conicity < 1.18 ? "Adequado (Sem acúmulo visceral)" :
-                      conicity < 1.25 ? "Moderado (Acúmulo abdominal)" : "Elevado (Risco Coronariano / Visceral)";
+  let conicity = null;
+  let conicityClass = "Não avaliado";
+  if (waist > 0 && w > 0 && h > 0) {
+    const waistM = waist / 100;
+    const conVal = waistM / (0.109 * Math.sqrt(w / h));
+    conicity = Number(conVal.toFixed(2));
+    conicityClass = conicity < 1.18 ? "Adequado (Sem acúmulo visceral)" :
+                    conicity < 1.25 ? "Moderado (Acúmulo abdominal)" : "Elevado (Risco Coronariano / Visceral)";
+  }
 
   return {
-    rcq: Number(rcq.toFixed(2)),
+    rcq,
     rcqClassification: rcqClass,
-    rcEst: Number(rcEst.toFixed(2)),
+    rcEst,
     rcEstClassification: rcEstClass,
-    conicityIndex: Number(conicity.toFixed(2)),
+    conicityIndex: conicity,
     conicityClassification: conicityClass,
-    skeletalMuscleMassKg: Number(mme.toFixed(2)),
-    immeSmi: Number(immeSmi.toFixed(2)),
-    armMuscularArea: Number(ambc.toFixed(2)),
-    calfCircumference: parseFloat(calfCircCm) || 36,
+    skeletalMuscleMassKg: mme,
+    immeSmi,
+    armMuscularArea: ambc,
+    armMuscularAreaClassification: ambcClass,
+    calfCircumference: calf > 0 ? calf : null,
     muscleScore,
   };
 }
 
 /**
  * 5.1 Multi-Method Basal Metabolic Rate (TMB) Comparison
+ * Distingue massa magra medida de massa magra ausente ou estimada.
  */
 function calculateTMBMultiMethod(gender = "Masculino", age = 30, weightKg = 70, heightM = 1.75, leanMassKg = 0) {
   const isMale = String(gender).toLowerCase().startsWith("m");
   const w = Math.max(20, parseFloat(weightKg) || 70);
   const h = Math.max(0.5, parseFloat(heightM) || 1.75);
   const a = Math.max(10, parseFloat(age) || 30);
-  const lbm = parseFloat(leanMassKg) || (w * (isMale ? 0.80 : 0.72));
+  const hasMeasuredLbm = leanMassKg != null && !isNaN(leanMassKg) && Number(leanMassKg) > 0;
+  const lbm = hasMeasuredLbm ? parseFloat(leanMassKg) : (w * (isMale ? 0.80 : 0.72));
   const hCm = h * 100;
 
   // 1. Katch-McArdle (LBM)
@@ -265,6 +332,9 @@ function calculateTMBMultiMethod(gender = "Masculino", age = 30, weightKg = 70, 
     cunningham: Math.round(cunningham),
     mifflin: Math.round(mifflin),
     harris: Math.round(harris),
+    isLbmMeasured: hasMeasuredLbm,
+    isLbmEstimated: !hasMeasuredLbm,
+    lbmSource: hasMeasuredLbm ? "MEASURED" : (w > 0 ? "ESTIMATED_POPULATION" : "ABSENT")
   };
 }
 
@@ -276,30 +346,32 @@ function getAnthropometricClinicalAlerts(indices = {}, bodyComp = {}, gender = "
   const isMale = String(gender).toLowerCase().startsWith("m");
 
   // RCEst
-  if (indices.rcEst >= 0.60) {
-    alerts.push({
-      type: "risk",
-      badge: "ALTO RISCO",
-      title: "Risco Cardiometabólico & Visceral Severo (RCEst >= 0.60)",
-      message: `RCEst em <strong>${indices.rcEst}</strong> indica acúmulo adiposo intra-abdominal acentuado, associado a maior risco de resistência à insulina e esteatose hepática.`,
-      recommendation: "Priorizar redução de gordura visceral com déficit calórico moderado contínuo e treinamento resistido progressivo."
-    });
-  } else if (indices.rcEst >= 0.50) {
-    alerts.push({
-      type: "warning",
-      badge: "ATENÇÃO",
-      title: "Relação Cintura-Estatura Limítrofe (RCEst >= 0.50)",
-      message: `RCEst em <strong>${indices.rcEst}</strong> acima do ponto de corte ideal (< 0.50).`,
-      recommendation: "Foco na redução da circunferência abdominal para atingir RCEst < 0.50."
-    });
-  } else {
-    alerts.push({
-      type: "optimal",
-      badge: "ADEQUADO",
-      title: "Risco Cardiometabólico Central Baixo (RCEst < 0.50)",
-      message: `RCEst em <strong>${indices.rcEst}</strong> dentro da faixa de proteção cardiovascular e saúde metabólica.`,
-      recommendation: "Manter composição corporal atual e foco na consolidação de massa muscular."
-    });
+  if (indices.rcEst != null && indices.rcEst > 0) {
+    if (indices.rcEst >= 0.60) {
+      alerts.push({
+        type: "risk",
+        badge: "ALTO RISCO",
+        title: "Risco Cardiometabólico & Visceral Severo (RCEst >= 0.60)",
+        message: `RCEst em <strong>${indices.rcEst}</strong> indica acúmulo adiposo intra-abdominal acentuado, associado a maior risco de resistência à insulina e esteatose hepática.`,
+        recommendation: "Priorizar redução de gordura visceral com déficit calórico moderado contínuo e treinamento resistido progressivo."
+      });
+    } else if (indices.rcEst >= 0.50) {
+      alerts.push({
+        type: "warning",
+        badge: "ATENÇÃO",
+        title: "Relação Cintura-Estatura Limítrofe (RCEst >= 0.50)",
+        message: `RCEst em <strong>${indices.rcEst}</strong> acima do ponto de corte ideal (< 0.50).`,
+        recommendation: "Foco na redução da circunferência abdominal para atingir RCEst < 0.50."
+      });
+    } else {
+      alerts.push({
+        type: "optimal",
+        badge: "ADEQUADO",
+        title: "Risco Cardiometabólico Central Baixo (RCEst < 0.50)",
+        message: `RCEst em <strong>${indices.rcEst}</strong> dentro da faixa de proteção cardiovascular e saúde metabólica.`,
+        recommendation: "Manter composição corporal atual e foco na consolidação de massa muscular."
+      });
+    }
   }
 
   // RCQ

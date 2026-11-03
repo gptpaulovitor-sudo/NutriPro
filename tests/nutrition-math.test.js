@@ -180,11 +180,11 @@ test('INDICES 5.3: RCEst (Relação Cintura-Estatura) — Baseline Atual de math
   // >= 0.6 -> "Alto Risco Cardiometabólico"
 });
 
-test('INDICES 5.4: MME (Massa Muscular Esquelética — Lee et al.)', () => {
-  // Fórmula: h * (0.244 * w + 7.8) - 0.098 * a + 6.6 * genderVal
-  // 1.80 * (0.244 * 80 + 7.8) - 0.098 * 30 + 6.6 = 52.84 kg
+test('INDICES 5.4: MME (Massa Muscular Esquelética — Lee et al. Corrigida)', () => {
+  // Fórmula Canônica Corrigida (Lee et al. 2000): 0.244 * w + 7.80 * h + 6.6 * genderVal - 0.098 * a - 3.3
+  // 0.244 * 80 + 7.80 * 1.80 + 6.6 * 1 - 0.098 * 30 - 3.3 = 19.52 + 14.04 + 6.6 - 2.94 - 3.3 = 33.92 kg
   const res = calculateAnthropometricIndices(85, 100, 1.80, 80, 68, 'Masculino', 30);
-  assert.strictEqual(res.skeletalMuscleMassKg, 52.84, 'MME deve ser exatamente 52.84 kg');
+  assert.strictEqual(res.skeletalMuscleMassKg, 33.92, 'MME deve ser exatamente 33.92 kg com termos w e h separados');
   assert(res.armMuscularArea > 0, 'AMBc deve ser calculada e positiva');
 });
 

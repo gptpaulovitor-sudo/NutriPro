@@ -2678,28 +2678,28 @@ function updateEvaluationCalculations() {
   const targetBF = parseFloat(document.getElementById("evalTargetFatPercent")?.value) || 10.0;
 
   const skinfolds = {
-    chest: parseFloat(document.getElementById("skChest")?.value) || 5,
-    axillary: parseFloat(document.getElementById("skAxillary")?.value) || 9,
-    triceps: parseFloat(document.getElementById("skTriceps")?.value) || 8,
-    biceps: parseFloat(document.getElementById("skBiceps")?.value) || 4,
-    subscapular: parseFloat(document.getElementById("skSubscapular")?.value) || 10,
-    abdominal: parseFloat(document.getElementById("skAbdominal")?.value) || 25,
-    suprailiac: parseFloat(document.getElementById("skSuprailiac")?.value) || 22,
-    thigh: parseFloat(document.getElementById("skThigh")?.value) || 10,
-    calfFold: parseFloat(document.getElementById("skCalfFold")?.value) || 6,
+    chest: parseFloat(document.getElementById("skChest")?.value) || 0,
+    axillary: parseFloat(document.getElementById("skAxillary")?.value) || 0,
+    triceps: parseFloat(document.getElementById("skTriceps")?.value) || 0,
+    biceps: parseFloat(document.getElementById("skBiceps")?.value) || 0,
+    subscapular: parseFloat(document.getElementById("skSubscapular")?.value) || 0,
+    abdominal: parseFloat(document.getElementById("skAbdominal")?.value) || 0,
+    suprailiac: parseFloat(document.getElementById("skSuprailiac")?.value) || 0,
+    thigh: parseFloat(document.getElementById("skThigh")?.value) || 0,
+    calfFold: parseFloat(document.getElementById("skCalfFold")?.value) || 0,
   };
 
-  const waist = parseFloat(document.getElementById("circWaist")?.value) || 80;
-  const hip = parseFloat(document.getElementById("circHip")?.value) || 98;
-  const abdomen = parseFloat(document.getElementById("circAbdomen")?.value) || 85;
-  const arm = parseFloat(document.getElementById("circArm")?.value) || 35;
-  const calf = parseFloat(document.getElementById("circCalf")?.value) || 37;
+  const waist = parseFloat(document.getElementById("circWaist")?.value) || 0;
+  const hip = parseFloat(document.getElementById("circHip")?.value) || 0;
+  const abdomen = parseFloat(document.getElementById("circAbdomen")?.value) || 0;
+  const arm = parseFloat(document.getElementById("circArm")?.value) || 0;
+  const calf = parseFloat(document.getElementById("circCalf")?.value) || 0;
 
   const bodyComp = calculateBodyComposition(gender, age, weight, height, skinfolds);
   const imcData = calculateIMC(weight, height);
-  const tmbData = calculateTMB(gender, age, weight, height, bodyComp.leanMassKg);
+  const tmbData = calculateTMB(gender, age, weight, height, bodyComp.leanMassKg || 0);
   const getKcal = calculateGET(tmbData.tmb, actFactor);
-  const indices = calculateAnthropometricIndices(waist, hip, height, weight, bodyComp.leanMassKg, gender, age, arm, skinfolds.triceps, calf);
+  const indices = calculateAnthropometricIndices(waist, hip, height, weight, bodyComp.leanMassKg || 0, gender, age, arm, skinfolds.triceps, calf);
   const nutriAx = calculateNutriAxIndex(bodyComp.bodyFatPercent, bodyComp.ffmi, 1.0, indices.rcEst, imcData.imc, indices.muscleScore, age);
 
   // 1. Atualização do Label Dinâmico de FA e Energéticos
@@ -2709,9 +2709,11 @@ function updateEvaluationCalculations() {
 
   // Comparativo Multi-Métodos de TMB
   if (typeof calculateTMBMultiMethod === "function") {
-    const multi = calculateTMBMultiMethod(gender, age, weight, height, bodyComp.leanMassKg);
-    if (document.getElementById("tmbKatchVal")) document.getElementById("tmbKatchVal").innerText = `${multi.katch} kcal`;
-    if (document.getElementById("tmbCunninghamVal")) document.getElementById("tmbCunninghamVal").innerText = `${multi.cunningham} kcal`;
+    const multi = calculateTMBMultiMethod(gender, age, weight, height, bodyComp.leanMassKg || 0);
+    const katchTxt = multi.isLbmMeasured ? `${multi.katch} kcal` : (multi.katch ? `${multi.katch} kcal (est.)` : 'Requer Massa Magra');
+    const cunninghamTxt = multi.isLbmMeasured ? `${multi.cunningham} kcal` : (multi.cunningham ? `${multi.cunningham} kcal (est.)` : 'Requer Massa Magra');
+    if (document.getElementById("tmbKatchVal")) document.getElementById("tmbKatchVal").innerText = katchTxt;
+    if (document.getElementById("tmbCunninghamVal")) document.getElementById("tmbCunninghamVal").innerText = cunninghamTxt;
     if (document.getElementById("tmbMifflinVal")) document.getElementById("tmbMifflinVal").innerText = `${multi.mifflin} kcal`;
     if (document.getElementById("tmbHarrisVal")) document.getElementById("tmbHarrisVal").innerText = `${multi.harris} kcal`;
   }
@@ -2781,37 +2783,36 @@ function updateEvaluationCalculations() {
   if (document.getElementById("projStatusText")) document.getElementById("projStatusText").innerText = proj.status;
 
   // 3. Composição Corporal & IMC com Classificação
-  if (document.getElementById("resBodyFat")) document.getElementById("resBodyFat").innerText = `${bodyComp.bodyFatPercent}%`;
-  if (document.getElementById("resLeanMass")) document.getElementById("resLeanMass").innerText = `${bodyComp.leanMassKg} kg`;
-  if (document.getElementById("resFatMass")) document.getElementById("resFatMass").innerText = `${bodyComp.fatMassKg} kg`;
+  if (document.getElementById("resBodyFat")) document.getElementById("resBodyFat").innerText = bodyComp.bodyFatPercent != null ? `${bodyComp.bodyFatPercent}%` : "Não avaliado";
+  if (document.getElementById("resLeanMass")) document.getElementById("resLeanMass").innerText = bodyComp.leanMassKg != null ? `${bodyComp.leanMassKg} kg` : "Não avaliado";
+  if (document.getElementById("resFatMass")) document.getElementById("resFatMass").innerText = bodyComp.fatMassKg != null ? `${bodyComp.fatMassKg} kg` : "Não avaliado";
   if (document.getElementById("resImc")) document.getElementById("resImc").innerText = imcData.imc;
   if (document.getElementById("resImcClass")) document.getElementById("resImcClass").innerText = imcData.classification;
 
   // 4. Índices Antropométricos Avançados & Risco Cardiometabólico
-  if (document.getElementById("resRcq")) document.getElementById("resRcq").innerText = indices.rcq;
-  if (document.getElementById("resRcqClass")) document.getElementById("resRcqClass").innerText = indices.rcqClassification;
-  if (document.getElementById("resRcEst")) document.getElementById("resRcEst").innerText = indices.rcEst;
-  if (document.getElementById("resRcEstClass")) document.getElementById("resRcEstClass").innerText = indices.rcEstClassification;
+  if (document.getElementById("resRcq")) document.getElementById("resRcq").innerText = indices.rcq != null ? indices.rcq : "—";
+  if (document.getElementById("resRcqClass")) document.getElementById("resRcqClass").innerText = indices.rcqClassification || "Não avaliado";
+  if (document.getElementById("resRcEst")) document.getElementById("resRcEst").innerText = indices.rcEst != null ? indices.rcEst : "—";
+  if (document.getElementById("resRcEstClass")) document.getElementById("resRcEstClass").innerText = indices.rcEstClassification || "Não avaliado";
 
-  if (document.getElementById("resConicity")) document.getElementById("resConicity").innerText = indices.conicityIndex || "1.18";
-  if (document.getElementById("resConicityClass")) document.getElementById("resConicityClass").innerText = indices.conicityClassification || "Adequado";
+  if (document.getElementById("resConicity")) document.getElementById("resConicity").innerText = indices.conicityIndex != null ? indices.conicityIndex : "—";
+  if (document.getElementById("resConicityClass")) document.getElementById("resConicityClass").innerText = indices.conicityClassification || "Não avaliado";
 
-  if (document.getElementById("resFfmi")) document.getElementById("resFfmi").innerText = `${bodyComp.ffmi}`;
+  if (document.getElementById("resFfmi")) document.getElementById("resFfmi").innerText = bodyComp.ffmi != null ? `${bodyComp.ffmi}` : "—";
   if (document.getElementById("resFfmiClass")) {
-    const ffmiClass = bodyComp.ffmi >= 25 ? "Alto / Hipertrofia" : bodyComp.ffmi >= 20 ? "Adequado / Normal" : "Baixo";
+    const ffmiClass = bodyComp.ffmi != null ? (bodyComp.ffmi >= 25 ? "Alto / Hipertrofia" : bodyComp.ffmi >= 20 ? "Adequado / Normal" : "Baixo") : "Não avaliado";
     document.getElementById("resFfmiClass").innerText = ffmiClass;
   }
 
-  if (document.getElementById("resAmbc")) document.getElementById("resAmbc").innerText = `${indices.armMuscularArea} cm²`;
+  if (document.getElementById("resAmbc")) document.getElementById("resAmbc").innerText = indices.armMuscularArea != null ? `${indices.armMuscularArea} cm²` : "—";
   if (document.getElementById("resAmbcClass")) {
-    const ambClass = indices.armMuscularArea > 40 ? "Elevada" : indices.armMuscularArea >= 25 ? "Adequada" : "Reduzida";
-    document.getElementById("resAmbcClass").innerText = ambClass;
+    document.getElementById("resAmbcClass").innerText = indices.armMuscularAreaClassification || "Não avaliado";
   }
 
-  if (document.getElementById("resMme")) document.getElementById("resMme").innerText = `${indices.skeletalMuscleMassKg} kg`;
+  if (document.getElementById("resMme")) document.getElementById("resMme").innerText = indices.skeletalMuscleMassKg != null ? `${indices.skeletalMuscleMassKg} kg` : "—";
   if (document.getElementById("resMmePercent")) {
-    const pct = weight > 0 ? ((indices.skeletalMuscleMassKg / weight) * 100).toFixed(1) : 0;
-    document.getElementById("resMmePercent").innerText = `${pct}% Peso`;
+    const pct = (indices.skeletalMuscleMassKg != null && weight > 0) ? ((indices.skeletalMuscleMassKg / weight) * 100).toFixed(1) : null;
+    document.getElementById("resMmePercent").innerText = pct != null ? `${pct}% Peso` : "Não avaliado";
   }
 
   // 5. Cards de Diagnóstico Antropométrico & Legendas de Atenção

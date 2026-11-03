@@ -14,31 +14,45 @@
 'use strict';
 
 function calculateDeterministicWaterTarget(contextOrWeight, options = {}) {
-  let weightKg = 70.0;
+  let weightKg = null;
   let activityFactor = 1.42;
   let isAthlete = false;
 
   if (typeof contextOrWeight === 'number') {
-    weightKg = contextOrWeight;
+    weightKg = Number.isFinite(contextOrWeight) && contextOrWeight > 0 ? contextOrWeight : null;
+    activityFactor = options.activityFactor != null ? Number(options.activityFactor) : 1.42;
+    isAthlete = Boolean(options.isAthlete);
+  } else if (typeof contextOrWeight === 'string') {
+    const parsed = parseFloat(contextOrWeight.trim());
+    weightKg = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
     activityFactor = options.activityFactor != null ? Number(options.activityFactor) : 1.42;
     isAthlete = Boolean(options.isAthlete);
   } else if (contextOrWeight && typeof contextOrWeight === 'object') {
     const ctx = contextOrWeight;
-    weightKg = parseFloat(
-      ctx.anthropometry?.weightKg ||
-      ctx.patient?.weightKg ||
-      ctx.patient?.currentWeight ||
-      ctx.weightKg ||
-      ctx.currentWeight ||
-      ctx.weight ||
-      70.0
-    );
-    activityFactor = parseFloat(
-      ctx.energy?.activityFactor ||
-      ctx.patient?.activityFactor ||
-      ctx.activityFactor ||
-      1.42
-    );
+    const rawWeight =
+      ctx.anthropometry?.weightKg ??
+      ctx.patient?.weightKg ??
+      ctx.patient?.currentWeight ??
+      ctx.weightKg ??
+      ctx.currentWeight ??
+      ctx.weight;
+
+    if (rawWeight != null) {
+      const parsed = parseFloat(String(rawWeight).trim());
+      weightKg = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    const rawAf =
+      ctx.energy?.activityFactor ??
+      ctx.patient?.activityFactor ??
+      ctx.activityFactor;
+    if (rawAf != null) {
+      const parsedAf = parseFloat(String(rawAf).trim());
+      if (Number.isFinite(parsedAf) && parsedAf > 0) {
+        activityFactor = parsedAf;
+      }
+    }
+
     const pType = String(ctx.patient?.patientType || ctx.patientType || '').toLowerCase();
     const tLevel = String(ctx.patient?.trainingLevel || ctx.trainingLevel || '').toLowerCase();
     isAthlete = Boolean(
@@ -50,9 +64,26 @@ function calculateDeterministicWaterTarget(contextOrWeight, options = {}) {
     );
   }
 
-  if (!Number.isFinite(weightKg) || weightKg <= 0) {
-    weightKg = 70.0;
+  if (weightKg === null || weightKg <= 0 || !Number.isFinite(weightKg)) {
+    return {
+      status: 'INSUFFICIENT_DATA',
+      isValid: false,
+      weightKg: null,
+      activityFactor,
+      isAthlete,
+      mlPerKg: null,
+      factorMlKg: null,
+      targetWaterMl: null,
+      targetWaterL: null,
+      waterTargetL: null,
+      minWaterL: null,
+      maxWaterL: null,
+      rangeDisplay: 'Peso não informado',
+      waterRangeDisplay: 'Peso não informado',
+      rationale: 'Cálculo determinístico de hidratação requer peso corporal válido do paciente.'
+    };
   }
+
   if (!Number.isFinite(activityFactor) || activityFactor <= 0) {
     activityFactor = 1.42;
   }
@@ -73,6 +104,7 @@ function calculateDeterministicWaterTarget(contextOrWeight, options = {}) {
 
   return {
     status: 'PASS',
+    isValid: true,
     weightKg,
     activityFactor,
     isAthlete,

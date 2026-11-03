@@ -30,27 +30,72 @@ function isAthleteOrHighDemand(context) {
 
 /**
  * Normaliza e identifica a categoria de objetivo clínico formal
- * @param {string} objectiveStr 
+ * Suporta string direta ou objeto de contexto, remove acentos e normaliza sinônimos.
+ * @param {string|Object} contextOrObjectiveStr
  * @returns {string|null}
  */
-function normalizeObjectiveCategory(objectiveStr) {
-  if (!objectiveStr || typeof objectiveStr !== 'string') return null;
-  const obj = objectiveStr.trim().toLowerCase();
-  if (obj === '' || obj === 'missing') return null;
+function normalizeObjectiveCategory(contextOrObjectiveStr) {
+  let raw = '';
+  if (typeof contextOrObjectiveStr === 'string') {
+    raw = contextOrObjectiveStr;
+  } else if (contextOrObjectiveStr && typeof contextOrObjectiveStr === 'object') {
+    raw = contextOrObjectiveStr.objective?.clinicalObjective ||
+          contextOrObjectiveStr.patient?.objective ||
+          contextOrObjectiveStr.clinicalObjective ||
+          contextOrObjectiveStr.objective ||
+          '';
+  }
+  if (!raw || typeof raw !== 'string') return null;
+  const clean = raw.trim();
+  if (clean === '' || clean.toLowerCase() === 'missing') return null;
 
-  if (obj.includes('perda') || obj.includes('emagrecimento') || obj.includes('déficit') || obj.includes('deficit') || obj.includes('cutting') || obj.includes('definir')) {
+  const normalized = clean
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  if (
+    normalized.includes('perda') ||
+    normalized.includes('emagrecimento') ||
+    normalized.includes('deficit') ||
+    normalized.includes('cutting') ||
+    normalized.includes('definir') ||
+    normalized.includes('reducao de gordura') ||
+    normalized.includes('secar')
+  ) {
     return 'weightLoss';
   }
-  if (obj.includes('hipertrofia') || obj.includes('ganho') || obj.includes('bulking') || obj.includes('superávit') || obj.includes('superavit') || obj.includes('massa')) {
+  if (
+    normalized.includes('hipertrofia') ||
+    normalized.includes('ganho') ||
+    normalized.includes('bulking') ||
+    normalized.includes('superavit') ||
+    normalized.includes('massa muscular') ||
+    normalized.includes('crescimento')
+  ) {
     return 'hypertrophy';
   }
-  if (obj.includes('recomposição') || obj.includes('recomposicao')) {
+  if (
+    normalized.includes('recomposicao')
+  ) {
     return 'recomposition';
   }
-  if (obj.includes('performance') || obj.includes('esportiva') || obj.includes('rendimento') || obj.includes('atleta')) {
+  if (
+    normalized.includes('performance') ||
+    normalized.includes('esportiva') ||
+    normalized.includes('rendimento') ||
+    normalized.includes('atleta') ||
+    normalized.includes('desempenho')
+  ) {
     return 'performance';
   }
-  if (obj.includes('manutenção') || obj.includes('manutencao') || obj.includes('saúde') || obj.includes('saude') || obj.includes('geral') || obj.includes('equilíbrio') || obj.includes('equilibrio')) {
+  if (
+    normalized.includes('manutencao') ||
+    normalized.includes('saude') ||
+    normalized.includes('geral') ||
+    normalized.includes('equilibrio') ||
+    normalized.includes('manter peso')
+  ) {
     return 'maintenance';
   }
   return null;
@@ -118,9 +163,11 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
   }
 
   // Validação estrita do objetivo clínico (ETAPA 12)
-  const rawObjective = objective.clinicalObjective;
-  const objectiveKey = normalizeObjectiveCategory(rawObjective);
-  if (!rawObjective || typeof rawObjective !== 'string' || rawObjective.trim() === '' || rawObjective === 'MISSING') {
+  const rawObjective = (objective.clinicalObjective && String(objective.clinicalObjective).trim()) ||
+                       (patient.objective && String(patient.objective).trim()) ||
+                       null;
+  const objectiveKey = normalizeObjectiveCategory(context);
+  if (!rawObjective || rawObjective === '' || rawObjective === 'MISSING') {
     blockingReasons.push("Objetivo clínico ausente ou não informado no contexto.");
   } else if (!objectiveKey) {
     blockingReasons.push(`Objetivo clínico "${rawObjective}" não reconhecido pela política de macronutrientes.`);
@@ -531,16 +578,33 @@ function calculateDeterministicMacroTargets(context, energyTargetResult = null, 
 
   if (residualKcal < 0) {
     appliedRules.push("NEGATIVE_RESIDUAL_CALORIC_BLOCK");
-    blockingReasons.push(`Meta energética (${caloricTargetKcal} kcal) insuficiente para suprir o aporte estipulado de proteína (${proteinKcal} kcal) e gordura (${fatKcal} kcal). O carboidrato residual resultaria negativo (${residualKcal} kcal).`);
+    const discrepancyKcal = Math.abs(residualKcal);
+    blockingReasons.push(`Meta energética (${caloricTargetKcal} kcal) insuficiente para suprir o aporte estipulado de proteína (${proteinKcal} kcal) e gordura (${fatKcal} kcal). O carboidrato residual resultaria negativo (${residualKcal} kcal, discrepância de ${discrepancyKcal} kcal).`);
     rationale.push("Falha de fechamento energético: proteína e gordura somadas excedem a meta calórica total.");
-    return deepFreeze(buildBlockedOutput(caloricTargetKcal, rawObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, appliedRules, appliedParameters));
+    const out = buildBlockedOutput(caloricTargetKcal, rawObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, appliedRules, appliedParameters);
+    return deepFreeze({
+      ...out,
+      incompatibilityStatus: "INCOMPATIBLE_ENERGY_MACRO",
+      discrepancyKcal,
+      requiredEnergyKcal: proteinKcal + fatKcal,
+      residualKcal
+    });
   }
 
   if (proteinKcal + fatKcal + (minCarbG * p.energyCoefficients.carbohydrateKcalPerG.value) > caloricTargetKcal) {
     appliedRules.push("MINIMUM_CARB_FLOOR_EXCEEDED_ENERGY_BLOCK");
-    blockingReasons.push(`Meta energética (${caloricTargetKcal} kcal) não comporta o piso mínimo de segurança de carboidrato da política (${minCarbG}g = ${minCarbG * 4} kcal) somado à proteína e gordura (${proteinKcal + fatKcal} kcal). Prescrição bloqueada para não elevar artificialmente a meta.`);
+    const requiredEnergyKcal = proteinKcal + fatKcal + (minCarbG * p.energyCoefficients.carbohydrateKcalPerG.value);
+    const discrepancyKcal = requiredEnergyKcal - caloricTargetKcal;
+    blockingReasons.push(`Meta energética (${caloricTargetKcal} kcal) não comporta o piso mínimo de segurança de carboidrato da política (${minCarbG}g = ${minCarbG * 4} kcal) somado à proteína e gordura (${proteinKcal + fatKcal} kcal, discrepância de ${discrepancyKcal} kcal). Prescrição bloqueada para não elevar artificialmente a meta.`);
     rationale.push(`Carboidrato residual (${Math.round(residualKcal / 4)}g) resultaria abaixo do piso de segurança (${minCarbG}g) sem margem energética disponível.`);
-    return deepFreeze(buildBlockedOutput(caloricTargetKcal, rawObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, appliedRules, appliedParameters));
+    const out = buildBlockedOutput(caloricTargetKcal, rawObjective, factorsConsidered, warnings, blockingReasons, rationale, policy, appliedRules, appliedParameters);
+    return deepFreeze({
+      ...out,
+      incompatibilityStatus: "INCOMPATIBLE_ENERGY_MACRO",
+      discrepancyKcal,
+      requiredEnergyKcal,
+      residualKcal
+    });
   }
 
   const carbohydrateTargetG = Math.round(residualKcal / p.energyCoefficients.carbohydrateKcalPerG.value);

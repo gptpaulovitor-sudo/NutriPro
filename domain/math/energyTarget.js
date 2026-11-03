@@ -15,6 +15,7 @@
 
 const { calculateTMB, calculateGET } = require('./nutritionMath');
 const { DEFAULT_ENERGY_POLICY, validateEnergyPolicy, deepFreeze } = require('./energyPolicy');
+const { normalizeObjectiveCategory } = require('./macroTarget');
 
 /**
  * Calcula determinística e contextualmente a meta energética de ingestão do paciente.
@@ -105,9 +106,14 @@ function calculateDeterministicEnergyTarget(context, options = {}) {
     blockingReasons.push("Estatura ausente ou inválida (deve ser um número finito > 0 e <= 300 cm).");
   }
 
-  const clinicalObjective = objective.clinicalObjective ? String(objective.clinicalObjective).trim() : null;
+  const clinicalObjective = (objective.clinicalObjective && String(objective.clinicalObjective).trim()) ||
+                            (patient.objective && String(patient.objective).trim()) ||
+                            null;
+  const objectiveKey = normalizeObjectiveCategory(context);
   if (!clinicalObjective || clinicalObjective === '' || clinicalObjective === 'MISSING') {
     blockingReasons.push("Objetivo clínico ausente ou não informado.");
+  } else if (!objectiveKey) {
+    blockingReasons.push(`Objetivo clínico "${clinicalObjective}" não reconhecido pela política energética.`);
   }
 
   // Se houver qualquer bloqueio estrutural prévio, encerra imediatamente
@@ -199,17 +205,17 @@ function calculateDeterministicEnergyTarget(context, options = {}) {
   rationale.push(`2. GET estimado em ${getKcal} kcal/dia (TMB ${tmbKcal} × FA ${activityFactor}). O GET já incorpora o gasto energético de rotina, ocupacional e de treinamento/cardio.`);
 
   // ── 5. IDENTIFICAÇÃO DO OBJETIVO CLÍNICO E POLÍTICA CORRESPONDENTE ────────
-  const normalizedObj = clinicalObjective.toLowerCase();
   let objectiveCategory = 'MAINTENANCE';
-
-  if (normalizedObj.includes('perda') || normalizedObj.includes('emagrecimento') || normalizedObj.includes('déficit') || normalizedObj.includes('deficit') || normalizedObj.includes('cutting') || normalizedObj.includes('definir')) {
+  if (objectiveKey === 'weightLoss') {
     objectiveCategory = 'WEIGHT_LOSS';
-  } else if (normalizedObj.includes('hipertrofia') || normalizedObj.includes('ganho') || normalizedObj.includes('bulking') || normalizedObj.includes('superávit') || normalizedObj.includes('superavit') || normalizedObj.includes('massa')) {
+  } else if (objectiveKey === 'hypertrophy') {
     objectiveCategory = 'HYPERTROPHY';
-  } else if (normalizedObj.includes('recomposição') || normalizedObj.includes('recomposicao')) {
+  } else if (objectiveKey === 'recomposition') {
     objectiveCategory = 'RECOMPOSITION';
-  } else if (normalizedObj.includes('performance') || normalizedObj.includes('esportiva') || normalizedObj.includes('rendimento') || normalizedObj.includes('atleta')) {
+  } else if (objectiveKey === 'performance') {
     objectiveCategory = 'PERFORMANCE';
+  } else if (objectiveKey === 'maintenance') {
+    objectiveCategory = 'MAINTENANCE';
   } else {
     objectiveCategory = 'MAINTENANCE';
   }

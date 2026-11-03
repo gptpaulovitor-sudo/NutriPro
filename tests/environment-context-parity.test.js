@@ -57,9 +57,10 @@ test('PARIDADE DE HIDRATAÇÃO 1.1: Cálculo determinístico baseado no perfil m
 
 test('PARIDADE DE HIDRATAÇÃO 1.2: Fallback determinístico seguro para peso ausente ou zero', () => {
   const fallbackTarget = calculateDeterministicWaterTarget({ weightKg: null });
-  assert.equal(fallbackTarget.factorMlKg, 40);
-  assert.equal(fallbackTarget.targetWaterMl, 2800); // 70 * 40
-  assert.equal(fallbackTarget.waterTargetL, 2.8);
+  assert.equal(fallbackTarget.isValid, false);
+  assert.equal(fallbackTarget.status, 'INSUFFICIENT_DATA');
+  assert.equal(fallbackTarget.weightKg, null);
+  assert.equal(fallbackTarget.targetWaterMl, null);
 });
 
 test('ORDENAÇÃO CRONOLÓGICA 2.1: Refeições desordenadas são reordenadas por mealTime cronológico', () => {
