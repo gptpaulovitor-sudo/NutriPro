@@ -18530,7 +18530,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não hiperestenda a lombar no topo (o movimento vem da extensão pura do quadril).'
   },
   lg16: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-glute-bridge-two-legs-on-bench-male.gif',
     steps: [
       'Elevação pélvica na máquina articulada.',
       'Empurre a almofada estendendo o quadril com foco absoluto no glúteo máximo.'
@@ -18596,7 +18596,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha as travas de segurança do Leg engatadas em nível seguro.'
   },
   lg23: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-sumo-deadlift.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/smith-sumo-squat.gif',
     steps: [
       'Pés afastados além da largura dos ombros com pontas viradas para fora a 45°.',
       'Segure um halter pesado entre as pernas com braços estendidos.',
@@ -18751,7 +18751,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não use impulso do trapézio superior.'
   },
   sh14: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-rear-fly.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/lever-seated-reverse-fly.gif',
     steps: [
       'Sentado de frente para o Peck Deck, pegada neutra ou pronada.',
       'Abra as hastes para trás contraindo o deltoide posterior.'
@@ -18836,7 +18836,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha as escápulas estáveis sem dar tranco.'
   },
   sh23: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/cable-lateral-raise.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/dumbbell-incline-y-raise.gif',
     steps: [
       'Em pé ou levemente inclinado, eleve os braços em formato de Y (30° à frente da linha dos ombros).',
       'Foque na ativação simultânea do deltoide lateral e das fibras inferiores do trapézio.'
@@ -18866,7 +18866,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha os cotovelos estabilizados.'
   },
   bi03: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-alternate-biceps-curl-with-arm-blaster.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-alternate-biceps-curl.gif',
     steps: [
       'Inicie com pegada neutra e gire o punho em supinação ao longo da subida.',
       'No topo, aponte o dedo mínimo para cima para contração máxima do bíceps.'
@@ -18966,7 +18966,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha os cotovelos altos na linha dos ombros.'
   },
   bi14: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-alternate-biceps-curl.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/barbell-curl.gif',
     steps: [
       'Rosca 21: 7 repetições na metade inferior + 7 repetições na metade superior + 7 repetições completas.',
       'Grande estresse metabólico e vascularização.'
@@ -19043,7 +19043,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Mantenha os braços paralelos.'
   },
   tr06: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/barbell-seated-overhead-triceps-extension.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/dumbbell-seated-triceps-extension.gif',
     steps: [
       'Sentado, segure um halter pesado com as duas mãos acima da cabeça.',
       'Desça o halter atrás da nuca flexionando os cotovelos.',
@@ -19198,7 +19198,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
 
   // ── CARDIO & ERGÔMETROS ──
   hy01: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/ski-step.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/ski-ergometer.gif',
     steps: [
       'Em pé diante do SkiErg com pés na largura dos ombros.',
       'Inicie a puxada com flexão de tronco e extensão de braços para baixo.',
@@ -19248,7 +19248,7 @@ const PERF_EXERCISE_GUIDE_MAP = {
     mistakes: 'Não olhe para os pés nem apoie as mãos nos apoios da esteira.'
   },
   cardio_esteira: {
-    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run-equipment.gif',
     steps: [
       'Caminhada ou trote na esteira ergométrica.',
       'Mantenha postura neutra com passadas firmes e cadência estável.',
@@ -19375,6 +19375,186 @@ const PERF_EXERCISE_GUIDE_MAP = {
     ],
     breathing: 'Expire na extensão de quadril e inspire na descida.',
     mistakes: 'Não agache os joelhos em excesso nem eleve o peso apenas com a força dos braços.'
+  },
+
+  // ── ADAPTADO & INICIANTE / SEDENTÁRIO (SEM SOBRECARGA PESADA) ──
+  sed_01: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+    steps: [
+      'Caminhada Contínua Leve em Ritmo Confortável (Z1).',
+      'Mantenha os ombros relaxados, olhar para o horizonte e passadas naturais.',
+      'Ritmo leve e conversacional, ideal para iniciar o movimento diário.'
+    ],
+    breathing: 'Inspire pelo nariz e expire pela boca de forma suave e contínua.',
+    mistakes: 'Não incline o tronco exageradamente para a frente nem pise com impacto duro no calcanhar.'
+  },
+  sed_02: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/roller-back-stretch.gif',
+    steps: [
+      'Mobilidade Articular de Tornozelos e Quadril.',
+      'Realize movimentos circulares e controlados, explorando a amplitude natural.',
+      'Sinta a articulação se soltar sem forçar pontos de dor aguda.'
+    ],
+    breathing: 'Respiração profunda e pausada a cada ciclo de rotação.',
+    mistakes: 'Evite movimentos bruscos ou trancos nas articulações.'
+  },
+  sed_03: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/march-sit-wall.gif',
+    steps: [
+      'Sentar e Levantar da Cadeira com Apoio.',
+      'Posicione os pés na largura do quadril, firmes no chão.',
+      'Incline levemente o tronco à frente e levante-se estendendo os joelhos e quadris com controle.',
+      'Retorne sentando devagar, sem despencar na cadeira.'
+    ],
+    breathing: 'Expire ao ficar de pé e inspire ao sentar suavemente.',
+    mistakes: 'Não deixe os joelhos colapsarem para dentro (valgo).'
+  },
+  sed_04: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/chest-and-front-of-shoulder-stretch.gif',
+    steps: [
+      'Alongamento Suave de Peitoral e Coluna Torácica.',
+      'Apoie o antebraço em um batente ou parede e gire suavemente o tronco no sentido oposto.',
+      'Sinta o feixe anterior do peito e ombro alongar sem dor.'
+    ],
+    breathing: 'Mantenha respiração lenta e diafragmática durante a sustentação.',
+    mistakes: 'Não gire a coluna lombar nem force o alongamento além do conforto.'
+  },
+  sed_05: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/high-knee-against-wall.gif',
+    steps: [
+      'Caminhada Estacionária com Elevação Suave dos Joelhos.',
+      'Marque o passo no mesmo lugar, erguendo alternadamente os joelhos com suavidade.',
+      'Mantenha as mãos apoiadas ou soltas equilibrando o corpo.'
+    ],
+    breathing: 'Ritmo respiratório constante e nasal.',
+    mistakes: 'Não eleve os joelhos acima de uma linha confortável para o quadril.'
+  },
+  sed_06: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/low-glute-bridge-on-floor.gif',
+    steps: [
+      'Ponte de Glúteos no Solo / Colchonete.',
+      'Deite-se de barriga para cima com os joelhos flexionados e pés apoiados no chão.',
+      'Eleve o quadril contraindo os glúteos até alinhar coxas e tronco.',
+      'Desça devagar apoiando vértebra por vértebra.'
+    ],
+    breathing: 'Expire ao subir o quadril e inspire ao retornar ao colchonete.',
+    mistakes: 'Não hiperestenda a lombar no topo do movimento.'
+  },
+  sed_07: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/push-up-wall.gif',
+    steps: [
+      'Flexão de Braços na Parede (Wall Push-up).',
+      'Posicione as mãos na parede na altura dos ombros e dê um passo para trás.',
+      'Flexione os cotovelos aproximando o peitoral da parede de forma cadenciada.',
+      'Empurre a parede retornando à posição inicial mantendo o corpo em linha reta.'
+    ],
+    breathing: 'Inspire ao aproximar-se da parede e expire ao empurrar.',
+    mistakes: 'Não deixe o quadril cair nem arqueie a lombar.'
+  },
+  sed_08: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/spine/spine-stretch.gif',
+    steps: [
+      'Exercício de Respiração Diafragmática & Relaxamento.',
+      'Sente-se ou deite-se confortavelmente com as mãos sobre o abdômen.',
+      'Inspire profundamente pelo nariz expandindo a barriga por 4 segundos.',
+      'Expire lentamente pela boca esvaziando todo o ar por 6 segundos.'
+    ],
+    breathing: 'Ciclo 4-4-6 (Inspira 4s, segura 4s, expira 6s).',
+    mistakes: 'Não eleve os ombros ao inspirar (evite respiração apical/curta).'
+  },
+  sed_09: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+    steps: [
+      'Caminhada Leve com Mudanças Sutis de Ritmo.',
+      'Alterne 2 minutos de ritmo bem tranquilo com 1 minuto de passo ligeiramente mais dinâmico.',
+      'Mantenha a postura alinhada e passos seguros.'
+    ],
+    breathing: 'Respiração nasal contínua e controlada.',
+    mistakes: 'Não acelere a ponto de perder a capacidade de conversar confortavelmente.'
+  },
+  sed_10: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/resistance-band-seated-straight-back-row.gif',
+    steps: [
+      'Remada com Elástico Leve ou Toalha.',
+      'Sentado com a coluna ereta, fixe o elástico nos pés ou suporte firme.',
+      'Puxe os cotovelos para trás aproximando as escápulas com suavidade.',
+      'Retorne estendendo os braços de maneira controlada.'
+    ],
+    breathing: 'Expire ao puxar o elástico e inspire ao estender os braços.',
+    mistakes: 'Não encolha os ombros em direção às orelhas ao puxar.'
+  },
+  sed_11: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/calves/bodyweight-standing-calf-raise.gif',
+    steps: [
+      'Elevação de Calcanhares em Pé com Apoio (Panturrilhas).',
+      'Apoie as mãos na parede ou encosto de cadeira para equilíbrio.',
+      'Eleve os calcanhares subindo na ponta dos pés e segure 1 segundo no topo.',
+      'Desça devagar até os calcanhares tocarem o chão suavemente.'
+    ],
+    breathing: 'Expire ao subir e inspire na descida.',
+    mistakes: 'Não balance o tronco para impulsionar a subida.'
+  },
+  sed_12: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif',
+    steps: [
+      'Meta Diária de Passos Confortáveis (NEAT).',
+      'Distribua pequenas caminhadas ao longo do dia (após refeições, intervalos de trabalho).',
+      'Aproveite para movimentar o corpo em momentos rotineiros com tênis confortável.'
+    ],
+    breathing: 'Respiração natural, calma e constante.',
+    mistakes: 'Não tente acumular todos os passos de uma só vez em caso de desconforto articular.'
+  },
+
+  // ── CARDIO AVANÇADO & ENGINE HÍBRIDO ──
+  cardio_01: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-walk.gif',
+    steps: [
+      'Zona 2 Mitocondrial Puro.',
+      'Mantenha intensidade constante em 60-70% da FCM (consegue falar frases curtas).',
+      'Exercício contínuo sem solavancos nem picos de lactato para preservar a via mTOR.'
+    ],
+    breathing: 'Mantenha respiração nasal sempre que possível para controle de zona.',
+    mistakes: 'Evite acelerar além da zona 2; mais intensidade aqui reduz a eficiência oxidativa de gordura.'
+  },
+  cardio_02: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/cycle-cross-trainer.gif',
+    steps: [
+      'Circuito Engine Híbrido Multiplanar.',
+      'Alterne blocos entre ergômetros sem pausa passiva.',
+      'Cadência uniforme dissipando a sobrecarga entre membros superiores e inferiores.'
+    ],
+    breathing: 'Respiração cadenciada em sincronia com o ritmo mecânico.',
+    mistakes: 'Não comece em ritmo "all-out" para conseguir sustentar todo o bloco.'
+  },
+  cardio_03: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run.gif',
+    steps: [
+      'HIIT Norueguês 4x4 (Elite VO₂ Máx).',
+      'Execute 4 blocos de 4 minutos em 85-95% da FCM (tiro sustentado de alta potência).',
+      'Recupere ativamente por 3 minutos em Zona 1/2 entre cada bloco.'
+    ],
+    breathing: 'Respiração forçada e rítmica; oxigene profundamente nos intervalos de recuperação.',
+    mistakes: 'Não zere o movimento durante a recuperação ativa (mantenha trote/giro leve).'
+  },
+  cardio_04: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run.gif',
+    steps: [
+      'Sprint Interval Training (SIT Tabata).',
+      'Tiros máximos "all-out" de altíssima potência.',
+      'Recuperação total entre os tiros garantindo ressíntese de fosfocreatina.'
+    ],
+    breathing: 'Oxigenação profunda imediata após o sprint.',
+    mistakes: 'Nunca inicie sem aquecimento dinâmico rigoroso prévio.'
+  },
+  cardio_05: {
+    gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike-walk.gif',
+    steps: [
+      'Aeróbico Regenerativo & Fluxo Sanguíneo.',
+      'Pedal ou caminhada suave em Zona 1 estrita (<60% FCM).',
+      'Foco exclusivo em retorno venoso e remoção de metabólitos sem fadiga muscular.'
+    ],
+    breathing: 'Respiração relaxada, profunda e diafragmática.',
+    mistakes: 'Não coloque carga ou resistência alta no aparelho.'
   }
 };
 

@@ -57,7 +57,9 @@ test('Resolução e Integridade dos GIFs de Demonstração dos Exercícios', asy
     // 18 Exercícios antes faltantes em PERF_EXERCISE_GUIDE_MAP
     const requiredExIds = [
       'hy01', 'hy02', 'hy03', 'hy04', 'hy05', 'cardio_esteira', 'cardio_airbike', 'cardio_rowerg', 'cardio_recuperativo_z1',
-      'hy06', 'hy07', 'hy08', 'hy09', 'hy10', 'hy11', 'hy12', 'hy13', 'hy14'
+      'hy06', 'hy07', 'hy08', 'hy09', 'hy10', 'hy11', 'hy12', 'hy13', 'hy14',
+      'sed_01', 'sed_02', 'sed_03', 'sed_04', 'sed_05', 'sed_06', 'sed_07', 'sed_08', 'sed_09', 'sed_10', 'sed_11', 'sed_12',
+      'cardio_01', 'cardio_02', 'cardio_03', 'cardio_04', 'cardio_05'
     ];
     requiredExIds.forEach(id => {
       assert.strictEqual(appJs.includes(`${id}: {`), true, `app.js PERF_EXERCISE_GUIDE_MAP deve conter ${id}`);
@@ -107,8 +109,18 @@ test('Resolução e Integridade dos GIFs de Demonstração dos Exercícios', asy
       { ex: { name: 'Agachamento Búlgaro com Halteres', group: 'Pernas' }, mustInclude: 'quads/dumbbell-single-leg-split-squat.gif', mustNotInclude: 'full-squat' },
       // Precedência de Stiff vs Levantamento Terra Convencional
       { ex: { name: 'Stiff com Barra (Terra Romeno)', group: 'Pernas' }, mustInclude: 'glutes/barbell-romanian-deadlift.gif', mustNotInclude: 'glutes/barbell-deadlift.gif' },
+      // Biomecânica corrigida (Auditoria Cinesiológica)
+      { ex: { name: 'Crucifixo Inverso no Peck Deck / Máquina', group: 'Ombros' }, mustInclude: 'delts/lever-seated-reverse-fly.gif' },
+      { ex: { name: 'Tríceps Francês com Halter', group: 'Tríceps' }, mustInclude: 'triceps/dumbbell-seated-triceps-extension.gif' },
+      { ex: { name: 'Rosca Alternada com Halteres', group: 'Bíceps' }, mustInclude: 'biceps/dumbbell-alternate-biceps-curl.gif' },
+      { ex: { name: 'Elevação Y / Y-Raise', group: 'Ombros' }, mustInclude: 'upper-back/dumbbell-incline-y-raise.gif' },
+      { ex: { name: 'Agachamento Sumô', group: 'Pernas' }, mustInclude: 'glutes/smith-sumo-squat.gif' },
+      { ex: { name: 'Flexão de Braços na Parede (Wall Push-up)', group: 'Adaptado' }, mustInclude: 'pectorals/push-up-wall.gif' },
+      { ex: { name: 'Alongamento Suave de Peitoral e Coluna Torácica', group: 'Adaptado' }, mustInclude: 'pectorals/chest-and-front-of-shoulder-stretch.gif' },
+      { ex: { name: 'Escada Ergométrica / Stairmaster', group: 'Cardio & Ergômetros' }, mustInclude: 'cardio/walking-on-stepmill.gif' },
+      { ex: { name: 'Transport / Elíptico Cross Trainer', group: 'Cardio & Ergômetros' }, mustInclude: 'cardio/walk-elliptical-cross-trainer.gif' },
       // Cardio & Ergômetros específicos
-      { ex: { name: 'SkiErg Concept2 (Intervalos de Potência)', group: 'Cardio & Ergômetros' }, mustInclude: 'cardio/ski-step.gif' },
+      { ex: { name: 'SkiErg Concept2 (Intervalos de Potência)', group: 'Cardio & Ergômetros' }, mustInclude: 'triceps/ski-ergometer.gif' },
       { ex: { name: 'AirBike / Echo Bike', group: 'Cardio & Ergômetros' }, mustInclude: 'cardio/stationary-bike-run-v-3.gif' },
       { ex: { name: 'Remo Concept2 RowErg', group: 'Cardio & Ergômetros' }, mustInclude: 'upper-back/cable-seated-row.gif' },
       { ex: { name: 'Tiros de Velocidade na Esteira', group: 'Cardio & Ergômetros' }, mustInclude: 'cardio/run.gif' },
@@ -123,7 +135,7 @@ test('Resolução e Integridade dos GIFs de Demonstração dos Exercícios', asy
       { ex: { name: 'Mobilidade Articular e Liberação', group: 'Mobilidade' }, mustInclude: 'spine/roller-back-stretch.gif', mustNotInclude: 'deadlift' },
       { ex: { name: 'Hidratação Eletrolítica', group: 'Nutrição' }, mustInclude: 'spine/sphinx.gif', mustNotInclude: 'bench-press' },
       // Proteção contra fallback indevido vindo de payloads salvos
-      { ex: { name: 'SkiErg Concept2', group: 'Cardio & Ergômetros', gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif' }, mustInclude: 'cardio/ski-step.gif' },
+      { ex: { name: 'SkiErg Concept2', group: 'Cardio & Ergômetros', gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif' }, mustInclude: 'triceps/ski-ergometer.gif' },
       // Resolução direta por ID canônico
       { ex: { id: 'sh07', name: 'Elevação Lateral na Polia Baixa' }, mustInclude: 'delts/cable-lateral-raise.gif' },
       { ex: { id: 'lg04', name: 'Leg Press 45°' }, mustInclude: 'glutes/sled-45-leg-press.gif' }
