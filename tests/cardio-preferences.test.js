@@ -756,6 +756,69 @@ test('UI-CARDIO-12: duplo clique nao produz duas geracoes concorrentes', async f
   assert.strictEqual(res1.status, 'SUCCESS', 'Primeira chamada conclui normalmente');
 });
 
+test('PREF-HYBRID-01: Modalidade hyrox em preferredModalities eleva score de protocolos HYROX (+50 bonus explícito)', function() {
+  var ctxHyrox = makeContext({ cardioPreferences: makePrefs({ preferredModalities: ['hyrox'] }) });
+  var profileHyrox = buildCardioProfile(ctxHyrox);
+  var rankedHyrox = rankCardioProtocols(ctxHyrox, profileHyrox, PERF_CARDIO_DB);
+  var topProto = rankedHyrox[0].protocol;
+  assert(topProto.id.includes('hyrox') || topProto.modality.toLowerCase().includes('hyrox'), 'Protocolo topo deve ser de HYROX');
+  assert(rankedHyrox[0].matchedPreferences.some(function(mp) { return mp.modality === 'hyrox' && mp.confidence === 'explicit'; }), 'Bônus explícito deve estar registrado');
+});
+
+test('PREF-HYBRID-02: Modalidade metcon em preferredModalities eleva score de protocolos Metcon/Engine', function() {
+  var ctxMetcon = makeContext({ cardioPreferences: makePrefs({ preferredModalities: ['metcon'] }) });
+  var profileMetcon = buildCardioProfile(ctxMetcon);
+  var rankedMetcon = rankCardioProtocols(ctxMetcon, profileMetcon, PERF_CARDIO_DB);
+  var topMetcon = rankedMetcon[0].protocol;
+  assert(topMetcon.category === 'Engine' || topMetcon.id.includes('metcon') || topMetcon.id === 'cardio_02' || topMetcon.id === 'bodyweight_metabolic_circuit_20', 'Protocolo topo deve ser Metcon/Engine');
+});
+
+test('PREF-HYBRID-03: Modalidade tri_erg em preferredModalities eleva score de protocolos Tri-Erg/Multi-Erg', function() {
+  var ctxTriErg = makeContext({ cardioPreferences: makePrefs({ preferredModalities: ['tri_erg'] }) });
+  var profileTriErg = buildCardioProfile(ctxTriErg);
+  var rankedTriErg = rankCardioProtocols(ctxTriErg, profileTriErg, PERF_CARDIO_DB);
+  var topTriErg = rankedTriErg[0].protocol;
+  assert(topTriErg.id === 'cardio_01' || topTriErg.id.includes('tri_erg') || topTriErg.id.includes('multi_erg'), 'Protocolo topo deve ser Tri-Erg/Multi-Erg');
+});
+
+test('PREF-HYBRID-04: Prescrição semanal com musculação (PPL) + preferredModalities=[hyrox] aloca protocolo HYROX em dia alternado/off no perfWeeklySchedule', function() {
+  var weeklyCtx = {
+    patient: { id: 'p1', objective: 'hipertrofia' },
+    trainingProfile: { workoutType: 'Musculação / Hipertrofia', frequencyWeekly: 4 },
+    cardioPreferences: {
+      preferredModalities: ['hyrox'],
+      preferredFrequency: 2,
+      preferredDurationMinutes: 30
+    },
+    schedule: [
+      { dayKey: 'd1', dayName: 'Segunda', type: 'Treino', routineId: 'A', title: 'Treino A - Peito' },
+      { dayKey: 'd2', dayName: 'Terça', type: 'Treino', routineId: 'B', title: 'Treino B - Costas' },
+      { dayKey: 'd3', dayName: 'Quarta', type: 'Off', routineId: null, title: 'Descanso' },
+      { dayKey: 'd4', dayName: 'Quinta', type: 'Treino', routineId: 'C', title: 'Treino C - Pernas' },
+      { dayKey: 'd5', dayName: 'Sexta', type: 'Treino', routineId: 'D', title: 'Treino D - Ombros e Braços' },
+      { dayKey: 'd6', dayName: 'Sábado', type: 'Off', routineId: null, title: 'Descanso' },
+      { dayKey: 'd7', dayName: 'Domingo', type: 'Off', routineId: null, title: 'Descanso' }
+    ]
+  };
+
+  var buildWeeklyPresc = sandbox.buildCardioWeeklyPrescription;
+  var applyToSchedule = sandbox.perfApplyCardioPrescriptionToSchedule;
+
+  var presc = buildWeeklyPresc(weeklyCtx, {
+    frequency: { target: 2, prescribedWeeklyFrequency: 2 },
+    volume: { targetMinutes: 60, totalWeeklyMinutes: 60 },
+    distribution: { distributionMode: 'DISTRIBUTED' }
+  });
+
+  assert.strictEqual(presc.sessions.length, 2, 'Deve prescrever exatamente 2 sessões de cardio');
+  assert(presc.sessions.some(function(s) { return s.protocolId.includes('hyrox'); }), 'Pelo menos uma sessão deve ser protocolo HYROX');
+
+  var updatedSchedule = applyToSchedule(weeklyCtx.schedule, presc.sessions);
+  var hyroxDay = updatedSchedule.find(function(d) { return d.cardioId && d.cardioId.includes('hyrox'); });
+  assert(hyroxDay, 'Deve haver um dia com protocolo HYROX alocado na agenda semanal');
+  assert.strictEqual(hyroxDay.type, 'Cardio', 'Dia off com cardio deve receber tipo Cardio');
+});
+
 // ── Runner Assíncrono Sequencial ─────────────────────────────────────────────
 
 async function runSuite() {

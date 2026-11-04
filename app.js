@@ -20555,7 +20555,7 @@ function perfFocusDay(dayKey) {
   if (day.routineId) {
     perfSwitchView('prescription', true);
     perfSetTarget(day.routineId);
-  } else if (day.type === 'Cardio') {
+  } else if (day.type === 'Cardio' || day.type === 'HIIT' || day.cardioId) {
     const cardioId = day.cardioId || (day.dayKey === 'd6' || dayKey === 'sab' ? 'cardio_02' : 'cardio_01');
     perfSwitchView('cardio', false);
     renderPerfCardioProtocols(cardioId);
@@ -23528,6 +23528,14 @@ function buildCardioProfile(context) {
       inferredMod = 'remo';
     } else if (workoutTypeStr.includes('triathlon') || workoutTypeStr.includes('triatlo')) {
       inferredMod = 'triathlon';
+    } else if (workoutTypeStr.includes('hyrox') || workoutTypeStr.includes('fitness racing')) {
+      inferredMod = 'hyrox';
+    } else if (workoutTypeStr.includes('metcon') || workoutTypeStr.includes('condicionamento metab')) {
+      inferredMod = 'metcon';
+    } else if (workoutTypeStr.includes('funcional')) {
+      inferredMod = 'circuito_funcional';
+    } else if (workoutTypeStr.includes('tri-erg') || workoutTypeStr.includes('trierg') || workoutTypeStr.includes('multi-erg')) {
+      inferredMod = 'tri_erg';
     }
 
     if (inferredMod) {
@@ -23658,20 +23666,39 @@ function rankCardioProtocols(context, cardioProfile, eligibleCandidates, options
     const normId = normalizeModalityString(proto.id || '');
     const isMultiModal = normMod.includes('multi') || normId === 'cardio_01' || normId === 'hybrid_tri_erg_15';
 
-    // Helper para casamento semântico rigoroso de modalidade principal
+    // Helper para casamento semântico rigoroso de modalidade principal e híbridas
     const matchesModalityTerm = (term) => {
       if (!term) return false;
-      if (isMultiModal) {
-        return term.includes('multi') || term.includes('hibrid') || term.includes('circuito') || term.includes('tri-erg');
+      const t = term.replace(/_/g, '-').toLowerCase();
+
+      if (t === 'hyrox') {
+        return normId.includes('hyrox') || normTitle.includes('hyrox') || normMod.includes('hyrox') || normId.includes('compromised');
       }
-      if (normMod.includes(term)) return true;
-      if (term === 'bicicleta' && (normMod.includes('bike') || normMod.includes('cicloerg') || normMod.includes('ciclismo'))) return true;
-      if (term === 'corrida' && (normMod.includes('corrida') || normMod.includes('running') || (normMod.includes('esteira') && !normMod.includes('caminhada')))) return true;
-      if (term === 'esteira' && (normMod.includes('esteira') || normMod.includes('treadmill') || normMod.includes('caminhada'))) return true;
-      if (term === 'remo' && (normMod.includes('remo') || normMod.includes('rower') || normMod.includes('rowing'))) return true;
-      if (term === 'skierg' && (normMod.includes('skierg') || normMod.includes('ski'))) return true;
-      if (term === 'eliptico' && (normMod.includes('eliptico') || normMod.includes('elliptical'))) return true;
-      if (term === 'airbike' && (normMod.includes('airbike') || normMod.includes('air bike'))) return true;
+      if (t === 'metcon') {
+        return normId.includes('metcon') || normTitle.includes('metcon') || normMod.includes('metcon') ||
+          normId === 'cardio_02' || normId === 'hybrid_functional_engine_25' || normId === 'bodyweight_metabolic_circuit_20';
+      }
+      if (t.includes('circuito') || t.includes('funcional')) {
+        return normId.includes('circuit') || normTitle.includes('circuito') || normMod.includes('circuito') ||
+          normId === 'cardio_02' || normId === 'hybrid_functional_engine_25' || normId === 'hyrox_adapted_light_30' ||
+          normId === 'hyrox_power_engine_45' || normId === 'bodyweight_metabolic_circuit_20' || normId === 'erg_kettlebell_hybrid_circuit_25';
+      }
+      if (t.includes('tri-erg') || t.includes('trierg') || t.includes('multi-erg')) {
+        return normId.includes('tri_erg') || normTitle.includes('tri-erg') || normMod.includes('tri-erg') ||
+          normId === 'cardio_01' || normId === 'multi_erg_pyramid_z2_30' || normId === 'hybrid_tri_erg_15';
+      }
+      if (isMultiModal && (t.includes('multi') || t.includes('hibrid') || t.includes('circuito') || t.includes('tri-erg'))) {
+        return true;
+      }
+      if (normMod.includes(term) || normMod.includes(t)) return true;
+      if (term === 'bicicleta' && (normMod.includes('bike') || normMod.includes('cicloerg') || normMod.includes('ciclismo') || normId.includes('bike'))) return true;
+      if (term === 'corrida' && (normMod.includes('corrida') || normMod.includes('running') || (normMod.includes('esteira') && !normMod.includes('caminhada')) || normId.includes('run'))) return true;
+      if (term === 'esteira' && (normMod.includes('esteira') || normMod.includes('treadmill') || normMod.includes('caminhada') || normId.includes('treadmill'))) return true;
+      if (term === 'remo' && (normMod.includes('remo') || normMod.includes('rower') || normMod.includes('rowing') || normId.includes('row'))) return true;
+      if (term === 'skierg' && (normMod.includes('skierg') || normMod.includes('ski') || normId.includes('skierg'))) return true;
+      if (term === 'eliptico' && (normMod.includes('eliptico') || normMod.includes('elliptical') || normId.includes('elliptical'))) return true;
+      if (term === 'airbike' && (normMod.includes('airbike') || normMod.includes('air bike') || normId.includes('airbike'))) return true;
+      if (term === 'escada' && (normMod.includes('escada') || normMod.includes('stairmaster') || normMod.includes('stepmill') || normId.includes('stairmaster'))) return true;
       return false;
     };
 
@@ -24444,7 +24471,14 @@ function buildCardioWeeklyPrescription(context, requirements) {
 
       // Preferência de modalidade do paciente
       const prefMods = cardioProfile.preferredModalities || [];
-      if (prefMods.some(m => String(m.modality || m).toLowerCase() === String(proto.modalityFamily || '').toLowerCase())) {
+      if (prefMods.some(m => {
+        const mStr = String(m.modality || m).toLowerCase();
+        const fStr = String(proto.modalityFamily || '').toLowerCase();
+        if (mStr === fStr) return true;
+        if ((mStr === 'hyrox' || mStr === 'metcon' || mStr.includes('circuito')) && (fStr === 'hybrid_circuit' || proto.category === 'Engine')) return true;
+        if ((mStr.includes('tri_erg') || mStr.includes('tri-erg') || mStr.includes('multi')) && (fStr === 'multi_erg' || proto.supportsMultiErg)) return true;
+        return false;
+      })) {
         contextualScore += 5;
       }
 
@@ -24824,16 +24858,18 @@ function perfApplyCardioPrescriptionToSchedule(schedule, cardioSessions) {
         : `Cardio ${cs.heartRateZone || 'Z2'} (${cs.durationMinutes} min pós-força)`;
     } else {
       const isHiit = Boolean(cs.isHiit || cs.intensityType === 'INTERVALS' || cs.protocolId === 'cardio_03' || cs.protocolId === 'cardio_04' || cs.protoObj?.isHiit);
+      const isEngineHybrid = cs.category === 'Engine' || cs.protoObj?.category === 'Engine' || cs.protoObj?.modalityFamily === 'hybrid_circuit' || cs.protoObj?.modalityFamily === 'multi_erg';
       targetDay.type = isHiit ? 'HIIT' : 'Cardio';
       targetDay.isHiit = isHiit;
+      targetDay.isEngineHybrid = isEngineHybrid;
       targetDay.hasCardioPost = false;
       targetDay.routineId = null;
       targetDay.cardioId = cs.protocolId;
       targetDay.cardioSession = cs;
-      targetDay.title = isHiit ? (cs.protocolTitle || 'HIIT Norueguês 4x4') : `Cardio ${cs.heartRateZone || 'Z2'}`;
-      targetDay.focus = isHiit
-        ? (cs.foco || `HIIT Alta Intensidade · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z4/Z5'})`)
-        : `Cardio Regenerativo · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z2'})`;
+      targetDay.title = cs.protocolTitle || cs.protoObj?.title || (isHiit ? 'HIIT Norueguês 4x4' : (isEngineHybrid ? (cs.protoObj?.name || 'Cardio Híbrido Engine') : `Cardio ${cs.heartRateZone || 'Z2'}`));
+      targetDay.focus = cs.foco || cs.protoObj?.foco || (isHiit
+        ? `HIIT Alta Intensidade · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z4/Z5'})`
+        : (isEngineHybrid ? `Treino Híbrido Engine · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z3/Z4'})` : `Cardio Regenerativo · ${cs.durationMinutes} min (${cs.heartRateZone || 'Z2'})`));
     }
   });
 
