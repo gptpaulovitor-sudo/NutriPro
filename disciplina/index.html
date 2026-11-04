@@ -1034,11 +1034,13 @@
           <div class="flex items-center gap-1.5">
             <!-- Seletor Rápido de Treinos do Ciclo -->
             <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5" id="heroWorkoutSelector">
-              <button type="button" onclick="selectHeroWorkout(1)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white" data-wkt="1">T1</button>
-              <button type="button" onclick="selectHeroWorkout(2)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="2">T2</button>
-              <button type="button" onclick="selectHeroWorkout(3)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="3">T3</button>
-              <button type="button" onclick="selectHeroWorkout(4)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="4">T4</button>
-              <button type="button" onclick="selectHeroWorkout(5)" class="hero-workout-pill px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-wkt="5">T5</button>
+              <button type="button" onclick="selectScheduleDay(1)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#E50914] border-[#E50914] text-white shadow" data-day="1">D1</button>
+              <button type="button" onclick="selectScheduleDay(2)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="2">D2</button>
+              <button type="button" onclick="selectScheduleDay(3)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="3">D3</button>
+              <button type="button" onclick="selectScheduleDay(4)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="4">D4</button>
+              <button type="button" onclick="selectScheduleDay(5)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="5">D5</button>
+              <button type="button" onclick="selectScheduleDay(6)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="6">D6</button>
+              <button type="button" onclick="selectScheduleDay(7)" class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white" data-day="7">D7</button>
             </div>
             <!-- Botão de Pausa Treino -->
             <button type="button" id="heroTreinoPlayPauseBtn" onclick="toggleHeroPlayPause('heroTreino')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#08090A]/90 hover:bg-[#171B1F] border border-[#272C31] text-[9px] font-mono text-zinc-300 hover:text-white shadow transition-all active:scale-95" title="Pausar ou Retomar">
@@ -3263,6 +3265,27 @@
       }
     };
 
+    
+    function renderHeroWorkoutSelector() {
+      const container = document.getElementById('heroWorkoutSelector');
+      if (!container) return;
+      const schedule = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7)
+        ? WEEKLY_SCHEDULE_DATA
+        : [{ dayNum: 1 }, { dayNum: 2 }, { dayNum: 3 }, { dayNum: 4 }, { dayNum: 5 }, { dayNum: 6 }, { dayNum: 7 }];
+
+      container.innerHTML = schedule.slice(0, 7).map((d, idx) => {
+        const dayNum = d.dayNum || (idx + 1);
+        const isSelected = selectedScheduleDay === dayNum;
+        let activeCls = isSelected
+          ? 'bg-[#E50914] border-[#E50914] text-white shadow'
+          : 'bg-[#08090A]/80 border-[#272C31] text-zinc-400 hover:text-white';
+        return `<button type="button" onclick="selectScheduleDay(${dayNum})"
+          class="hero-workout-pill px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border transition-all ${activeCls}"
+          data-day="${dayNum}">D${dayNum}</button>`;
+      }).join('');
+    }
+  
+    window.renderHeroWorkoutSelector = renderHeroWorkoutSelector;
     window.selectHeroWorkout = function(wktNum) {
       window.pauseHeroCarousel('heroTreino');
       var data = _heroWorkoutData[wktNum];
@@ -5760,9 +5783,95 @@
         foco: 'Aporte de fluxo sanguíneo e restauração parassimpática sem acúmulo de fadiga.',
         equipment: 'Ergômetro / Solo',
         timeCap: '30 min'
+      },
+      hyrox_power_engine_45: {
+        id: 'hyrox_power_engine_45',
+        name: 'HYROX Power Engine & Compromised Running',
+        title: 'HYROX Power Engine & Compromised Running (45 min)',
+        subtitle: 'Simulação Avançada com Compromised Engine · Força & Resistência Metabólica',
+        category: 'Engine',
+        modality: 'Circuito Híbrido HYROX Power',
+        intensityZone: 'Z3/Z4',
+        intensityType: 'CIRCUIT',
+        isHiit: false,
+        timeCap: '45 min',
+        calEst: '~550-680 kcal',
+        foco: 'Estímulo avançado de resistência aeróbia sob fadiga mecânica acumulada. Alternância de corrida com ergômetros, trenó e carries pesados.',
+        equipment: 'SkiErg / RowErg / Sled / Wall Ball',
+        blocks: [
+          { num: 1, name: 'Bloco 1 — SkiErg 1000m & Corrida', items: ['SkiErg: 1000m em ritmo de prova (Pace 2:05-2:15) + Corrida: 1 km contínuo em Z3'] },
+          { num: 2, name: 'Bloco 2 — Sled Push & Corrida', items: ['Sled Push ou Tiro na AirBike com alta resistência: 6 min + Corrida: 1 km contínuo em Z3'] },
+          { num: 3, name: 'Bloco 3 — RowErg 1000m & Farmer Carry', items: ['RowErg: 1000m (Pace 2:00-2:10) + Farmer Carry: 200m com 24-32kg por mão'] },
+          { num: 4, name: 'Bloco 4 — Sandbag Lunges & Wall Balls', items: ['Sandbag Lunges: 50m (passada contínua) + Wall Balls: 50 repetições (6 a 9kg)'] }
+        ],
+        restrictions: [
+          'Exclusivo para atletas e praticantes avançados com boa capacidade de recuperação.',
+          'Não prescrever no dia anterior a agachamento ou levantamento terra pesado.'
+        ]
+      },
+      hyrox_station_erg_intervals_30: {
+        id: 'hyrox_station_erg_intervals_30',
+        name: 'HYROX Station Builder (SkiErg + RowErg + Wall Balls)',
+        title: 'Protocolo "HYROX Station Builder (SkiErg + RowErg + Wall Balls)"',
+        subtitle: 'Specific Race Station Conditioning · Transição Ergo-Funcional',
+        category: 'Engine',
+        modality: 'Estações HYROX com Ergômetros e Wall Balls',
+        intensityZone: 'Z3/Z4',
+        intensityType: 'CIRCUIT',
+        isHiit: false,
+        timeCap: '30 min',
+        calEst: '~340-450 kcal',
+        foco: 'Simulação e desenvolvimento de capacidade de trabalho nas estações específicas de prova HYROX.',
+        equipment: 'SkiErg / RowErg / Wall Ball',
+        blocks: [
+          { num: 1, name: 'Ativação Tri-Estação', items: ['SkiErg: 500m Z2 + RowErg: 500m Z2 (aquecimento progressivo)'] },
+          { num: 2, name: 'Bloco Principal HYROX (3 voltas)', items: ['SkiErg: 500m em ritmo de prova (Pace 2:05-2:15) + RowErg: 500m (Pace 2:00-2:10) + 20 Wall Balls (ritmo fluido) + 90s descanso'] },
+          { num: 3, name: 'Normalização', items: ['Remo solto em Z1: 3 min'] }
+        ],
+        restrictions: [
+          'Exclusivo para praticantes com base motora e condicionamento intermediário/avançado.',
+          'Manter hidratação constante durante as pausas de transição.'
+        ]
       }
     };
     window.CANONICAL_CARDIO_CATALOG = CANONICAL_CARDIO_CATALOG;
+
+    function resolveCardioProtocolForDay(dayData) {
+      if (!dayData) return null;
+      const protoId = dayData.cardioSession?.protocolId || dayData.cardioId;
+      const titleLower = String(dayData.title || '').toLowerCase();
+      const subLower = String(dayData.focus || dayData.sub || '').toLowerCase();
+
+      // 1. Busca por ID exato no catálogo canônico ou no banco do paciente
+      if (protoId) {
+        if (CANONICAL_CARDIO_CATALOG[protoId]) return CANONICAL_CARDIO_CATALOG[protoId];
+        if (patientState.cardioDatabase && Array.isArray(patientState.cardioDatabase)) {
+          const found = patientState.cardioDatabase.find(c => c.id === protoId);
+          if (found) return found;
+        }
+      }
+
+      // 2. Busca por correspondência inteligente de título / modalidade
+      if (titleLower.includes('power engine') || (titleLower.includes('hyrox') && (titleLower.includes('power') || subLower.includes('compromised')))) {
+        return CANONICAL_CARDIO_CATALOG['hyrox_power_engine_45'];
+      }
+      if (titleLower.includes('station builder') || (titleLower.includes('hyrox') && titleLower.includes('station'))) {
+        return CANONICAL_CARDIO_CATALOG['hyrox_station_erg_intervals_30'];
+      }
+      if (titleLower.includes('noruegu') || titleLower.includes('hiit 4x4') || dayData.type === 'HIIT' || dayData.isHiit) {
+        return CANONICAL_CARDIO_CATALOG['cardio_03'];
+      }
+      if (titleLower.includes('circuito') || titleLower.includes('engine')) {
+        return CANONICAL_CARDIO_CATALOG['cardio_02'];
+      }
+      if (titleLower.includes('zona 2') || titleLower.includes('z2') || titleLower.includes('mitocondrial') || dayData.type === 'Cardio') {
+        return CANONICAL_CARDIO_CATALOG['cardio_01'];
+      }
+
+      if (patientState.prescribedCardio) return patientState.prescribedCardio;
+      return CANONICAL_CARDIO_CATALOG['cardio_01'];
+    }
+  
     window.PERF_CARDIO_CATALOG = CANONICAL_CARDIO_CATALOG;
 
     // Gerador determinístico de Agenda Semanal Canônica de 7 Dias para o paciente (Sincronizado com page.tsx e PDF)
@@ -6955,7 +7064,7 @@
       }
 
       // Carrossel de Rotinas e Sinergia Prescrita (Seletor Unificado)
-      renderWeeklyCarousel();
+      renderWeeklyCarousel(); if (typeof renderHeroWorkoutSelector === "function") renderHeroWorkoutSelector(); if (typeof renderHeroWorkoutSelector === "function") renderHeroWorkoutSelector();
       updateSynergyCard();
 
       // Ficha Detalhada de Treino
@@ -7993,129 +8102,93 @@
       const container = document.getElementById('weeklyScheduleCarousel');
       if (!container) return;
 
-      // Rotinas Prescritas de A a F, Cardio, HIIT e OFF
-      const routineOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'Cardio', 'HIIT', 'OFF'];
-      const extraKeys = Object.keys(WORKOUT_DATABASE).filter(k => !routineOrder.includes(k));
-      const activeKeys = [...routineOrder.filter(k => WORKOUT_DATABASE[k]), ...extraKeys];
-      let sourceList = [];
+      // Garante 7 dias prescritos na ordem cronológica exata do PDF (DIA 1 a DIA 7)
+      let schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7
+        ? WEEKLY_SCHEDULE_DATA
+        : buildCanonicalWeeklyScheduleForPatient(patientState.activeSplit || 'PPL', patientState.workoutPlan, patientState.cardioPrescription);
 
-      activeKeys.forEach((k, idx) => {
-        if (WORKOUT_DATABASE[k]) {
-          const dbItem = WORKOUT_DATABASE[k];
-          const schedMatch = (Array.isArray(WEEKLY_SCHEDULE_DATA) ? WEEKLY_SCHEDULE_DATA : []).find(d => d.routineKey === k);
-          const isOff = dbItem.isOff || k === 'OFF';
-          const isHiit = dbItem.isHiit || k === 'HIIT' || schedMatch?.isHiit || schedMatch?.type === 'HIIT';
-          const isCardio = (dbItem.isCardio || k === 'Cardio') && !isHiit;
-          const exCount = Array.isArray(dbItem.exercises) ? dbItem.exercises.length : 0;
-          const setsCount = Array.isArray(dbItem.exercises)
-            ? dbItem.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets) || 0), 0)
-            : 0;
+      container.innerHTML = schedule.slice(0, 7).map((d, idx) => {
+        const dayNum = d.dayNum || (idx + 1);
+        const isSelected = (selectedScheduleDay === dayNum);
 
-          sourceList.push({
-            routineKey: k,
-            dayNum: schedMatch ? schedMatch.dayNum : (idx + 1),
-            dayName: schedMatch ? schedMatch.dayName : (isHiit ? 'DIA 6' : `TREINO ${k}`),
-            badge: dbItem.badge || k,
-            isHiit: isHiit,
-            type: schedMatch ? schedMatch.type : (isOff ? 'Off' : (isHiit ? 'HIIT' : (isCardio ? 'Cardio' : 'Treino'))),
-            title: (schedMatch && schedMatch.title) ? schedMatch.title : (dbItem.name || (isHiit ? 'HIIT Norueguês 4x4' : `Treino ${k}`)),
-            sub: (schedMatch && (schedMatch.sub || schedMatch.focus))
-              ? (schedMatch.sub || schedMatch.focus)
-              : (dbItem.subtitle || (exCount > 0 ? `${exCount} exercícios · ${setsCount} séries` : '')),
-            exCount: exCount,
-            setsCount: setsCount,
-            synergy: (schedMatch && schedMatch.synergy) ? schedMatch.synergy : {}
-          });
-        }
-      });
+        // Marcação de conclusão: dia concluído hoje
+        const isCompleted = (patientState.workoutDone && selectedScheduleDay === dayNum) ||
+          (patientState.history && patientState.history[getLocalDateIso()] && patientState.history[getLocalDateIso()].workoutDone && selectedScheduleDay === dayNum);
 
-      // Fallback para WEEKLY_SCHEDULE_DATA se WORKOUT_DATABASE estiver sem as chaves esperadas
-      if (sourceList.length === 0 && Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0) {
-        const seen = new Set();
-        WEEKLY_SCHEDULE_DATA.forEach((d, idx) => {
-          const rKey = d.routineKey || (d.type === 'Off' ? 'OFF' : (d.type === 'HIIT' || d.isHiit ? 'HIIT' : (d.type === 'Cardio' ? 'Cardio' : 'A')));
-          if (!seen.has(rKey)) {
-            seen.add(rKey);
-            const isHiitD = d.type === 'HIIT' || d.isHiit || rKey === 'HIIT';
-            sourceList.push({
-              routineKey: rKey,
-              dayNum: d.dayNum || (idx + 1),
-              dayName: d.dayName || (isHiitD ? 'DIA 6' : `TREINO ${rKey}`),
-              badge: rKey,
-              isHiit: isHiitD,
-              type: d.type || (isHiitD ? 'HIIT' : 'Treino'),
-              title: d.title || (isHiitD ? 'HIIT Norueguês 4x4' : `Treino ${rKey}`),
-              sub: d.sub || d.focus || '',
-              exCount: 0,
-              setsCount: 0,
-              synergy: d.synergy || {}
-            });
+        const isTreinoCardio = d.type === 'Treino + Cardio' || !!d.hasCardioPost;
+        const isTreino = (d.type === 'Treino' || isTreinoCardio);
+        const isHiit = (d.type === 'HIIT' || d.isHiit);
+        const isCardio = (d.type === 'Cardio' || isHiit) && !isTreinoCardio;
+        const isOff = (d.type === 'Off' || d.type === 'off') && !isHiit && !isTreino;
+
+        // Estilos e cores alternadas fiéis ao PDF
+        let colorBorder = '';
+        let badgeColor = '';
+        let dayNumColor = '';
+
+        if (isSelected) {
+          if (isCardio || isHiit) {
+            colorBorder = 'border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.7)] bg-gradient-to-b from-orange-950/70 via-black to-zinc-950 scale-[1.02] ring-1 ring-orange-400';
+            badgeColor = 'bg-orange-900 text-orange-200 border-orange-500 font-bold';
+            dayNumColor = 'text-orange-400';
+          } else if (isOff) {
+            colorBorder = 'border-zinc-500 shadow-[0_0_15px_rgba(113,113,122,0.5)] bg-gradient-to-b from-zinc-900/80 via-black to-zinc-950 scale-[1.02] ring-1 ring-zinc-400';
+            badgeColor = 'bg-zinc-800 text-zinc-200 border-zinc-600 font-bold';
+            dayNumColor = 'text-zinc-400';
+          } else {
+            colorBorder = 'border-blue-500 shadow-[0_0_16px_rgba(59,130,246,0.7)] bg-gradient-to-b from-blue-950/70 via-black to-zinc-950 scale-[1.02] ring-1 ring-blue-400';
+            badgeColor = 'bg-blue-900 text-blue-200 border-blue-500 font-bold';
+            dayNumColor = 'text-blue-400';
           }
-        });
-      }
+        } else {
+          if (isCompleted) {
+            colorBorder = 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600';
+            badgeColor = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+            dayNumColor = 'text-emerald-400';
+          } else if (isCardio || isHiit) {
+            colorBorder = 'border-orange-900/50 bg-black/60 hover:border-orange-600';
+            badgeColor = 'bg-orange-950 text-orange-300 border-orange-800';
+            dayNumColor = 'text-orange-400/80';
+          } else if (isOff) {
+            colorBorder = 'border-zinc-800 bg-black/60 hover:border-zinc-700';
+            badgeColor = 'bg-zinc-900 text-zinc-400 border-zinc-800';
+            dayNumColor = 'text-zinc-500';
+          } else {
+            colorBorder = 'border-zinc-800 bg-black/60 hover:border-zinc-700';
+            badgeColor = 'bg-zinc-900 text-zinc-300 border-zinc-800';
+            dayNumColor = 'text-blue-400/80';
+          }
+        }
 
-      container.innerHTML = sourceList.map(d => {
-        const isSelected = (d.routineKey === selectedRoutineKey);
-        // isCompleted: rotina concluída hoje — independente de qual card está selecionado
-        const isCompleted = patientState.completedRoutineKey === d.routineKey ||
-          (d.routineKey === selectedRoutineKey && isSelected && patientState.workoutDone);
-
-        const colorBorder = isSelected
-          ? (d.isHiit
-              ? 'border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.7)] bg-orange-950/90 scale-[1.02]'
-              : 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] bg-blue-950/90 scale-[1.02]')
-          : (isCompleted
-            ? 'border-emerald-700/70 bg-emerald-950/20 hover:border-emerald-600'
-            : (d.isHiit
-                ? 'border-orange-900/50 bg-black/70 hover:border-orange-600'
-                : 'border-zinc-800 bg-black/60 hover:border-zinc-700'));
-
-        const badgeColor = isCompleted
-          ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-          : (isSelected
-            ? (d.isHiit ? 'bg-orange-900 text-orange-200 border-orange-500 font-bold' : 'bg-blue-900 text-blue-200 border-blue-500 font-bold')
-            : (d.isHiit
-                ? 'bg-orange-950 text-orange-300 border-orange-800'
-                : (d.type === 'Treino + Cardio'
-                  ? 'bg-amber-950 text-amber-300 border-amber-800'
-                  : (d.type === 'Cardio'
-                    ? 'bg-amber-950 text-amber-300 border-amber-800'
-                    : (d.type === 'Off' || d.type === 'off'
-                      ? 'bg-zinc-900 text-zinc-400 border-zinc-800'
-                      : 'bg-zinc-900 text-zinc-300 border-zinc-800')))));
-
-        const badgeText = isCompleted
-          ? '✅ Feito'
-          : (isSelected
-            ? '🎯 Em execução'
-            : (d.isHiit ? '🔥 HIIT' : (d.type === 'Off' || d.type === 'off' ? 'Descanso' : d.type)));
-
-        const routineLetter = d.badge || (d.routineKey ? d.routineKey : (d.type === 'Off' ? 'OFF' : (d.isHiit ? 'HIIT' : 'Z2')));
-        const routineBadge = d.routineKey
-          ? (d.routineKey === 'OFF' ? 'DESCANSO' : (d.routineKey === 'HIIT' ? 'HIIT 4x4' : (d.routineKey === 'Cardio' ? 'CARDIO' : `TREINO ${d.routineKey}`)))
-          : (d.type === 'Off' ? 'DESCANSO' : (d.type === 'HIIT' ? 'HIIT 4x4' : 'CARDIO'));
-        const targetRoutineKey = d.routineKey || (d.type === 'Off' || d.type === 'off' ? 'OFF' : (d.isHiit ? 'HIIT' : (d.type === 'Cardio' ? 'Cardio' : 'A')));
-
-        const exInfo = d.exCount > 0 ? `${d.exCount} exercícios · ${d.setsCount} séries` : '';
+        const badgeStatus = isCompleted ? '✅ Feito' : (isSelected ? '🎯 Alvo Ativo' : d.type);
+        const dayLabel = `DIA ${dayNum}`;
+        const routineLetter = d.routineKey || (isOff ? 'OFF' : (isCardio ? 'Z2' : 'T'));
 
         return `
-          <div onclick="selectRoutine('${targetRoutineKey}', ${d.dayNum || 1})"
-            data-routine="${targetRoutineKey}"
-            class="min-w-[160px] max-w-[195px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-1.5">
+          <div onclick="selectScheduleDay(${dayNum})"
+            data-day="${dayNum}"
+            class="min-w-[170px] max-w-[210px] p-2.5 rounded-xl border ${colorBorder} cursor-pointer active:scale-95 transition-all flex flex-col justify-between shrink-0 space-y-2">
+            
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono font-bold text-white flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full ${isSelected ? (d.isHiit ? 'bg-orange-400 animate-ping' : 'bg-blue-400 animate-ping') : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
-                <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 font-black text-xs ${isSelected ? (d.isHiit ? 'text-orange-300 border-orange-500/60' : 'text-blue-300 border-blue-500/60') : 'text-zinc-200'}">${routineLetter}</span>
-                <span class="uppercase tracking-wider text-[9px] ${isSelected ? (d.isHiit ? 'text-orange-200 font-bold' : 'text-blue-200 font-bold') : 'text-zinc-400'}">${routineBadge}</span>
+                <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-white animate-ping' : (isCompleted ? 'bg-emerald-400' : 'bg-zinc-600')}"></span>
+                <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 font-black text-xs ${dayNumColor}">${dayLabel}</span>
+                ${isTreino && routineLetter ? `<span class="text-[9px] font-mono text-zinc-400 font-bold">${routineLetter}</span>` : ''}
               </span>
               <span class="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded border ${badgeColor}">
-                ${badgeText}
+                ${badgeStatus}
               </span>
             </div>
+
             <div>
               <h4 class="text-xs font-black text-white line-clamp-1 mt-0.5">${d.title}</h4>
-              <p class="text-[9px] text-zinc-400 line-clamp-1 mt-0.5">${d.sub || d.focus || ''}</p>
-              ${exInfo ? `<div class="text-[8px] font-mono text-zinc-500 mt-1 flex items-center gap-1"><span>${exInfo}</span></div>` : ''}
+              <p class="text-[9px] text-zinc-400 line-clamp-2 mt-0.5">${d.focus || d.sub || ''}</p>
+            </div>
+
+            <!-- Sinergia Nutricional em Destaque no Card -->
+            <div class="pt-1.5 border-t border-zinc-800/60 flex items-center justify-between text-[8px] font-mono text-zinc-400">
+              <span class="text-amber-400/90 truncate max-w-[95px]">🌾 ${d.synergy?.carbo || 'Carbo peri-treino'}</span>
+              <span class="text-blue-400/90 shrink-0">🥩 ${d.synergy?.prot || '2.2 g/kg'}</span>
             </div>
           </div>
         `;
@@ -8158,11 +8231,27 @@
     }
 
     function selectScheduleDay(dayNum) {
-      selectedScheduleDay = dayNum;
-      patientState.selectedScheduleDay = dayNum;
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === dayNum);
-      const rKey = dayData ? (dayData.routineKey || (dayData.type === 'Off' || dayData.type === 'off' ? 'OFF' : (dayData.type === 'Cardio' ? 'Cardio' : 'A'))) : 'A';
-      selectRoutine(rKey, dayNum);
+      selectedScheduleDay = Number(dayNum);
+      patientState.selectedScheduleDay = selectedScheduleDay;
+
+      const schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7
+        ? WEEKLY_SCHEDULE_DATA
+        : buildCanonicalWeeklyScheduleForPatient(patientState.activeSplit || 'PPL', patientState.workoutPlan, patientState.cardioPrescription);
+
+      const dayData = schedule.find(d => d.dayNum === selectedScheduleDay) || schedule[selectedScheduleDay - 1] || schedule[0];
+      if (dayData) {
+        selectedRoutineKey = dayData.routineKey || (dayData.type === 'Off' ? 'OFF' : (dayData.type === 'Cardio' || dayData.type === 'HIIT' ? 'Cardio' : 'A'));
+        patientState.selectedRoutineKey = selectedRoutineKey;
+      }
+
+      saveState();
+      renderWeeklyCarousel();
+      renderHeroWorkoutSelector();
+      updateSynergyCard();
+      renderWorkoutExercises();
+      updateWorkoutVisuals();
+
+      if (window.lucide) window.lucide.createIcons();
     }
 
     function updateSynergyCard() {
@@ -8408,49 +8497,207 @@
     }
     window.renderWeeklyNutritionView = renderWeeklyNutritionView;
 
-    // 9. FICHA DE EXERCÍCIOS DETALHADA (ESTILO FIGURA 3)
+    // 9. FICHA DE EXERCÍCIOS & PROTOCOLOS DIA A DIA (SINCRONIZADA COM O PDF)
     function renderWorkoutExercises() {
       const container = document.getElementById('patientExercisesList');
       if (!container) return;
 
-      const routine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || {
-        badge: selectedRoutineKey || 'A',
-        name: `Treino ${selectedRoutineKey || 'A'}`,
-        subtitle: 'Exercícios estruturados',
-        exercises: []
-      };
+      const schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7
+        ? WEEKLY_SCHEDULE_DATA
+        : buildCanonicalWeeklyScheduleForPatient(patientState.activeSplit || 'PPL', patientState.workoutPlan, patientState.cardioPrescription);
 
-      const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
+      const dayData = schedule.find(d => d.dayNum === selectedScheduleDay) || schedule[selectedScheduleDay - 1] || schedule[0];
+      const isCardioDay = dayData && (dayData.type === 'Cardio' || dayData.type === 'HIIT' || dayData.isHiit || dayData.routineKey === 'Cardio' || dayData.routineKey === 'HIIT');
+      const isOffDay = dayData && (dayData.type === 'Off' || dayData.type === 'off' || dayData.routineKey === 'OFF');
 
       // Atualiza Header do Treino Selecionado
       const bEl = document.getElementById('workoutRoutineBadge');
-      if (bEl) {
-        const prefix = dayData?.dayName ? `${dayData.dayName} · ` : '';
-        bEl.textContent = `${prefix}${routine.badge || selectedRoutineKey}`;
+      if (bEl && dayData) {
+        bEl.textContent = `${dayData.dayName || ('DIA ' + dayData.dayNum)} · ${dayData.type.toUpperCase()}`;
       }
 
       const tEl = document.getElementById('workoutRoutineTitle');
-      if (tEl) {
-        tEl.textContent = dayData?.title || routine.name || `Treino ${selectedRoutineKey}`;
+      if (tEl && dayData) {
+        tEl.textContent = dayData.title || `Treino ${selectedRoutineKey}`;
       }
 
       const sEl = document.getElementById('workoutRoutineSubtitle');
-      if (sEl) {
-        sEl.textContent = dayData?.sub || dayData?.focus || routine.subtitle || '';
+      if (sEl && dayData) {
+        sEl.textContent = dayData.focus || dayData.sub || '';
       }
 
-      // Oculta/Exibe a diretriz de progressão dependendo do tipo
       const progEl = document.getElementById('workoutFooterProgression');
       if (progEl) {
-        progEl.style.display = (routine.isOff || routine.isCardio || routine.isHiit) ? 'none' : 'flex';
+        progEl.style.display = (isOffDay || isCardioDay) ? 'none' : 'flex';
       }
+
+      // ─────────────────────────────────────────────────────────────
+      // CASO A: DIA DE CARDIO / HYROX / ENGINE (Ex: DIA 3 ou DIA 6)
+      // ─────────────────────────────────────────────────────────────
+      if (isCardioDay) {
+        const proto = resolveCardioProtocolForDay(dayData);
+        if (proto && Array.isArray(proto.blocks) && proto.blocks.length > 0) {
+          const blocksHtml = proto.blocks.map(b => {
+            const checkKey = `cardio_d${dayData.dayNum}_b${b.num}`;
+            const isDone = !!(patientState.exerciseChecks && patientState.exerciseChecks[checkKey]);
+            const itemLines = (Array.isArray(b.items) && b.items.length > 0) ? b.items : [b.name];
+            
+            // GIF de acordo com o bloco
+            let blockGif = 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/walking-on-incline-treadmill.gif';
+            const bNameLower = (b.name + ' ' + itemLines.join(' ')).toLowerCase();
+            if (bNameLower.includes('skierg')) blockGif = 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/rowing-machine.gif';
+            else if (bNameLower.includes('rowerg') || bNameLower.includes('remo')) blockGif = 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/rowing-machine.gif';
+            else if (bNameLower.includes('wall ball')) blockGif = 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-front-plank.gif';
+            else if (bNameLower.includes('sled') || bNameLower.includes('airbike')) blockGif = 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/stationary-bike.gif';
+
+            return `
+              <div class="p-3.5 rounded-xl ${isDone ? 'bg-[#00C896]/10 border-[#00C896]/50 shadow-sm' : 'bg-[#121518] border-orange-500/40'} border space-y-2.5 transition-all">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-xs font-mono font-black ${isDone ? 'text-[#00C896] bg-[#00C896]/20 border-[#00C896]/40' : 'text-orange-400 bg-orange-950/60 border-orange-500/40'} px-2 py-0.5 rounded border shrink-0">
+                      BLOCO ${b.num}
+                    </span>
+                    <div>
+                      <h3 class="text-xs sm:text-sm font-black ${isDone ? 'text-[#00C896]' : 'text-white'}">${b.name}</h3>
+                      <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-300 border border-orange-800">
+                          ${proto.category || 'Engine'} · ${proto.intensityZone || 'Z3/Z4'}
+                        </span>
+                        <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#171B1F] text-zinc-400 border border-[#272C31]">
+                          ${proto.equipment || 'Ergômetro / Funcional'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a href="https://www.gifdotreino.com/" target="_blank"
+                    class="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-950/60 hover:bg-orange-900 border border-orange-600/60 text-[10px] font-mono font-bold text-orange-200 transition-colors">
+                    <span>🎬 GIF</span>
+                  </a>
+                </div>
+
+                <!-- Detalhes do Bloco -->
+                <div class="p-2.5 rounded-lg bg-[#08090A]/80 border border-zinc-800 text-[11px] text-zinc-300 space-y-1">
+                  ${itemLines.map(it => `<div class="flex items-start gap-1.5"><span class="text-orange-400">⚡</span><span>${it}</span></div>`).join('')}
+                </div>
+
+                <!-- Ação de Conclusão do Bloco -->
+                <div class="flex items-center justify-between pt-1 border-t border-zinc-800/80">
+                  <span class="text-[9px] font-mono text-zinc-400">Duração / Alvo: ${proto.timeCap || 'Intenso'}</span>
+                  <button type="button" onclick="toggleExerciseCheck('${checkKey}')"
+                    class="px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all active:scale-95 ${isDone ? 'bg-[#00C896] text-black shadow-[0_0_10px_rgba(0,200,150,0.4)]' : 'bg-[#171B1F] hover:bg-zinc-800 text-zinc-300 border border-[#272C31]'}">
+                    <i data-lucide="${isDone ? 'check-check' : 'square'}" class="w-3.5 h-3.5"></i>
+                    <span>${isDone ? 'Bloco Concluído' : 'Marcar Bloco'}</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          container.innerHTML = `
+            <div class="p-3 rounded-xl bg-orange-950/30 border border-orange-500/50 flex items-center justify-between text-xs text-orange-200 mb-2">
+              <span class="font-bold flex items-center gap-1.5">
+                <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i> ${proto.title}
+              </span>
+              <span class="font-mono text-[10px] bg-orange-900/60 px-2 py-0.5 rounded border border-orange-600">
+                ${proto.timeCap || '45 min'} • ${proto.calEst || '~500 kcal'}
+              </span>
+            </div>
+            ${blocksHtml}
+            ${proto.restrictions && proto.restrictions.length > 0 ? `
+              <div class="p-2.5 rounded-lg bg-zinc-900/60 border border-amber-800/40 text-[10px] text-amber-300 space-y-0.5">
+                <strong>⚠️ Restrições Técnicas:</strong> ${proto.restrictions.join(' • ')}
+              </div>
+            ` : ''}
+          `;
+
+          if (window.lucide) window.lucide.createIcons();
+          updateCardioVisuals();
+          updateWorkoutVisuals();
+          return;
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // CASO B: DIA DE DESCANSO TOTAL (OFF - Ex: DIA 7)
+      // ─────────────────────────────────────────────────────────────
+      if (isOffDay) {
+        const offRoutine = WORKOUT_DATABASE['OFF'] || { exercises: [] };
+        const exercises = (offRoutine.exercises && offRoutine.exercises.length > 0) ? offRoutine.exercises : [
+          { num: 1, id: 'rec_sleep', name: 'Sono Anabólico Reparador (8-9h de Sono Profundo)', group: 'Regeneração', equip: 'Quarto Escuro e Frio', steps: ['Garanta 8 a 9 horas de sono para maximizar a síntese proteica miofibrilar.'] },
+          { num: 2, id: 'rec_mob', name: 'Mobilidade Articular e Liberação Miofascial Leve (15-20 min)', group: 'Mobilidade', equip: 'Rolo de Liberação / Solo', steps: ['Execute 10-15 minutos de mobilidade de tornozelo, quadril e torácica.'] },
+          { num: 3, id: 'rec_elec', name: 'Hidratação Eletrolítica & Síntese Proteica Fracionada', group: 'Nutrição', equip: 'Garrafa de Água + Dieta', steps: ['Beba a meta hídrica diária e mantenha o aporte proteico prescrito.'] }
+        ];
+
+        container.innerHTML = `
+          <div class="p-3 rounded-xl bg-zinc-900/60 border border-zinc-700/60 flex items-center justify-between text-xs text-zinc-300 mb-2">
+            <span class="font-bold flex items-center gap-1.5">
+              <i data-lucide="coffee" class="w-4 h-4 text-zinc-400"></i> Descanso Total · Regeneração Sistêmica
+            </span>
+            <span class="font-mono text-[10px] bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
+              Supercompensação do SNC
+            </span>
+          </div>
+          ${exercises.map(ex => {
+            const isDone = !!(patientState.exerciseChecks && patientState.exerciseChecks[ex.id]);
+            return `
+              <div class="p-3.5 rounded-xl ${isDone ? 'bg-[#00C896]/10 border-[#00C896]/50 shadow-sm' : 'bg-[#121518] border-[#272C31]'} border space-y-2.5 transition-all">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-xs font-mono font-black text-zinc-400 bg-zinc-900 border border-zinc-700 px-2 py-0.5 rounded shrink-0">
+                      #${ex.num}
+                    </span>
+                    <div>
+                      <h3 class="text-xs sm:text-sm font-black ${isDone ? 'text-[#00C896]' : 'text-white'}">${ex.name}</h3>
+                      <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#171B1F] text-zinc-300 border border-[#272C31]">
+                          ${ex.group}
+                        </span>
+                        <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#171B1F] text-zinc-400 border border-[#272C31]">
+                          ${ex.equip}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[11px] text-zinc-400">
+                  ${Array.isArray(ex.steps) ? ex.steps.join(' ') : (ex.steps || '')}
+                </div>
+                <div class="flex items-center justify-end pt-1 border-t border-zinc-800/80">
+                  <button type="button" onclick="toggleExerciseCheck('${ex.id}')"
+                    class="px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all active:scale-95 ${isDone ? 'bg-[#00C896] text-black shadow-[0_0_10px_rgba(0,200,150,0.4)]' : 'bg-[#171B1F] hover:bg-zinc-800 text-zinc-300 border border-[#272C31]'}">
+                    <i data-lucide="${isDone ? 'check-check' : 'square'}" class="w-3.5 h-3.5"></i>
+                    <span>${isDone ? 'Cumprido' : 'Marcar Ação'}</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+        updateCardioVisuals();
+        updateWorkoutVisuals();
+        return;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // CASO C: DIA DE MUSCULAÇÃO (TREINOS DE FORÇA A, B, C...)
+      // ─────────────────────────────────────────────────────────────
+      const rKey = (dayData && dayData.routineKey) ? dayData.routineKey : (selectedRoutineKey || 'A');
+      const routine = WORKOUT_DATABASE[rKey] || WORKOUT_DATABASE['A'] || {
+        badge: rKey,
+        name: `Treino ${rKey}`,
+        subtitle: 'Exercícios estruturados',
+        exercises: []
+      };
 
       const exList = Array.isArray(routine.exercises) ? routine.exercises : [];
       if (exList.length === 0) {
         container.innerHTML = `
           <div class="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-1">
-            <p class="text-sm font-bold text-zinc-300">Dia de Recuperação ou Sem Exercícios</p>
-            <p class="text-xs text-zinc-500">Mantenha a hidratação e a alimentação estruturada.</p>
+            <p class="text-sm font-bold text-zinc-300">Nenhum exercício encontrado para este dia</p>
+            <p class="text-xs text-zinc-500">Aguardando sincronização de prescrição do profissional.</p>
           </div>
         `;
         return;
@@ -8469,11 +8716,11 @@
           resistBadge = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-700">⚡ ${resistStr}</span>`;
         }
 
-        const setsLabel = routine.isCardio ? 'Bloco' : (routine.isOff ? 'Ação' : 'Séries');
-        const repsLabel = routine.isCardio ? 'Tempo' : (routine.isOff ? 'Meta' : 'Reps');
-        const rpeLabel = routine.isCardio ? 'Esforço' : (routine.isOff ? 'RPE' : 'RPE');
-        const pauseLabel = routine.isCardio ? 'Pausa' : (routine.isOff ? 'Status' : 'Pausa');
-        const pauseValue = routine.isCardio ? '0s' : (routine.isOff ? 'OK' : `${ex.rest || 60}s`);
+        const setsVal = ex.sets || 3;
+        const repsVal = ex.reps || '8-10';
+        const rpeVal = ex.rpe || 8;
+        const restVal = `${ex.rest || 60}s`;
+        const gifUrl = ex.gif || 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
 
         return `
           <div class="p-3.5 rounded-xl ${isDone ? 'bg-[#00C896]/10 border-[#00C896]/50 shadow-sm' : 'bg-[#121518] border-[#272C31]'} border space-y-2.5 transition-all">
@@ -8486,8 +8733,6 @@
                 </span>
                 <div>
                   <h3 class="text-xs sm:text-sm font-black ${isDone ? 'text-[#00C896]' : 'text-white'}">${ex.name}</h3>
-                  
-                  <!-- Tags de Grupo & Equipamento -->
                   <div class="flex items-center gap-1.5 flex-wrap mt-1">
                     <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#171B1F] text-zinc-300 border border-[#272C31]">
                       ${ex.group}
@@ -8499,183 +8744,55 @@
                 </div>
               </div>
 
-              <!-- Botão GIF & Execução em Destaque -->
-              <button onclick="openExerciseGuideModal('${ex.id}', '${encodeURIComponent(ex.name || '')}')"
-                class="px-2.5 py-1.5 rounded-xl bg-[#171B1F] hover:bg-[#272C31] border border-[#272C31] text-zinc-200 hover:text-white font-bold text-[11px] flex items-center gap-1.5 active:scale-95 transition-all shrink-0">
-                <i data-lucide="video" class="w-3.5 h-3.5 text-[#E50914]"></i>
+              <!-- Botão GIF com Modal Interativo -->
+              <button type="button" onclick="openExerciseGifModal('${ex.name.replace(/'/g, "\\'")}', '${gifUrl}', '${(ex.steps ? (Array.isArray(ex.steps) ? ex.steps.join(' ') : ex.steps) : '').replace(/'/g, "\\'")}', '${(ex.breathing || '').replace(/'/g, "\\'")}', '${(ex.mistakes || '').replace(/'/g, "\\'")}')"
+                class="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171B1F] hover:bg-zinc-800 border border-[#272C31] text-[10px] font-mono font-bold text-zinc-300 hover:text-white transition-colors">
+                <i data-lucide="play-circle" class="w-3.5 h-3.5 text-[#E50914]"></i>
                 <span>GIF</span>
               </button>
             </div>
 
-            <!-- Mapeamento Biomecânico & Cadência -->
-            <div class="text-[10px] text-zinc-400 space-y-0.5 border-t border-zinc-800/60 pt-2">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span>🎯 <strong class="text-zinc-300">Primário:</strong> ${ex.primary}</span>
+            <!-- Grid de Prescrição Biomecânica -->
+            <div class="grid grid-cols-4 gap-1.5 text-center">
+              <div class="p-1.5 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+                <div class="text-[8px] font-mono text-zinc-400 uppercase">Séries</div>
+                <div class="text-xs font-black text-white font-mono mt-0.5">${setsVal}</div>
               </div>
-              <div class="flex items-center gap-1.5 flex-wrap text-zinc-400">
-                <span>⚡ <strong class="text-zinc-300">Sinérgicos:</strong> ${ex.secondary}</span>
+              <div class="p-1.5 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+                <div class="text-[8px] font-mono text-zinc-400 uppercase">Reps</div>
+                <div class="text-xs font-black text-white font-mono mt-0.5">${repsVal}</div>
               </div>
-              <div class="flex items-center gap-2 flex-wrap pt-0.5">
-                <span class="font-mono text-zinc-300">⏱️ ${ex.cadence}</span>
-                ${resistBadge}
+              <div class="p-1.5 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+                <div class="text-[8px] font-mono text-zinc-400 uppercase">RPE</div>
+                <div class="text-xs font-black text-amber-400 font-mono mt-0.5">${rpeVal}</div>
               </div>
-              ${ex.obs ? `<div class="text-[10px] text-zinc-400 italic pt-1">💡 ${ex.obs}</div>` : ''}
+              <div class="p-1.5 rounded-lg bg-[#08090A]/80 border border-[#272C31]">
+                <div class="text-[8px] font-mono text-zinc-400 uppercase">Pausa</div>
+                <div class="text-xs font-black text-sky-400 font-mono mt-0.5">${restVal}</div>
+              </div>
             </div>
 
-            <!-- Grade de Parâmetros Prescritos (Métricas por Modalidade) e Checkbox -->
-            <div class="flex items-center justify-between gap-2 pt-1">
-              <div class="grid grid-cols-4 gap-1.5 text-center flex-1">
-                ${(() => {
-                  if (ex.distanceKm != null || ex.paceMinKm != null) {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-900/50">
-                        <span class="text-[8px] font-mono text-emerald-400 block uppercase">Distância</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.distanceKm || 0} km</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-900/50">
-                        <span class="text-[8px] font-mono text-emerald-400 block uppercase">Pace</span>
-                        <span class="text-xs font-black text-emerald-300 font-mono">${ex.paceMinKm || ex.reps || '5:30'}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
-                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 7}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
-                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
-                      </div>
-                    `;
-                  } else if (ex.powerWatts != null || ex.cadenceRpm != null) {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-amber-900/50">
-                        <span class="text-[8px] font-mono text-amber-400 block uppercase">Potência</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.powerWatts || 150}W</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-amber-900/50">
-                        <span class="text-[8px] font-mono text-amber-400 block uppercase">Cadência</span>
-                        <span class="text-xs font-black text-amber-300 font-mono">${ex.cadenceRpm || 85} rpm</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
-                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 7}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Duração</span>
-                        <span class="text-xs font-black text-blue-400 font-mono">${ex.durationMinutes ? `${ex.durationMinutes}m` : (ex.reps || '30m')}</span>
-                      </div>
-                    `;
-                  } else if (ex.totalMeters != null) {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-cyan-900/50">
-                        <span class="text-[8px] font-mono text-cyan-400 block uppercase">Metros</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.totalMeters}m</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-cyan-900/50">
-                        <span class="text-[8px] font-mono text-cyan-400 block uppercase">Séries</span>
-                        <span class="text-xs font-black text-cyan-300 font-mono">${ex.sets || 1}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
-                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 7}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
-                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
-                      </div>
-                    `;
-                  } else if (ex.dailyStepsTarget != null) {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-teal-900/50">
-                        <span class="text-[8px] font-mono text-teal-400 block uppercase">Passos</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.dailyStepsTarget.toLocaleString('pt-BR')}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-teal-900/50">
-                        <span class="text-[8px] font-mono text-teal-400 block uppercase">Meta</span>
-                        <span class="text-xs font-black text-teal-300 font-mono">NEAT</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
-                        <span class="text-xs font-black text-teal-400 font-mono">${ex.rpe || 3}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
-                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
-                      </div>
-                    `;
-                  } else if (ex.roundsCount != null) {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-rose-900/50">
-                        <span class="text-[8px] font-mono text-rose-400 block uppercase">Rounds</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.roundsCount}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-rose-900/50">
-                        <span class="text-[8px] font-mono text-rose-400 block uppercase">Reps / Meta</span>
-                        <span class="text-xs font-black text-rose-300 font-mono">${ex.reps || 'Máx'}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">RPE</span>
-                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe || 8}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Pausa</span>
-                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
-                      </div>
-                    `;
-                  } else if (ex.intensityType === 'INTERVALS' || ex.tiro != null || routine.isHiit) {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-orange-950/40 border border-orange-500/50">
-                        <span class="text-[8px] font-mono text-orange-400 block uppercase">Tiro</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.tiro ? '4 min' : (ex.reps || '4 min')}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-blue-950/40 border border-blue-500/50">
-                        <span class="text-[8px] font-mono text-blue-400 block uppercase">Descanso</span>
-                        <span class="text-xs font-black text-blue-300 font-mono">${ex.descansoAtivo ? '3 min Z2' : '3 min'}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-amber-400 block uppercase">Ciclos</span>
-                        <span class="text-xs font-black text-amber-300 font-mono">${ex.sets || 4}x</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">Zona Alvo</span>
-                        <span class="text-xs font-black text-rose-400 font-mono">Z4/Z5</span>
-                      </div>
-                    `;
-                  } else {
-                    return `
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${setsLabel}</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.sets}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${repsLabel}</span>
-                        <span class="text-xs font-black text-white font-mono">${ex.reps}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${rpeLabel}</span>
-                        <span class="text-xs font-black text-amber-400 font-mono">${ex.rpe}</span>
-                      </div>
-                      <div class="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 ${ex.rest > 0 ? 'cursor-pointer hover:border-blue-500' : ''}" onclick="${ex.rest > 0 ? `startRestTimer(${ex.rest})` : ''}">
-                        <span class="text-[8px] font-mono text-zinc-400 block uppercase">${pauseLabel}</span>
-                        <span class="text-xs font-black text-blue-400 font-mono">${pauseValue}</span>
-                      </div>
-                    `;
-                  }
-                })()}
+            <!-- Foco Biomecânico & Checklist -->
+            <div class="flex items-center justify-between pt-1 border-t border-zinc-800/80">
+              <div class="flex items-center gap-1 text-[9px] font-mono text-zinc-400">
+                ${resistBadge}
+                <span class="truncate max-w-[120px] text-zinc-400">🎯 ${ex.primary || 'Músculo Alvo'}</span>
               </div>
 
-              <!-- Checkbox de Conclusão do Exercício -->
-              <button onclick="toggleExerciseCheck('${ex.id}')"
-                class="w-10 h-10 rounded-xl ${isDone ? 'checkbox-done-blue text-white' : 'bg-zinc-900 border border-zinc-700 text-zinc-500'} flex items-center justify-center shrink-0 active:scale-95 transition-all">
-                <i data-lucide="check" class="w-5 h-5"></i>
+              <!-- Checkbox de Conclusão -->
+              <button type="button" onclick="toggleExerciseCheck('${ex.id}')"
+                class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all active:scale-95 ${isDone ? 'bg-[#00C896] text-black shadow-[0_0_10px_rgba(0,200,150,0.4)]' : 'bg-[#171B1F] hover:bg-zinc-800 text-zinc-300 border border-[#272C31]'}">
+                <i data-lucide="${isDone ? 'check-check' : 'square'}" class="w-3.5 h-3.5"></i>
+                <span>${isDone ? 'Feito' : 'Check'}</span>
               </button>
             </div>
+
           </div>
         `;
       }).join('');
 
-      // Controla o Card de Cardio Integrado Dinamicamente
+      // Controla o Card de Cardio Integrado Dinamicamente (se houver cardio pós-treino no dia)
       renderWorkoutCardioBlock();
-
       updateCardioVisuals();
       updateWorkoutVisuals();
     }

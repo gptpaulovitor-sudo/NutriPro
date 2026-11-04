@@ -13078,12 +13078,58 @@ function syncActivePatientToPatientApp(patientId = activePatientId, explicitCycl
     formattedWorkout['Cardio'] = {
       id: 'Cardio',
       name: cardioProto.title || cardioProto.name || 'Cardio Estruturado',
-      badge: cardioProto.intensityZone || 'Z2',
-      subtitle: `${cardioProto.timeCap || '45 min'} · ${cardioProto.foco || cardioProto.subtitle || 'Oxidação pura de ácidos graxos'}`,
+      badge: 'Z2',
+      subtitle: `${cardioProto.timeCap || '45 min'} · ${cardioProto.foco || 'Oxidação pura de ácidos graxos'}`,
       isCardio: true,
       isOff: false,
       exercises: cardioExercises
     };
+
+    // Gera também rotinas específicas para cada dia com cardio/engine prescrito na agenda semanal
+    const schedForCardioScan = Array.isArray(normalizedSchedule) && normalizedSchedule.length > 0
+      ? normalizedSchedule
+      : (typeof perfWeeklySchedule !== 'undefined' && Array.isArray(perfWeeklySchedule) ? perfWeeklySchedule : []);
+
+    if (Array.isArray(schedForCardioScan)) {
+      schedForCardioScan.forEach((d, idx) => {
+        if (d && (d.type === 'Cardio' || d.type === 'HIIT' || d.isHiit || (d.routine && String(d.routine).toLowerCase().includes('cardio')))) {
+          const dayProtoId = d.cardioSession?.protocolId || d.cardioId;
+          const dayProto = (dayProtoId && typeof PERF_CARDIO_DB !== 'undefined')
+            ? (PERF_CARDIO_DB.find(c => c.id === dayProtoId) || cardioProto)
+            : cardioProto;
+
+          if (dayProto && Array.isArray(dayProto.blocks) && dayProto.blocks.length > 0) {
+            const dExercises = dayProto.blocks.map((b, bIdx) => ({
+              num: bIdx + 1,
+              id: `card_d${idx + 1}_b${b.num}`,
+              name: b.name || `Bloco ${b.num}`,
+              group: 'Cardio & Engine',
+              equip: Array.isArray(dayProto.equipment) ? dayProto.equipment.join(' / ') : (dayProto.equipment || 'Ergômetro'),
+              primary: dayProto.category || 'Capacidade Aeróbia',
+              secondary: dayProto.foco || 'Engine Metabólico',
+              cadence: 'Ritmo Prescrito',
+              resist: dayProto.intensityZone || 'Z3/Z4',
+              sets: 1,
+              reps: dayProto.timeCap || '45 min',
+              rpe: 8,
+              rest: 0,
+              gif: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/rowing-machine.gif',
+              steps: b.items || [b.name]
+            }));
+
+            formattedWorkout[`Cardio_d${idx + 1}`] = {
+              id: `Cardio_d${idx + 1}`,
+              name: dayProto.title || d.title,
+              badge: 'ENGINE',
+              subtitle: dayProto.foco || d.focus,
+              isCardio: true,
+              isOff: false,
+              exercises: dExercises
+            };
+          }
+        }
+      });
+    }
   }
 
   if (!formattedWorkout['OFF']) {
@@ -28737,7 +28783,8 @@ function renderPerfTargetButtons() {
   const container = document.getElementById('perf-target-buttons-container');
   if (!container) return;
 
-  container.innerHTML = perfWorkoutPlan.map((routine, rIdx) => {
+  // Botões de rotina (A, B, C...) + Atalhos dos 7 Dias da Agenda (DIA 1 a DIA 7)
+  const routinesHtml = perfWorkoutPlan.map((routine, rIdx) => {
     const isTarget = routine.id === perfTargetRoutine;
     const isColor2 = perfIsRoutineColor2(routine, rIdx);
 
@@ -28751,10 +28798,26 @@ function renderPerfTargetButtons() {
     return `
       <button id="perf-target-${routine.id}" onclick="perfSetTarget('${routine.id}')"
         class="px-2.5 py-1 text-xs rounded-lg font-bold transition-all border ${isTarget ? activeStyle : inactiveStyle}">
-        ${routine.id}
+        Treino ${routine.id}
       </button>
     `;
   }).join('');
+
+  // Atalhos por Dia do Cronograma
+  const daysHtml = (Array.isArray(perfWeeklySchedule) && perfWeeklySchedule.length >= 7)
+    ? `<div class="flex items-center gap-1 border-l border-zinc-800 pl-2 ml-1">
+        ${perfWeeklySchedule.slice(0, 7).map((d, idx) => {
+          const isCardio = d.type === 'Cardio' || d.type === 'HIIT';
+          const isOff = d.type === 'Off';
+          const badge = isCardio ? '🔥' : isOff ? '☕' : (d.routineId || String.fromCharCode(65 + idx));
+          return `<button onclick="perfFocusDay('${d.dayKey || ('d' + (idx + 1))}')"
+            class="px-1.5 py-0.5 rounded text-[10px] font-mono border border-zinc-800 hover:border-zinc-600 bg-zinc-950 text-zinc-300 hover:text-white"
+            title="${d.title}">D${idx + 1} ${badge}</button>`;
+        }).join('')}
+       </div>`
+    : '';
+
+  container.innerHTML = `<div class="flex items-center gap-1.5 flex-wrap">${routinesHtml}${daysHtml}</div>`;
 }
 
 function renderPerfHudMetrics() {
