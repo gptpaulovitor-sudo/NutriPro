@@ -3414,22 +3414,94 @@
       if (!container || typeof container.appendChild !== 'function') return;
       container.innerHTML = '';
 
-      var levels = [3, 4, 4, 3, 4, 2, 4, 4, 4, 3, 4, 4, 3, 4, 3, 4, 4, 4, 3, 4, 4, 4, 3, 4, 4, 4, 3, 4];
+      // Usa dados reais do patientState.history e do ciclo ativo (N4.0 — Data real do celular)
+      var history = (typeof patientState !== 'undefined' && patientState.history) ? patientState.history : {};
+      var todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
 
-      levels.forEach(function(lvl, idx) {
-        var dayNum = idx + 1;
-        var cell = document.createElement('div');
-        cell.className = 'heatmap-cell heatmap-' + lvl + ' cursor-pointer flex items-center justify-center text-[7px] font-mono font-bold text-black/50 select-none';
-        cell.title = 'Dia ' + dayNum + ': IDC ' + (lvl === 4 ? '95-100%' : lvl === 3 ? '80-90%' : lvl === 2 ? '60-75%' : 'Descanso');
-        cell.onclick = function() {
-          var tooltip = document.getElementById('heatmapTooltip');
-          if (tooltip) {
-            var idcEst = lvl === 4 ? '100% (Todos hábitos)' : lvl === 3 ? '85% (Treino + Água)' : lvl === 2 ? '70% (Dieta + Água)' : 'Descanso / Off';
-            tooltip.innerHTML = '<strong>Dia ' + dayNum + ' do ciclo:</strong> IDC ' + idcEst;
+      // Determina startDate: prefere ciclo ativo, fallback = 28 dias atrás
+      var startIso = null;
+      try {
+        var cycle = (typeof patientState !== 'undefined') ? patientState.workoutCycle : null;
+        if (cycle && cycle.startDate) {
+          startIso = cycle.startDate.slice(0, 10);
+        }
+      } catch (_) {}
+      if (!startIso) {
+        // Sem ciclo ativo: exibe os 28 dias retroativos à data local atual
+        var todayParts = todayIso.split('-').map(Number);
+        var fallbackDate = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+        fallbackDate.setDate(fallbackDate.getDate() - 27);
+        startIso = fallbackDate.getFullYear() + '-' +
+          String(fallbackDate.getMonth() + 1).padStart(2, '0') + '-' +
+          String(fallbackDate.getDate()).padStart(2, '0');
+      }
+
+      // Converte startIso em objeto Date sem offset de timezone
+      var sp = startIso.split('-').map(Number);
+      var cycleStart = new Date(sp[0], sp[1] - 1, sp[2]);
+
+      var activeDays = 0;
+
+      for (var i = 0; i < 28; i++) {
+        var d = new Date(cycleStart.getTime());
+        d.setDate(d.getDate() + i);
+        var dayIso = d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0');
+        var dayNum = i + 1;
+
+        var isFuture = dayIso > todayIso;
+        var isToday = dayIso === todayIso;
+
+        var lvl = 0;
+        var idcScore = 0;
+        var labelIdc = 'Sem dados';
+        var labelDate = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+
+        if (!isFuture) {
+          var h = history[dayIso];
+          if (isToday && typeof patientState !== 'undefined' && patientState.scoreIDC != null) {
+            idcScore = patientState.scoreIDC;
+          } else if (h && h.scoreIDC != null) {
+            idcScore = h.scoreIDC;
+          } else if (h) {
+            // Recalcula IDC aproximado a partir dos campos de history
+            var mealAdh = (h.mealsTotal > 0) ? (h.mealsDone / h.mealsTotal) : 0;
+            var waterOk = (h.waterCurrent >= (h.waterTarget * 0.8)) ? 1 : (h.waterCurrent >= (h.waterTarget * 0.5) ? 0.5 : 0);
+            var workOk = h.workoutDone ? 1 : 0;
+            idcScore = Math.round(mealAdh * 40 + waterOk * 20 + workOk * 40);
           }
-        };
+
+          if (idcScore >= 90) { lvl = 4; labelIdc = idcScore + '% — Elite'; }
+          else if (idcScore >= 70) { lvl = 3; labelIdc = idcScore + '% — Sólido'; }
+          else if (idcScore >= 40) { lvl = 2; labelIdc = idcScore + '% — Razoável'; }
+          else if (idcScore > 0 || h) { lvl = 1; labelIdc = idcScore + '% — Fraco'; }
+          else { lvl = 0; labelIdc = 'Sem registro'; }
+
+          if (lvl > 0) activeDays++;
+        }
+
+        var cell = document.createElement('div');
+        cell.className = 'heatmap-cell heatmap-' + lvl +
+          ' cursor-pointer flex items-center justify-center text-[7px] font-mono font-bold text-black/50 select-none' +
+          (isFuture ? ' opacity-30' : '');
+        cell.title = 'Dia ' + dayNum + ' (' + labelDate + '): IDC ' + labelIdc;
+        (function(dn, lbl, ldate) {
+          cell.onclick = function() {
+            var tooltip = document.getElementById('heatmapTooltip');
+            if (tooltip) {
+              tooltip.innerHTML = '<strong>Dia ' + dn + ' (' + ldate + '):<\/strong> IDC ' + lbl;
+            }
+          };
+        })(dayNum, labelIdc, labelDate);
         container.appendChild(cell);
-      });
+      }
+
+      // Atualiza o contador dinâmico de dias ativos
+      var totalDoneEl = document.getElementById('heatmapTotalDone');
+      if (totalDoneEl) {
+        totalDoneEl.textContent = activeDays + ' / 28 dias ativos';
+      }
     };
 
     window.initHeroInteractive = function() {
@@ -7148,7 +7220,7 @@
       const last7Days = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 86400000);
-        last7Days.push(d.toISOString().split('T')[0]);
+        last7Days.push(getLocalDateIso(d));
       }
 
       const historyDotsHtml = last7Days.map(dateStr => {
@@ -7541,7 +7613,15 @@
       }
 
       const todayIso = getLocalDateIso();
-      const metrics = cycleMod.calculateCycleMetrics(cycle, patientState.history, todayIso);
+      const effectiveHistory = { ...(patientState.history || {}) };
+      if (patientState.workoutDone) {
+        effectiveHistory[todayIso] = {
+          ...(effectiveHistory[todayIso] || {}),
+          workoutDone: true,
+          date: todayIso
+        };
+      }
+      const metrics = cycleMod.calculateCycleMetrics(cycle, effectiveHistory, todayIso);
       if (!metrics) {
         container.innerHTML = '';
         return;
@@ -10373,6 +10453,17 @@
                 patientState.name = event.data.payload.patientName;
               }
               renderAll();
+            }
+          } else if (event.data.type === 'WORKOUT_CYCLE_RESET') {
+            if (event.data.workoutCycle) {
+              if (patientState.workoutCycle && patientState.workoutCycle.cycleId !== event.data.workoutCycle.cycleId) {
+                if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+                patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
+              }
+              patientState.workoutCycle = event.data.workoutCycle;
+              try { saveState(); } catch (_) {}
+              renderWorkoutCycleCard();
+              if (typeof renderConsistencyHeatmap === 'function') renderConsistencyHeatmap();
             }
           } else if (event.data.type === 'PERFORMANCE_UPDATED') {
             if (event.data.payload) {
