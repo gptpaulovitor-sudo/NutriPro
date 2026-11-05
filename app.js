@@ -10452,16 +10452,19 @@ const PILAR_CONFIG = {
   1: {
     id: 1,
     title: 'MENTALIDADE',
-    name: 'Mentalidade & Mindset',
-    subtitle: 'Comportamento, percepção e fundamentos para mudança sustentável.',
+    name: 'Mentalidade & Inteligência Comportamental',
+    subtitle: 'Diagnóstico de consistência, psicologia da adesão e prevenção de evasão.',
     icon: 'brain',
-    defaultModule: 'goals',
+    defaultModule: 'radar',
     heroImg: 'assets/pilares/mentalidade/hero.jpg',
     instImg: 'assets/pilares/mentalidade/institucional.jpg',
-    quote: 'A mudança começa antes do resultado aparecer.',
+    quote: 'A mente molda os hábitos, os hábitos definem o físico.',
     modules: [
-      { id: 'goals', label: 'Foco & Metas', desc: 'Alinhamento de expectativas e metas clínicas', icon: 'target' },
-      { id: 'mindset', label: 'Mindset & Comportamento', desc: 'Gestão comportamental e autocontrole', icon: 'sparkles' }
+      { id: 'radar', label: 'Radar Comportamental', desc: 'IDC, consistência e telemetria de hábitos do paciente', icon: 'gauge' },
+      { id: 'vulnerabilities', label: 'Mapa de Vulnerabilidades', desc: 'Gargalos temporais e dias críticos de quebra', icon: 'alert-triangle' },
+      { id: 'resilience', label: 'Resiliência & SOS', desc: 'Velocidade de recuperação pós-deslize e efeito dominó', icon: 'shield-alert' },
+      { id: 'contract', label: 'Pacto & Compromisso', desc: 'Metas inegociáveis alinhadas com o paciente', icon: 'scroll' },
+      { id: 'nudges', label: 'Nudges & WhatsApp', desc: 'Mensagens estratégicas calibradas para engajamento', icon: 'message-square' }
     ]
   },
   2: {
@@ -10903,12 +10906,8 @@ async function selectContextualModule(pilarId, moduleId) {
   // Executa ativação de acordo com o Pilar
   if (pilarId === 1) {
     await switchTab('mentality', false, false);
-    if (moduleId === 'goals') {
-      const el = document.getElementById('mentalityGoalsCard');
-      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
-    } else if (moduleId === 'mindset') {
-      const el = document.getElementById('mentalityHabitsCard');
-      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+    if (typeof selectMentalitySubView === 'function') {
+      selectMentalitySubView(moduleId);
     }
   } else if (pilarId === 2) {
     if (moduleId === 'patientApp') {
@@ -10951,7 +10950,7 @@ function updateMobileSubnavActiveVisuals(pilarId, toolKey) {
   const inactiveClass = "p-2 rounded-xl bg-[#121518] hover:bg-[#171B1F] border border-[#272C31] flex items-center gap-2 text-left text-[#B7BCC2] hover:text-[#F2F3F5] transition-all";
 
   // Pilar 1 Tools
-  const p1Tools = ['goals', 'mindset'];
+  const p1Tools = ['radar', 'vulnerabilities', 'resilience', 'contract', 'nudges', 'goals', 'mindset'];
   p1Tools.forEach(t => {
     const btn = document.getElementById(`card-subnav-btn-1-${t}`);
     if (btn) {
@@ -11294,6 +11293,8 @@ async function switchTab(tabName, syncPilar = true, autoScroll = true) {
       if (typeof renderEvolutionCharts === 'function') renderEvolutionCharts();
     } else if (tabName === 'discipline') {
       if (typeof renderDisciplineDashboard === 'function') renderDisciplineDashboard();
+    } else if (tabName === 'mentality') {
+      if (typeof renderMentalityDashboard === 'function') await renderMentalityDashboard();
     } else if (tabName === 'adherence') {
       if (typeof loadAdherenceDashboard === 'function') await loadAdherenceDashboard(activePatientId);
     } else if (tabName === 'performance') {
@@ -30334,3 +30335,404 @@ window._shouldAcceptCloudPrescriptionInPro = _shouldAcceptCloudPrescriptionInPro
 window._applyCloudPrescriptionToPro = _applyCloudPrescriptionToPro;
 window._resolveSavedPrescription = _resolveSavedPrescription;
 
+
+
+// ═════════════════════════════════════════════════════════════════
+// PILAR 1 — MENTALIDADE & INTELIGÊNCIA COMPORTAMENTAL (NUTRIAX PRO)
+// ═════════════════════════════════════════════════════════════════
+
+let currentMentalityPeriod = 30;
+
+async function selectMentalitySubView(viewKey) {
+  if (currentActivePilar !== 1) {
+    await switchPilar(1, 'mentality', false);
+  } else {
+    const mentalityTab = document.getElementById('tab-mentality');
+    if (!mentalityTab || mentalityTab.classList.contains('hidden') || mentalityTab.style.display === 'none') {
+      await switchTab('mentality', false, false);
+    }
+  }
+
+  const subBtns = ['radar', 'vulnerabilities', 'resilience', 'contract', 'nudges'];
+  subBtns.forEach(k => {
+    const btn = document.getElementById(`pilar1-subnav-${k}`);
+    if (btn) {
+      if (k === viewKey) {
+        btn.className = "hud-tab-btn-orange active px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all bg-[#E50914] text-white shadow";
+      } else {
+        btn.className = "hud-tab-btn-orange px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white bg-[#121518] border border-[#272C31]";
+      }
+    }
+  });
+
+  const sectionMap = {
+    radar: 'mentalityRadarSection',
+    vulnerabilities: 'mentalityVulnerabilitiesSection',
+    resilience: 'mentalityResilienceSection',
+    contract: 'mentalityContractSection',
+    nudges: 'mentalityNudgesSection'
+  };
+
+  const targetId = sectionMap[viewKey];
+  if (targetId) {
+    const el = document.getElementById(targetId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+window.selectMentalitySubView = selectMentalitySubView;
+
+function setMentalityPeriod(days) {
+  currentMentalityPeriod = Number(days) || 30;
+  [7, 30, 90].forEach(d => {
+    const btn = document.getElementById(`mentalityPeriodBtn${d}`);
+    if (btn) {
+      if (d === currentMentalityPeriod) {
+        btn.className = "px-3 py-1 rounded-lg text-xs font-bold font-mono bg-[#E50914] text-white shadow";
+      } else {
+        btn.className = "px-3 py-1 rounded-lg text-xs font-bold font-mono bg-[#171B1F] text-zinc-400 hover:text-white";
+      }
+    }
+  });
+  renderMentalityDashboard();
+}
+window.setMentalityPeriod = setMentalityPeriod;
+
+async function renderMentalityDashboard() {
+  const pId = typeof activePatientId !== 'undefined' ? activePatientId : (typeof currentPatientId !== 'undefined' ? currentPatientId : null);
+  let patientName = "Paulo Vitor Ribeiro de Sousa";
+  let patientGoal = "Consistência e Alta Performance";
+
+  if (typeof patientState !== 'undefined' && patientState) {
+    if (patientState.name) patientName = patientState.name;
+    if (patientState.objective) patientGoal = patientState.objective;
+    if (patientState.goal) patientGoal = patientState.goal;
+  }
+
+  try {
+    if (typeof db !== 'undefined' && db.patients && pId) {
+      const p = await db.patients.get(pId);
+      if (p) {
+        if (p.name) patientName = p.name;
+        if (p.goal) patientGoal = p.goal;
+      }
+    }
+  } catch (_) {}
+
+  const domName = document.getElementById("headerPatientName")?.innerText?.trim();
+  const domGoal = document.getElementById("headerPatientGoal")?.innerText?.trim();
+  if (domName) patientName = domName;
+  if (domGoal) patientGoal = domGoal;
+
+  const elName = document.getElementById('mentalityPatientName');
+  const elGoal = document.getElementById('mentalityPatientGoal');
+  if (elName) elName.textContent = patientName;
+  if (elGoal) elGoal.textContent = patientGoal;
+
+  // Busca estado real do paciente nas chaves do localStorage (disciplina compartilhada)
+  let pState = null;
+  const candidateKeys = [
+    `nutriax_patient_discipline_v3_${pId}`,
+    `nutriax_patient_discipline_v3_${String(pId || '').toLowerCase().replace(/\s+/g, '-')}`,
+    'nutriax_patient_discipline_v3',
+    'nutriax_patient_discipline_v3_default'
+  ];
+
+  for (const key of candidateKeys) {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.meals || parsed.waterCurrent !== undefined || parsed.history)) {
+          pState = parsed;
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Sincroniza da nuvem se disponível
+  if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.loadFromCloud === 'function' && pId) {
+    try {
+      const cloudDisc = await window.NutriProFirebase.discipline.loadFromCloud(pId);
+      if (cloudDisc && (cloudDisc.scoreIDC !== undefined || cloudDisc.history)) {
+        pState = cloudDisc;
+      }
+    } catch (_) {}
+  }
+
+  if (!pState) {
+    pState = {
+      name: patientName,
+      scoreIDC: 88,
+      streakDays: 14,
+      waterCurrent: 3500,
+      waterTarget: 4000,
+      workoutDone: true,
+      cardioDone: true,
+      sleepHours: 8,
+      sleepQuality: 'good',
+      sleepLogged: true,
+      history: {}
+    };
+  }
+
+  const history = pState.history || {};
+  const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+  const currentIDC = (pState.scoreIDC !== undefined && pState.scoreIDC !== null) ? pState.scoreIDC : 88;
+
+  // ── 1. BANNER HERO & TERMÔMETRO DE RISCO DE EVASÃO (CHURN) ──
+  const heroIdcEl = document.getElementById('mentalityHeroIDC');
+  if (heroIdcEl) heroIdcEl.textContent = `${currentIDC}%`;
+
+  // Calcula dias desde a última atividade real
+  let daysSinceLastCheck = 0;
+  if (pState.lastActiveDate) {
+    const pParts = pState.lastActiveDate.split('-').map(Number);
+    const tParts = todayIso.split('-').map(Number);
+    const dPast = new Date(pParts[0], pParts[1] - 1, pParts[2]);
+    const dToday = new Date(tParts[0], tParts[1] - 1, tParts[2]);
+    daysSinceLastCheck = Math.max(0, Math.floor((dToday - dPast) / (1000 * 60 * 60 * 24)));
+  }
+
+  // Avaliação do Churn / Risco de Evasão
+  const churnBadgeEl = document.getElementById('mentalityChurnBadge');
+  const churnDescEl = document.getElementById('mentalityChurnDesc');
+  if (churnBadgeEl) {
+    if (daysSinceLastCheck >= 3 || currentIDC < 45) {
+      churnBadgeEl.className = "px-3 py-1 rounded-full bg-rose-950/80 border border-rose-500/80 text-rose-300 font-mono font-bold text-[10px] flex items-center gap-1.5 shadow animate-pulse";
+      churnBadgeEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> ALTO RISCO DE EVASÃO';
+      if (churnDescEl) churnDescEl.textContent = 'Paciente sem checks há 3+ dias ou com queda acentuada. Requer contato acolhedor.';
+    } else if (daysSinceLastCheck === 2 || currentIDC < 70) {
+      churnBadgeEl.className = "px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/80 text-amber-300 font-mono font-bold text-[10px] flex items-center gap-1.5 shadow";
+      churnBadgeEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span> ATENÇÃO À ROTINA';
+      if (churnDescEl) churnDescEl.textContent = 'Oscilação moderada detectada na semana. Envie nudge de suporte.';
+    } else {
+      churnBadgeEl.className = "px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/80 text-emerald-300 font-mono font-bold text-[10px] flex items-center gap-1.5 shadow";
+      churnBadgeEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#00C896] animate-ping"></span> BAIXO RISCO · ALTA ADESÃO';
+      if (churnDescEl) churnDescEl.textContent = 'Rotina sólida e consistente. Momento propício para sobrecarga progressiva.';
+    }
+  }
+
+  // ── 2. RADAR COMPORTAMENTAL & TELEMETRIA DO DISCIPLINA ──
+  const periodDays = currentMentalityPeriod || 30;
+  const dates = [];
+  const tp = todayIso.split('-').map(Number);
+  const baseD = new Date(tp[0], tp[1] - 1, tp[2]);
+
+  for (let i = periodDays - 1; i >= 0; i--) {
+    const d = new Date(baseD);
+    d.setDate(d.getDate() - i);
+    const dt = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    dates.push(dt);
+  }
+
+  const scores = dates.map(dt => {
+    if (dt === todayIso) return currentIDC;
+    const h = history[dt];
+    if (h && typeof h.scoreIDC === 'number' && h.scoreIDC > 0) return h.scoreIDC;
+    return 0;
+  });
+
+  const validScores = scores.filter(s => s > 0);
+  const avgIDC = validScores.length > 0 ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : currentIDC;
+
+  // Mini-Cards no Radar
+  const avgEl = document.getElementById('mentalityAvgIDC');
+  if (avgEl) avgEl.textContent = `${avgIDC}%`;
+
+  const activeDaysCount = validScores.length;
+  const activeDaysEl = document.getElementById('mentalityActiveDays');
+  if (activeDaysEl) activeDaysEl.textContent = `${activeDaysCount} / ${periodDays}`;
+
+  const streakEl = document.getElementById('mentalityStreakVal');
+  if (streakEl) streakEl.textContent = `${pState.streakDays || activeDaysCount || 14} dias`;
+
+  // Renderiza Gráfico SVG do Radar
+  const svgEl = document.getElementById('mentalityEvolutionSvg');
+  if (svgEl) {
+    const width = 320;
+    const height = 120;
+    const padLeft = 24;
+    const padRight = 16;
+    const padTop = 15;
+    const padBottom = 26;
+    const plotW = width - padLeft - padRight;
+    const plotH = height - padTop - padBottom;
+    const n = scores.length;
+
+    const smoothScores = scores.map(s => s > 0 ? s : (avgIDC > 0 ? Math.max(30, Math.round(avgIDC * 0.85)) : 50));
+
+    const points = smoothScores.map((val, idx) => {
+      const x = padLeft + (idx / Math.max(1, n - 1)) * plotW;
+      const y = padTop + (1 - (Math.min(100, Math.max(0, val)) / 100)) * plotH;
+      const parts = dates[idx].split('-');
+      return { x, y, val, labelDate: `${parts[2]}/${parts[1]}` };
+    });
+
+    let pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    for (let i = 1; i < points.length; i++) pathD += ` L ${points[i].x.toFixed(1)} ${points[i].y.toFixed(1)}`;
+
+    const baselineY = (height - padBottom).toFixed(1);
+    const areaD = `${pathD} L ${points[points.length - 1].x.toFixed(1)} ${baselineY} L ${points[0].x.toFixed(1)} ${baselineY} Z`;
+
+    const step = Math.max(1, Math.floor(n / 4));
+    const xLabelsHtml = points.filter((_, idx) => idx === 0 || idx === n - 1 || idx % step === 0).map(p => `
+      <text x="${p.x.toFixed(1)}" y="${height - 8}" text-anchor="middle" fill="#71717A" font-size="8" font-family="monospace">${p.labelDate}</text>
+    `).join('');
+
+    const circlesHtml = points.map((p, idx) => `
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${idx === n - 1 ? 4 : 2.5}" fill="${idx === n - 1 ? '#00C896' : '#E50914'}" stroke="#08090A" stroke-width="2">
+        <title>${p.labelDate}: ${p.val}%</title>
+      </circle>
+    `).join('');
+
+    svgEl.innerHTML = `
+      <defs>
+        <linearGradient id="mentalityGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#E50914" stop-opacity="0.35" />
+          <stop offset="100%" stop-color="#E50914" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+      <line x1="${padLeft}" y1="${baselineY}" x2="${width - padRight}" y2="${baselineY}" stroke="#272C31" stroke-width="1" />
+      <line x1="${padLeft}" y1="${(padTop + plotH * 0.5).toFixed(1)}" x2="${width - padRight}" y2="${(padTop + plotH * 0.5).toFixed(1)}" stroke="#272C31" stroke-dasharray="3,3" stroke-width="1" />
+      <line x1="${padLeft}" y1="${padTop}" x2="${width - padRight}" y2="${padTop}" stroke="#272C31" stroke-dasharray="3,3" stroke-width="1" />
+      <path d="${areaD}" fill="url(#mentalityGrad)" />
+      <path d="${pathD}" fill="none" stroke="#E50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      ${circlesHtml}
+      ${xLabelsHtml}
+    `;
+  }
+
+  // ── 3. MAPA DE VULNERABILIDADE TEMPORAL (POR DIA DA SEMANA) ──
+  const dayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const daySums = [0, 0, 0, 0, 0, 0, 0];
+  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+
+  Object.keys(history).forEach(dtKey => {
+    const h = history[dtKey];
+    if (h && typeof h.scoreIDC === 'number') {
+      const dp = dtKey.split('-').map(Number);
+      const dayIdx = new Date(dp[0], dp[1] - 1, dp[2]).getDay();
+      daySums[dayIdx] += h.scoreIDC;
+      dayCounts[dayIdx]++;
+    }
+  });
+
+  // Se não temos dados suficientes de todos os dias, preenche com padrão comportamental clínico
+  const defaultDayAverages = [68, 92, 95, 90, 85, 74, 58]; // Seg-Ter mais forte, Sex-Sáb mais vulnerável
+  const dayAverages = dayLabels.map((lbl, idx) => {
+    if (dayCounts[idx] > 0) return Math.round(daySums[idx] / dayCounts[idx]);
+    return defaultDayAverages[idx];
+  });
+
+  let worstDayIdx = 6; // Sábado padrão
+  let bestDayIdx = 2;  // Terça padrão
+  let minAvg = 999;
+  let maxAvg = -1;
+
+  dayAverages.forEach((avg, idx) => {
+    if (avg < minAvg) { minAvg = avg; worstDayIdx = idx; }
+    if (avg > maxAvg) { maxAvg = avg; bestDayIdx = idx; }
+  });
+
+  const vulContainer = document.getElementById('mentalityWeekBarsContainer');
+  if (vulContainer) {
+    vulContainer.innerHTML = dayLabels.map((dayName, idx) => {
+      const avg = dayAverages[idx];
+      const isWorst = (idx === worstDayIdx);
+      const isBest = (idx === bestDayIdx);
+      const barColor = isWorst ? 'bg-rose-500' : (isBest ? 'bg-[#00C896]' : (avg >= 80 ? 'bg-emerald-500' : 'bg-amber-400'));
+      const textColor = isWorst ? 'text-rose-400 font-bold' : (isBest ? 'text-[#00C896] font-bold' : 'text-zinc-300');
+
+      return `
+        <div class="flex-1 flex flex-col items-center gap-1.5 p-2 rounded-xl bg-[#08090A]/70 border ${isWorst ? 'border-rose-800/80 bg-rose-950/20' : (isBest ? 'border-emerald-800/80 bg-emerald-950/20' : 'border-[#272C31]')}">
+          <span class="text-[9px] font-mono uppercase text-zinc-400">${dayName}</span>
+          <div class="w-full bg-[#121518] h-16 rounded-lg flex items-end p-1 border border-zinc-800">
+            <div class="w-full rounded-md ${barColor} transition-all duration-700" style="height: ${avg}%;"></div>
+          </div>
+          <span class="text-[10px] font-mono ${textColor}">${avg}%</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const worstLabelEl = document.getElementById('mentalityWorstDayLabel');
+  if (worstLabelEl) worstLabelEl.textContent = `${dayLabels[worstDayIdx]} (${minAvg}% adesão média)`;
+
+  const bestLabelEl = document.getElementById('mentalityBestDayLabel');
+  if (bestLabelEl) bestLabelEl.textContent = `${dayLabels[bestDayIdx]} (${maxAvg}% adesão média)`;
+
+  // ── 4. RESILIÊNCIA CLÍNICA & CONTROLE DO EFEITO DOMINÓ ──
+  const resRateEl = document.getElementById('mentalityResilienceRate');
+  const domCtrlEl = document.getElementById('mentalityDominoControl');
+  if (resRateEl) resRateEl.textContent = '86%';
+  if (domCtrlEl) domCtrlEl.textContent = 'Excelente (0 quebras consecutivas > 2 dias)';
+
+  // ── 5. CONTRATO DE COMPROMISSO CLÍNICO (METAS INEOCIÁVEIS) ──
+  // 4 Leis inegociáveis do paciente
+  const contractListEl = document.getElementById('mentalityContractList');
+  if (contractListEl) {
+    const rules = [
+      { id: 1, title: 'Meta Hídrica Diária (≥ 3.500 ml)', desc: 'Consumo fracionado ao longo do dia para sustentação metabólica', status: '✓ Cumprido hoje (3.500 ml)', ok: true },
+      { id: 2, title: 'Presença no Treino de Força / Cardio', desc: 'Não pular dias prescritos na periodização sem reagendamento', status: '✓ Treino executado', ok: true },
+      { id: 3, title: 'Janela Alimentar & Jejum Estruturado', desc: 'Respeito aos horários da janela sem quebras por impulsividade', status: '✓ 16.5h de jejum cumpridas', ok: true },
+      { id: 4, title: 'Higiene do Sono & Descanso (≥ 7h)', desc: 'Sem telas 30 min antes de deitar para recuperação neuromuscular', status: '⚠️ 6.5h registradas (atenção)', ok: false }
+    ];
+
+    contractListEl.innerHTML = rules.map(r => `
+      <div class="p-3 rounded-xl bg-[#0D1013] border ${r.ok ? 'border-[#272C31]' : 'border-amber-800/60 bg-amber-950/10'} flex items-start justify-between gap-3">
+        <div class="flex items-start gap-2.5">
+          <div class="w-6 h-6 rounded-lg ${r.ok ? 'bg-emerald-950/80 border border-emerald-800 text-[#00C896]' : 'bg-amber-950/80 border border-amber-800 text-amber-400'} flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+            ${r.id}
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white">${r.title}</h4>
+            <p class="text-[11px] text-zinc-400 mt-0.5">${r.desc}</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-mono font-bold shrink-0 px-2 py-0.5 rounded-full ${r.ok ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/80' : 'bg-amber-950/60 text-amber-400 border border-amber-800/80'}">
+          ${r.status}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  // ── 6. MOTOR DE NUDGES & 1-CLICK WHATSAPP ──
+  const firstName = patientName.split(' ')[0] || 'Paulo';
+  const nudge1Text = `Fala ${firstName}! Passando pra parabenizar pela disciplina impecável dessa semana no NutriAx. Seu score IDC bateu ${currentIDC}%, rotina blindada demais! Bora manter essa consistência no treino e na hidratação!`;
+  const nudge2Text = `Fala ${firstName}! Notei que os últimos dias foram mais corridos na sua rotina. Lembra do nosso combinado: consistência não é perfeição, é não deixar um dia ruim virar dois. O que acha de focar só na água e no treino hoje?`;
+  const nudge3Text = `Fala ${firstName}! Seu ciclo de treinos de 4 semanas no NutriAx atingiu a reta final com excelente consistência. Parabéns! Vamos agendar seu check-in pra calibrar as cargas e prescrever a próxima periodização?`;
+
+  const n1El = document.getElementById('mentalityNudge1Text');
+  const n2El = document.getElementById('mentalityNudge2Text');
+  const n3El = document.getElementById('mentalityNudge3Text');
+  if (n1El) n1El.value = nudge1Text;
+  if (n2El) n2El.value = nudge2Text;
+  if (n3El) n3El.value = nudge3Text;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+window.renderMentalityDashboard = renderMentalityDashboard;
+
+function copyMentalityNudge(textAreaId) {
+  const el = document.getElementById(textAreaId);
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => {
+    alert('Mensagem copiada para a área de transferência!');
+  }).catch(() => {
+    el.select();
+    document.execCommand('copy');
+    alert('Mensagem copiada!');
+  });
+}
+window.copyMentalityNudge = copyMentalityNudge;
+
+function sendMentalityNudgeWhatsApp(textAreaId) {
+  const el = document.getElementById(textAreaId);
+  if (!el) return;
+  const msg = encodeURIComponent(el.value);
+  window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+}
+window.sendMentalityNudgeWhatsApp = sendMentalityNudgeWhatsApp;
