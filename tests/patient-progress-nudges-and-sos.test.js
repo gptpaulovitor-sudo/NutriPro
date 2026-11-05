@@ -204,3 +204,4 @@ describe('Motor de Nudges Clínicos (Progresso) & Telemetria Dinâmica de SOS', 
     assert.match(mockElement('mentalityDominoControl').textContent, /Excelente \(0 quebras consecutivas > 1 dia\)/);
   });
 });
+
