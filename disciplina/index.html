@@ -3269,7 +3269,7 @@
     function renderHeroWorkoutSelector() {
       const container = document.getElementById('heroWorkoutSelector');
       if (!container) return;
-      const schedule = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7)
+      const schedule = (Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0)
         ? WEEKLY_SCHEDULE_DATA
         : [{ dayNum: 1 }, { dayNum: 2 }, { dayNum: 3 }, { dayNum: 4 }, { dayNum: 5 }, { dayNum: 6 }, { dayNum: 7 }];
 
@@ -6816,6 +6816,152 @@
       }
     }
 
+    
+    // ── Helper Universal de Estado de Jejum do Paciente no Dia ──
+    function getTodayFastingState() {
+      const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+      const pId = typeof getActivePatientId === 'function' ? getActivePatientId() : (_authorizedPatientId || 'default');
+
+      // 1. Checa estado em memória no patientState
+      if (typeof patientState !== 'undefined' && patientState && patientState.fastingToday && patientState.fastingToday.date === todayIso) {
+        return patientState.fastingToday;
+      }
+
+      // 2. Checa logs do paciente no localStorage
+      let logs = [];
+      try {
+        const raw = localStorage.getItem(`nutriax_fasting_logs_${pId}`);
+        if (raw) logs = JSON.parse(raw);
+      } catch (_) { }
+
+      const todayLog = Array.isArray(logs) ? logs.find(l => l.date === todayIso) : null;
+      const proto = (typeof patientState !== 'undefined' && patientState) ? patientState.fastingProtocol : null;
+
+      if (todayLog) {
+        let fHours = todayLog.fastingHours;
+        if (!fHours && todayLog.startedAt && todayLog.completedAt) {
+          fHours = Math.round(((new Date(todayLog.completedAt) - new Date(todayLog.startedAt)) / 3600000) * 10) / 10;
+        }
+        if (!fHours) fHours = 16.5;
+
+        const state = {
+          isFastingDay: true,
+          status: todayLog.adherenceStatus || 'IN_PROGRESS',
+          date: todayIso,
+          startedAt: todayLog.startedAt || null,
+          completedAt: todayLog.completedAt || null,
+          brokenAt: todayLog.brokenAt || null,
+          fastingHours: fHours,
+          windowStart: todayLog.windowStart || proto?.feedingWindows?.[0]?.start || '12:30',
+          windowEnd: todayLog.windowEnd || proto?.feedingWindows?.[0]?.end || '20:30',
+          source: todayLog.source || 'PATIENT_SELF_REPORT'
+        };
+        if (typeof patientState !== 'undefined' && patientState) patientState.fastingToday = state;
+        return state;
+      }
+
+      // 3. Checa protocolo ativo
+      if (proto && proto.enabled && proto.status === 'ACTIVE') {
+        return {
+          isFastingDay: true,
+          status: 'IN_PROGRESS',
+          date: todayIso,
+          startedAt: null,
+          completedAt: null,
+          fastingHours: 16,
+          windowStart: proto.feedingWindows?.[0]?.start || '12:00',
+          windowEnd: proto.feedingWindows?.[0]?.end || '20:00',
+          source: 'PROTOCOL_ACTIVE'
+        };
+      }
+
+      return { isFastingDay: false, status: 'NONE' };
+    }
+
+    // ── Identifica se uma refeição caiu na janela de jejum ──
+    // isMealInFastingWindow(meal, fastingState, mealIndex?, totalMeals?)
+    // mealIndex e totalMeals são opcionais: usados como fallback quando meal.time está ausente
+    function isMealInFastingWindow(meal, fastingState, mealIndex, totalMeals) {
+      if (!meal || !fastingState || !fastingState.isFastingDay) return false;
+      if (fastingState.status !== 'COMPLETED' && fastingState.status !== 'IN_PROGRESS') return false;
+
+      const mealTime = String(meal.time || '').trim();
+      const mealName = String(meal.name || '').toLowerCase();
+
+      // Horário limite do término do jejum / início da janela alimentar (ex: 12:30 ou 12:00)
+      let feedingStartHour = 12;
+      let feedingStartMin = 30;
+
+      if (fastingState.completedAt) {
+        const dComp = new Date(fastingState.completedAt);
+        if (!isNaN(dComp.getTime())) {
+          feedingStartHour = dComp.getHours();
+          feedingStartMin = dComp.getMinutes();
+        }
+      } else if (fastingState.windowStart) {
+        const parts = fastingState.windowStart.split(':').map(Number);
+        if (parts.length >= 2 && !isNaN(parts[0])) {
+          feedingStartHour = parts[0];
+          feedingStartMin = parts[1];
+        }
+      }
+
+      const feedingStartMinutes = feedingStartHour * 60 + feedingStartMin;
+
+      // 1. Checa horário expresso (ex: '07:30', '08:00', '10:00')
+      if (mealTime && /^\d{1,2}:\d{2}$/.test(mealTime)) {
+        const [h, m] = mealTime.split(':').map(Number);
+        const mealMinutes = h * 60 + m;
+        if (mealMinutes < feedingStartMinutes) {
+          return true;
+        }
+      }
+
+      // 2. Checa semântica do nome (Café da Manhã, Desjejum, Colação Matinal, Lanche da Manhã)
+      const isMorningMealName = /caf[eé]|desjejum|manh[aã]|cola[cç][aã]o|matinal|jejum/i.test(mealName);
+      const isLunchOrLater = /almo[cç]o|tarde|jantar|noite|p[oó]s-treino|ceia/i.test(mealName);
+
+      if (isMorningMealName && !isLunchOrLater) {
+        return true;
+      }
+      if (isLunchOrLater) {
+        return false; // Explicitamente pós-jejum
+      }
+
+      // 3. Fallback por índice: sem time e sem nome semântico claro
+      // Quando a janela alimentar começa ao meio-dia ou mais tarde (jejum >= 12h tipicamente)
+      // as primeiras refeições da lista (índice 0 e 1) são quase certamente matinais
+      if (typeof mealIndex === 'number' && feedingStartMinutes >= 11 * 60) {
+        // Regra: se a janela alimentar começa >= 11h, as 2 primeiras refeições são matinais
+        // Se começa >= 13h, as 3 primeiras são matinais
+        const morningMealCount = feedingStartMinutes >= 13 * 60 ? 3 : 2;
+        if (mealIndex < morningMealCount) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // ── Calcula duração em horas entre início (ontem/hoje) e término ──
+    function calculateFastingDurationHours(startTime = '20:00', endTime = '12:30', startedYesterday = true) {
+      const [sH, sM] = String(startTime).split(':').map(Number);
+      const [eH, eM] = String(endTime).split(':').map(Number);
+      if (isNaN(sH) || isNaN(eH)) return 16.5;
+
+      const startMinutes = (sH || 0) * 60 + (sM || 0);
+      const endMinutes = (eH || 0) * 60 + (eM || 0);
+
+      if (startedYesterday) {
+        const totalMinutes = (1440 - startMinutes) + endMinutes;
+        return Math.max(0, Math.round((totalMinutes / 60) * 10) / 10);
+      } else {
+        let diff = endMinutes - startMinutes;
+        if (diff < 0) diff += 1440;
+        return Math.max(0, Math.round((diff / 60) * 10) / 10);
+      }
+    }
+
     function isFoodItemChecked(meal, item, index) {
       if (!meal) return false;
       const key = `${meal.id}_${index}`;
@@ -6826,29 +6972,60 @@
     }
 
     function calculateDailyIDCValue() {
+      const fastingState = getTodayFastingState();
+      const hasActiveFasting = fastingState && fastingState.isFastingDay && (fastingState.status === 'COMPLETED' || fastingState.status === 'IN_PROGRESS');
+
       const totalMeals = patientState.meals ? patientState.meals.length : 0;
       let mealsScore = 0;
+      let fastingScore = 0;
+
       if (totalMeals > 0) {
         let totalItems = 0;
         let checkedItems = 0;
-        patientState.meals.forEach(m => {
+        const totalMealsCount = patientState.meals.length;
+
+        patientState.meals.forEach((m, mIdx) => {
           const items = (Array.isArray(m.items) && m.items.length > 0)
             ? m.items
             : (m.detail && m.detail.includes('+') ? m.detail.split(/\s*\+\s*/).filter(Boolean).map(p => ({ name: p })) : null);
+          const itemCount = items ? items.length : 1;
 
-          if (items && items.length > 0) {
-            items.forEach((it, idx) => {
-              totalItems++;
-              if (isFoodItemChecked(m, it, idx)) checkedItems++;
-            });
+          // Passa índice da refeição para isMealInFastingWindow usar como fallback
+          const isFastMeal = hasActiveFasting && isMealInFastingWindow(m, fastingState, mIdx, totalMealsCount);
+
+          if (isFastMeal) {
+            // Refeição da janela de jejum: NÃO PENALIZA O PACIENTE!
+            // O cumprimento do jejum de 16h30 substitui e valida 100% da adesão dessa janela matinal
+            totalItems += itemCount;
+            if (fastingState.status === 'COMPLETED' || fastingState.status === 'IN_PROGRESS') {
+              checkedItems += itemCount;
+            }
           } else {
-            totalItems++;
-            if (m.done) checkedItems++;
+            // Refeição da janela de alimentação: checa consumo real
+            if (items && items.length > 0) {
+              items.forEach((it, idx) => {
+                totalItems++;
+                if (isFoodItemChecked(m, it, idx)) checkedItems++;
+              });
+            } else {
+              totalItems++;
+              if (m.done) checkedItems++;
+            }
           }
         });
-        mealsScore = totalItems > 0 ? (checkedItems / totalItems) * 40 : 0;
+
+        if (hasActiveFasting) {
+          // Com Jejum: Alimentação vale 35 pts e Jejum vale 15 pts (Total 50 pts na esfera metabólica)
+          fastingScore = fastingState.status === 'COMPLETED' ? 15 : (fastingState.status === 'IN_PROGRESS' ? 10 : 0);
+          const foodAdherence = totalItems > 0 ? (checkedItems / totalItems) : 1;
+          mealsScore = foodAdherence * 35;
+        } else {
+          // Sem Jejum: Fórmula canônica de 40 pts em refeições
+          mealsScore = totalItems > 0 ? (checkedItems / totalItems) * 40 : 0;
+        }
       }
 
+      // Treino: 30 pts (ou 25 pts com dimensão de jejum ativa)
       const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey] || WORKOUT_DATABASE['A'] || Object.values(WORKOUT_DATABASE)[0];
       let workoutScore = 0;
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
@@ -6861,33 +7038,41 @@
         (dayData.title && dayData.title.toLowerCase().includes('cardio'))
       );
 
+      const maxWorkoutPts = hasActiveFasting ? 25 : 30;
+
       if (isOffDay) {
-        workoutScore = 30;
+        workoutScore = maxWorkoutPts;
       } else if (isPureCardio) {
-        workoutScore = (patientState.cardioDone || patientState.workoutDone) ? 30 : 0;
+        workoutScore = (patientState.cardioDone || patientState.workoutDone) ? maxWorkoutPts : 0;
       } else if (hasCardioPost) {
-        workoutScore = (patientState.workoutDone ? 20 : 0) + (patientState.cardioDone ? 10 : 0);
+        const trainPts = hasActiveFasting ? 17 : 20;
+        const cardPts = hasActiveFasting ? 8 : 10;
+        workoutScore = (patientState.workoutDone ? trainPts : 0) + (patientState.cardioDone ? cardPts : 0);
       } else {
-        workoutScore = patientState.workoutDone ? 30 : 0;
+        workoutScore = patientState.workoutDone ? maxWorkoutPts : 0;
       }
 
+      // Água: 15 pontos
       const targetWater = patientState.waterTarget || 4000;
       const waterRatio = Math.min(1, (patientState.waterCurrent || 0) / targetWater);
       const waterScore = waterRatio * 15;
 
+      // Sono: 15 pontos (ou 10 pts com dimensão de jejum)
+      const maxSleepHrsPts = hasActiveFasting ? 7 : 10;
+      const maxSleepQtyPts = hasActiveFasting ? 3 : 5;
       let sleepScore = 0;
       if (patientState.sleepLogged) {
-        if (patientState.sleepHours >= 7) sleepScore += 10;
-        else if (patientState.sleepHours >= 6) sleepScore += 7;
-        else if (patientState.sleepHours >= 5) sleepScore += 4;
-        else if (patientState.sleepHours > 0) sleepScore += 2;
+        if (patientState.sleepHours >= 7) sleepScore += maxSleepHrsPts;
+        else if (patientState.sleepHours >= 6) sleepScore += Math.round(maxSleepHrsPts * 0.7);
+        else if (patientState.sleepHours >= 5) sleepScore += Math.round(maxSleepHrsPts * 0.4);
+        else if (patientState.sleepHours > 0) sleepScore += Math.round(maxSleepHrsPts * 0.2);
 
-        if (patientState.sleepQuality === 'good') sleepScore += 5;
-        else if (patientState.sleepQuality === 'ok') sleepScore += 3;
-        else if (patientState.sleepQuality === 'bad') sleepScore += 1;
+        if (patientState.sleepQuality === 'good') sleepScore += maxSleepQtyPts;
+        else if (patientState.sleepQuality === 'ok') sleepScore += Math.round(maxSleepQtyPts * 0.6);
+        else if (patientState.sleepQuality === 'bad') sleepScore += Math.round(maxSleepQtyPts * 0.2);
       }
 
-      return Math.min(100, Math.round(mealsScore + workoutScore + waterScore + sleepScore));
+      return Math.min(100, Math.max(0, Math.round(mealsScore + fastingScore + workoutScore + waterScore + sleepScore)));
     }
 
     function saveState() {
@@ -6970,6 +7155,9 @@
           cardioDone: !!patientState.cardioDone,
           sleepHours: patientState.sleepHours || 0,
           sleepQuality: patientState.sleepQuality,
+          fastingStatus: patientState.fastingToday?.status || null,
+          fastingHours: patientState.fastingToday?.fastingHours || null,
+          fastingCompleted: !!(patientState.fastingToday?.status === 'COMPLETED'),
           updatedAt: new Date().toISOString()
         };
 
@@ -7109,11 +7297,19 @@
       const container = document.getElementById('patientFastingCardContainer');
       if (!container) return;
 
-      const proto = patientState.fastingProtocol;
-      if (!proto || proto.enabled !== true || proto.status !== 'ACTIVE') {
-        container.classList.add('hidden');
-        container.innerHTML = '';
-        return;
+      let proto = patientState.fastingProtocol;
+      if (!proto) {
+        // Inicializa protocolo padrão 16:8 para o paciente poder sinalizar jejum sem bloqueios
+        proto = {
+          enabled: true,
+          status: 'ACTIVE',
+          subtype: '16:8',
+          type: 'TRE',
+          protocolVersion: 1,
+          feedingWindows: [{ start: '12:30', end: '20:30' }],
+          objectives: ['FAT_LOSS', 'AUTOPHAGY', 'INSULIN_SENSITIVITY']
+        };
+        patientState.fastingProtocol = proto;
       }
 
       const fastingMod = (typeof window !== 'undefined' && window.NutriAxFasting)
@@ -7292,17 +7488,61 @@
           </div>
         `;
       } else {
-        // Estado Padrão: Botão de Disparo Imediato
+        // Estado Padrão: Painel Completo de Disparo e Sinalização com Horários Reais
         todayActionHtml = `
-          <div class="space-y-2">
+          <div class="space-y-3">
+            <!-- 1. Botão Principal de Disparo Rápido -->
             <button onclick="startFastingExecutionToday()"
-              class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-[0_0_20px_rgba(249,115,22,0.35)] active:scale-95 transition-all">
-              <i data-lucide="play" class="w-5 h-5 fill-white"></i>
-              <span>▶️ Disparar Execução do Jejum Agora</span>
+              class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.25)] active:scale-95 transition-all">
+              <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+              <span>Iniciar Jejum Agora (Contador em Tempo Real)</span>
             </button>
-            <div class="flex items-center justify-between px-1 text-[10px] text-zinc-400 font-mono">
-              <span>Janela: <strong class="text-zinc-200">${timerState.feedingWindowStart} às ${timerState.feedingWindowEnd}</strong></span>
-              <button onclick="registerFastingAdherenceToday('COMPLETED')" class="text-zinc-500 hover:text-zinc-300 underline font-sans">Marcar como já cumprido</button>
+
+            <!-- 2. Formulário de Sinalização com Horários Reais (Ex: Ontem às 20h até Hoje às 12:30) -->
+            <div class="p-3.5 rounded-2xl bg-black/70 border border-purple-800/60 space-y-3 shadow-lg">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                  <i data-lucide="timer" class="w-4 h-4 text-purple-400"></i>
+                  <span>Sinalizar Jejum Concluído (Horários Reais)</span>
+                </span>
+                <span id="fastingHoursPreviewBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700">
+                  🔥 16.5h de Jejum
+                </span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <!-- Início -->
+                <div class="p-2 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1">
+                  <div class="flex items-center justify-between text-[9px] font-mono text-zinc-400">
+                    <span>INÍCIO (ONTEM)</span>
+                    <label class="flex items-center gap-1 cursor-pointer text-purple-400">
+                      <input type="checkbox" id="fastingYesterdayCheck" checked onchange="updateFastingHoursPreview()" class="accent-purple-500 rounded" />
+                      <span>Ontem</span>
+                    </label>
+                  </div>
+                  <input type="time" id="fastingStartHourInput" value="20:00" onchange="updateFastingHoursPreview()"
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-center text-xs font-mono font-bold text-white" />
+                </div>
+
+                <!-- Término -->
+                <div class="p-2 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1">
+                  <div class="text-[9px] font-mono text-zinc-400 uppercase">Término (Hoje)</div>
+                  <input type="time" id="fastingEndHourInput" value="12:30" onchange="updateFastingHoursPreview()"
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-center text-xs font-mono font-bold text-white" />
+                </div>
+              </div>
+
+              <button type="button" id="btnConfirmCustomFasting"
+                onclick="registerFastingWithCustomHours(document.getElementById('fastingStartHourInput').value, document.getElementById('fastingEndHourInput').value, document.getElementById('fastingYesterdayCheck').checked, 'COMPLETED')"
+                class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.35)] active:scale-95 transition-all">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span>✓ Salvar Jejum Executado (16.5h)</span>
+              </button>
+
+              <div class="flex items-center justify-between text-[10px] text-zinc-500 pt-0.5">
+                <span>Não penaliza café e colação no Score IDC</span>
+                <button type="button" onclick="registerFastingAdherenceToday('COMPLETED')" class="text-zinc-400 hover:text-white underline">Atalho rápido</button>
+              </div>
             </div>
           </div>
         `;
@@ -7555,6 +7795,120 @@
       }
     }
 
+    
+    // ── Registro com Horários Reais Personalizados (ex: Ontem às 20h até Hoje às 12:30) ──
+    async function registerFastingWithCustomHours(startHour = '20:00', endHour = '12:30', startedYesterday = true, status = 'COMPLETED') {
+      const pId = getActivePatientId();
+      if (!pId) return;
+      const todayIso = getLocalDateIso();
+
+      const hoursCalc = calculateFastingDurationHours(startHour, endHour, startedYesterday);
+
+      // Constrói timestamps ISO exatos
+      const now = new Date();
+      const endD = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(endHour.split(':')[0]) || 12, parseInt(endHour.split(':')[1]) || 30);
+      const startD = new Date(endD.getTime());
+      if (startedYesterday) {
+        startD.setDate(startD.getDate() - 1);
+      }
+      startD.setHours(parseInt(startHour.split(':')[0]) || 20, parseInt(startHour.split(':')[1]) || 0, 0, 0);
+
+      const proto = patientState.fastingProtocol || { subtype: '16:8', type: 'TRE' };
+
+      const storageKey = `nutriax_fasting_logs_${pId}`;
+      let logs = [];
+      try {
+        logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      } catch (_) { }
+
+      const existingLogIdx = logs.findIndex(l => l.date === todayIso);
+      const logPayload = {
+        id: `${pId}_${todayIso}`,
+        patientId: pId,
+        date: todayIso,
+        protocolVersion: proto.protocolVersion || 1,
+        protocolType: proto.type || 'TRE',
+        windowStart: endHour,
+        windowEnd: startHour,
+        adherenceStatus: status,
+        startedAt: startD.toISOString(),
+        completedAt: endD.toISOString(),
+        fastingHours: hoursCalc,
+        startHour,
+        endHour,
+        startedYesterday,
+        source: 'PATIENT_CUSTOM_RECORD',
+        notes: `Jejum realizado de ${startedYesterday ? 'ontem' : 'hoje'} às ${startHour} até ${endHour} (${hoursCalc}h total).`,
+        subjectiveMetrics: {
+          hunger: 2,
+          energy: 4,
+          mentalFocus: 5,
+          wellbeing: 5
+        }
+      };
+
+      if (existingLogIdx >= 0) {
+        logs[existingLogIdx] = logPayload;
+      } else {
+        logs.push(logPayload);
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(logs));
+
+      // Atualiza estado local
+      patientState.fastingToday = {
+        isFastingDay: true,
+        status: status,
+        date: todayIso,
+        startedAt: logPayload.startedAt,
+        completedAt: logPayload.completedAt,
+        fastingHours: hoursCalc,
+        windowStart: endHour,
+        windowEnd: startHour
+      };
+
+      // Dispara recálculo completo do Score e re-renderização
+      saveState();
+      calculateDailyIDC();
+      renderMeals();
+      updateDimensionChecklist();
+      renderPendingActions();
+      renderPatientFastingCard();
+
+      if (status === 'COMPLETED' && typeof confetti === 'function') {
+        confetti({ particleCount: 40, spread: 70, origin: { y: 0.6 } });
+      }
+
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('nutriax_bidirectional_sync');
+          bc.postMessage({
+            type: 'FASTING_LOG_UPDATED',
+            patientId: pId,
+            log: logPayload
+          });
+        }
+      } catch (_) { }
+    }
+    window.registerFastingWithCustomHours = registerFastingWithCustomHours;
+
+    function updateFastingHoursPreview() {
+      const sH = document.getElementById('fastingStartHourInput')?.value || '20:00';
+      const eH = document.getElementById('fastingEndHourInput')?.value || '12:30';
+      const isYest = document.getElementById('fastingYesterdayCheck')?.checked ?? true;
+      const hours = calculateFastingDurationHours(sH, eH, isYest);
+      const prevEl = document.getElementById('fastingHoursPreviewBadge');
+      if (prevEl) {
+        prevEl.textContent = `🔥 ${hours}h de Jejum`;
+      }
+      const btnEl = document.getElementById('btnConfirmCustomFasting');
+      if (btnEl) {
+        btnEl.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i><span>✓ Salvar Jejum Executado (${hours}h)</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
+    window.updateFastingHoursPreview = updateFastingHoursPreview;
+
     async function registerFastingAdherenceToday(status) {
       const proto = patientState.fastingProtocol;
       if (!proto) return;
@@ -7613,6 +7967,23 @@
             });
           }
         } catch (_) { }
+
+        patientState.fastingToday = {
+          isFastingDay: true,
+          status: status,
+          date: todayIso,
+          startedAt: logPayload.startedAt || new Date(new Date().getTime() - 16.5 * 3600000).toISOString(),
+          completedAt: logPayload.completedAt || nowIso,
+          fastingHours: logPayload.fastingHours || 16.5,
+          windowStart: logPayload.windowStart,
+          windowEnd: logPayload.windowEnd
+        };
+
+        saveState();
+        calculateDailyIDC();
+        renderMeals();
+        updateDimensionChecklist();
+        renderPendingActions();
 
         if (status === 'COMPLETED' && typeof confetti === 'function') {
           confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
@@ -8103,7 +8474,7 @@
       if (!container) return;
 
       // Garante 7 dias prescritos na ordem cronológica exata do PDF (DIA 1 a DIA 7)
-      let schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7
+      let schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0
         ? WEEKLY_SCHEDULE_DATA
         : buildCanonicalWeeklyScheduleForPatient(patientState.activeSplit || 'PPL', patientState.workoutPlan, patientState.cardioPrescription);
 
@@ -8234,7 +8605,7 @@
       selectedScheduleDay = Number(dayNum);
       patientState.selectedScheduleDay = selectedScheduleDay;
 
-      const schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7
+      const schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0
         ? WEEKLY_SCHEDULE_DATA
         : buildCanonicalWeeklyScheduleForPatient(patientState.activeSplit || 'PPL', patientState.workoutPlan, patientState.cardioPrescription);
 
@@ -8502,7 +8873,7 @@
       const container = document.getElementById('patientExercisesList');
       if (!container) return;
 
-      const schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length >= 7
+      const schedule = Array.isArray(WEEKLY_SCHEDULE_DATA) && WEEKLY_SCHEDULE_DATA.length > 0
         ? WEEKLY_SCHEDULE_DATA
         : buildCanonicalWeeklyScheduleForPatient(patientState.activeSplit || 'PPL', patientState.workoutPlan, patientState.cardioPrescription);
 
@@ -8804,7 +9175,8 @@
       const dayData = WEEKLY_SCHEDULE_DATA.find(d => d.dayNum === selectedScheduleDay);
       const currentRoutine = WORKOUT_DATABASE[selectedRoutineKey];
       const isRoutineCardio = (selectedRoutineKey === 'Cardio' || selectedRoutineKey === 'HIIT' || currentRoutine?.isCardio || currentRoutine?.isHiit);
-      const isRoutineOff = (selectedRoutineKey === 'OFF' || currentRoutine?.isOff);
+      const isDayOff = !!(dayData && (dayData.type === 'Off' || dayData.type === 'off' || dayData.routineKey === 'OFF'));
+      const isRoutineOff = (selectedRoutineKey === 'OFF' || currentRoutine?.isOff || isDayOff);
 
       const dayHasCardio = !!(dayData && (
         dayData.type === 'Treino + Cardio' ||
@@ -9594,9 +9966,14 @@
           checkIcon = '<i data-lucide="minus" class="w-4 h-4 stroke-[3]"></i>';
         }
 
-        // Badge de Status da Refeição
+        // Badge de Status da Refeição (reconhece refeição cumprida via jejum)
+        const fState = getTodayFastingState();
+        const isFastingSuppressed = fState && fState.isFastingDay && (fState.status === 'COMPLETED' || fState.status === 'IN_PROGRESS') && isMealInFastingWindow(m, fState);
+
         let badgeHtml = '';
-        if (isAllDone) {
+        if (isFastingSuppressed) {
+          badgeHtml = `<button onclick="toggleMeal('${m.id}')" class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-purple-950/90 border border-purple-600/80 text-purple-300 transition-all shrink-0 active:scale-95 shadow-[0_0_8px_rgba(168,85,247,0.3)] flex items-center gap-1"><span>⏱️</span> Jejum ${fState.fastingHours ? `${fState.fastingHours}h` : '16:8'}</button>`;
+        } else if (isAllDone) {
           badgeHtml = `<button onclick="toggleMeal('${m.id}')" class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-700/90 text-emerald-400 transition-all shrink-0 active:scale-95 shadow-[0_0_8px_rgba(16,185,129,0.3)]">✓ Feita</button>`;
         } else if (isPartial) {
           badgeHtml = `<button onclick="toggleMeal('${m.id}')" class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-amber-950/80 border border-amber-600/90 text-amber-300 transition-all shrink-0 active:scale-95">⚡ ${mCheckedItems}/${mTotalItems} itens</button>`;
@@ -10236,13 +10613,13 @@
       const progressBar = document.getElementById('dailyScoreProgressBar');
       if (progressBar) progressBar.style.width = `${totalScore}%`;
 
-      // SVG Circular Ring Gauge
+      // SVG Circular Ring Gauge (sincroniza tanto o círculo visível quanto o legado)
+      const circumference = 251.327; // 2 * Math.PI * 40
+      const offset = circumference * (1 - (totalScore / 100));
+      const circleVisible = document.getElementById('patientIdcProgressCircle');
+      if (circleVisible) circleVisible.style.strokeDashoffset = offset;
       const circleGauge = document.getElementById('dailyScoreCircleGauge');
-      if (circleGauge) {
-        const circumference = 251.327; // 2 * Math.PI * 40
-        const offset = circumference * (1 - (totalScore / 100));
-        circleGauge.style.strokeDashoffset = offset;
-      }
+      if (circleGauge) circleGauge.style.strokeDashoffset = offset;
 
       // Atualiza Checklist das 5 Dimensões
       if (typeof updateDimensionChecklist === 'function') {
@@ -10273,14 +10650,18 @@
 
       const fb = document.getElementById('dailyScoreFeedback');
       if (fb) {
+        const fState = getTodayFastingState();
+        const hasFasting = fState && fState.isFastingDay && fState.status === 'COMPLETED';
+        const fHoursStr = hasFasting ? (fState.fastingHours ? `${fState.fastingHours}h` : '16h') : '';
+
         if (totalScore >= 95) {
-          fb.innerHTML = "🏆 <strong>Perfeição Total (100%)!</strong> Todas as metas do dia foram executadas com maestria.";
-        } else if (totalScore >= 80) {
-          fb.innerHTML = `🔥 <strong>Excelente consistência (${totalScore}%)!</strong> Falta pouco para bater a meta de hoje.`;
+          fb.innerHTML = `🏆 <strong>Perfeição Total (${totalScore}%)!</strong> ${hasFasting ? `Jejum de ${fHoursStr} cumprido e todas` : 'Todas'} as metas do dia foram executadas com maestria.`;
+        } else if (totalScore >= 75) {
+          fb.innerHTML = `🔥 <strong>Excelente consistência (${totalScore}%)!</strong> ${hasFasting ? `Jejum de ${fHoursStr} cumprido com sucesso e rotina blindada.` : 'Falta pouco para bater a meta de hoje.'}`;
         } else if (totalScore >= 50) {
-          fb.innerHTML = `💪 <strong>Bom ritmo (${totalScore}%)!</strong> Continue executando os rituais para blindar seu resultado.`;
+          fb.innerHTML = `💪 <strong>Bom ritmo (${totalScore}%)!</strong> ${hasFasting ? `Jejum de ${fHoursStr} registrado e alimentação alinhada.` : 'Continue executando os rituais para blindar seu resultado.'}`;
         } else if (totalScore > 0) {
-          fb.innerHTML = `⚡ <strong>Em andamento (${totalScore}%).</strong> Marque suas refeições, água e treino para elevar o score.`;
+          fb.innerHTML = `⚡ <strong>Em andamento (${totalScore}%).</strong> ${hasFasting ? `Jejum de ${fHoursStr} cumprido. Continue hidratando e executando.` : 'Marque suas refeições, água e treino para elevar o score.'}`;
         } else {
           fb.innerHTML = "🎯 <strong>Início de jornada (0%).</strong> Registre suas refeições, água e treino para acompanhar seu Score IDC.";
         }
@@ -10662,25 +11043,47 @@
           : '<span class="text-zinc-500 font-bold">— Pendente</span>';
       }
 
-      // 2. Nutrição
+      // 2. Nutrição (refeições de jejum são contadas como concluídas)
       const elNutrition = document.getElementById('idcDimNutrition');
       if (elNutrition) {
+        const fStateNutr = getTodayFastingState();
+        const hasFastNutr = fStateNutr && fStateNutr.isFastingDay &&
+          (fStateNutr.status === 'COMPLETED' || fStateNutr.status === 'IN_PROGRESS');
         const totalM = patientState.meals ? patientState.meals.length : 0;
-        const doneM = patientState.meals ? patientState.meals.filter(m => m.done).length : 0;
-        const allDone = totalM > 0 && (patientState.itemsChecked >= patientState.itemsTotal || doneM === totalM);
+        let effectiveDone = 0;
+        if (patientState.meals) {
+          patientState.meals.forEach((m, mIdx) => {
+            if (m.done) { effectiveDone++; return; }
+            if (hasFastNutr && isMealInFastingWindow(m, fStateNutr, mIdx, totalM)) {
+              effectiveDone++; // Refeição suprimida pelo jejum conta como feita
+            }
+          });
+        }
+        const effectiveTotal = patientState.itemsTotal || totalM;
+        const effectiveChecked = patientState.itemsChecked || effectiveDone;
+        const allDone = totalM > 0 && (effectiveChecked >= effectiveTotal || effectiveDone === totalM);
         elNutrition.innerHTML = allDone
           ? '<span class="text-[#00C896] flex items-center gap-1 font-bold">✓ Concluído</span>'
           : (totalM > 0
-            ? `<span class="text-amber-400 font-bold">${patientState.itemsChecked || doneM}/${patientState.itemsTotal || totalM}</span>`
+            ? `<span class="text-amber-400 font-bold">${effectiveChecked}/${effectiveTotal}</span>`
             : '<span class="text-zinc-500">—</span>');
       }
 
       // 3. Jejum
       const elFasting = document.getElementById('idcDimFasting');
       if (elFasting) {
-        const proto = patientState.fastingProtocol;
-        if (proto && proto.enabled) {
-          elFasting.innerHTML = '<span class="text-[#00C896] font-bold">✓ Ativo</span>';
+        const fState = getTodayFastingState();
+        if (fState && fState.isFastingDay) {
+          if (fState.status === 'COMPLETED') {
+            const hText = fState.fastingHours ? `${fState.fastingHours}h ` : '';
+            elFasting.innerHTML = `<span class="text-[#00C896] font-bold flex items-center gap-1 shadow-[0_0_8px_rgba(0,200,150,0.3)]">✓ ${hText}Cumprido</span>`;
+          } else if (fState.status === 'IN_PROGRESS') {
+            elFasting.innerHTML = '<span class="text-amber-400 font-bold flex items-center gap-1">⚡ Em Andamento</span>';
+          } else if (fState.status === 'BROKEN') {
+            elFasting.innerHTML = '<span class="text-rose-400 font-bold flex items-center gap-1">✕ Quebra</span>';
+          } else {
+            elFasting.innerHTML = '<span class="text-purple-400 font-bold">○ Ativo</span>';
+          }
         } else {
           elFasting.innerHTML = '<span class="text-zinc-500 font-bold">—</span>';
         }
@@ -10739,9 +11142,16 @@
         });
       }
 
-      // 2. Refeições
+      // 2. Refeições (ignora refeições matinais suprimidas com sucesso pelo jejum)
       if (patientState.meals && Array.isArray(patientState.meals)) {
-        const nextUnfinishedMeal = patientState.meals.find(m => !m.done && (!m.items || m.items.some((it, idx) => !isFoodItemChecked(m, it, idx))));
+        const fState = getTodayFastingState();
+        const hasFast = fState && fState.isFastingDay && (fState.status === 'COMPLETED' || fState.status === 'IN_PROGRESS');
+
+        const nextUnfinishedMeal = patientState.meals.find((m, mIdx) => {
+          if (m.done) return false;
+          if (hasFast && isMealInFastingWindow(m, fState, mIdx, patientState.meals.length)) return false;
+          return (!m.items || m.items.some((it, idx) => !isFoodItemChecked(m, it, idx)));
+        });
         if (nextUnfinishedMeal) {
           items.push({
             id: 'pending-meal',
