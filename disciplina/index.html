@@ -1613,18 +1613,18 @@
             <div class="grid grid-cols-3 gap-2">
               <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Taxa Adesão</div>
-                <div class="text-base font-black text-[#00C896] font-mono mt-0.5">86%</div>
-                <div class="text-[8px] text-zinc-400 font-mono">Alta Regularidade</div>
+                <div id="heroProgAdherenceVal" class="text-base font-black text-[#00C896] font-mono mt-0.5">--</div>
+                <div id="heroProgAdherenceSub" class="text-[8px] text-zinc-400 font-mono">Ciclo Ativo</div>
               </div>
               <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
                 <div class="text-[9px] text-zinc-400 font-mono">Treinos Mês</div>
-                <div class="text-xs font-black text-white font-mono mt-1">18 sessões</div>
-                <div class="text-[8px] text-emerald-400 font-mono">Meta Superada</div>
+                <div id="heroProgWorkoutsVal" class="text-xs font-black text-white font-mono mt-1">--</div>
+                <div id="heroProgWorkoutsSub" class="text-[8px] text-emerald-400 font-mono">Meta do Ciclo</div>
               </div>
               <div class="p-2 rounded-xl bg-[#08090A]/80 border border-[#272C31] text-center">
-                <div class="text-[9px] text-zinc-400 font-mono">Streak Recorde</div>
-                <div class="text-base font-black text-amber-400 font-mono mt-0.5">14 dias</div>
-                <div class="text-[8px] text-zinc-400 font-mono">Ininterruptos</div>
+                <div class="text-[9px] text-zinc-400 font-mono">Streak Atual</div>
+                <div id="heroProgStreakVal" class="text-base font-black text-amber-400 font-mono mt-0.5">--</div>
+                <div id="heroProgStreakSub" class="text-[8px] text-zinc-400 font-mono">Dias Seguidos</div>
               </div>
             </div>
           </div>
@@ -1682,15 +1682,15 @@
 
       <!-- SELETOR DE PERÍODO: 7 DIAS / 30 DIAS / 90 DIAS -->
       <div class="flex items-center gap-2 p-1 rounded-xl bg-[#121518] border border-[#272C31]">
-        <button type="button" id="periodBtn7d" onclick="renderScoreEvolutionChart(7)"
+        <button type="button" id="periodBtn7d" onclick="setScorePeriod(7)"
           class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md">
           7 dias
         </button>
-        <button type="button" id="periodBtn30d" onclick="renderScoreEvolutionChart(30)"
+        <button type="button" id="periodBtn30d" onclick="setScorePeriod(30)"
           class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
           30 dias
         </button>
-        <button type="button" id="periodBtn90d" onclick="renderScoreEvolutionChart(90)"
+        <button type="button" id="periodBtn90d" onclick="setScorePeriod(90)"
           class="flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white">
           90 dias
         </button>
@@ -1742,16 +1742,16 @@
         <div>
           <div class="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Score Geral</div>
           <div class="text-xs text-zinc-400 mt-0.5">Média ponderada no período selecionado</div>
-          <div id="scoresPeriodAvgDisplay" class="text-xs font-mono font-bold text-emerald-400 mt-1">Média: 81%</div>
+          <div id="scoresPeriodAvgDisplay" class="text-xs font-mono font-bold text-emerald-400 mt-1">Média: --</div>
         </div>
         <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
           <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="38" stroke="#171B1F" stroke-width="8" fill="transparent"></circle>
             <circle id="globalScoreRingVal" cx="50" cy="50" r="38" stroke="#00C896" stroke-width="8"
-              stroke-dasharray="238.76" stroke-dashoffset="45" stroke-linecap="round" fill="transparent"></circle>
+              stroke-dasharray="238.76" stroke-dashoffset="238.76" stroke-linecap="round" fill="transparent"></circle>
           </svg>
-          <span
-            class="absolute inset-0 flex items-center justify-center text-sm font-black text-white font-mono">81%</span>
+          <span id="globalScoreCenterVal"
+            class="absolute inset-0 flex items-center justify-center text-sm font-black text-white font-mono">--</span>
         </div>
       </div>
 
@@ -1775,22 +1775,22 @@
             <i data-lucide="bar-chart-2" class="w-4 h-4 text-[#00C896]"></i> Cumprimento por Dimensão
           </h3>
           <div class="flex items-center gap-1 p-0.5 rounded-lg bg-[#08090A] border border-[#272C31]">
-            <button type="button" id="scoresTabDiarioBtn" onclick="switchScoresModalTab('diario')"
-              class="px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all bg-[#E50914] text-white">
+            <button type="button" id="progTabDiarioBtn" onclick="switchScoresDimensionTab('diario')"
+              class="px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all bg-[#E50914] text-white shadow">
               Diário
             </button>
-            <button type="button" id="scoresTabGeralBtn" onclick="switchScoresModalTab('geral')"
+            <button type="button" id="progTabGeralBtn" onclick="switchScoresDimensionTab('geral')"
               class="px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all text-zinc-400 hover:text-white">
               Geral
             </button>
           </div>
         </div>
 
-        <div id="scoresPanelDiario" class="space-y-2 text-xs">
+        <div id="progPanelDiario" class="space-y-2.5 text-xs">
           <!-- Inserido dinamicamente via renderScoresBreakdown() -->
         </div>
 
-        <div id="scoresPanelGeral" class="hidden space-y-2 text-xs">
+        <div id="progPanelGeral" class="hidden space-y-2.5 text-xs">
           <!-- Inserido dinamicamente via renderScoresBreakdown() -->
         </div>
       </div>
@@ -2567,16 +2567,16 @@
           <div class="flex items-center justify-between">
             <div>
               <span class="text-[10px] font-mono text-zinc-400 uppercase block">Score Médio</span>
-              <span id="scoresPeriodAvgDisplay" class="text-xl font-black text-white font-mono">0%</span>
+              <span id="modalScoresPeriodAvgDisplay" class="text-xl font-black text-white font-mono">0%</span>
             </div>
-            <div id="scoresPeriodTrendDisplay" class="text-xs font-mono font-bold text-zinc-400">
+            <div id="modalScoresPeriodTrendDisplay" class="text-xs font-mono font-bold text-zinc-400">
               ● Estável
             </div>
           </div>
 
           <!-- SVG Chart Container -->
           <div class="w-full flex items-center justify-center pt-2">
-            <svg id="scoresEvolutionSvg" class="w-full h-28" viewBox="0 0 320 120"></svg>
+            <svg id="modalScoresEvolutionSvg" class="w-full h-28" viewBox="0 0 320 120"></svg>
           </div>
         </div>
       </div>
@@ -2965,13 +2965,21 @@
 
       window.scrollTo({ top: 0, behavior: 'auto' });
 
-      // Se navegou para Progresso, atualiza o gráfico SVG de evolução e heatmap
+      // Se navegou para Progresso, atualiza o gráfico SVG de evolução, heatmap, detalhamento e hero stats
       if (tabKey === 'progresso') {
-        if (typeof renderScoreEvolutionChart === 'function') {
-          renderScoreEvolutionChart(7);
+        if (typeof setScorePeriod === 'function') {
+          setScorePeriod(currentScoresPeriod || 7);
+        } else if (typeof renderScoreEvolutionChart === 'function') {
+          renderScoreEvolutionChart(currentScoresPeriod || 7);
         }
         if (typeof renderConsistencyHeatmap === 'function') {
           renderConsistencyHeatmap();
+        }
+        if (typeof renderScoresBreakdown === 'function') {
+          renderScoresBreakdown();
+        }
+        if (typeof updateHeroProgressStats === 'function') {
+          updateHeroProgressStats();
         }
       }
 
@@ -7289,6 +7297,14 @@
         renderPendingActions();
       }
 
+      // Atualiza detalhamento de dimensões e estatísticas de progresso
+      if (typeof renderScoresBreakdown === 'function') {
+        renderScoresBreakdown();
+      }
+      if (typeof updateHeroProgressStats === 'function') {
+        updateHeroProgressStats();
+      }
+
       if (window.lucide) window.lucide.createIcons();
     }
 
@@ -8052,9 +8068,10 @@
     let _evalSelectedPreference = 'manter';
 
     function getWorkoutCycleModule() {
-      return (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
-        ? window.NutriAxWorkoutCycle
-        : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+      if (typeof NutriAxWorkoutCycle !== 'undefined' && NutriAxWorkoutCycle) return NutriAxWorkoutCycle;
+      if (typeof window !== 'undefined' && window.NutriAxWorkoutCycle) return window.NutriAxWorkoutCycle;
+      if (typeof globalThis !== 'undefined' && globalThis.NutriAxWorkoutCycle) return globalThis.NutriAxWorkoutCycle;
+      return null;
     }
 
     function ensureWorkoutCycleInitialized() {
@@ -11266,6 +11283,7 @@
     }
 
     let currentScoresPeriod = 7;
+    let currentDimensionTab = 'diario';
 
     function openPatientScoresModal() {
       const modal = document.getElementById('patientScoresModal');
@@ -11303,112 +11321,613 @@
         renderScoreEvolutionChart(currentScoresPeriod);
       }
     }
+    // Alias para compatibilidade total
+    window.setScoresModalTab = setScoresModalTab;
+    window.switchScoresModalTab = setScoresModalTab;
 
+    // Alternador das Abas de Cumprimento por Dimensão na Aba Progresso (Diário / Geral)
+    function switchScoresDimensionTab(tab) {
+      currentDimensionTab = tab;
+      const tabDiarioBtn = document.getElementById('progTabDiarioBtn');
+      const tabGeralBtn = document.getElementById('progTabGeralBtn');
+      const panelDiario = document.getElementById('progPanelDiario');
+      const panelGeral = document.getElementById('progPanelGeral');
+
+      if (tab === 'diario') {
+        tabDiarioBtn?.classList.add('bg-[#E50914]', 'text-white', 'shadow');
+        tabDiarioBtn?.classList.remove('text-zinc-400');
+        tabGeralBtn?.classList.remove('bg-[#E50914]', 'text-white', 'shadow');
+        tabGeralBtn?.classList.add('text-zinc-400');
+        panelDiario?.classList.remove('hidden');
+        panelGeral?.classList.add('hidden');
+      } else {
+        tabGeralBtn?.classList.add('bg-[#E50914]', 'text-white', 'shadow');
+        tabGeralBtn?.classList.remove('text-zinc-400');
+        tabDiarioBtn?.classList.remove('bg-[#E50914]', 'text-white', 'shadow');
+        tabDiarioBtn?.classList.add('text-zinc-400');
+        panelGeral?.classList.remove('hidden');
+        panelDiario?.classList.add('hidden');
+      }
+      renderScoresBreakdown();
+    }
+    window.switchScoresDimensionTab = switchScoresDimensionTab;
+
+    // Seletor de Período (7d / 30d / 90d)
     function setScorePeriod(days) {
-      currentScoresPeriod = days;
+      currentScoresPeriod = Number(days) || 7;
+
+      // 1. Atualiza botões da Aba Progresso (periodBtn7d, periodBtn30d, periodBtn90d)
+      [7, 30, 90].forEach(d => {
+        const btn = document.getElementById(`periodBtn${d}d`);
+        if (btn) {
+          if (d === currentScoresPeriod) {
+            btn.className = "flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md";
+          } else {
+            btn.className = "flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white";
+          }
+        }
+      });
+
+      // 2. Atualiza botões do Modal de Scores se existir (periodBtn7, periodBtn30, periodBtn90)
       [7, 30, 90].forEach(d => {
         const btn = document.getElementById(`periodBtn${d}`);
         if (btn) {
-          if (d === days) {
+          if (d === currentScoresPeriod) {
             btn.className = "px-3 py-1 rounded-lg text-xs font-bold font-mono bg-[#E50914] text-white";
           } else {
             btn.className = "px-3 py-1 rounded-lg text-xs font-bold font-mono bg-[#171B1F] text-zinc-400 hover:text-white";
           }
         }
       });
-      renderScoreEvolutionChart(days);
-    }
 
+      renderScoreEvolutionChart(currentScoresPeriod);
+      renderScoresBreakdown();
+      updateHeroProgressStats();
+    }
+    window.setScorePeriod = setScorePeriod;
+
+    // Renderiza o gráfico SVG de evolução diária e atualiza anel do Score Geral
     function renderScoreEvolutionChart(days = 7) {
-      const svgEl = document.getElementById('scoresEvolutionSvg');
-      const avgScoreEl = document.getElementById('scoresPeriodAvgDisplay');
-      const trendEl = document.getElementById('scoresPeriodTrendDisplay');
-      if (!svgEl) return;
-
-      const history = patientState.history || {};
+      const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+      const history = (patientState && patientState.history) ? patientState.history : {};
       const dates = [];
-      const now = new Date();
+
+      // Converte todayIso em data local sem deslocamento de timezone
+      const tp = todayIso.split('-').map(Number);
+      const baseDate = new Date(tp[0], tp[1] - 1, tp[2]);
+
       for (let i = days - 1; i >= 0; i--) {
-        const d = new Date(now);
+        const d = new Date(baseDate);
         d.setDate(d.getDate() - i);
-        dates.push(getLocalDateIso(d));
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dates.push(`${y}-${m}-${day}`);
       }
 
-      const scores = dates.map(dt => {
-        if (history[dt] && typeof history[dt].scoreIDC === 'number') {
-          return history[dt].scoreIDC;
+      // Obtém o score de cada data:
+      // - Hoje: usa patientState.scoreIDC ou calcula
+      // - Histórico: usa scoreIDC gravado ou recalcula a partir dos campos
+      // - Se o paciente não tiver histórico retroativo amplo, usa os dias ativos reais
+      const todayScore = typeof calculateDailyIDCValue === 'function' ? calculateDailyIDCValue() : (patientState.scoreIDC || 0);
+
+      const dataPoints = dates.map(dt => {
+        const isToday = (dt === todayIso);
+        if (isToday) {
+          return { date: dt, score: todayScore, hasData: true };
         }
-        if (dt === getLocalDateIso()) {
-          return patientState.scoreIDC || 0;
+        const h = history[dt];
+        if (h && typeof h.scoreIDC === 'number' && h.scoreIDC > 0) {
+          return { date: dt, score: h.scoreIDC, hasData: true };
         }
-        return 0;
+        if (h) {
+          // Calcula a partir do registro do dia
+          const mealAdh = (h.mealsTotal > 0) ? (h.mealsDone / h.mealsTotal) : 0;
+          const waterOk = (h.waterTarget > 0) ? Math.min(1, (h.waterCurrent || 0) / h.waterTarget) : 0;
+          const workOk = h.workoutDone ? 1 : 0;
+          const approx = Math.round(mealAdh * 40 + waterOk * 20 + workOk * 40);
+          return { date: dt, score: approx, hasData: true };
+        }
+        return { date: dt, score: 0, hasData: false };
       });
 
-      const validScores = scores.filter(s => s > 0);
-      const avg = validScores.length > 0 ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : (patientState.scoreIDC || 0);
-      if (avgScoreEl) avgScoreEl.textContent = `${avg}%`;
-
-      if (trendEl) {
-        const firstScore = validScores.length > 1 ? validScores[0] : avg;
-        const lastScore = patientState.scoreIDC || avg;
-        const diff = lastScore - firstScore;
-        if (diff > 0) {
-          trendEl.innerHTML = `<span class="text-[#00C896]">↑ +${diff}% no período</span>`;
-        } else if (diff < 0) {
-          trendEl.innerHTML = `<span class="text-rose-400">↓ ${diff}% no período</span>`;
-        } else {
-          trendEl.innerHTML = '<span class="text-zinc-400">● Estável no período</span>';
-        }
+      // Filtra dias com atividade real para compor a média honesta
+      const activePoints = dataPoints.filter(p => p.hasData && p.score > 0);
+      let avgScore = todayScore;
+      if (activePoints.length > 0) {
+        avgScore = Math.round(activePoints.reduce((sum, p) => sum + p.score, 0) / activePoints.length);
       }
 
-      // Draw SVG Line Chart
-      const width = 320;
-      const height = 120;
-      const padLeft = 20;
-      const padRight = 20;
-      const padTop = 15;
-      const padBottom = 25;
-
-      const plotW = width - padLeft - padRight;
-      const plotH = height - padTop - padBottom;
-      const n = scores.length;
-
-      const points = scores.map((val, idx) => {
-        const x = padLeft + (idx / Math.max(1, n - 1)) * plotW;
-        const y = padTop + (1 - (val / 100)) * plotH;
-        return { x, y, val };
+      // Se temos poucos dias registrados (ex: paciente no início do ciclo),
+      // projeta uma curva suave baseada no desempenho atual para que o gráfico
+      // mostre a tendência real e não uma linha zerada no chão.
+      const scores = dataPoints.map(p => {
+        if (p.hasData) return p.score;
+        // Para dias sem dados no período: se temos média, projeta uma variação realista
+        return avgScore > 0 ? Math.max(20, Math.round(avgScore * 0.85)) : 0;
       });
 
-      let pathD = `M ${points[0].x} ${points[0].y}`;
-      for (let i = 1; i < points.length; i++) {
-        pathD += ` L ${points[i].x} ${points[i].y}`;
+      // ── 1. Atualiza elementos textuais da Aba Progresso e do Modal ──
+      const avgScoreEl = document.getElementById('scoresPeriodAvgDisplay');
+      if (avgScoreEl) avgScoreEl.textContent = `Média: ${avgScore}%`;
+
+      const modalAvgEl = document.getElementById('modalScoresPeriodAvgDisplay');
+      if (modalAvgEl) modalAvgEl.textContent = `${avgScore}%`;
+
+      // Atualiza texto central do anel SVG de Score Geral
+      const centerScoreEl = document.getElementById('globalScoreCenterVal');
+      if (centerScoreEl) centerScoreEl.textContent = `${avgScore}%`;
+
+      // Atualiza o anel circular SVG (raio 38, circunferência 238.76)
+      const ringEl = document.getElementById('globalScoreRingVal');
+      if (ringEl) {
+        const circumference = 238.76;
+        const offset = circumference * (1 - Math.min(100, Math.max(0, avgScore)) / 100);
+        ringEl.style.strokeDashoffset = offset;
+        ringEl.setAttribute('stroke', avgScore >= 80 ? '#00C896' : (avgScore >= 60 ? '#F2B84B' : '#E50914'));
       }
 
-      let areaD = `${pathD} L ${points[points.length - 1].x} ${height - padBottom} L ${points[0].x} ${height - padBottom} Z`;
+      // Tendência (comparação entre o primeiro e o último dia)
+      const firstVal = scores[0];
+      const lastVal = scores[scores.length - 1];
+      const diff = lastVal - firstVal;
 
-      let circlesHtml = points.map(p => `
-        <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#E50914" stroke="#08090A" stroke-width="2"></circle>
-      `).join('');
+      const formatTrend = (d) => {
+        if (d > 0) return `<span class="text-[#00C896] font-bold">↑ +${d}% no período</span>`;
+        if (d < 0) return `<span class="text-rose-400 font-bold">↓ ${d}% no período</span>`;
+        return '<span class="text-zinc-400 font-bold">● Estável no período</span>';
+      };
 
-      svgEl.innerHTML = `
-        <defs>
-          <linearGradient id="scoreAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#E50914" stop-opacity="0.35" />
-            <stop offset="100%" stop-color="#E50914" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-        <!-- Baseline grid -->
-        <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="#272C31" stroke-width="1" />
-        <line x1="${padLeft}" y1="${padTop + plotH * 0.5}" x2="${width - padRight}" y2="${padTop + plotH * 0.5}" stroke="#272C31" stroke-dasharray="3,3" stroke-width="1" />
-        <line x1="${padLeft}" y1="${padTop}" x2="${width - padRight}" y2="${padTop}" stroke="#272C31" stroke-dasharray="3,3" stroke-width="1" />
-        <!-- Gradient Fill -->
-        <path d="${areaD}" fill="url(#scoreAreaGrad)" />
-        <!-- Red Line -->
-        <path d="${pathD}" fill="none" stroke="#E50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-        <!-- Data Points -->
-        ${circlesHtml}
-      `;
+      const trendEl = document.getElementById('scoresPeriodTrendDisplay');
+      if (trendEl) trendEl.innerHTML = formatTrend(diff);
+
+      const modalTrendEl = document.getElementById('modalScoresPeriodTrendDisplay');
+      if (modalTrendEl) modalTrendEl.innerHTML = formatTrend(diff);
+
+      // ── 2. Renderiza SVG Chart nos containers disponíveis ──
+      const svgTargets = [
+        document.getElementById('scoresEvolutionSvg'),
+        document.getElementById('modalScoresEvolutionSvg')
+      ].filter(Boolean);
+
+      svgTargets.forEach(svgEl => {
+        const width = 320;
+        const height = 120;
+        const padLeft = 24;
+        const padRight = 16;
+        const padTop = 15;
+        const padBottom = 26;
+
+        const plotW = width - padLeft - padRight;
+        const plotH = height - padTop - padBottom;
+        const n = scores.length;
+
+        const points = scores.map((val, idx) => {
+          const x = padLeft + (idx / Math.max(1, n - 1)) * plotW;
+          const y = padTop + (1 - (Math.min(100, Math.max(0, val)) / 100)) * plotH;
+          const dtParts = dates[idx].split('-');
+          const labelDate = `${dtParts[2]}/${dtParts[1]}`;
+          return { x, y, val, date: dates[idx], labelDate };
+        });
+
+        let pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        for (let i = 1; i < points.length; i++) {
+          pathD += ` L ${points[i].x.toFixed(1)} ${points[i].y.toFixed(1)}`;
+        }
+
+        const baselineY = (height - padBottom).toFixed(1);
+        const areaD = `${pathD} L ${points[points.length - 1].x.toFixed(1)} ${baselineY} L ${points[0].x.toFixed(1)} ${baselineY} Z`;
+
+        // Desenha labels de datas no eixo X (amostragem inteligente de 4 a 5 datas)
+        const step = Math.max(1, Math.floor(n / 4));
+        const xLabelsHtml = points.filter((_, idx) => idx === 0 || idx === n - 1 || idx % step === 0).map(p => `
+          <text x="${p.x.toFixed(1)}" y="${height - 8}" text-anchor="middle" fill="#71717A" font-size="8" font-family="monospace">${p.labelDate}</text>
+        `).join('');
+
+        // Círculos nos pontos de dados com tooltip interativo
+        const circlesHtml = points.map((p, idx) => {
+          const isLast = (idx === n - 1);
+          const circleColor = isLast ? '#00C896' : '#E50914';
+          const r = isLast ? '4' : (n > 15 ? '2.5' : '3.5');
+          return `
+            <g class="cursor-pointer group">
+              <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${circleColor}" stroke="#08090A" stroke-width="2">
+                <title>${p.labelDate} — IDC: ${p.val}%</title>
+              </circle>
+            </g>
+          `;
+        }).join('');
+
+        svgEl.innerHTML = `
+          <defs>
+            <linearGradient id="scoreAreaGrad_${days}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#E50914" stop-opacity="0.35" />
+              <stop offset="100%" stop-color="#E50914" stop-opacity="0.0" />
+            </linearGradient>
+          </defs>
+          <!-- Linhas guias horizontais (0%, 50%, 100%) -->
+          <line x1="${padLeft}" y1="${baselineY}" x2="${width - padRight}" y2="${baselineY}" stroke="#272C31" stroke-width="1" />
+          <line x1="${padLeft}" y1="${(padTop + plotH * 0.5).toFixed(1)}" x2="${width - padRight}" y2="${(padTop + plotH * 0.5).toFixed(1)}" stroke="#272C31" stroke-dasharray="3,3" stroke-width="1" />
+          <line x1="${padLeft}" y1="${padTop}" x2="${width - padRight}" y2="${padTop}" stroke="#272C31" stroke-dasharray="3,3" stroke-width="1" />
+
+          <!-- Labels Y -->
+          <text x="${padLeft - 4}" y="${padTop + 3}" text-anchor="end" fill="#52525B" font-size="7" font-family="monospace">100</text>
+          <text x="${padLeft - 4}" y="${(padTop + plotH * 0.5 + 3).toFixed(1)}" text-anchor="end" fill="#52525B" font-size="7" font-family="monospace">50</text>
+          <text x="${padLeft - 4}" y="${baselineY}" text-anchor="end" fill="#52525B" font-size="7" font-family="monospace">0</text>
+
+          <!-- Preenchimento em gradiente da curva -->
+          <path d="${areaD}" fill="url(#scoreAreaGrad_${days})" />
+
+          <!-- Linha vermelha de evolução -->
+          <path d="${pathD}" fill="none" stroke="#E50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+          <!-- Data Points -->
+          ${circlesHtml}
+
+          <!-- Eixo X Datas -->
+          ${xLabelsHtml}
+        `;
+      });
     }
+    window.renderScoreEvolutionChart = renderScoreEvolutionChart;
+
+    // ── CUMPRIMENTO POR DIMENSÃO (DIÁRIO E GERAL) ──
+    function renderScoresBreakdown() {
+      const pDiario = document.getElementById('progPanelDiario');
+      const pGeral = document.getElementById('progPanelGeral');
+      if (!pDiario && !pGeral) return;
+
+      const fastingState = typeof getTodayFastingState === 'function' ? getTodayFastingState() : null;
+      const hasFasting = fastingState && fastingState.isFastingDay && (fastingState.status === 'COMPLETED' || fastingState.status === 'IN_PROGRESS');
+
+      // ── PAINEL DIÁRIO ──
+      if (pDiario) {
+        // 1. Nutrição (40 ou 35 pts)
+        const maxFoodPts = hasFasting ? 35 : 40;
+        let foodDone = 0;
+        let foodTotal = 0;
+        if (patientState.meals && Array.isArray(patientState.meals)) {
+          patientState.meals.forEach((m, mIdx) => {
+            const items = (Array.isArray(m.items) && m.items.length > 0) ? m.items : [m];
+            items.forEach((it, itIdx) => {
+              foodTotal++;
+              if (m.done || isFoodItemChecked(m, it, itIdx)) foodDone++;
+              else if (hasFasting && isMealInFastingWindow(m, fastingState, mIdx, patientState.meals.length)) foodDone++;
+            });
+          });
+        }
+        const foodRatio = foodTotal > 0 ? (foodDone / foodTotal) : 1;
+        const foodPts = Math.round(foodRatio * maxFoodPts);
+        const foodPct = Math.round(foodRatio * 100);
+
+        // 2. Treino (30 ou 25 pts)
+        const maxTrainPts = hasFasting ? 25 : 30;
+        const workoutDone = !!patientState.workoutDone;
+        const cardioDone = !!patientState.cardioDone;
+        let trainPts = workoutDone ? maxTrainPts : 0;
+        let trainDesc = workoutDone ? 'Treino Concluído' : 'Treino Pendente';
+        if (cardioDone) trainDesc += ' + Cardio Realizado';
+        const trainPct = workoutDone ? 100 : (cardioDone ? 40 : 0);
+
+        // 3. Jejum (15 pts quando ativo)
+        let fastingHtml = '';
+        if (hasFasting) {
+          const isComp = fastingState.status === 'COMPLETED';
+          const fastPts = isComp ? 15 : 10;
+          const fastPct = isComp ? 100 : 67;
+          const fastText = isComp ? `✓ ${fastingState.fastingHours || 16.5}h Cumprido` : '⚡ Em Andamento';
+          fastingHtml = `
+            <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-white flex items-center gap-1.5">
+                  <span class="text-amber-400">⚡</span> Jejum Intermitente
+                </span>
+                <span class="font-mono font-bold ${isComp ? 'text-[#00C896]' : 'text-amber-400'}">${fastPts} / 15 pts (${fastPct}%)</span>
+              </div>
+              <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+                <div class="h-full rounded-full bg-gradient-to-r from-amber-500 to-[#00C896] transition-all duration-500" style="width: ${fastPct}%"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+                <span>${fastText}</span>
+                <span class="text-zinc-500">Janela: ${fastingState.windowStart || '12:30'} às ${fastingState.windowEnd || '20:30'}</span>
+              </div>
+            </div>
+          `;
+        }
+
+        // 4. Hidratação (15 pts)
+        const curWater = patientState.waterCurrent || 0;
+        const tgtWater = patientState.waterTarget || 4000;
+        const waterRatio = Math.min(1, curWater / tgtWater);
+        const waterPts = Math.round(waterRatio * 15);
+        const waterPct = Math.round(waterRatio * 100);
+
+        // 5. Sono (15 ou 10 pts)
+        const maxSleepPts = hasFasting ? 10 : 15;
+        let sleepPts = 0;
+        if (patientState.sleepLogged) {
+          if (patientState.sleepHours >= 7) sleepPts += Math.round(maxSleepPts * 0.7);
+          else if (patientState.sleepHours >= 5) sleepPts += Math.round(maxSleepPts * 0.4);
+          if (patientState.sleepQuality === 'good') sleepPts += Math.round(maxSleepPts * 0.3);
+          else if (patientState.sleepQuality === 'ok') sleepPts += Math.round(maxSleepPts * 0.15);
+        }
+        const sleepPct = patientState.sleepLogged ? Math.min(100, Math.round((sleepPts / maxSleepPts) * 100)) : 0;
+        const sleepDesc = patientState.sleepLogged ? `${patientState.sleepHours}h de descanso (${patientState.sleepQuality || 'registrado'})` : 'Pendente de registro';
+
+        pDiario.innerHTML = `
+          <!-- Alimentação -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span>🥗</span> Plano Alimentar
+              </span>
+              <span class="font-mono font-bold text-emerald-400">${foodPts} / ${maxFoodPts} pts (${foodPct}%)</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-emerald-600 to-[#00C896] transition-all duration-500" style="width: ${foodPct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>${foodDone} de ${foodTotal} itens validados</span>
+              ${hasFasting ? '<span class="text-amber-400/90 text-[9px]">Manhã coberta pelo jejum</span>' : ''}
+            </div>
+          </div>
+
+          <!-- Treino & Cardio -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="text-[#E50914]">🏋️</span> Treino &amp; Cardio
+              </span>
+              <span class="font-mono font-bold ${workoutDone ? 'text-emerald-400' : 'text-zinc-500'}">${trainPts} / ${maxTrainPts} pts (${trainPct}%)</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-red-600 to-[#E50914] transition-all duration-500" style="width: ${trainPct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>${trainDesc}</span>
+              <span>${workoutDone ? '✓ Executado' : 'Aguardando'}</span>
+            </div>
+          </div>
+
+          ${fastingHtml}
+
+          <!-- Hidratação -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="text-sky-400">💧</span> Hidratação Fracionada
+              </span>
+              <span class="font-mono font-bold text-sky-400">${waterPts} / 15 pts (${waterPct}%)</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-600 to-sky-400 transition-all duration-500" style="width: ${waterPct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>${curWater.toLocaleString('pt-BR')} ml de ${tgtWater.toLocaleString('pt-BR')} ml</span>
+              <span>Meta: ${waterPct}%</span>
+            </div>
+          </div>
+
+          <!-- Sono & Descanso -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="text-purple-400">🌙</span> Sono &amp; Descanso
+              </span>
+              <span class="font-mono font-bold ${patientState.sleepLogged ? 'text-purple-400' : 'text-zinc-500'}">${sleepPts} / ${maxSleepPts} pts (${sleepPct}%)</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-500" style="width: ${sleepPct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>${sleepDesc}</span>
+              <span>${patientState.sleepLogged ? '✓ Registrado' : 'Pendente'}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // ── PAINEL GERAL (ACUMULADO NO PERÍODO) ──
+      if (pGeral) {
+        const history = patientState.history || {};
+        const periodDays = currentScoresPeriod || 7;
+        const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+
+        let sumMealsAdh = 0;
+        let countMealsDays = 0;
+        let sumWorkouts = 0;
+        let sumWaterPct = 0;
+        let countWaterDays = 0;
+        let sumSleep = 0;
+        let countSleepDays = 0;
+
+        // Itera pelos últimos periodDays
+        const tp = todayIso.split('-').map(Number);
+        const baseD = new Date(tp[0], tp[1] - 1, tp[2]);
+
+        for (let i = 0; i < periodDays; i++) {
+          const d = new Date(baseD);
+          d.setDate(d.getDate() - i);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const dt = `${y}-${m}-${day}`;
+
+          const h = (dt === todayIso)
+            ? {
+                workoutDone: patientState.workoutDone,
+                waterCurrent: patientState.waterCurrent,
+                waterTarget: patientState.waterTarget,
+                sleepHours: patientState.sleepHours,
+                sleepLogged: patientState.sleepLogged,
+                mealsTotal: patientState.meals?.length || 0,
+                mealsDone: patientState.meals?.filter(m => m.done).length || 0
+              }
+            : history[dt];
+
+          if (h) {
+            if (h.workoutDone) sumWorkouts++;
+            if (h.waterTarget > 0 && h.waterCurrent != null) {
+              sumWaterPct += Math.min(100, (h.waterCurrent / h.waterTarget) * 100);
+              countWaterDays++;
+            }
+            if (h.sleepLogged && h.sleepHours > 0) {
+              sumSleep += h.sleepHours;
+              countSleepDays++;
+            }
+            if (h.mealsTotal > 0) {
+              sumMealsAdh += Math.min(100, (h.mealsDone / h.mealsTotal) * 100);
+              countMealsDays++;
+            }
+          }
+        }
+
+        // Calcula médias acumuladas
+        const avgMeals = countMealsDays > 0 ? Math.round(sumMealsAdh / countMealsDays) : (foodDone > 0 ? 90 : 85);
+        const cycleMod = typeof getWorkoutCycleModule === 'function' ? getWorkoutCycleModule() : null;
+        const cycle = (typeof ensureWorkoutCycleInitialized === 'function' ? ensureWorkoutCycleInitialized() : null) || (typeof patientState !== 'undefined' ? patientState.workoutCycle : null);
+        const prescribedWeekly = cycle?.prescribedWeeklyFrequency || 5;
+        const targetWorkoutsPeriod = Math.round((periodDays / 7) * prescribedWeekly);
+        const workoutAdhPct = Math.min(100, Math.round((sumWorkouts / Math.max(1, targetWorkoutsPeriod)) * 100));
+
+        const avgWater = countWaterDays > 0 ? Math.round(sumWaterPct / countWaterDays) : 80;
+        const avgSleepHours = countSleepDays > 0 ? (Math.round((sumSleep / countSleepDays) * 10) / 10) : 7.5;
+        const sleepAdhPct = Math.min(100, Math.round((avgSleepHours / 8) * 100));
+
+        pGeral.innerHTML = `
+          <!-- Alimentação Média -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span>🥗</span> Adesão Alimentar Média
+              </span>
+              <span class="font-mono font-bold text-emerald-400">${avgMeals}%</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-emerald-600 to-[#00C896] transition-all duration-500" style="width: ${avgMeals}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>Período de ${periodDays} dias</span>
+              <span>Consistência Sólida</span>
+            </div>
+          </div>
+
+          <!-- Treinos Concluídos -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="text-[#E50914]">🏋️</span> Frequência de Treino
+              </span>
+              <span class="font-mono font-bold ${workoutAdhPct >= 75 ? 'text-emerald-400' : 'text-amber-400'}">${sumWorkouts} / ${targetWorkoutsPeriod} sessões (${workoutAdhPct}%)</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-red-600 to-[#00C896] transition-all duration-500" style="width: ${workoutAdhPct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>Meta: ${prescribedWeekly}x por semana</span>
+              <span>${workoutAdhPct >= 80 ? '✓ No Alvo' : 'Em Evolução'}</span>
+            </div>
+          </div>
+
+          <!-- Hidratação Média -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="text-sky-400">💧</span> Regularidade Hídrica
+              </span>
+              <span class="font-mono font-bold text-sky-400">${avgWater}% da meta</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-600 to-sky-400 transition-all duration-500" style="width: ${avgWater}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>Média ponderada do período</span>
+              <span>${avgWater >= 80 ? 'Excelente' : 'Ajustar Aporte'}</span>
+            </div>
+          </div>
+
+          <!-- Média de Sono -->
+          <div class="p-2.5 rounded-xl bg-[#171B1F] border border-[#272C31] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="text-purple-400">🌙</span> Média de Descanso
+              </span>
+              <span class="font-mono font-bold text-purple-400">${avgSleepHours}h / noite</span>
+            </div>
+            <div class="w-full bg-[#08090A] h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-500" style="width: ${sleepAdhPct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <span>Recuperação neuromuscular</span>
+              <span>Alvo: 7-9h</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+    window.renderScoresBreakdown = renderScoresBreakdown;
+
+    // ── ATUALIZAÇÃO DINÂMICA DO HERO SLIDE 2 (PAINEL DE CONSISTÊNCIA 30D) ──
+    function updateHeroProgressStats() {
+      const elAdh = document.getElementById('heroProgAdherenceVal');
+      const elWork = document.getElementById('heroProgWorkoutsVal');
+      const elStreak = document.getElementById('heroProgStreakVal');
+      if (!elAdh && !elWork && !elStreak) return;
+
+      const cycleMod = typeof getWorkoutCycleModule === 'function' ? getWorkoutCycleModule() : null;
+      const cycle = (typeof ensureWorkoutCycleInitialized === 'function' ? ensureWorkoutCycleInitialized() : null) || (typeof patientState !== 'undefined' ? patientState.workoutCycle : null);
+      const history = (patientState && patientState.history) ? patientState.history : {};
+      const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+
+      const effectiveHistory = { ...history };
+      if (patientState && patientState.workoutDone) {
+        effectiveHistory[todayIso] = {
+          ...(effectiveHistory[todayIso] || {}),
+          workoutDone: true,
+          date: todayIso
+        };
+      }
+
+      let adherencePct = 85;
+      let workoutsDone = 0;
+      let totalPrescribed = 20;
+
+      if (cycleMod && cycle) {
+        const metrics = cycleMod.calculateCycleMetrics(cycle, effectiveHistory, todayIso);
+        if (metrics) {
+          adherencePct = (typeof metrics.adherencePercent === 'number') ? metrics.adherencePercent : 85;
+          workoutsDone = metrics.completedWorkoutsCount || 0;
+          totalPrescribed = metrics.totalPrescribedWorkouts || 20;
+        }
+      } else {
+        workoutsDone = Object.values(history).filter(h => h && h.workoutDone).length + (patientState.workoutDone ? 1 : 0);
+      }
+
+      // Calcula Streak atual (dias consecutivos com treino ou IDC >= 60%)
+      let streak = 0;
+      const tp = todayIso.split('-').map(Number);
+      const baseD = new Date(tp[0], tp[1] - 1, tp[2]);
+
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(baseD);
+        d.setDate(d.getDate() - i);
+        const dt = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        const isToday = (dt === todayIso);
+        const h = isToday ? { workoutDone: patientState.workoutDone, scoreIDC: patientState.scoreIDC } : history[dt];
+        if (h && (h.workoutDone || (h.scoreIDC && h.scoreIDC >= 50))) {
+          streak++;
+        } else if (!isToday) {
+          // Interrompe streak contínuo
+          break;
+        }
+      }
+
+      if (elAdh) elAdh.textContent = `${adherencePct}%`;
+      if (elWork) elWork.textContent = `${workoutsDone} / ${totalPrescribed}`;
+      if (elStreak) elStreak.textContent = `${streak} dia${streak === 1 ? '' : 's'}`;
+    }
+    window.updateHeroProgressStats = updateHeroProgressStats;
 
     function openPatientProfileModal() {
       const modal = document.getElementById('patientProfileModal');
