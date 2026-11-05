@@ -30664,11 +30664,58 @@ async function renderMentalityDashboard() {
   const bestLabelEl = document.getElementById('mentalityBestDayLabel');
   if (bestLabelEl) bestLabelEl.textContent = `${dayLabels[bestDayIdx]} (${maxAvg}% adesão média)`;
 
-  // ── 4. RESILIÊNCIA CLÍNICA & CONTROLE DO EFEITO DOMINÓ ──
+  // ── 4. RESILIÊNCIA CLÍNICA & CONTROLE DO EFEITO DOMINÓ (TELEMETRIA REAL) ──
   const resRateEl = document.getElementById('mentalityResilienceRate');
   const domCtrlEl = document.getElementById('mentalityDominoControl');
-  if (resRateEl) resRateEl.textContent = '86%';
-  if (domCtrlEl) domCtrlEl.textContent = 'Excelente (0 quebras consecutivas > 2 dias)';
+  
+  const sortedDates = Object.keys(history).sort();
+  let totalSlips = 0;
+  let recoveredIn24h = 0;
+  let currentConsecutiveSlips = 0;
+  let maxConsecutiveSlips = 0;
+
+  for (let i = 0; i < sortedDates.length; i++) {
+    const entry = history[sortedDates[i]];
+    const entryScore = (entry && (entry.scoreIDC !== undefined ? entry.scoreIDC : entry.compliance)) || 0;
+    const isSlip = (entry && (entryScore < 50 || entry.sosTriggered === true));
+    
+    if (isSlip) {
+      totalSlips++;
+      currentConsecutiveSlips++;
+      if (currentConsecutiveSlips > maxConsecutiveSlips) {
+        maxConsecutiveSlips = currentConsecutiveSlips;
+      }
+
+      // Verifica se houve recuperação no dia subsequente (retorno em < 24-48h)
+      if (i + 1 < sortedDates.length) {
+        const nextEntry = history[sortedDates[i + 1]];
+        const nextScore = (nextEntry && (nextEntry.scoreIDC !== undefined ? nextEntry.scoreIDC : nextEntry.compliance)) || 0;
+        if (nextScore >= 70) {
+          recoveredIn24h++;
+        }
+      }
+    } else {
+      currentConsecutiveSlips = 0;
+    }
+  }
+
+  let finalResilienceRate = 100;
+  let dominoText = "Excelente (0 quebras registradas)";
+
+  if (totalSlips > 0) {
+    finalResilienceRate = Math.round((recoveredIn24h / totalSlips) * 100);
+    if (maxConsecutiveSlips <= 1) {
+      dominoText = "Excelente (0 quebras consecutivas > 1 dia)";
+    } else {
+      dominoText = `Atenção (${maxConsecutiveSlips} dias consecutivos de quebra)`;
+    }
+  } else {
+    finalResilienceRate = 100;
+    dominoText = "Excelente (Consistência sólida sem quebras)";
+  }
+
+  if (resRateEl) resRateEl.textContent = `${finalResilienceRate}%`;
+  if (domCtrlEl) domCtrlEl.textContent = dominoText;
 
   // ── 5. CONTRATO DE COMPROMISSO CLÍNICO (METAS INEOCIÁVEIS) ──
   // 4 Leis inegociáveis do paciente

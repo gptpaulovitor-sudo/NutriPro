@@ -1795,6 +1795,51 @@
         </div>
       </div>
 
+      <!-- ═══ CARD MOTOR DE NUDGES CLÍNICOS & ENGAJAMENTO DIRETO (DINÂMICO) ═══ -->
+      <div id="progressoNudgesCard" class="nax-card p-4 space-y-3.5 border border-zinc-800 bg-[#121518]">
+        <div class="flex items-center justify-between border-b border-[#272C31] pb-2.5">
+          <div class="flex items-center gap-2">
+            <div id="nudgeIconBox" class="w-7 h-7 rounded-lg bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-center text-[#00C896]">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                Nudge Clínico &amp; Comportamento
+              </h3>
+              <p class="text-[9px] text-zinc-400 font-mono">Orientação em tempo real pelo seu Score</p>
+            </div>
+          </div>
+          <span id="nudgeStatusBadge" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+            Alta Adesão
+          </span>
+        </div>
+
+        <!-- Mensagem Dinâmica Baseada no Score do Paciente -->
+        <div class="p-3 rounded-xl bg-[#08090A] border border-[#272C31] space-y-1.5">
+          <div class="flex items-center gap-1.5">
+            <span id="nudgeEmoji" class="text-sm">🚀</span>
+            <h4 id="nudgeTitle" class="text-xs font-bold text-white">Consistência Sólida!</h4>
+          </div>
+          <p id="nudgeMessage" class="text-[11px] text-zinc-300 leading-relaxed font-sans">
+            Sua execução nas dimensões de alimentação e treino está consistente. Mantenha essa cadência diária para maximizar seus ganhos.
+          </p>
+        </div>
+
+        <!-- Ações Rápidas de Engajamento Direto -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+          <button type="button" onclick="shareProgressToWhatsApp()"
+            class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition-all active:scale-95">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+            Compartilhar no WhatsApp
+          </button>
+          <button type="button" onclick="openSosModal()"
+            class="py-2 px-3 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] text-amber-400 hover:text-amber-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all active:scale-95">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+            Protocolo SOS Deslize
+          </button>
+        </div>
+      </div>
+
       <button type="button" onclick="openPatientScoresModal()"
         class="w-full py-3 rounded-xl bg-[#171B1F] hover:bg-[#272C31] border border-[#272C31] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95">
         <i data-lucide="file-text" class="w-4 h-4 text-zinc-400"></i>
@@ -2482,10 +2527,17 @@
         </div>
       </div>
 
-      <button onclick="closeSosModal()"
-        class="w-full py-2.5 rounded-xl btn-nax-primary text-white font-black text-xs shadow-lg active:scale-95 transition-transform">
-        Entendido! Retomando o Foco 🔥
-      </button>
+      <div class="space-y-2 pt-1">
+        <button type="button" onclick="registerSosSlip()"
+          class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5">
+          <i data-lucide="shield-alert" class="w-4 h-4"></i>
+          Registrar Refeição Livre / Deslize Sem Culpa
+        </button>
+        <button type="button" onclick="closeSosModal()"
+          class="w-full py-2 rounded-xl bg-[#171B1F] hover:bg-[#20252A] border border-[#272C31] text-zinc-300 hover:text-white font-bold text-xs active:scale-95 transition-all">
+          Apenas Consultar Dicas de Contenção
+        </button>
+      </div>
     </div>
   </div>
 
@@ -10687,19 +10739,134 @@
       return totalScore;
     }
 
-    // 14. MODAL SOS
+    // 14. MODAL SOS & GESTÃO COMPORTAMENTAL
     function openSosModal() {
       logPatientActivity({
-        title: 'Protocolo SOS Acionado',
+        title: 'Protocolo SOS Aberto',
         desc: 'Paciente consultou plano de contingência para recaídas',
         type: 'sos',
         icon: 'life-buoy',
         color: 'rose'
       });
-      saveState();
       document.getElementById('sosModal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
     }
+
+    // Registra formalmente no histórico o evento de deslize sem culpa
+    function registerSosSlip() {
+      const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+      patientState.sosTriggered = true;
+      patientState.sosTriggeredAt = new Date().toISOString();
+      if (!patientState.history) patientState.history = {};
+      if (!patientState.history[todayIso]) {
+        patientState.history[todayIso] = { date: todayIso, scoreIDC: calculateDailyIDCValue() };
+      }
+      patientState.history[todayIso].sosTriggered = true;
+      patientState.history[todayIso].sosTriggeredAt = new Date().toISOString();
+
+      logPatientActivity({
+        title: 'Protocolo SOS Registrado',
+        desc: 'Deslize registrado sem culpa — Plano de contenção imediata ativo',
+        type: 'sos',
+        icon: 'shield-alert',
+        color: 'amber'
+      });
+
+      saveState();
+      closeSosModal();
+      if (typeof renderClinicalNudgesProgresso === 'function') renderClinicalNudgesProgresso();
+      if (typeof showToast === 'function') {
+        showToast('🛡️ Deslize registrado! Beba 500ml de água e siga o plano na próxima refeição.');
+      }
+    }
+    window.registerSosSlip = registerSosSlip;
+
+    // Compartilhamento direto de progresso para o WhatsApp do profissional
+    function shareProgressToWhatsApp() {
+      const name = (typeof patientState !== 'undefined' && patientState?.name) ? patientState.name.split(' ')[0] : 'Nutri';
+      const period = typeof currentScoresPeriod !== 'undefined' ? currentScoresPeriod : 7;
+      const avgScore = document.getElementById('globalScoreCenterVal')?.textContent?.trim() || '--';
+      const streak = document.getElementById('heroProgStreakVal')?.textContent?.trim() || '0';
+
+      const text = `Fala Nutri! 📊 Segue meu resumo de disciplina no NutriAx (${period} dias):\n\n` +
+                   `🔥 Score IDC Médio: ${avgScore}\n` +
+                   `⚡ Streak Atual: ${streak} dias consecutivos\n\n` +
+                   `Seguindo firme no planejamento alimentar e nos treinos! 💪`;
+
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+    window.shareProgressToWhatsApp = shareProgressToWhatsApp;
+
+    // Motor de Nudges Clínicos Dinâmico na Aba Progresso
+    function renderClinicalNudgesProgresso() {
+      const card = document.getElementById('progressoNudgesCard');
+      if (!card) return;
+
+      const badgeEl = document.getElementById('nudgeStatusBadge');
+      const iconBox = document.getElementById('nudgeIconBox');
+      const emojiEl = document.getElementById('nudgeEmoji');
+      const titleEl = document.getElementById('nudgeTitle');
+      const msgEl = document.getElementById('nudgeMessage');
+
+      const centerValText = document.getElementById('globalScoreCenterVal')?.textContent?.trim() || '';
+      const parsedVal = parseInt(centerValText.replace('%', ''), 10);
+      const currentIDC = isNaN(parsedVal) ? (typeof calculateDailyIDCValue === 'function' ? calculateDailyIDCValue() : 88) : parsedVal;
+
+      const todayIso = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+      const isSosToday = !!(patientState && (patientState.sosTriggered || (patientState.history && patientState.history[todayIso]?.sosTriggered)));
+
+      if (isSosToday) {
+        if (badgeEl) {
+          badgeEl.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-400 border border-amber-800/60";
+          badgeEl.textContent = "SOS Ativo · Contenção";
+        }
+        if (iconBox) {
+          iconBox.className = "w-7 h-7 rounded-lg bg-amber-950/60 border border-amber-800/80 flex items-center justify-center text-amber-400";
+        }
+        if (emojiEl) emojiEl.textContent = "🛡️";
+        if (titleEl) titleEl.textContent = "Protocolo de Contenção sem Culpa";
+        if (msgEl) msgEl.textContent = "Deslize identificado: lembre-se de que uma refeição fora do plano não quebra seu resultado. Beba 500ml de água agora, não faça compensações agressivas e retome 100% no horário da próxima refeição prescrita!";
+      } else if (currentIDC >= 80) {
+        if (badgeEl) {
+          badgeEl.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60";
+          badgeEl.textContent = "Alta Adesão · Blindado";
+        }
+        if (iconBox) {
+          iconBox.className = "w-7 h-7 rounded-lg bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-center text-[#00C896]";
+        }
+        if (emojiEl) emojiEl.textContent = "🚀";
+        if (titleEl) titleEl.textContent = "Rotina Blindada! Parabéns pelo Ritmo";
+        if (msgEl) msgEl.textContent = `Seu Score IDC médio de ${currentIDC}% reflete consistência e foco impecáveis. Continue mantendo essa cadência em treino, dieta e sono para maximizar sua recomposição corporal.`;
+      } else if (currentIDC >= 60) {
+        if (badgeEl) {
+          badgeEl.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-400 border border-amber-800/60";
+          badgeEl.textContent = "Fase de Ajuste · Calibração";
+        }
+        if (iconBox) {
+          iconBox.className = "w-7 h-7 rounded-lg bg-amber-950/60 border border-amber-800/80 flex items-center justify-center text-amber-400";
+        }
+        if (emojiEl) emojiEl.textContent = "⚡";
+        if (titleEl) titleEl.textContent = "Ponto de Calibração Identificado";
+        if (msgEl) msgEl.textContent = `Seu Score IDC médio está em ${currentIDC}%. Você tem boa base, mas oscilações na hidratação, sono ou refeições puxaram a média. Concentre-se em fechar essas pequenas lacunas hoje para superar os 80%!`;
+      } else {
+        if (badgeEl) {
+          badgeEl.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950/60 text-rose-400 border border-rose-800/60";
+          badgeEl.textContent = "Foco em Retomada";
+        }
+        if (iconBox) {
+          iconBox.className = "w-7 h-7 rounded-lg bg-rose-950/60 border border-rose-800/80 flex items-center justify-center text-rose-400";
+        }
+        if (emojiEl) emojiEl.textContent = "🎯";
+        if (titleEl) titleEl.textContent = "Foco na Retomada Imediata";
+        if (msgEl) msgEl.textContent = `Seu Score IDC médio oscilou para ${currentIDC}%. Momentos de quebra acontecem com todo atleta. O segredo da consistência duradoura é não permitir dois dias seguidos de quebra. Faça sua próxima refeição com 100% de foco!`;
+      }
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
+    window.renderClinicalNudgesProgresso = renderClinicalNudgesProgresso;
 
     function closeSosModal() {
       document.getElementById('sosModal').classList.add('hidden');
@@ -11383,6 +11550,9 @@
       renderScoreEvolutionChart(currentScoresPeriod);
       renderScoresBreakdown();
       updateHeroProgressStats();
+      if (typeof renderClinicalNudgesProgresso === 'function') {
+        renderClinicalNudgesProgresso();
+      }
     }
     window.setScorePeriod = setScorePeriod;
 
@@ -11863,6 +12033,9 @@
             </div>
           </div>
         `;
+      }
+      if (typeof renderClinicalNudgesProgresso === 'function') {
+        renderClinicalNudgesProgresso();
       }
     }
     window.renderScoresBreakdown = renderScoresBreakdown;
