@@ -4466,7 +4466,7 @@ async function revalidateAndApprovePrescription() {
   renderMealItems();
 
   try {
-    syncActivePatientToPatientApp(pId, currentCycle);
+    syncActivePatientToPatientApp(pId, perfCurrentWorkoutCycle);
   } catch (err) {
     console.warn("Aviso ao sincronizar prescrição revalidada com o app do paciente:", err);
   }
@@ -13264,13 +13264,25 @@ function syncActivePatientToPatientApp(patientId = activePatientId, explicitCycl
     cardioDatabase: (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB)) ? PERF_CARDIO_DB : null,
     activeSplit: typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : null,
     workoutCycle: explicitCycle || (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId) ? perfCurrentWorkoutCycle : null) || (Object.keys(formattedWorkout).length > 0 ? (function() {
-      // 1. Reutiliza ciclo ativo corrente do paciente se ainda estiver dentro do prazo e no mesmo split
+      // 1. Reutiliza ciclo ativo corrente do paciente se ainda estiver dentro do prazo (< 28 dias) e no mesmo split
       try {
-        const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`);
+        const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
+        const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
+                    localStorage.getItem(`nutriax_patient_discipline_v3_${pSlug}`);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.workoutCycle && parsed.workoutCycle.status === 'ACTIVE' && parsed.workoutCycle.split === perfActiveSplit) {
-            return parsed.workoutCycle;
+            const cDate = parsed.workoutCycle.startDate;
+            const tIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+            const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle) ? window.NutriAxWorkoutCycle : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+            if (cycleMod && typeof cycleMod.diffDaysIso === 'function') {
+              const diff = cycleMod.diffDaysIso(cDate, tIso);
+              if (diff >= 0 && diff < 28) {
+                return parsed.workoutCycle;
+              }
+            } else {
+              return parsed.workoutCycle;
+            }
           }
         }
       } catch (_) {}
@@ -17480,9 +17492,12 @@ function perfRenderCycleStatusCard() {
   }
 
   let discState = null;
+  const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
   try {
     const raw = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
+                localStorage.getItem(`nutriax_patient_discipline_v3_${pSlug}`) ||
                 localStorage.getItem(`nutriax_patient_payload_${pId}`) ||
+                localStorage.getItem(`nutriax_patient_payload_${pSlug}`) ||
                 localStorage.getItem('nutriax_sync_active_patient');
     if (raw) discState = JSON.parse(raw);
   } catch (_) {}
@@ -17491,7 +17506,9 @@ function perfRenderCycleStatusCard() {
     ? window.NutriAxWorkoutCycle
     : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
 
-  const cycle = discState?.workoutCycle || null;
+  const cycle = (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId))
+    ? perfCurrentWorkoutCycle
+    : (discState?.workoutCycle || null);
   if (!cycleMod || !cycle) {
     container.innerHTML = `
       <div class="p-3 rounded-xl bg-blue-950/20 border border-blue-500/30 flex items-center justify-between text-xs my-2">
@@ -17659,10 +17676,14 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
   perfCurrentWorkoutCycle = newCycle;
 
   // Atualiza cache de disciplina local e histórico de ciclos anteriores
+  let oldCycleId = null;
   try {
+    const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
     const keys = [
       `nutriax_patient_discipline_v3_${pId}`,
+      `nutriax_patient_discipline_v3_${pSlug}`,
       `nutriax_patient_payload_${pId}`,
+      `nutriax_patient_payload_${pSlug}`,
       'nutriax_patient_discipline_v3',
       'nutriax_sync_active_patient'
     ];
@@ -17677,10 +17698,18 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
       }
       if (!Array.isArray(parsed.pastWorkoutCycles)) parsed.pastWorkoutCycles = [];
       if (parsed.workoutCycle && parsed.workoutCycle.cycleId !== newCycle.cycleId) {
+        oldCycleId = parsed.workoutCycle.cycleId;
         const oldCycle = { ...parsed.workoutCycle, status: 'COMPLETED' };
         parsed.pastWorkoutCycles.push(oldCycle);
+        // Vincula qualquer treino feito hoje ao ciclo anterior para que o novo ciclo comece estritamente zerado
+        if (parsed.history && parsed.history[todayIso] && (parsed.history[todayIso].workoutDone || parsed.history[todayIso].done)) {
+          parsed.history[todayIso].cycleId = oldCycle.cycleId;
+        }
       }
       parsed.workoutCycle = newCycle;
+      // Reseta execução de treino diário para não contaminar a primeira semana do novo ciclo
+      parsed.workoutDone = false;
+      parsed.exerciseChecks = {};
       try {
         localStorage.setItem(k, JSON.stringify(parsed));
       } catch (_) {}
@@ -17726,7 +17755,8 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
       bc.postMessage({
         type: 'WORKOUT_CYCLE_RESET',
         patientId: pId,
-        workoutCycle: newCycle
+        workoutCycle: newCycle,
+        oldCycleId: oldCycleId
       });
       bc.postMessage({
         type: 'PERFORMANCE_UPDATED',
@@ -28360,11 +28390,23 @@ async function savePerformanceForPatient(patientId = activePatientId, forceNewCy
       currentCycle = perfCurrentWorkoutCycle;
     } else {
       try {
-        const rawDisc = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`);
+        const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
+        const rawDisc = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
+                        localStorage.getItem(`nutriax_patient_discipline_v3_${pSlug}`);
         if (rawDisc) {
           const parsed = JSON.parse(rawDisc);
           if (parsed && parsed.workoutCycle && parsed.workoutCycle.status === 'ACTIVE') {
-            currentCycle = parsed.workoutCycle;
+            const cDate = parsed.workoutCycle.startDate;
+            const tIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+            const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle) ? window.NutriAxWorkoutCycle : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
+            if (cycleMod && typeof cycleMod.diffDaysIso === 'function') {
+              const diff = cycleMod.diffDaysIso(cDate, tIso);
+              if (diff >= 0 && diff < 28) {
+                currentCycle = parsed.workoutCycle;
+              }
+            } else {
+              currentCycle = parsed.workoutCycle;
+            }
           }
         }
       } catch (_) {}
@@ -28373,6 +28415,9 @@ async function savePerformanceForPatient(patientId = activePatientId, forceNewCy
 
   if (!currentCycle || forceNewCycle) {
     currentCycle = explicitCycle || perfStartNewCycle4Weeks(pId, perfActiveSplit, null, true);
+  }
+  if (currentCycle) {
+    perfCurrentWorkoutCycle = currentCycle;
   }
 
   const canonicalWorkoutDb = perfBuildCanonicalWorkoutDatabase(perfWorkoutPlan, perfWeeklySchedule, perfPrescribedCardioId);
@@ -28416,7 +28461,7 @@ async function savePerformanceForPatient(patientId = activePatientId, forceNewCy
 
   // 3. Sincroniza instantaneamente com o App do Paciente
   try {
-    syncActivePatientToPatientApp(pId);
+    syncActivePatientToPatientApp(pId, currentCycle);
   } catch (syncErr) {
     console.warn("Erro ao sincronizar com app do paciente:", syncErr);
   }
@@ -28637,6 +28682,9 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
       patientId: pId
     };
     if (!perfWorkoutMeta.patientId) perfWorkoutMeta.patientId = pId;
+    if (saved.workoutCycle) {
+      perfCurrentWorkoutCycle = saved.workoutCycle;
+    }
     perfTargetRoutine = (perfWorkoutPlan && perfWorkoutPlan[0]?.id) || 'A';
 
     // Restaura estado pendente de aprovação da IA (gerado mas ainda não aprovado)

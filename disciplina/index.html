@@ -6506,11 +6506,27 @@
       // Aplica ou inicializa ciclo canônico de 4 semanas (Mesociclo)
       let appliedCycle = false;
       if (dataPayload.workoutCycle && typeof dataPayload.workoutCycle === 'object') {
-        if (patientState.workoutCycle && patientState.workoutCycle.cycleId && patientState.workoutCycle.cycleId !== dataPayload.workoutCycle.cycleId) {
-          if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
-          patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
+        const incomingCycle = dataPayload.workoutCycle;
+        const currentCycle = patientState.workoutCycle;
+        const isNewCycle = currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId;
+        const isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
+
+        if (isNewCycle || isReactivatedCycle) {
+          if (currentCycle && currentCycle.cycleId) {
+            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+            patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+          }
+          // NOVO CICLO: Reseta flags de execução diária para que o ciclo comece zerado
+          patientState.workoutDone = false;
+          patientState.exerciseChecks = {};
+          const todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+          if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+            if (currentCycle && currentCycle.cycleId) {
+              patientState.history[todayIso].cycleId = currentCycle.cycleId;
+            }
+          }
         }
-        patientState.workoutCycle = dataPayload.workoutCycle;
+        patientState.workoutCycle = incomingCycle;
         appliedCycle = true;
       } else if (!patientState.workoutCycle) {
         const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
@@ -6735,6 +6751,7 @@
           dataPayload = {};
         }
         if (perfPayload.workoutPlan) dataPayload.workoutPlan = perfPayload.workoutPlan;
+        if (perfPayload.workoutCycle) dataPayload.workoutCycle = perfPayload.workoutCycle;
         if (perfPayload.cardioPrescription) dataPayload.cardioPrescription = perfPayload.cardioPrescription;
         if (perfPayload.prescribedCardio) dataPayload.prescribedCardio = perfPayload.prescribedCardio;
         if (perfPayload.selectedSplit || perfPayload.split) dataPayload.activeSplit = perfPayload.selectedSplit || perfPayload.split;
@@ -11102,6 +11119,14 @@
             patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
           }
           patientState.workoutCycle = incomingCycle;
+          // Se for ciclo novo, zera execução diária do ciclo anterior
+          if (isDifferentCycle && currentCycle) {
+            patientState.workoutDone = false;
+            patientState.exerciseChecks = {};
+            if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+              patientState.history[todayIso].cycleId = currentCycle.cycleId;
+            }
+          }
         }
       }
 
@@ -11236,6 +11261,12 @@
                 patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
               }
               patientState.workoutCycle = incoming;
+              patientState.workoutDone = false;
+              patientState.exerciseChecks = {};
+              const todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+              if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+                patientState.history[todayIso].cycleId = (event.data.oldCycleId || 'previous_cycle');
+              }
               if (Array.isArray(event.data.pastWorkoutCycles)) {
                 patientState.pastWorkoutCycles = event.data.pastWorkoutCycles;
               }

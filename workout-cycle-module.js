@@ -140,6 +140,10 @@
       if (entry && (entry.workoutDone || entry.done)) {
         // Verifica se a data está estritamente no intervalo do ciclo ativo
         if (dateKey >= cycleStartDate && dateKey <= cycleEndDate) {
+          // Se o treino possui cycleId e não pertence a este ciclo, não contabiliza no ciclo atual
+          if (entry.cycleId && entry.cycleId !== cycle.cycleId) {
+            return;
+          }
           completedDates.push(dateKey);
         }
       }
@@ -260,6 +264,9 @@
     DEFAULT_MICROCICLES,
     createWorkoutCycle,
     calculateCycleMetrics,
-    completeCycleEvaluation
+    completeCycleEvaluation,
+    diffDaysIso,
+    formatDateIso,
+    addDaysToIso
   };
 });

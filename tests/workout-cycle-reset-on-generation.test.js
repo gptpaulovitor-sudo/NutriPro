@@ -158,5 +158,115 @@ describe('NutriAx - Reinício de Ciclo ao Gerar Novo Treino & Data Local', () =>
     assert.strictEqual(activeDays, 1, 'Apenas 1 dia ativo até agora no novo ciclo');
   });
 
+  test('Novo ciclo gerado hoje reinicia contadores para Semana 1, 0 treinos e 0% mesmo se treino do ciclo anterior ocorreu hoje', () => {
+    const todayIso = '2026-11-15';
+    const oldCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_paulo',
+      split: 'PPL',
+      startDate: '2026-10-18'
+    });
+
+    // Histórico com 20 treinos do ciclo antigo, inclusive um executado hoje antes da geração do novo treino
+    const history = {};
+    for (let i = 0; i < 19; i++) {
+      const d = new Date(2026, 9, 18 + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      history[iso] = { workoutDone: true, cycleId: oldCycle.cycleId };
+    }
+    history[todayIso] = { workoutDone: true, cycleId: oldCycle.cycleId };
+
+    // Novo ciclo gerado HOJE
+    const newCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_paulo',
+      split: 'PHAT',
+      startDate: todayIso,
+      prescribedWeeklyFrequency: 5
+    });
+
+    const metrics = NutriAxWorkoutCycle.calculateCycleMetrics(newCycle, history, todayIso);
+
+    assert.strictEqual(metrics.completedWorkoutsCount, 0, 'Contador de treinos concluídos deve ser ZERO');
+    assert.strictEqual(metrics.adherencePercent, 0, 'Aderência deve ser 0%');
+    assert.strictEqual(metrics.currentWeek, 1, 'Deve estar na Semana 1');
+    assert.strictEqual(metrics.daysElapsed, 0, '0 dias decorridos');
+    assert.strictEqual(metrics.daysRemaining, 28, '28 dias restantes');
+    assert.strictEqual(metrics.status, 'ACTIVE', 'Status deve ser ACTIVE');
+  });
+
+  test('applyPrescriptionPayload reseta workoutDone, exerciseChecks e atribui treino prévio ao ciclo antigo', () => {
+    const todayIso = '2026-11-15';
+    const oldCycle = {
+      cycleId: 'cycle_old_111',
+      protocolName: 'Periodização Antiga (4 Semanas)',
+      split: 'PPL',
+      startDate: '2026-10-18',
+      status: 'COMPLETED'
+    };
+
+    const patientState = {
+      workoutCycle: oldCycle,
+      pastWorkoutCycles: [],
+      workoutDone: true,
+      exerciseChecks: { 'ex1': true, 'ex2': true },
+      history: {
+        [todayIso]: { workoutDone: true }
+      }
+    };
+
+    const incomingCycle = {
+      cycleId: 'cycle_new_222',
+      protocolName: 'Periodização Nova PHAT (4 Semanas)',
+      split: 'PHAT',
+      startDate: todayIso,
+      status: 'ACTIVE'
+    };
+
+    // Simulação do comportamento de applyPrescriptionPayload
+    const currentCycle = patientState.workoutCycle;
+    const isNewCycle = currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId;
+
+    if (isNewCycle) {
+      if (currentCycle && currentCycle.cycleId) {
+        if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+        patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+      }
+      patientState.workoutDone = false;
+      patientState.exerciseChecks = {};
+      if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+        if (currentCycle && currentCycle.cycleId) {
+          patientState.history[todayIso].cycleId = currentCycle.cycleId;
+        }
+      }
+    }
+    patientState.workoutCycle = incomingCycle;
+
+    // Verificações
+    assert.strictEqual(patientState.workoutDone, false, 'workoutDone deve ser resetado para false');
+    assert.strictEqual(Object.keys(patientState.exerciseChecks).length, 0, 'exerciseChecks deve ser limpo');
+    assert.strictEqual(patientState.history[todayIso].cycleId, 'cycle_old_111', 'Treino de hoje prévio deve ser vinculado ao ciclo antigo');
+    assert.strictEqual(patientState.pastWorkoutCycles.length, 1);
+    assert.strictEqual(patientState.pastWorkoutCycles[0].cycleId, 'cycle_old_111');
+
+    // Métricas no novo ciclo
+    const metrics = NutriAxWorkoutCycle.calculateCycleMetrics(patientState.workoutCycle, patientState.history, todayIso);
+    assert.strictEqual(metrics.completedWorkoutsCount, 0, 'Treinos concluídos no novo ciclo deve ser 0');
+    assert.strictEqual(metrics.currentWeek, 1, 'Semana 1');
+  });
+
+  test('Invariante Estrutural: app.js passa currentCycle para syncActivePatientToPatientApp e disciplina copia workoutCycle de perfPayload', () => {
+    const fs = require('fs');
+    const appJs = fs.readFileSync('app.js', 'utf8');
+    const discHtml = fs.readFileSync('disciplina/index.html', 'utf8');
+
+    // app.js: savePerformanceForPatient sincroniza passando currentCycle
+    assert.match(appJs, /syncActivePatientToPatientApp\(pId,\s*currentCycle\)/, 'savePerformanceForPatient deve passar currentCycle');
+
+    // app.js: loadPerformanceForPatient restaura perfCurrentWorkoutCycle de saved.workoutCycle
+    assert.match(appJs, /if\s*\(saved\.workoutCycle\)\s*\{\s*perfCurrentWorkoutCycle\s*=\s*saved\.workoutCycle;\s*\}/);
+
+    // disciplina/index.html: loadState propaga workoutCycle de perfPayload
+    assert.match(discHtml, /if\s*\(perfPayload\.workoutCycle\)\s*dataPayload\.workoutCycle\s*=\s*perfPayload\.workoutCycle/);
+  });
+
 });
 
