@@ -5629,6 +5629,18 @@
           });
         }
 
+        if (window.NutriProFirebase?.discipline?.subscribe) {
+          if (typeof _activeDisciplineUnsubscribe === 'function') {
+            _activeDisciplineUnsubscribe();
+          }
+          _activeDisciplineUnsubscribe = window.NutriProFirebase.discipline.subscribe(_authorizedPatientId, (updatedDisc) => {
+            if (updatedDisc) {
+              applyCloudDiscipline(updatedDisc);
+              renderAll();
+            }
+          });
+        }
+
         // 7. Atualiza visual do usuário Google no cabeçalho
         updateGoogleAuthVisuals(user);
 
@@ -8259,11 +8271,17 @@
       } else if (isCompleted) {
         actionBannerHtml = `
           <div class="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-700/50 flex items-center justify-between text-xs text-emerald-300">
-            <span class="flex items-center gap-1.5 font-bold">
-              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Avaliação do ciclo enviada!
-            </span>
-            <button type="button" onclick="openWorkoutCycleEvaluationModal()" class="text-[10px] font-mono text-zinc-400 underline hover:text-white">
-              Ver Feedback
+            <div class="flex items-center gap-2">
+              <span class="flex items-center gap-1.5 font-bold">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Avaliação do ciclo enviada!
+              </span>
+              <button type="button" onclick="openWorkoutCycleEvaluationModal()" class="text-[10px] font-mono text-zinc-400 underline hover:text-white">
+                Ver Feedback
+              </button>
+            </div>
+            <button type="button" onclick="checkCloudForWorkoutUpdate()"
+              class="px-2.5 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white text-[10px] font-bold font-mono flex items-center gap-1 shadow transition-all active:scale-95">
+              <i data-lucide="refresh-cw" class="w-3 h-3"></i> Atualizar Treino
             </button>
           </div>
         `;
@@ -8522,6 +8540,60 @@
         }, 3000);
       }
     }
+
+    // Checagem manual e forçada de atualização de treino/mesociclo na nuvem
+    async function checkCloudForWorkoutUpdate() {
+      if (!_authorizedPatientId) return;
+      if (typeof showToast === 'function') {
+        showToast('🔄 Verificando novo ciclo e prescrição na nuvem...');
+      }
+
+      let updatedAny = false;
+
+      // 1. Checa Performance (treino, periodização, split)
+      if (window.NutriProFirebase?.performance?.loadFromCloud) {
+        try {
+          const cloudPerf = await window.NutriProFirebase.performance.loadFromCloud(_authorizedPatientId);
+          if (cloudPerf) {
+            applyPerformancePayload(cloudPerf);
+            updatedAny = true;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Checa Disciplina (ciclo de treino renovado pelo treinador)
+      if (window.NutriProFirebase?.discipline?.loadFromCloud) {
+        try {
+          const cloudDisc = await window.NutriProFirebase.discipline.loadFromCloud(_authorizedPatientId);
+          if (cloudDisc) {
+            applyCloudDiscipline(cloudDisc);
+            updatedAny = true;
+          }
+        } catch (_) {}
+      }
+
+      // 3. Checa Prescrição Geral
+      if (window.NutriProFirebase?.prescription?.loadFromCloud) {
+        try {
+          const cloudPresc = await window.NutriProFirebase.prescription.loadFromCloud(_authorizedPatientId);
+          if (cloudPresc) {
+            applyPrescriptionPayload(cloudPresc);
+            updatedAny = true;
+          }
+        } catch (_) {}
+      }
+
+      renderAll();
+
+      if (typeof showToast === 'function') {
+        if (patientState.workoutCycle && patientState.workoutCycle.status === 'ACTIVE') {
+          showToast('✅ Novo Mesociclo de Treino ativado e sincronizado!');
+        } else {
+          showToast('✓ Sincronização concluída com sucesso!');
+        }
+      }
+    }
+    window.checkCloudForWorkoutUpdate = checkCloudForWorkoutUpdate;
 
     window.openWorkoutCycleEvaluationModal = openWorkoutCycleEvaluationModal;
     window.closeWorkoutCycleEvaluationModal = closeWorkoutCycleEvaluationModal;
@@ -11017,6 +11089,26 @@
         patientState.timeline = [...newItems, ...(patientState.timeline || [])].slice(0, 40);
       }
 
+      // Aplica ciclo de treino da nuvem (se o ciclo na nuvem for mais recente, diferente ou ativo)
+      if (cloud.workoutCycle && typeof cloud.workoutCycle === 'object') {
+        const incomingCycle = cloud.workoutCycle;
+        const currentCycle = patientState.workoutCycle;
+        const isDifferentCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
+        const isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
+
+        if (isDifferentCycle || isReactivatedCycle) {
+          if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
+            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+            patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+          }
+          patientState.workoutCycle = incomingCycle;
+        }
+      }
+
+      if (Array.isArray(cloud.pastWorkoutCycles) && cloud.pastWorkoutCycles.length > 0) {
+        patientState.pastWorkoutCycles = cloud.pastWorkoutCycles;
+      }
+
       // Se a nuvem tem registros de HOJE, mescla sem desmarcar o que já foi feito localmente
       if (cloud.lastActiveDate === todayIso) {
         if (cloud.foodItemChecks && typeof cloud.foodItemChecks === 'object') {
@@ -11138,14 +11230,17 @@
             }
           } else if (event.data.type === 'WORKOUT_CYCLE_RESET') {
             if (event.data.workoutCycle) {
-              if (patientState.workoutCycle && patientState.workoutCycle.cycleId !== event.data.workoutCycle.cycleId) {
+              const incoming = event.data.workoutCycle;
+              if (patientState.workoutCycle && patientState.workoutCycle.cycleId !== incoming.cycleId) {
                 if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
                 patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
               }
-              patientState.workoutCycle = event.data.workoutCycle;
+              patientState.workoutCycle = incoming;
+              if (Array.isArray(event.data.pastWorkoutCycles)) {
+                patientState.pastWorkoutCycles = event.data.pastWorkoutCycles;
+              }
               try { saveState(); } catch (_) {}
-              renderWorkoutCycleCard();
-              if (typeof renderConsistencyHeatmap === 'function') renderConsistencyHeatmap();
+              renderAll();
             }
           } else if (event.data.type === 'PERFORMANCE_UPDATED') {
             if (event.data.payload) {

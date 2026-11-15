@@ -310,6 +310,7 @@ describe('Evolução, Consistência e Dimensões (Progresso)', () => {
 
     // Configura o estado do paciente diretamente no contexto VM
     vm.runInContext(`
+      getLocalDateIso = () => '2026-11-05';
       patientState.workoutCycle = testCycle;
       patientState.workoutDone = true;
       patientState.history = {

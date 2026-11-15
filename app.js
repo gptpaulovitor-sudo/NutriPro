@@ -12110,13 +12110,18 @@ async function renderDisciplineDashboard() {
   try {
     if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.subscribe === 'function') {
       window.NutriProFirebase.discipline.subscribe(pId, (cloudData) => {
-        if (cloudData && (cloudData.scoreIDC !== undefined || cloudData.meals || cloudData.history)) {
+        // FIX: Inclui workoutCycle (check-in do paciente) além dos campos existentes
+        if (cloudData && (cloudData.scoreIDC !== undefined || cloudData.meals || cloudData.history || cloudData.workoutCycle)) {
           const rawKey = `nutriax_patient_discipline_v3_${pId}`;
           const currentLocal = localStorage.getItem(rawKey);
           const newJson = JSON.stringify(cloudData);
           if (currentLocal !== newJson) {
             localStorage.setItem(rawKey, newJson);
             localStorage.setItem('nutriax_patient_discipline_v3', newJson);
+            // Re-renderiza o card de ciclo na aba Performance (sempre, independente da aba ativa)
+            try {
+              if (typeof perfRenderCycleStatusCard === 'function') perfRenderCycleStatusCard();
+            } catch (_) {}
             if (!window._isFirebaseSyncRendering) {
               window._isFirebaseSyncRendering = true;
               renderDisciplineDashboard().finally(() => {
@@ -12794,6 +12799,10 @@ if (typeof window !== 'undefined' && !window._nutriaxDisciplineSyncInitialized) 
           if (discSec && !discSec.classList.contains('hidden')) {
             renderDisciplineDashboard();
           }
+          // Garante que o card de status do ciclo seja re-renderizado em tempo real na aba Treino
+          try {
+            if (typeof perfRenderCycleStatusCard === 'function') perfRenderCycleStatusCard();
+          } catch (_) {}
           if (typeof updateSystemLastSyncDate === 'function') {
             updateSystemLastSyncDate(new Date());
           }
@@ -17462,7 +17471,9 @@ function perfRenderCycleStatusCard() {
   const container = document.getElementById('perf-cycle-status-container');
   if (!container) return;
 
-  const pId = typeof activePatientId !== 'undefined' ? activePatientId : null;
+  const pId = (typeof activePatientId !== 'undefined' && activePatientId ? activePatientId : null) ||
+    (typeof document !== 'undefined' ? document.getElementById("activePatientSelect")?.value : null) ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") : null);
   if (!pId) {
     container.innerHTML = '';
     return;
@@ -17533,13 +17544,20 @@ function perfRenderCycleStatusCard() {
           </div>
         </div>
         ${ev.patientNotes ? `<div class="p-2 rounded bg-black/40 text-[11px] text-zinc-300 italic border-l-2 border-emerald-500">"${ev.patientNotes}"</div>` : ''}
-        <div class="pt-1 flex items-center justify-between">
-          <span class="text-[10px] text-zinc-400">Pronto para gerar o novo mesociclo com sobrecarga programada:</span>
-          <button type="button" onclick="perfStartNewCycle4Weeks()"
-            class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-            <span>Prescrever Próximo Ciclo de 4 Semanas</span>
-          </button>
+        <div class="pt-1.5 flex items-center justify-between flex-wrap gap-2">
+          <span class="text-[10px] text-zinc-300">Pronto para gerar o novo mesociclo com progressão de sobrecarga e ajustes clínicos:</span>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="perfPrescribeNextCycleWithFeedback()"
+              class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Prescrever Próximo Ciclo com Sobrecarga</span>
+            </button>
+            <button type="button" onclick="perfStartNewCycle4Weeks()" title="Apenas reiniciar contador do ciclo com o mesmo treino"
+              class="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer">
+              <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+              <span>Reiniciar Ciclo</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -17553,11 +17571,18 @@ function perfRenderCycleStatusCard() {
             <span class="text-[10px] text-zinc-300">Aguardando preenchimento do check-in pelo paciente no app Disciplina.</span>
           </div>
         </div>
-        <button type="button" onclick="perfStartNewCycle4Weeks()"
-          class="px-3 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#B80710] text-white font-bold text-xs flex items-center gap-1.5 transition-all shrink-0">
-          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-          <span>Renovar Ciclo Agora</span>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" onclick="perfPrescribeNextCycleWithFeedback()"
+            class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Prescrever Próximo Ciclo</span>
+          </button>
+          <button type="button" onclick="perfStartNewCycle4Weeks()"
+            class="px-3 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#B80710] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer">
+            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+            <span>Renovar Ciclo Agora</span>
+          </button>
+        </div>
       </div>
     `;
   }
@@ -17602,7 +17627,10 @@ function perfRenderCycleStatusCard() {
 let perfCurrentWorkoutCycle = null;
 
 function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFreq = null, silent = false) {
-  const pId = patientId || (typeof activePatientId !== 'undefined' ? activePatientId : null);
+  const pId = patientId ||
+    (typeof activePatientId !== 'undefined' && activePatientId ? activePatientId : null) ||
+    (typeof document !== 'undefined' ? document.getElementById("activePatientSelect")?.value : null) ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") : null);
   if (!pId) return null;
 
   const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
@@ -17659,7 +17687,39 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
     });
   } catch (_) {}
 
-  // Sincroniza imediatamente com qualquer aba aberta do paciente via BroadcastChannel
+  // 1. Persiste a performance do paciente e sincroniza com o App do Paciente
+  try {
+    if (typeof savePerformanceForPatient === 'function') {
+      savePerformanceForPatient(pId, true, newCycle);
+    }
+  } catch (errPerf) {
+    console.warn('[perfStartNewCycle4Weeks] Falha ao salvar performance:', errPerf);
+  }
+
+  try {
+    if (typeof syncActivePatientToPatientApp === 'function') {
+      syncActivePatientToPatientApp(pId, newCycle);
+    }
+  } catch (errSync) {
+    console.warn('[perfStartNewCycle4Weeks] Falha ao sincronizar com app do paciente:', errSync);
+  }
+
+  // 2. Sincroniza diretamente na nuvem (Firebase Firestore: discipline + performance)
+  try {
+    if (window.NutriProFirebase && pId) {
+      if (typeof window.NutriProFirebase.discipline?.syncToCloud === 'function') {
+        const rawSaved = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`);
+        if (rawSaved) {
+          const parsedSaved = JSON.parse(rawSaved);
+          window.NutriProFirebase.discipline.syncToCloud(pId, parsedSaved);
+        }
+      }
+    }
+  } catch (errCloud) {
+    console.warn('[perfStartNewCycle4Weeks] Falha ao sincronizar ciclo na nuvem:', errCloud);
+  }
+
+  // 3. Sincroniza imediatamente com qualquer aba aberta do paciente via BroadcastChannel
   try {
     if (typeof BroadcastChannel !== 'undefined') {
       const bc = new BroadcastChannel('nutriax_bidirectional_sync');
@@ -17668,6 +17728,11 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
         patientId: pId,
         workoutCycle: newCycle
       });
+      bc.postMessage({
+        type: 'PERFORMANCE_UPDATED',
+        patientId: pId,
+        payload: { workoutCycle: newCycle }
+      });
     }
   } catch (_) {}
 
@@ -17675,14 +17740,167 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
 
   if (!silent) {
     if (typeof showSystemAlert === 'function') {
-      showSystemAlert('Novo Ciclo de 4 Semanas Prescrito e Sincronizado!', 'success');
+      showSystemAlert('Novo Ciclo de 4 Semanas Prescrito e Sincronizado com a Nuvem!', 'success');
     } else {
-      alert('Novo Ciclo de 4 Semanas Prescrito com Sucesso!');
+      alert('Novo Ciclo de 4 Semanas Prescrito e Sincronizado com Sucesso!');
     }
   }
 
   return newCycle;
 }
+
+/**
+ * Prescreve o Próximo Mesociclo de 4 Semanas integrando ativamente o feedback
+ * de fechamento do ciclo anterior (RPE, progressão de carga, dores articulares e preferência de divisão).
+ *
+ * @param {string|null} [patientId=null] - ID do paciente
+ * @param {string|null} [forcedSplit=null] - Divisão forçada opcional
+ * @returns {Promise<Object|null>} Novo ciclo criado e ativado
+ */
+async function perfPrescribeNextCycleWithFeedback(patientId = null, forcedSplit = null) {
+  const pId = patientId ||
+    (typeof activePatientId !== 'undefined' && activePatientId ? activePatientId : null) ||
+    (typeof document !== 'undefined' ? document.getElementById("activePatientSelect")?.value : null) ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem("NUTRIAX_ACTIVE_PATIENT_ID") : null);
+  if (!pId) return null;
+
+  // 1. Obtém o estado de disciplina com a avaliação do paciente
+  let discState = null;
+  const candidateKeys = [
+    `nutriax_patient_discipline_v3_${pId}`,
+    `nutriax_patient_discipline_v3_${String(pId || '').toLowerCase().replace(/\s+/g, '-')}`,
+    `nutriax_patient_payload_${pId}`,
+    'nutriax_patient_discipline_v3',
+    'nutriax_sync_active_patient'
+  ];
+  for (const k of candidateKeys) {
+    try {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.workoutCycle || parsed.history)) {
+          discState = parsed;
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  const cycle = discState?.workoutCycle || null;
+  const ev = cycle?.evaluation || null;
+
+  // 2. Determina Split Alvo (se o paciente solicitou trocar divisão)
+  let targetSplit = forcedSplit || perfActiveSplit || 'PHAT';
+  if (ev && ev.splitPreference === 'trocar') {
+    const splitProgression = {
+      'PPL': 'UpperLower',
+      'UpperLower': 'PHAT',
+      'PHAT': 'DUP',
+      'DUP': 'HYROX',
+      'HYROX': 'PPL'
+    };
+    targetSplit = splitProgression[perfActiveSplit] || 'UpperLower';
+    console.info(`[perfPrescribeNextCycleWithFeedback] Paciente solicitou troca de divisão. Avançando de ${perfActiveSplit} para ${targetSplit}.`);
+  }
+
+  // 3. Monta ou adapta as rotinas com sobrecarga progressiva e proteção articular
+  let newWorkoutPlan = [];
+  const hasSplitChanged = targetSplit !== perfActiveSplit;
+
+  if (hasSplitChanged && typeof PERF_SPLIT_PRESETS !== 'undefined' && PERF_SPLIT_PRESETS[targetSplit]) {
+    newWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[targetSplit]));
+    perfActiveSplit = targetSplit;
+    const selEl = document.getElementById('perf-split-select');
+    if (selEl) selEl.value = targetSplit;
+  } else if (Array.isArray(perfWorkoutPlan) && perfWorkoutPlan.length > 0) {
+    newWorkoutPlan = JSON.parse(JSON.stringify(perfWorkoutPlan));
+  } else if (typeof PERF_SPLIT_PRESETS !== 'undefined' && PERF_SPLIT_PRESETS[targetSplit]) {
+    newWorkoutPlan = JSON.parse(JSON.stringify(PERF_SPLIT_PRESETS[targetSplit]));
+  }
+
+  // Aplica sobrecarga progressiva baseada no feedback do ciclo
+  const rpe = ev?.rpeScore || 8;
+  const prog = ev?.loadProgression || 'aumentou';
+  const joints = Array.isArray(ev?.jointDiscomfort) ? ev.jointDiscomfort.map(j => String(j).toLowerCase()) : [];
+
+  newWorkoutPlan.forEach(routine => {
+    if (!Array.isArray(routine.exercises)) return;
+    routine.exercises.forEach(ex => {
+      if (!ex) return;
+      const exName = (ex.name || '').toLowerCase();
+
+      // Ajuste de Sobrecarga Progressiva
+      if (prog === 'aumentou' || rpe <= 7) {
+        ex.progressionNote = 'Sobrecarga +2.5% a 5% aplicada com base no ciclo anterior.';
+        if (typeof ex.rpe === 'number' && ex.rpe < 9) ex.rpe = Math.min(9, ex.rpe + 0.5);
+      } else if (prog === 'estagnou' || rpe >= 10) {
+        ex.progressionNote = 'Modulação de densidade neuromuscular (tempo sob tensão 3-1-1-0) para superação de platô.';
+        if (typeof ex.rpe === 'number' && ex.rpe > 7) ex.rpe = Math.max(7, ex.rpe - 0.5);
+      }
+
+      // Proteção articular se o paciente relatou desconforto
+      if (joints.some(j => j.includes('ombro'))) {
+        if (exName.includes('desenvolvimento barra') || exName.includes('militar')) {
+          ex.name = 'Desenvolvimento com Halteres (Pegada Neutra / Poupador)';
+          ex.notes = 'Adaptação pós-checkin: pegada neutra para descompressão subacromial.';
+        }
+      }
+      if (joints.some(j => j.includes('joelho'))) {
+        if (exName.includes('extensora') || exName.includes('agachamento profundo')) {
+          ex.notes = 'Adaptação pós-checkin: controle excêntrico 3s, limitar flexão a 90° para preservação femoropatelar.';
+        }
+      }
+      if (joints.some(j => j.includes('lombar') || j.includes('costas'))) {
+        if (exName.includes('remada curvada') && !exName.includes('apoiada')) {
+          ex.name = 'Remada Cavalinho ou Unilateral Apoiada (Suporte Torácico)';
+          ex.notes = 'Adaptação pós-checkin: apoio torácico para alívio da coluna lombar.';
+        }
+      }
+    });
+  });
+
+  // Atualiza memória
+  perfWorkoutPlan = newWorkoutPlan;
+  perfWeeklySchedule = perfBuildWeeklySchedule(targetSplit);
+
+  // 4. Cria e ativa o novo ciclo de 4 semanas
+  const newCycle = perfStartNewCycle4Weeks(pId, targetSplit, null, true);
+
+  // 5. Salva a nova prescrição de performance e sincroniza com Dexie e Nuvem
+  perfWorkoutMeta = {
+    isAIGenerated: false,
+    isClinicallyValidated: true,
+    split: targetSplit,
+    splitSource: 'HUMAN_CYCLE_RENEWAL',
+    generatedAt: new Date().toISOString(),
+    validatedAt: new Date().toISOString(),
+    patientId: pId,
+    cycleFeedbackApplied: ev
+  };
+
+  await savePerformanceForPatient(pId, true, newCycle);
+  syncActivePatientToPatientApp(pId, newCycle);
+
+  // 6. Atualiza UI do Pro
+  perfRenderCycleStatusCard();
+  if (typeof perfRender === 'function') perfRender();
+
+  // 7. Notificação informativa ao profissional
+  const msg = `Novo Mesociclo de 4 Semanas Prescrito com Sucesso!\n\n` +
+    `• Divisão: ${targetSplit}\n` +
+    `• Sobrecarga: ${prog === 'aumentou' ? '+2.5% a 5% consolidada' : 'Modulação de densidade'}\n` +
+    `• Articulações: ${joints.length > 0 ? joints.join(', ') : '100% íntegro'}\n` +
+    `• Sincronizado instantaneamente com o App Disciplina do Paciente!`;
+
+  if (typeof showSystemAlert === 'function') {
+    showSystemAlert(msg.replace(/\n/g, '<br>'), 'success');
+  } else {
+    alert(msg);
+  }
+
+  return newCycle;
+}
+window.perfPrescribeNextCycleWithFeedback = perfPrescribeNextCycleWithFeedback;
 
 
 
@@ -22322,6 +22540,18 @@ async function buildPerformanceContext(patientId = activePatientId) {
     prescribedCardioId: typeof perfPrescribedCardioId !== 'undefined' ? perfPrescribedCardioId : 'cardio_01'
   };
 
+  // ── 9.d AVALIAÇÃO DO CICLO DE TREINO ANTERIOR (CHECK-IN) ───────────────────
+  let previousCycleEvaluation = null;
+  try {
+    const rawDisc = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) || localStorage.getItem('nutriax_sync_active_patient');
+    if (rawDisc) {
+      const parsedDisc = JSON.parse(rawDisc);
+      previousCycleEvaluation = parsedDisc.workoutCycle?.evaluation ||
+        (Array.isArray(parsedDisc.pastWorkoutCycles) && parsedDisc.pastWorkoutCycles[parsedDisc.pastWorkoutCycles.length - 1]?.evaluation) ||
+        null;
+    }
+  } catch (_) {}
+
   // ── 10. MONTAGEM DO DTO CANÔNICO CONSOLIDADO ──────────────────────────────
   const inferredSplitFromAnamnese = (typeof perfInferSplitFromAnamnese === 'function')
     ? perfInferSplitFromAnamnese(p.workoutType || p.mainModality, p.workoutFrequency)
@@ -22333,6 +22563,7 @@ async function buildPerformanceContext(patientId = activePatientId) {
   const context = {
     split: targetSplit,
     targetSplit: targetSplit,
+    previousCycleEvaluation,
     _meta: {
       contextVersion: '1.2',
       builtAt: new Date().toISOString(),
@@ -28274,6 +28505,27 @@ async function loadPerformanceForPatient(patientId = activePatientId) {
     }
   } catch (cloudErr) {
     console.warn("Aviso ao buscar performance na nuvem:", cloudErr);
+  }
+
+  // 5.1 Sincroniza disciplina/ciclo da Nuvem Firebase para refletir check-in de finalização de ciclo imediatamente
+  try {
+    if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.loadFromCloud === 'function' && pId) {
+      const cloudDisc = await window.NutriProFirebase.discipline.loadFromCloud(pId);
+      if (cloudDisc && (cloudDisc.workoutCycle || cloudDisc.history)) {
+        const discKey = `nutriax_patient_discipline_v3_${pId}`;
+        const curLocal = localStorage.getItem(discKey);
+        const cloudDiscStr = JSON.stringify(cloudDisc);
+        if (curLocal !== cloudDiscStr) {
+          localStorage.setItem(discKey, cloudDiscStr);
+          localStorage.setItem('nutriax_patient_discipline_v3', cloudDiscStr);
+          try {
+            if (typeof perfRenderCycleStatusCard === 'function') perfRenderCycleStatusCard();
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (cloudDiscErr) {
+    console.warn("Aviso ao buscar disciplina/ciclo na nuvem:", cloudDiscErr);
   }
 
   // Conecta ouvinte em tempo real para sincronização entre múltiplos computadores abertos
