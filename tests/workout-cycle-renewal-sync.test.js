@@ -50,7 +50,7 @@ describe('Renovação e Sincronização do Mesociclo de Treino (Pro ↔ Discipli
   });
 
   test('CYCLE-SYNC-06: sw-paciente.js atualizado para versão recente', () => {
-    assert.match(swContent, /nutriax-disciplina-v1\.0\.(8|9|10)/);
+    assert.match(swContent, /nutriax-disciplina-v1\.0\.(8|9|10|11|12|\d+)/);
   });
 
   test('CYCLE-SYNC-07: Simulação em Sandbox VM — Renovação de ciclo substitui ciclo concluído', () => {

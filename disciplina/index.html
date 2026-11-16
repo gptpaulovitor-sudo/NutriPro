@@ -3046,7 +3046,7 @@
         sheet.classList.remove('hidden');
         sheet.classList.add('active');
       }
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     };
 
     window.closePilarBottomSheet = function () {
@@ -3082,7 +3082,7 @@
           gdBtn.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md';
         }
       }
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -3669,7 +3669,7 @@
       renderPatientFoodPills();
       var modal = document.getElementById('patientPreferencesModal');
       if (modal) modal.classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
     window.openPatientPreferencesModal = openPatientPreferencesModal;
 
@@ -3861,7 +3861,7 @@
             btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Salvar Preferencias</span>';
           }
           closePatientPreferencesModal();
-          if (window.lucide) window.lucide.createIcons();
+          if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
         }, 600);
 
       } catch (e) {
@@ -5335,7 +5335,7 @@
       if (state === 'AUTHORIZED') {
         overlay.classList.add('hidden');
         if (content) content.classList.remove('hidden');
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
         return;
       }
 
@@ -5365,7 +5365,7 @@
         if (errMsg && details.message) errMsg.textContent = details.message;
       }
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function dismantleClinicalInterface() {
@@ -5635,8 +5635,13 @@
           }
           _activeDisciplineUnsubscribe = window.NutriProFirebase.discipline.subscribe(_authorizedPatientId, (updatedDisc) => {
             if (updatedDisc) {
+              // Previne auto-eco se a atualização da nuvem tem timestamp menor ou igual ao último update local
+              if (updatedDisc.updatedAtClient && patientState.updatedAtClient &&
+                  updatedDisc.updatedAtClient <= patientState.updatedAtClient) {
+                return;
+              }
               applyCloudDiscipline(updatedDisc);
-              renderAll();
+              requestAnimationFrame(() => renderAll());
             }
           });
         }
@@ -7175,6 +7180,19 @@
       return Math.min(100, Math.max(0, Math.round(mealsScore + fastingScore + workoutScore + waterScore + sleepScore)));
     }
 
+    // Debounce de sincronização com o Firebase Firestore (1200ms) para evitar travamento da UI por requisições contínuas
+    let _cloudSyncDebounceTimer = null;
+    function scheduleCloudDisciplineSync() {
+      if (_cloudSyncDebounceTimer) clearTimeout(_cloudSyncDebounceTimer);
+      _cloudSyncDebounceTimer = setTimeout(() => {
+        try {
+          if (_authorizedPatientId && window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.syncToCloud === 'function') {
+            window.NutriProFirebase.discipline.syncToCloud(_authorizedPatientId, patientState);
+          }
+        } catch (_) { }
+      }, 1200);
+    }
+
     function saveState() {
       // INVARIANTE 1 & 2: Nunca salvar dados se não houver paciente autorizado
       if (!_authorizedPatientId) return;
@@ -7262,29 +7280,30 @@
         };
 
         // ── Anti-race-condition: protege ciclo mais novo prescrito pelo Pro ──
-        // Se o localStorage já tiver um ciclo com cycleId diferente e mais recente
-        // (escrito por perfStartNewCycle4Weeks/syncActivePatientToPatientApp),
-        // adota o ciclo mais novo antes de salvar para evitar sobrescrita por dados em memória obsoletos.
+        // Verificação ultra-rápida sem JSON.parse custoso se o cycleId já for idêntico
         try {
           const rawLS = localStorage.getItem(storageKey);
-          if (rawLS) {
-            const lsParsed = JSON.parse(rawLS);
-            if (lsParsed && lsParsed.workoutCycle && patientState.workoutCycle &&
-                lsParsed.workoutCycle.cycleId !== patientState.workoutCycle.cycleId) {
-              const lsCreated = lsParsed.workoutCycle.createdAt || lsParsed.workoutCycle.startDate || '';
-              const memCreated = patientState.workoutCycle.createdAt || patientState.workoutCycle.startDate || '';
-              if (lsCreated > memCreated) {
-                // localStorage tem ciclo mais novo → adota e reseta estado diário
-                const oldCycleId = patientState.workoutCycle.cycleId;
-                patientState.workoutCycle = lsParsed.workoutCycle;
-                patientState.pastWorkoutCycles = lsParsed.pastWorkoutCycles || patientState.pastWorkoutCycles || [];
-                patientState.workoutDone = false;
-                patientState.exerciseChecks = {};
-                // Vincula treino de hoje ao ciclo anterior
-                if (patientState.history && patientState.history[todayIso] &&
-                    (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done) &&
-                    !patientState.history[todayIso].cycleId) {
-                  patientState.history[todayIso].cycleId = oldCycleId || 'previous_cycle';
+          if (rawLS && patientState.workoutCycle && patientState.workoutCycle.cycleId) {
+            // Só faz JSON.parse se a string bruta indicar um cycleId diferente salvo no disco
+            if (rawLS.includes('"cycleId"') && !rawLS.includes(`"${patientState.workoutCycle.cycleId}"`)) {
+              const lsParsed = JSON.parse(rawLS);
+              if (lsParsed && lsParsed.workoutCycle &&
+                  lsParsed.workoutCycle.cycleId !== patientState.workoutCycle.cycleId) {
+                const lsCreated = lsParsed.workoutCycle.createdAt || lsParsed.workoutCycle.startDate || '';
+                const memCreated = patientState.workoutCycle.createdAt || patientState.workoutCycle.startDate || '';
+                if (lsCreated > memCreated) {
+                  // localStorage tem ciclo mais novo → adota e reseta estado diário
+                  const oldCycleId = patientState.workoutCycle.cycleId;
+                  patientState.workoutCycle = lsParsed.workoutCycle;
+                  patientState.pastWorkoutCycles = lsParsed.pastWorkoutCycles || patientState.pastWorkoutCycles || [];
+                  patientState.workoutDone = false;
+                  patientState.exerciseChecks = {};
+                  // Vincula treino de hoje ao ciclo anterior
+                  if (patientState.history && patientState.history[todayIso] &&
+                      (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done) &&
+                      !patientState.history[todayIso].cycleId) {
+                    patientState.history[todayIso].cycleId = oldCycleId || 'previous_cycle';
+                  }
                 }
               }
             }
@@ -7306,12 +7325,8 @@
           }
         } catch (_) { }
 
-        // Sincronização em nuvem via Firebase Firestore estritamente para o paciente autorizado
-        try {
-          if (window.NutriProFirebase && typeof window.NutriProFirebase.discipline?.syncToCloud === 'function') {
-            window.NutriProFirebase.discipline.syncToCloud(_authorizedPatientId, patientState);
-          }
-        } catch (_) { }
+        // Sincronização em nuvem via Firebase Firestore com debounce inteligente de 1200ms
+        scheduleCloudDisciplineSync();
       } catch (e) {
         console.warn('Erro ao salvar state local', e);
       }
@@ -7382,7 +7397,8 @@
       }
 
       // Carrossel de Rotinas e Sinergia Prescrita (Seletor Unificado)
-      renderWeeklyCarousel(); if (typeof renderHeroWorkoutSelector === "function") renderHeroWorkoutSelector(); if (typeof renderHeroWorkoutSelector === "function") renderHeroWorkoutSelector();
+      renderWeeklyCarousel();
+      if (typeof renderHeroWorkoutSelector === "function") renderHeroWorkoutSelector();
       updateSynergyCard();
 
       // Ficha Detalhada de Treino
@@ -7427,7 +7443,7 @@
         updateHeroProgressStats();
       }
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     // 6.1 MÓDULO DE JEJUM INTERMITENTE (PILAR 2 · PACIENTE · DISPARO DE EXECUÇÃO & REGISTRO)
@@ -7865,7 +7881,7 @@
         </div>
       `;
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     async function startFastingExecutionToday() {
@@ -8042,7 +8058,7 @@
       const btnEl = document.getElementById('btnConfirmCustomFasting');
       if (btnEl) {
         btnEl.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i><span>✓ Salvar Jejum Executado (${hours}h)</span>`;
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
       }
     }
     window.updateFastingHoursPreview = updateFastingHoursPreview;
@@ -8417,7 +8433,7 @@
       `;
 
 
-      if (window.lucide) window.lucide.createIcons({ root: container });
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function openWorkoutCycleEvaluationModal() {
@@ -8799,7 +8815,7 @@
         setTimeout(() => sec.classList.remove('ring-2', 'ring-blue-500/80'), 400);
       }
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function selectScheduleDay(dayNum) {
@@ -8823,7 +8839,7 @@
       renderWorkoutExercises();
       updateWorkoutVisuals();
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function updateSynergyCard() {
@@ -8875,7 +8891,7 @@
         if (btnHoje) btnHoje.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all bg-[#E50914] text-white shadow-md';
         if (btnSemana) btnSemana.className = 'flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all text-zinc-400 hover:text-white';
       }
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
     window.switchNutritionSubtab = switchNutritionSubtab;
 
@@ -9065,7 +9081,7 @@
         </div>
       `;
 
-      if (window.lucide) window.lucide.createIcons({ root: container });
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
     window.renderWeeklyNutritionView = renderWeeklyNutritionView;
 
@@ -9183,7 +9199,7 @@
             ` : ''}
           `;
 
-          if (window.lucide) window.lucide.createIcons();
+          if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
           updateCardioVisuals();
           updateWorkoutVisuals();
           return;
@@ -9247,7 +9263,7 @@
           }).join('')}
         `;
 
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
         updateCardioVisuals();
         updateWorkoutVisuals();
         return;
@@ -9611,7 +9627,7 @@
       renderWorkoutExercises();
       updateWorkoutCycleProgress();
       calculateDailyIDC();
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function toggleCardioCheck() {
@@ -9681,7 +9697,7 @@
           pts.textContent = '+10 pts IDC';
         }
       }
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function updateWorkoutVisuals() {
@@ -9849,7 +9865,7 @@
       document.getElementById('guideModalMistakes').textContent = foundEx.mistakes || 'Evite compensações articulares.';
 
       document.getElementById('exerciseGuideModal').classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function closeExerciseGuideModal() {
@@ -10331,7 +10347,7 @@
         `;
       }).join('');
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     // 12.1 SISTEMA DE SUBSTITUIÇÃO DE ALIMENTOS EQUIVALENTES
@@ -10413,7 +10429,7 @@
 
       renderFoodSubstituteDetails(foods[0] || { name: meal.name, qty: 100, unit: '1 porção', kcal: meal.kcal, prot: meal.prot, carbo: meal.carbo, lipid: meal.fat });
       modal.classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function selectSubstituteFood(idx) {
@@ -10881,7 +10897,7 @@
         color: 'rose'
       });
       document.getElementById('sosModal').classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     // Registra formalmente no histórico o evento de deslize sem culpa
@@ -11117,7 +11133,7 @@
             </svg>`;
         }
       }
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function applyCloudDiscipline(cloud) {
@@ -11587,7 +11603,7 @@
         </div>
       `).join('');
 
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function switchBottomTab(tabId) {
@@ -11626,7 +11642,7 @@
       if (!modal) return;
       modal.classList.remove('hidden');
       renderScoreEvolutionChart(currentScoresPeriod);
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function closePatientScoresModal() {
@@ -12276,7 +12292,7 @@
       const modal = document.getElementById('patientProfileModal');
       if (!modal) return;
       modal.classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
     function closePatientProfileModal() {
