@@ -6675,7 +6675,18 @@
             patientState.selectedScheduleDay = parsed.selectedScheduleDay;
           }
           if (parsed.workoutCycle) {
+            const prevCycleIdLoad = patientState.workoutCycle ? patientState.workoutCycle.cycleId : null;
             patientState.workoutCycle = parsed.workoutCycle;
+            // Se o ciclo mudou (Pro prescreveu novo ciclo desde o último carregamento), reseta o estado diário
+            if (prevCycleIdLoad && prevCycleIdLoad !== parsed.workoutCycle.cycleId) {
+              patientState.workoutDone = false;
+              patientState.exerciseChecks = {};
+              if (patientState.history && patientState.history[todayIso] &&
+                  (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done) &&
+                  !patientState.history[todayIso].cycleId) {
+                patientState.history[todayIso].cycleId = prevCycleIdLoad;
+              }
+            }
           }
           if (Array.isArray(parsed.pastWorkoutCycles)) {
             patientState.pastWorkoutCycles = parsed.pastWorkoutCycles;
@@ -7249,6 +7260,36 @@
           fastingCompleted: !!(patientState.fastingToday?.status === 'COMPLETED'),
           updatedAt: new Date().toISOString()
         };
+
+        // ── Anti-race-condition: protege ciclo mais novo prescrito pelo Pro ──
+        // Se o localStorage já tiver um ciclo com cycleId diferente e mais recente
+        // (escrito por perfStartNewCycle4Weeks/syncActivePatientToPatientApp),
+        // adota o ciclo mais novo antes de salvar para evitar sobrescrita por dados em memória obsoletos.
+        try {
+          const rawLS = localStorage.getItem(storageKey);
+          if (rawLS) {
+            const lsParsed = JSON.parse(rawLS);
+            if (lsParsed && lsParsed.workoutCycle && patientState.workoutCycle &&
+                lsParsed.workoutCycle.cycleId !== patientState.workoutCycle.cycleId) {
+              const lsCreated = lsParsed.workoutCycle.createdAt || lsParsed.workoutCycle.startDate || '';
+              const memCreated = patientState.workoutCycle.createdAt || patientState.workoutCycle.startDate || '';
+              if (lsCreated > memCreated) {
+                // localStorage tem ciclo mais novo → adota e reseta estado diário
+                const oldCycleId = patientState.workoutCycle.cycleId;
+                patientState.workoutCycle = lsParsed.workoutCycle;
+                patientState.pastWorkoutCycles = lsParsed.pastWorkoutCycles || patientState.pastWorkoutCycles || [];
+                patientState.workoutDone = false;
+                patientState.exerciseChecks = {};
+                // Vincula treino de hoje ao ciclo anterior
+                if (patientState.history && patientState.history[todayIso] &&
+                    (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done) &&
+                    !patientState.history[todayIso].cycleId) {
+                  patientState.history[todayIso].cycleId = oldCycleId || 'previous_cycle';
+                }
+              }
+            }
+          }
+        } catch (_) {}
 
         const stateJson = JSON.stringify(patientState);
         localStorage.setItem(storageKey, stateJson);
@@ -8196,7 +8237,9 @@
         effectiveHistory[todayIso] = {
           ...(effectiveHistory[todayIso] || {}),
           workoutDone: true,
-          date: todayIso
+          date: todayIso,
+          // Vincula ao ciclo atual para que calculateCycleMetrics filtre corretamente por cycleId
+          cycleId: cycle && cycle.cycleId ? cycle.cycleId : (effectiveHistory[todayIso] && effectiveHistory[todayIso].cycleId ? effectiveHistory[todayIso].cycleId : undefined)
         };
       }
       const metrics = cycleMod.calculateCycleMetrics(cycle, effectiveHistory, todayIso);
@@ -12183,7 +12226,8 @@
         effectiveHistory[todayIso] = {
           ...(effectiveHistory[todayIso] || {}),
           workoutDone: true,
-          date: todayIso
+          date: todayIso,
+          cycleId: cycle && cycle.cycleId ? cycle.cycleId : (effectiveHistory[todayIso] && effectiveHistory[todayIso].cycleId ? effectiveHistory[todayIso].cycleId : undefined)
         };
       }
 

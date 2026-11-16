@@ -13379,6 +13379,18 @@ function syncActivePatientToPatientApp(patientId = activePatientId, explicitCycl
       existingDisc.weeklySchedule = normalizedSchedule;
     }
     if (syncPayload.workoutCycle) {
+      const prevCycleId = existingDisc.workoutCycle ? existingDisc.workoutCycle.cycleId : null;
+      const nextCycleId = syncPayload.workoutCycle.cycleId;
+      if (prevCycleId && prevCycleId !== nextCycleId) {
+        // Novo ciclo detectado: reseta estado diário e vincula treino de hoje ao ciclo anterior
+        const todayIsoSync = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+        if (existingDisc.history && existingDisc.history[todayIsoSync] &&
+            (existingDisc.history[todayIsoSync].workoutDone || existingDisc.history[todayIsoSync].done)) {
+          existingDisc.history[todayIsoSync].cycleId = prevCycleId;
+        }
+        existingDisc.workoutDone = false;
+        existingDisc.exerciseChecks = {};
+      }
       existingDisc.workoutCycle = syncPayload.workoutCycle;
     }
     if (syncPayload.activeSplit) {
@@ -17526,7 +17538,13 @@ function perfRenderCycleStatusCard() {
     return;
   }
 
-  const metrics = cycleMod.calculateCycleMetrics(cycle, discState.history || {}, (typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10)));
+  // Constrói histórico efetivo com cycleId explícito para garantir isolamento de ciclos
+  const todayIsoMetrics = typeof getLocalDateIso === 'function' ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+  const rawHistory = discState ? (discState.history || {}) : {};
+  const effectiveHistoryPro = { ...rawHistory };
+  // Garante que entradas sem cycleId dentro do intervalo do ciclo atual sejam tratadas como pertencentes a ele
+  // (entradas fora do intervalo são ignoradas pelo calculateCycleMetrics pelo filtro de datas)
+  const metrics = cycleMod.calculateCycleMetrics(cycle, effectiveHistoryPro, todayIsoMetrics);
   const isCompleted = cycle.status === 'COMPLETED';
   const needsEval = metrics.status === 'NEEDS_EVALUATION';
 
