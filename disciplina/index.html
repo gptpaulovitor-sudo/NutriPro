@@ -5473,6 +5473,14 @@
       if (!incomingHasMeals && currentHasMeals && !incomingHasWorkout) {
         return false;
       }
+      // Se houver prescrição ou renovação de ciclo de treino, sempre aceita
+      const hasNewCycle = incoming.workoutCycle && (
+        !patientState.workoutCycle ||
+        incoming.workoutCycle.cycleId !== patientState.workoutCycle.cycleId ||
+        (patientState.workoutCycle.status !== 'ACTIVE' && incoming.workoutCycle.status === 'ACTIVE')
+      );
+      if (hasNewCycle) return true;
+
       // Se ambos tiverem data de atualização, rejeita se a versão incoming for estritamente mais antiga que a local
       if (incoming.updatedAt && current && current.updatedAt) {
         const incomingTime = new Date(incoming.updatedAt).getTime();
@@ -5635,8 +5643,15 @@
           }
           _activeDisciplineUnsubscribe = window.NutriProFirebase.discipline.subscribe(_authorizedPatientId, (updatedDisc) => {
             if (updatedDisc) {
-              // Previne auto-eco se a atualização da nuvem tem timestamp menor ou igual ao último update local
-              if (updatedDisc.updatedAtClient && patientState.updatedAtClient &&
+              // Previne auto-eco se a atualização da nuvem tem timestamp menor ou igual ao último update local,
+              // EXCETO se houver prescrição ou renovação de ciclo de treino (mudança de cycleId ou reativação de ciclo)
+              const isCycleUpdate = updatedDisc.workoutCycle && (
+                !patientState.workoutCycle ||
+                updatedDisc.workoutCycle.cycleId !== patientState.workoutCycle.cycleId ||
+                (patientState.workoutCycle.status !== 'ACTIVE' && updatedDisc.workoutCycle.status === 'ACTIVE') ||
+                updatedDisc.workoutCycle.startDate !== patientState.workoutCycle.startDate
+              );
+              if (!isCycleUpdate && updatedDisc.updatedAtClient && patientState.updatedAtClient &&
                   updatedDisc.updatedAtClient <= patientState.updatedAtClient) {
                 return;
               }
@@ -6513,22 +6528,21 @@
       if (dataPayload.workoutCycle && typeof dataPayload.workoutCycle === 'object') {
         const incomingCycle = dataPayload.workoutCycle;
         const currentCycle = patientState.workoutCycle;
-        const isNewCycle = currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId;
+        const isNewCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
         const isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
 
         if (isNewCycle || isReactivatedCycle) {
-          if (currentCycle && currentCycle.cycleId) {
+          if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
             if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
             patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
           }
           // NOVO CICLO: Reseta flags de execução diária para que o ciclo comece zerado
           patientState.workoutDone = false;
+          patientState.completedRoutineKey = null;
           patientState.exerciseChecks = {};
           const todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
           if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
-            if (currentCycle && currentCycle.cycleId) {
-              patientState.history[todayIso].cycleId = currentCycle.cycleId;
-            }
+            patientState.history[todayIso].cycleId = (currentCycle && currentCycle.cycleId) ? currentCycle.cycleId : 'prev_cycle';
           }
         }
         patientState.workoutCycle = incomingCycle;
@@ -11166,11 +11180,13 @@
       }
 
       // Aplica ciclo de treino da nuvem (se o ciclo na nuvem for mais recente, diferente ou ativo)
+      let isDifferentCycle = false;
+      let isReactivatedCycle = false;
       if (cloud.workoutCycle && typeof cloud.workoutCycle === 'object') {
         const incomingCycle = cloud.workoutCycle;
         const currentCycle = patientState.workoutCycle;
-        const isDifferentCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
-        const isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
+        isDifferentCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
+        isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
 
         if (isDifferentCycle || isReactivatedCycle) {
           if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
@@ -11179,12 +11195,11 @@
           }
           patientState.workoutCycle = incomingCycle;
           // Se for ciclo novo, zera execução diária do ciclo anterior
-          if (isDifferentCycle && currentCycle) {
-            patientState.workoutDone = false;
-            patientState.exerciseChecks = {};
-            if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
-              patientState.history[todayIso].cycleId = currentCycle.cycleId;
-            }
+          patientState.workoutDone = false;
+          patientState.completedRoutineKey = null;
+          patientState.exerciseChecks = {};
+          if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+            patientState.history[todayIso].cycleId = (currentCycle && currentCycle.cycleId) ? currentCycle.cycleId : 'prev_cycle';
           }
         }
       }
@@ -11209,7 +11224,7 @@
             }
           });
         }
-        if (cloud.workoutDone) patientState.workoutDone = true;
+        if (cloud.workoutDone && !isDifferentCycle && !isReactivatedCycle) patientState.workoutDone = true;
         if (cloud.cardioDone) patientState.cardioDone = true;
         if ((cloud.waterCurrent || 0) > (patientState.waterCurrent || 0)) {
           patientState.waterCurrent = cloud.waterCurrent;
@@ -11229,7 +11244,7 @@
           if ((h.waterCurrent || 0) > (patientState.waterCurrent || 0)) {
             patientState.waterCurrent = h.waterCurrent;
           }
-          if (h.workoutDone) patientState.workoutDone = true;
+          if (h.workoutDone && !isDifferentCycle && !isReactivatedCycle) patientState.workoutDone = true;
           if (h.cardioDone) patientState.cardioDone = true;
           if (h.sleepLogged && !patientState.sleepLogged) {
             patientState.sleepLogged = true;
@@ -11321,6 +11336,7 @@
               }
               patientState.workoutCycle = incoming;
               patientState.workoutDone = false;
+              patientState.completedRoutineKey = null;
               patientState.exerciseChecks = {};
               const todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
               if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {

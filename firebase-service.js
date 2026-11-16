@@ -321,6 +321,8 @@
         activeSplit: performanceRecord.activeSplit || 'PHAT',
         workoutPlan: Array.isArray(performanceRecord.workoutPlan) ? performanceRecord.workoutPlan : [],
         weeklySchedule: Array.isArray(performanceRecord.weeklySchedule) ? performanceRecord.weeklySchedule : [],
+        workoutCycle: performanceRecord.workoutCycle || null,
+        pastWorkoutCycles: Array.isArray(performanceRecord.pastWorkoutCycles) ? performanceRecord.pastWorkoutCycles : [],
         prescribedCardioId: performanceRecord.prescribedCardioId || 'cardio_01',
         cardioPrescription: performanceRecord.cardioPrescription || null,
         heartRateZones: performanceRecord.heartRateZones || null,

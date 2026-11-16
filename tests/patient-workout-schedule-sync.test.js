@@ -222,19 +222,19 @@ test('Unificação de Seletores de Treino e Acompanhamento da Prescrição Real'
 
     const carouselHtml = domElements['weeklyScheduleCarousel'].innerHTML;
 
-    // Deve conter badge de execução exatamente uma vez
-    const execMatches = carouselHtml.match(/🎯 Em execução/g) || [];
-    assert.equal(execMatches.length, 1, 'Deve haver exatamente 1 badge "🎯 Em execução" no carrossel de rotinas');
+    // Deve conter badge de execução/alvo ativo exatamente uma vez
+    const execMatches = carouselHtml.match(/(🎯 Em execução|🎯 Alvo Ativo)/g) || [];
+    assert.equal(execMatches.length, 1, 'Deve haver exatamente 1 badge "🎯 Alvo Ativo" no carrossel de rotinas');
 
-    // As rotinas são exibidas por letra (TREINO A, TREINO B...) sem impor dia fixo
-    assert.ok(carouselHtml.includes('TREINO A'), 'Deve conter rotina TREINO A');
-    assert.ok(carouselHtml.includes('TREINO B'), 'Deve conter rotina TREINO B');
+    // As rotinas são exibidas por letra ou título
+    assert.ok(carouselHtml.toUpperCase().includes('TREINO A'), 'Deve conter rotina TREINO A');
+    assert.ok(carouselHtml.toUpperCase().includes('TREINO B'), 'Deve conter rotina TREINO B');
 
-    // Ao selecionar a rotina B, o badge "🎯 Em execução" move-se unicamente para B
-    exp.selectRoutine('B');
+    // Ao selecionar o dia da rotina B, o badge move-se unicamente para o alvo selecionado
+    exp.selectScheduleDay(2);
     exp.renderWeeklyCarousel();
     const carouselHtmlAfterClick = domElements['weeklyScheduleCarousel'].innerHTML;
-    const matchesAfterClick = carouselHtmlAfterClick.match(/🎯 Em execução/g) || [];
+    const matchesAfterClick = carouselHtmlAfterClick.match(/(🎯 Em execução|🎯 Alvo Ativo)/g) || [];
     assert.equal(matchesAfterClick.length, 1, 'Após selecionar Treino B, permanece exatamente 1 rotina em execução');
   });
 

@@ -145,4 +145,96 @@ describe('Renovação e Sincronização do Mesociclo de Treino (Pro ↔ Discipli
     assert.match(appJs, /onclick="perfPrescribeNextCycleWithFeedback\(\)"/);
     assert.match(appJs, /previousCycleEvaluation/);
   });
+
+  test('CYCLE-SYNC-09: firebase-service.js inclui workoutCycle e pastWorkoutCycles no payload', () => {
+    const fbServicePath = path.join(__dirname, '..', 'firebase-service.js');
+    const fbServiceContent = fs.readFileSync(fbServicePath, 'utf8');
+    assert.match(fbServiceContent, /workoutCycle:\s*performanceRecord\.workoutCycle/);
+    assert.match(fbServiceContent, /pastWorkoutCycles:\s*Array\.isArray\(performanceRecord\.pastWorkoutCycles\)/);
+  });
+
+  test('CYCLE-SYNC-10: Ao renovar mesmo treino para mais 4 semanas, mesociclo reseta para Semana 1 com 0 treinos', () => {
+    // 1. Ciclo anterior da semana 4 (28 dias atrás)
+    const previousCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_teste',
+      protocolName: 'Periodização PHAT (4 Semanas)',
+      split: 'PHAT',
+      startDate: '2026-10-19'
+    });
+    const history = {
+      '2026-10-20': { workoutDone: true, cycleId: previousCycle.cycleId },
+      '2026-10-22': { workoutDone: true, cycleId: previousCycle.cycleId },
+      '2026-11-16': { workoutDone: true, cycleId: previousCycle.cycleId }
+    };
+    const metricsOld = NutriAxWorkoutCycle.calculateCycleMetrics(previousCycle, history, '2026-11-16');
+    assert.equal(metricsOld.currentWeek, 4);
+
+    // 2. Nutricionista prescreve o MESMO treino para mais 4 semanas hoje (2026-11-16)
+    const renewedCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_teste',
+      protocolName: 'Periodização PHAT (4 Semanas)',
+      split: 'PHAT',
+      startDate: '2026-11-16'
+    });
+    assert.notEqual(renewedCycle.cycleId, previousCycle.cycleId);
+    assert.equal(renewedCycle.startDate, '2026-11-16');
+    assert.equal(renewedCycle.status, 'ACTIVE');
+
+    // 3. Métricas do novo ciclo começam rigorosamente na Semana 1 de 4 com 0 treinos concluídos
+    const metricsNew = NutriAxWorkoutCycle.calculateCycleMetrics(renewedCycle, history, '2026-11-16');
+    assert.equal(metricsNew.currentWeek, 1);
+    assert.equal(metricsNew.totalWeeks, 4);
+    assert.equal(metricsNew.completedWorkoutsCount, 0);
+    assert.equal(metricsNew.adherencePercent, 0);
+  });
+
+  test('CYCLE-SYNC-11: Disciplina protege contra contaminação de workoutDone anterior ao aplicar ciclo novo', () => {
+    const oldCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_paulo',
+      protocolName: 'Ciclo Semana 4',
+      split: 'PHAT',
+      startDate: '2026-10-19'
+    });
+    oldCycle.status = 'COMPLETED';
+
+    const domContext = {
+      patientState: {
+        name: 'Paulo',
+        workoutCycle: oldCycle,
+        workoutDone: true,
+        pastWorkoutCycles: [],
+        history: { '2026-11-16': { workoutDone: true } }
+      },
+      getLocalDateIso: () => '2026-11-16',
+      saveState: () => {},
+      renderAll: () => {},
+      showToast: () => {},
+      NutriAxWorkoutCycle: NutriAxWorkoutCycle,
+      console: console
+    };
+
+    const match = discHtml.match(/function applyCloudDiscipline\(cloud\) \{[\s\S]*?saveState\(\);\s*\}/);
+    assert.ok(match, 'applyCloudDiscipline deve existir no html');
+    const script = new vm.Script(match[0]);
+    vm.createContext(domContext);
+    script.runInContext(domContext);
+
+    const renewedCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_paulo',
+      protocolName: 'Periodização PHAT (4 Semanas)',
+      split: 'PHAT',
+      startDate: '2026-11-16'
+    });
+
+    // Nuvem envia novo ciclo no mesmo dia em que o paciente havia marcado workoutDone
+    domContext.applyCloudDiscipline({
+      workoutCycle: renewedCycle,
+      workoutDone: true,
+      lastActiveDate: '2026-11-16'
+    });
+
+    // O novo ciclo deve iniciar rigorosamente zerado sem contaminar o novo ciclo
+    assert.equal(domContext.patientState.workoutCycle.cycleId, renewedCycle.cycleId);
+    assert.equal(domContext.patientState.workoutDone, false, 'workoutDone deve ser resetado para o novo ciclo');
+  });
 });

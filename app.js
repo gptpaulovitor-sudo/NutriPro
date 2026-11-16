@@ -13263,7 +13263,7 @@ function syncActivePatientToPatientApp(patientId = activePatientId, explicitCycl
     cardioPrescription: (typeof perfCardioPrescription !== 'undefined' && perfCardioPrescription) ? perfCardioPrescription : null,
     cardioDatabase: (typeof PERF_CARDIO_DB !== 'undefined' && Array.isArray(PERF_CARDIO_DB)) ? PERF_CARDIO_DB : null,
     activeSplit: typeof perfActiveSplit !== 'undefined' ? perfActiveSplit : null,
-    workoutCycle: explicitCycle || (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId) ? perfCurrentWorkoutCycle : null) || (Object.keys(formattedWorkout).length > 0 ? (function() {
+    workoutCycle: explicitCycle || (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId) && perfCurrentWorkoutCycle.status === 'ACTIVE' ? perfCurrentWorkoutCycle : null) || (Object.keys(formattedWorkout).length > 0 ? (function() {
       // 1. Reutiliza ciclo ativo corrente do paciente se ainda estiver dentro do prazo (< 28 dias) e no mesmo split
       try {
         const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
@@ -13381,14 +13381,16 @@ function syncActivePatientToPatientApp(patientId = activePatientId, explicitCycl
     if (syncPayload.workoutCycle) {
       const prevCycleId = existingDisc.workoutCycle ? existingDisc.workoutCycle.cycleId : null;
       const nextCycleId = syncPayload.workoutCycle.cycleId;
-      if (prevCycleId && prevCycleId !== nextCycleId) {
+      const isCycleRenewed = prevCycleId !== nextCycleId || (existingDisc.workoutCycle?.status !== 'ACTIVE' && syncPayload.workoutCycle.status === 'ACTIVE');
+      if (isCycleRenewed) {
         // Novo ciclo detectado: reseta estado diário e vincula treino de hoje ao ciclo anterior
         const todayIsoSync = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
         if (existingDisc.history && existingDisc.history[todayIsoSync] &&
             (existingDisc.history[todayIsoSync].workoutDone || existingDisc.history[todayIsoSync].done)) {
-          existingDisc.history[todayIsoSync].cycleId = prevCycleId;
+          existingDisc.history[todayIsoSync].cycleId = prevCycleId || 'prev_cycle';
         }
         existingDisc.workoutDone = false;
+        existingDisc.completedRoutineKey = null;
         existingDisc.exerciseChecks = {};
       }
       existingDisc.workoutCycle = syncPayload.workoutCycle;
@@ -17727,7 +17729,10 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
       parsed.workoutCycle = newCycle;
       // Reseta execução de treino diário para não contaminar a primeira semana do novo ciclo
       parsed.workoutDone = false;
+      parsed.completedRoutineKey = null;
       parsed.exerciseChecks = {};
+      parsed.updatedAtClient = new Date().toISOString();
+      parsed.lastActiveDate = todayIso;
       try {
         localStorage.setItem(k, JSON.stringify(parsed));
       } catch (_) {}
@@ -17759,6 +17764,14 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
         if (rawSaved) {
           const parsedSaved = JSON.parse(rawSaved);
           window.NutriProFirebase.discipline.syncToCloud(pId, parsedSaved);
+        }
+      }
+      if (typeof window.NutriProFirebase.performance?.syncToCloud === 'function') {
+        const rawPerf = localStorage.getItem(`NUTRIAX_PERFORMANCE_${pId}`);
+        if (rawPerf) {
+          const parsedPerf = JSON.parse(rawPerf);
+          parsedPerf.workoutCycle = newCycle;
+          window.NutriProFirebase.performance.syncToCloud(pId, parsedPerf);
         }
       }
     }
@@ -28404,7 +28417,7 @@ async function savePerformanceForPatient(patientId = activePatientId, forceNewCy
   // Garante a existência do ciclo de treino atualizado (reinicia se forceNewCycle=true ou se passado explicitCycle)
   let currentCycle = explicitCycle;
   if (!currentCycle && !forceNewCycle) {
-    if (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId)) {
+    if (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId) && perfCurrentWorkoutCycle.status === 'ACTIVE') {
       currentCycle = perfCurrentWorkoutCycle;
     } else {
       try {
@@ -28438,6 +28451,17 @@ async function savePerformanceForPatient(patientId = activePatientId, forceNewCy
     perfCurrentWorkoutCycle = currentCycle;
   }
 
+  const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
+  let pastCycles = [];
+  try {
+    const rawDisc = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`) ||
+                    localStorage.getItem(`nutriax_patient_discipline_v3_${pSlug}`);
+    if (rawDisc) {
+      const parsed = JSON.parse(rawDisc);
+      if (Array.isArray(parsed?.pastWorkoutCycles)) pastCycles = parsed.pastWorkoutCycles;
+    }
+  } catch (_) {}
+
   const canonicalWorkoutDb = perfBuildCanonicalWorkoutDatabase(perfWorkoutPlan, perfWeeklySchedule, perfPrescribedCardioId);
 
   const record = {
@@ -28448,6 +28472,7 @@ async function savePerformanceForPatient(patientId = activePatientId, forceNewCy
     workoutDatabase: canonicalWorkoutDb,
     weeklySchedule: perfWeeklySchedule,
     workoutCycle: currentCycle,
+    pastWorkoutCycles: pastCycles,
     prescribedCardioId: perfPrescribedCardioId,
     cardioPrescription: perfCardioPrescription,
     heartRateZones: perfCustomHRZones,
