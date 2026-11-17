@@ -237,4 +237,63 @@ describe('Renovação e Sincronização do Mesociclo de Treino (Pro ↔ Discipli
     assert.equal(domContext.patientState.workoutCycle.cycleId, renewedCycle.cycleId);
     assert.equal(domContext.patientState.workoutDone, false, 'workoutDone deve ser resetado para o novo ciclo');
   });
+
+  test('CYCLE-SYNC-12: Proteção contra downgrade — applyCloudDiscipline não rebaixa ciclo ACTIVE para COMPLETED', () => {
+    const activeRenewedCycle = NutriAxWorkoutCycle.createWorkoutCycle({
+      patientId: 'paciente_paulo',
+      protocolName: 'Periodização PHAT (4 Semanas)',
+      split: 'PHAT',
+      startDate: '2026-11-16'
+    });
+    activeRenewedCycle.status = 'ACTIVE';
+
+    const oldCompletedCycle = {
+      cycleId: 'cycle_antigo_123',
+      patientId: 'paciente_paulo',
+      protocolName: 'Periodização Concluída',
+      status: 'COMPLETED',
+      startDate: '2026-10-15',
+      endDate: '2026-11-12'
+    };
+
+    const domContext = {
+      patientState: {
+        name: 'Paulo',
+        workoutCycle: activeRenewedCycle,
+        pastWorkoutCycles: [],
+        history: {}
+      },
+      getLocalDateIso: () => '2026-11-16',
+      saveState: () => {},
+      renderAll: () => {},
+      showToast: () => {},
+      NutriAxWorkoutCycle: NutriAxWorkoutCycle,
+      console: console
+    };
+
+    const match = discHtml.match(/function applyCloudDiscipline\(cloud\) \{[\s\S]*?saveState\(\);\s*\}/);
+    assert.ok(match, 'applyCloudDiscipline deve existir no html');
+    const script = new vm.Script(match[0]);
+    vm.createContext(domContext);
+    script.runInContext(domContext);
+
+    // Nuvem envia snapshot defasado contendo o ciclo COMPLETED anterior
+    domContext.applyCloudDiscipline({
+      workoutCycle: oldCompletedCycle
+    });
+
+    // O ciclo ativo em memória DEVE permanecer inalterado como ACTIVE
+    assert.equal(domContext.patientState.workoutCycle.cycleId, activeRenewedCycle.cycleId);
+    assert.equal(domContext.patientState.workoutCycle.status, 'ACTIVE');
+
+    // O ciclo completado recebido da nuvem deve ser arquivado no histórico de ciclos
+    assert.ok(domContext.patientState.pastWorkoutCycles.some(c => c.cycleId === oldCompletedCycle.cycleId));
+  });
+
+  test('CYCLE-SYNC-13: perfStartNewCycle4Weeks no Pro é async e re-renderiza dashboard e periodização', () => {
+    assert.match(appJs, /async function perfStartNewCycle4Weeks/);
+    assert.match(appJs, /window\.perfStartNewCycle4Weeks\s*=\s*perfStartNewCycle4Weeks/);
+    assert.match(appJs, /renderDisciplineDashboard\(\)/);
+    assert.match(appJs, /perfRender\(\)/);
+  });
 });

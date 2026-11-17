@@ -17505,6 +17505,14 @@ function perfRenderCycleStatusCard() {
     return;
   }
 
+  const matchesPid = (a, b) => {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const sA = String(a).trim().toLowerCase();
+    const sB = String(b).trim().toLowerCase();
+    return sA === sB || sA.replace(/\s+/g, '-') === sB.replace(/\s+/g, '-');
+  };
+
   let discState = null;
   const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
   try {
@@ -17516,13 +17524,34 @@ function perfRenderCycleStatusCard() {
     if (raw) discState = JSON.parse(raw);
   } catch (_) {}
 
+  let perfState = null;
+  try {
+    const rawPerf = localStorage.getItem(`NUTRIAX_PERFORMANCE_${pId}`) ||
+                    localStorage.getItem(`NUTRIAX_PERFORMANCE_${pSlug}`);
+    if (rawPerf) perfState = JSON.parse(rawPerf);
+  } catch (_) {}
+
   const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
     ? window.NutriAxWorkoutCycle
     : (typeof NutriAxWorkoutCycle !== 'undefined' ? NutriAxWorkoutCycle : null);
 
-  const cycle = (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || perfCurrentWorkoutCycle.patientId === pId))
-    ? perfCurrentWorkoutCycle
-    : (discState?.workoutCycle || null);
+  // Candidatos a ciclo: memória Pro, performance persistida e disciplina sincronizada
+  const candidates = [];
+  if (perfCurrentWorkoutCycle && (!perfCurrentWorkoutCycle.patientId || matchesPid(perfCurrentWorkoutCycle.patientId, pId))) {
+    candidates.push(perfCurrentWorkoutCycle);
+  }
+  if (perfState?.workoutCycle && (!perfState.workoutCycle.patientId || matchesPid(perfState.workoutCycle.patientId, pId))) {
+    candidates.push(perfState.workoutCycle);
+  }
+  if (discState?.workoutCycle && (!discState.workoutCycle.patientId || matchesPid(discState.workoutCycle.patientId, pId))) {
+    candidates.push(discState.workoutCycle);
+  }
+
+  // Priorização absoluta: ciclo ATIVO prevalece sobre qualquer ciclo COMPLETED
+  let cycle = candidates.find(c => c && c.status === 'ACTIVE') || candidates[0] || null;
+  if (cycle && !perfCurrentWorkoutCycle) {
+    perfCurrentWorkoutCycle = cycle;
+  }
   if (!cycleMod || !cycle) {
     container.innerHTML = `
       <div class="p-3 rounded-xl bg-blue-950/20 border border-blue-500/30 flex items-center justify-between text-xs my-2">
@@ -17663,7 +17692,7 @@ function perfRenderCycleStatusCard() {
 
 let perfCurrentWorkoutCycle = null;
 
-function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFreq = null, silent = false) {
+async function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFreq = null, silent = false) {
   const pId = patientId ||
     (typeof activePatientId !== 'undefined' && activePatientId ? activePatientId : null) ||
     (typeof document !== 'undefined' ? document.getElementById("activePatientSelect")?.value : null) ||
@@ -17695,8 +17724,14 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
   // Mantém ciclo canônico em memória no runtime do profissional
   perfCurrentWorkoutCycle = newCycle;
 
+  // Limpa feedback de ciclo anterior no meta para não reter check-in fechado
+  if (typeof perfWorkoutMeta !== 'undefined' && perfWorkoutMeta) {
+    perfWorkoutMeta.cycleFeedbackApplied = null;
+  }
+
   // Atualiza cache de disciplina local e histórico de ciclos anteriores
   let oldCycleId = null;
+  let pastCyclesList = [];
   try {
     const pSlug = String(pId || '').toLowerCase().replace(/\s+/g, '-');
     const keys = [
@@ -17720,7 +17755,9 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
       if (parsed.workoutCycle && parsed.workoutCycle.cycleId !== newCycle.cycleId) {
         oldCycleId = parsed.workoutCycle.cycleId;
         const oldCycle = { ...parsed.workoutCycle, status: 'COMPLETED' };
-        parsed.pastWorkoutCycles.push(oldCycle);
+        if (!parsed.pastWorkoutCycles.some(c => c.cycleId === oldCycle.cycleId)) {
+          parsed.pastWorkoutCycles.push(oldCycle);
+        }
         // Vincula qualquer treino feito hoje ao ciclo anterior para que o novo ciclo comece estritamente zerado
         if (parsed.history && parsed.history[todayIso] && (parsed.history[todayIso].workoutDone || parsed.history[todayIso].done)) {
           parsed.history[todayIso].cycleId = oldCycle.cycleId;
@@ -17733,6 +17770,7 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
       parsed.exerciseChecks = {};
       parsed.updatedAtClient = new Date().toISOString();
       parsed.lastActiveDate = todayIso;
+      pastCyclesList = parsed.pastWorkoutCycles;
       try {
         localStorage.setItem(k, JSON.stringify(parsed));
       } catch (_) {}
@@ -17742,7 +17780,7 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
   // 1. Persiste a performance do paciente e sincroniza com o App do Paciente
   try {
     if (typeof savePerformanceForPatient === 'function') {
-      savePerformanceForPatient(pId, true, newCycle);
+      await savePerformanceForPatient(pId, true, newCycle);
     }
   } catch (errPerf) {
     console.warn('[perfStartNewCycle4Weeks] Falha ao salvar performance:', errPerf);
@@ -17756,14 +17794,14 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
     console.warn('[perfStartNewCycle4Weeks] Falha ao sincronizar com app do paciente:', errSync);
   }
 
-  // 2. Sincroniza diretamente na nuvem (Firebase Firestore: discipline + performance)
+  // 2. Sincroniza diretamente na nuvem (Firebase Firestore: discipline + performance + prescription)
   try {
     if (window.NutriProFirebase && pId) {
       if (typeof window.NutriProFirebase.discipline?.syncToCloud === 'function') {
         const rawSaved = localStorage.getItem(`nutriax_patient_discipline_v3_${pId}`);
         if (rawSaved) {
           const parsedSaved = JSON.parse(rawSaved);
-          window.NutriProFirebase.discipline.syncToCloud(pId, parsedSaved);
+          await window.NutriProFirebase.discipline.syncToCloud(pId, parsedSaved);
         }
       }
       if (typeof window.NutriProFirebase.performance?.syncToCloud === 'function') {
@@ -17771,7 +17809,15 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
         if (rawPerf) {
           const parsedPerf = JSON.parse(rawPerf);
           parsedPerf.workoutCycle = newCycle;
-          window.NutriProFirebase.performance.syncToCloud(pId, parsedPerf);
+          await window.NutriProFirebase.performance.syncToCloud(pId, parsedPerf);
+        }
+      }
+      if (typeof window.NutriProFirebase.prescription?.syncToCloud === 'function') {
+        const rawPresc = localStorage.getItem(`nutriax_patient_payload_${pId}`);
+        if (rawPresc) {
+          const parsedPresc = JSON.parse(rawPresc);
+          parsedPresc.workoutCycle = newCycle;
+          await window.NutriProFirebase.prescription.syncToCloud(pId, parsedPresc);
         }
       }
     }
@@ -17787,17 +17833,27 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
         type: 'WORKOUT_CYCLE_RESET',
         patientId: pId,
         workoutCycle: newCycle,
-        oldCycleId: oldCycleId
+        oldCycleId: oldCycleId,
+        pastWorkoutCycles: pastCyclesList
       });
       bc.postMessage({
         type: 'PERFORMANCE_UPDATED',
         patientId: pId,
-        payload: { workoutCycle: newCycle }
+        payload: { workoutCycle: newCycle, pastWorkoutCycles: pastCyclesList }
+      });
+      bc.postMessage({
+        type: 'SYNC_UPDATED',
+        patientId: pId,
+        workoutCycle: newCycle,
+        pastWorkoutCycles: pastCyclesList
       });
     }
   } catch (_) {}
 
+  // 4. Re-renderiza toda a interface do profissional
   perfRenderCycleStatusCard();
+  if (typeof perfRender === 'function') perfRender();
+  if (typeof renderDisciplineDashboard === 'function') renderDisciplineDashboard();
 
   if (!silent) {
     if (typeof showSystemAlert === 'function') {
@@ -17809,6 +17865,7 @@ function perfStartNewCycle4Weeks(patientId = null, targetSplit = null, targetFre
 
   return newCycle;
 }
+window.perfStartNewCycle4Weeks = perfStartNewCycle4Weeks;
 
 /**
  * Prescreve o Próximo Mesociclo de 4 Semanas integrando ativamente o feedback
@@ -17925,7 +17982,7 @@ async function perfPrescribeNextCycleWithFeedback(patientId = null, forcedSplit 
   perfWeeklySchedule = perfBuildWeeklySchedule(targetSplit);
 
   // 4. Cria e ativa o novo ciclo de 4 semanas
-  const newCycle = perfStartNewCycle4Weeks(pId, targetSplit, null, true);
+  const newCycle = await perfStartNewCycle4Weeks(pId, targetSplit, null, true);
 
   // 5. Salva a nova prescrição de performance e sincroniza com Dexie e Nuvem
   perfWorkoutMeta = {
@@ -17945,6 +18002,7 @@ async function perfPrescribeNextCycleWithFeedback(patientId = null, forcedSplit 
   // 6. Atualiza UI do Pro
   perfRenderCycleStatusCard();
   if (typeof perfRender === 'function') perfRender();
+  if (typeof renderDisciplineDashboard === 'function') renderDisciplineDashboard();
 
   // 7. Notificação informativa ao profissional
   const msg = `Novo Mesociclo de 4 Semanas Prescrito com Sucesso!\n\n` +

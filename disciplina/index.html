@@ -6528,25 +6528,50 @@
       if (dataPayload.workoutCycle && typeof dataPayload.workoutCycle === 'object') {
         const incomingCycle = dataPayload.workoutCycle;
         const currentCycle = patientState.workoutCycle;
-        const isNewCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
-        const isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
+        const isCurrentActive = currentCycle && currentCycle.status === 'ACTIVE';
+        const isIncomingActive = incomingCycle.status === 'ACTIVE';
 
-        if (isNewCycle || isReactivatedCycle) {
-          if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
-            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
-            patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+        // Regra de Proteção: Um ciclo ATIVO nunca é rebaixado por payload COMPLETED
+        const shouldAdoptIncoming = !currentCycle ||
+          (!isCurrentActive && isIncomingActive) ||
+          (isCurrentActive && isIncomingActive && incomingCycle.cycleId !== currentCycle.cycleId) ||
+          (!isCurrentActive && !isIncomingActive && incomingCycle.cycleId !== currentCycle.cycleId);
+
+        if (shouldAdoptIncoming) {
+          const isNewCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
+          const isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && isIncomingActive;
+
+          if (isNewCycle || isReactivatedCycle) {
+            if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
+              if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+              const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === currentCycle.cycleId);
+              if (!exists) {
+                patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+              }
+            }
+            if (isIncomingActive) {
+              // NOVO CICLO ATIVO: Reseta flags de execução diária para que o ciclo comece zerado
+              patientState.workoutDone = false;
+              patientState.completedRoutineKey = null;
+              patientState.exerciseChecks = {};
+              const todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
+              if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+                patientState.history[todayIso].cycleId = (currentCycle && currentCycle.cycleId) ? currentCycle.cycleId : 'prev_cycle';
+              }
+            }
           }
-          // NOVO CICLO: Reseta flags de execução diária para que o ciclo comece zerado
-          patientState.workoutDone = false;
-          patientState.completedRoutineKey = null;
-          patientState.exerciseChecks = {};
-          const todayIso = (typeof getLocalDateIso === 'function') ? getLocalDateIso() : new Date().toISOString().slice(0, 10);
-          if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
-            patientState.history[todayIso].cycleId = (currentCycle && currentCycle.cycleId) ? currentCycle.cycleId : 'prev_cycle';
+          patientState.workoutCycle = incomingCycle;
+          appliedCycle = true;
+        } else if (isCurrentActive && !isIncomingActive) {
+          // Arquiva ciclo completado vindo da nuvem se ainda não registrado
+          if (incomingCycle.cycleId && incomingCycle.cycleId !== currentCycle.cycleId) {
+            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+            const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === incomingCycle.cycleId);
+            if (!exists) {
+              patientState.pastWorkoutCycles.push(incomingCycle);
+            }
           }
         }
-        patientState.workoutCycle = incomingCycle;
-        appliedCycle = true;
       } else if (!patientState.workoutCycle) {
         const cycleMod = (typeof window !== 'undefined' && window.NutriAxWorkoutCycle)
           ? window.NutriAxWorkoutCycle
@@ -7303,20 +7328,41 @@
               const lsParsed = JSON.parse(rawLS);
               if (lsParsed && lsParsed.workoutCycle &&
                   lsParsed.workoutCycle.cycleId !== patientState.workoutCycle.cycleId) {
-                const lsCreated = lsParsed.workoutCycle.createdAt || lsParsed.workoutCycle.startDate || '';
-                const memCreated = patientState.workoutCycle.createdAt || patientState.workoutCycle.startDate || '';
-                if (lsCreated > memCreated) {
-                  // localStorage tem ciclo mais novo → adota e reseta estado diário
+                const parseTime = (val) => {
+                  if (!val) return 0;
+                  const t = new Date(val).getTime();
+                  return isNaN(t) ? 0 : t;
+                };
+                const lsTime = parseTime(lsParsed.workoutCycle.createdAt || lsParsed.workoutCycle.startDate);
+                const memTime = parseTime(patientState.workoutCycle.createdAt || patientState.workoutCycle.startDate);
+                const memIsActive = patientState.workoutCycle.status === 'ACTIVE';
+                const lsIsActive = lsParsed.workoutCycle.status === 'ACTIVE';
+
+                // Regra de Ouro: Um ciclo ATIVO em memória JAMAIS é sobrescrito por ciclo COMPLETED do disco
+                const shouldAdoptFromDisk = (!memIsActive && lsIsActive) ||
+                  (lsIsActive === memIsActive && lsTime > memTime);
+
+                if (shouldAdoptFromDisk) {
+                  // localStorage tem ciclo mais novo/ativo → adota e reseta estado diário
                   const oldCycleId = patientState.workoutCycle.cycleId;
                   patientState.workoutCycle = lsParsed.workoutCycle;
                   patientState.pastWorkoutCycles = lsParsed.pastWorkoutCycles || patientState.pastWorkoutCycles || [];
-                  patientState.workoutDone = false;
-                  patientState.exerciseChecks = {};
+                  if (lsIsActive) {
+                    patientState.workoutDone = false;
+                    patientState.exerciseChecks = {};
+                  }
                   // Vincula treino de hoje ao ciclo anterior
                   if (patientState.history && patientState.history[todayIso] &&
                       (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done) &&
                       !patientState.history[todayIso].cycleId) {
                     patientState.history[todayIso].cycleId = oldCycleId || 'previous_cycle';
+                  }
+                } else if (memIsActive && !lsIsActive) {
+                  // Garante que o ciclo completado do disco esteja no histórico
+                  if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+                  const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === lsParsed.workoutCycle.cycleId);
+                  if (!exists) {
+                    patientState.pastWorkoutCycles.push(lsParsed.workoutCycle);
                   }
                 }
               }
@@ -8639,6 +8685,7 @@
       }
 
       let updatedAny = false;
+      let candidateCycle = null;
 
       // 1. Checa Performance (treino, periodização, split)
       if (window.NutriProFirebase?.performance?.loadFromCloud) {
@@ -8646,6 +8693,11 @@
           const cloudPerf = await window.NutriProFirebase.performance.loadFromCloud(_authorizedPatientId);
           if (cloudPerf) {
             applyPerformancePayload(cloudPerf);
+            if (cloudPerf.workoutCycle) {
+              if (cloudPerf.workoutCycle.status === 'ACTIVE' || !candidateCycle) {
+                candidateCycle = cloudPerf.workoutCycle;
+              }
+            }
             updatedAny = true;
           }
         } catch (_) {}
@@ -8657,6 +8709,13 @@
           const cloudDisc = await window.NutriProFirebase.discipline.loadFromCloud(_authorizedPatientId);
           if (cloudDisc) {
             applyCloudDiscipline(cloudDisc);
+            if (cloudDisc.workoutCycle) {
+              if (cloudDisc.workoutCycle.status === 'ACTIVE') {
+                candidateCycle = cloudDisc.workoutCycle;
+              } else if (!candidateCycle) {
+                candidateCycle = cloudDisc.workoutCycle;
+              }
+            }
             updatedAny = true;
           }
         } catch (_) {}
@@ -8668,10 +8727,39 @@
           const cloudPresc = await window.NutriProFirebase.prescription.loadFromCloud(_authorizedPatientId);
           if (cloudPresc) {
             applyPrescriptionPayload(cloudPresc);
+            if (cloudPresc.workoutCycle) {
+              if (cloudPresc.workoutCycle.status === 'ACTIVE') {
+                candidateCycle = cloudPresc.workoutCycle;
+              } else if (!candidateCycle) {
+                candidateCycle = cloudPresc.workoutCycle;
+              }
+            }
             updatedAny = true;
           }
         } catch (_) {}
       }
+
+      // Se qualquer payload da nuvem trouxe ciclo ATIVO, garante que o estado local assuma o ciclo ativo
+      if (candidateCycle && candidateCycle.status === 'ACTIVE') {
+        const current = patientState.workoutCycle;
+        if (!current || current.status !== 'ACTIVE' || current.cycleId !== candidateCycle.cycleId) {
+          if (current && current.cycleId !== candidateCycle.cycleId) {
+            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+            const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === current.cycleId);
+            if (!exists) {
+              patientState.pastWorkoutCycles.push({ ...current, status: 'COMPLETED' });
+            }
+          }
+          patientState.workoutCycle = candidateCycle;
+          patientState.workoutDone = false;
+          patientState.completedRoutineKey = null;
+          patientState.exerciseChecks = {};
+        }
+      }
+
+      try {
+        saveState();
+      } catch (_) {}
 
       renderAll();
 
@@ -11185,27 +11273,59 @@
       if (cloud.workoutCycle && typeof cloud.workoutCycle === 'object') {
         const incomingCycle = cloud.workoutCycle;
         const currentCycle = patientState.workoutCycle;
-        isDifferentCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
-        isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && incomingCycle.status === 'ACTIVE';
+        const isCurrentActive = currentCycle && currentCycle.status === 'ACTIVE';
+        const isIncomingActive = incomingCycle.status === 'ACTIVE';
 
-        if (isDifferentCycle || isReactivatedCycle) {
-          if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
-            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
-            patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+        // Regra de Proteção: Um ciclo ATIVO nunca é rebaixado por payload COMPLETED
+        const shouldAdoptIncoming = !currentCycle ||
+          (!isCurrentActive && isIncomingActive) ||
+          (isCurrentActive && isIncomingActive && incomingCycle.cycleId !== currentCycle.cycleId) ||
+          (!isCurrentActive && !isIncomingActive && incomingCycle.cycleId !== currentCycle.cycleId);
+
+        if (shouldAdoptIncoming) {
+          isDifferentCycle = !currentCycle || incomingCycle.cycleId !== currentCycle.cycleId;
+          isReactivatedCycle = currentCycle && currentCycle.status === 'COMPLETED' && isIncomingActive;
+
+          if (isDifferentCycle || isReactivatedCycle) {
+            if (currentCycle && currentCycle.cycleId && currentCycle.cycleId !== incomingCycle.cycleId) {
+              if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+              const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === currentCycle.cycleId);
+              if (!exists) {
+                patientState.pastWorkoutCycles.push({ ...currentCycle, status: 'COMPLETED' });
+              }
+            }
+            patientState.workoutCycle = incomingCycle;
+            // Se for ciclo novo ativo, zera execução diária do ciclo anterior
+            if (isIncomingActive) {
+              patientState.workoutDone = false;
+              patientState.completedRoutineKey = null;
+              patientState.exerciseChecks = {};
+              if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
+                patientState.history[todayIso].cycleId = (currentCycle && currentCycle.cycleId) ? currentCycle.cycleId : 'prev_cycle';
+              }
+            }
           }
-          patientState.workoutCycle = incomingCycle;
-          // Se for ciclo novo, zera execução diária do ciclo anterior
-          patientState.workoutDone = false;
-          patientState.completedRoutineKey = null;
-          patientState.exerciseChecks = {};
-          if (patientState.history && patientState.history[todayIso] && (patientState.history[todayIso].workoutDone || patientState.history[todayIso].done)) {
-            patientState.history[todayIso].cycleId = (currentCycle && currentCycle.cycleId) ? currentCycle.cycleId : 'prev_cycle';
+        } else if (isCurrentActive && !isIncomingActive) {
+          // Arquiva ciclo completado da nuvem no histórico se ainda não estiver presente
+          if (incomingCycle.cycleId && incomingCycle.cycleId !== currentCycle.cycleId) {
+            if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
+            const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === incomingCycle.cycleId);
+            if (!exists) {
+              patientState.pastWorkoutCycles.push(incomingCycle);
+            }
           }
         }
       }
 
       if (Array.isArray(cloud.pastWorkoutCycles) && cloud.pastWorkoutCycles.length > 0) {
-        patientState.pastWorkoutCycles = cloud.pastWorkoutCycles;
+        if (!Array.isArray(patientState.pastWorkoutCycles) || patientState.pastWorkoutCycles.length === 0) {
+          patientState.pastWorkoutCycles = cloud.pastWorkoutCycles;
+        } else {
+          const cycleMap = new Map();
+          patientState.pastWorkoutCycles.forEach(c => { if (c && c.cycleId) cycleMap.set(c.cycleId, c); });
+          cloud.pastWorkoutCycles.forEach(c => { if (c && c.cycleId) cycleMap.set(c.cycleId, c); });
+          patientState.pastWorkoutCycles = Array.from(cycleMap.values());
+        }
       }
 
       // Se a nuvem tem registros de HOJE, mescla sem desmarcar o que já foi feito localmente
@@ -11317,7 +11437,14 @@
           if (!event.data) return;
           // INVARIANTE: Só aceita atualizações se estiver AUTHORIZED e se pertencer ao paciente autorizado
           if (!_authorizedPatientId) return;
-          if (event.data.patientId && String(event.data.patientId).trim() !== _authorizedPatientId) return;
+          const matchesAuthPatient = (pid) => {
+            if (!pid || !_authorizedPatientId) return true;
+            const a = String(pid).trim().toLowerCase();
+            const b = String(_authorizedPatientId).trim().toLowerCase();
+            if (a === b) return true;
+            return a.replace(/\s+/g, '-') === b.replace(/\s+/g, '-');
+          };
+          if (event.data.patientId && !matchesAuthPatient(event.data.patientId)) return;
 
           if (event.data.type === 'SYNC_UPDATED') {
             if (event.data.payload) {
@@ -11326,13 +11453,19 @@
                 patientState.name = event.data.payload.patientName;
               }
               renderAll();
+            } else if (event.data.workoutCycle) {
+              applyPrescriptionPayload({ workoutCycle: event.data.workoutCycle, pastWorkoutCycles: event.data.pastWorkoutCycles });
+              renderAll();
             }
           } else if (event.data.type === 'WORKOUT_CYCLE_RESET') {
             if (event.data.workoutCycle) {
               const incoming = event.data.workoutCycle;
               if (patientState.workoutCycle && patientState.workoutCycle.cycleId !== incoming.cycleId) {
                 if (!Array.isArray(patientState.pastWorkoutCycles)) patientState.pastWorkoutCycles = [];
-                patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
+                const exists = patientState.pastWorkoutCycles.some(c => c.cycleId === patientState.workoutCycle.cycleId);
+                if (!exists) {
+                  patientState.pastWorkoutCycles.push({ ...patientState.workoutCycle, status: 'COMPLETED' });
+                }
               }
               patientState.workoutCycle = incoming;
               patientState.workoutDone = false;
@@ -11343,7 +11476,10 @@
                 patientState.history[todayIso].cycleId = (event.data.oldCycleId || 'previous_cycle');
               }
               if (Array.isArray(event.data.pastWorkoutCycles)) {
-                patientState.pastWorkoutCycles = event.data.pastWorkoutCycles;
+                const cycleMap = new Map();
+                (patientState.pastWorkoutCycles || []).forEach(c => { if (c && c.cycleId) cycleMap.set(c.cycleId, c); });
+                event.data.pastWorkoutCycles.forEach(c => { if (c && c.cycleId) cycleMap.set(c.cycleId, c); });
+                patientState.pastWorkoutCycles = Array.from(cycleMap.values());
               }
               try { saveState(); } catch (_) {}
               renderAll();
