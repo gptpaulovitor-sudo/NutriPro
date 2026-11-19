@@ -293,7 +293,36 @@ describe('Renovação e Sincronização do Mesociclo de Treino (Pro ↔ Discipli
   test('CYCLE-SYNC-13: perfStartNewCycle4Weeks no Pro é async e re-renderiza dashboard e periodização', () => {
     assert.match(appJs, /async function perfStartNewCycle4Weeks/);
     assert.match(appJs, /window\.perfStartNewCycle4Weeks\s*=\s*perfStartNewCycle4Weeks/);
-    assert.match(appJs, /renderDisciplineDashboard\(\)/);
+    assert.match(renderDisciplineDashboard = appJs, /renderDisciplineDashboard\(\)/);
     assert.match(appJs, /perfRender\(\)/);
+  });
+
+  test('GIF-MODAL-01: Disciplina exporta openExerciseGifModal e openExerciseGuideModal globalmente', () => {
+    assert.match(discHtml, /window\.openExerciseGifModal\s*=\s*openExerciseGifModal/);
+    assert.match(discHtml, /window\.openExerciseGuideModal\s*=\s*openExerciseGuideModal/);
+    assert.match(discHtml, /window\.handleGuideGifError\s*=\s*handleGuideGifError/);
+  });
+
+  test('GIF-MODAL-02: Disciplina handleGuideGifError implementa espelho de contingencia Raw GitHub', () => {
+    assert.match(discHtml, /raw\.githubusercontent\.com\/JahelCuadrado\/ExerciseGymGifsDB/);
+    assert.match(discHtml, /gifImg\.style\.display\s*=\s*'block'/);
+  });
+
+  test('GIF-MODAL-03: Pro perfHandleGifError implementa espelho de contingencia Raw GitHub', () => {
+    assert.match(appJs, /raw\.githubusercontent\.com\/JahelCuadrado\/ExerciseGymGifsDB/);
+    assert.match(appJs, /gifEl\.style\.display\s*=\s*'block'/);
+    assert.match(appJs, /window\.perfHandleGifError\s*=\s*perfHandleGifError/);
+  });
+
+  test('GIF-MODAL-04: Pro guide-modal-gif e Disciplina inicializam com seguranca sem display:none prematuro', () => {
+    const proHtml = fs.readFileSync(path.join(__dirname, '..', 'pro', 'index.html'), 'utf8');
+    assert.match(proHtml, /onerror="if\(this\.src && typeof perfHandleGifError==='function'\) perfHandleGifError\(this\);"/);
+    assert.match(discHtml, /onerror="if\(this\.src && typeof handleGuideGifError==='function'\) handleGuideGifError\(this\);"/);
+  });
+
+  test('GIF-MODAL-05: sw-paciente.js atualizado para v1.0.15 e faz bypass de CDNs de imagem/GIF', () => {
+    assert.match(swContent, /nutriax-disciplina-v1\.0\.15/);
+    assert.match(swContent, /cdn\.jsdelivr\.net/);
+    assert.match(swContent, /raw\.githubusercontent\.com/);
   });
 });

@@ -2306,7 +2306,7 @@
           class="relative w-full rounded-xl overflow-hidden bg-black border border-[#272C31] flex items-center justify-center min-h-[220px] shadow-inner">
           <img id="guideModalGif" src="" alt="Demonstração do Exercício" referrerpolicy="no-referrer"
             class="w-full h-auto max-h-[240px] object-contain rounded-lg transition-opacity duration-300"
-            onerror="handleGuideGifError(this);" />
+            onerror="if(this.src && typeof handleGuideGifError==='function') handleGuideGifError(this);" />
           <div
             class="absolute bottom-2 left-2 right-2 bg-black/85 backdrop-blur-sm border border-[#272C31] px-2.5 py-1.5 rounded-lg flex items-center justify-between text-[10px]">
             <span class="text-zinc-400 font-mono flex items-center gap-1">
@@ -9260,10 +9260,11 @@
                     </div>
                   </div>
 
-                  <a href="https://www.gifdotreino.com/" target="_blank"
+                  <button type="button" onclick="openExerciseGuideModal('${b.name}', '${encodeURIComponent(b.name)}')"
                     class="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-950/60 hover:bg-orange-900 border border-orange-600/60 text-[10px] font-mono font-bold text-orange-200 transition-colors">
-                    <span>🎬 GIF</span>
-                  </a>
+                    <i data-lucide="play-circle" class="w-3.5 h-3.5 text-orange-400"></i>
+                    <span>GIF</span>
+                  </button>
                 </div>
 
                 <!-- Detalhes do Bloco -->
@@ -9349,6 +9350,13 @@
                       </div>
                     </div>
                   </div>
+
+                  <!-- Botão GIF para mobilidade/regeneração -->
+                  <button type="button" onclick="openExerciseGuideModal('${ex.id}', '${encodeURIComponent(ex.name || '')}')"
+                    class="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171B1F] hover:bg-zinc-800 border border-[#272C31] text-[10px] font-mono font-bold text-zinc-300 hover:text-white transition-colors">
+                    <i data-lucide="play-circle" class="w-3.5 h-3.5 text-blue-400"></i>
+                    <span>GIF</span>
+                  </button>
                 </div>
                 <div class="text-[11px] text-zinc-400">
                   ${Array.isArray(ex.steps) ? ex.steps.join(' ') : (ex.steps || '')}
@@ -9435,7 +9443,7 @@
               </div>
 
               <!-- Botão GIF com Modal Interativo -->
-              <button type="button" onclick="openExerciseGifModal('${ex.name.replace(/'/g, "\\'")}', '${gifUrl}', '${(ex.steps ? (Array.isArray(ex.steps) ? ex.steps.join(' ') : ex.steps) : '').replace(/'/g, "\\'")}', '${(ex.breathing || '').replace(/'/g, "\\'")}', '${(ex.mistakes || '').replace(/'/g, "\\'")}')"
+              <button type="button" onclick="openExerciseGuideModal('${ex.id}', '${encodeURIComponent(ex.name || '')}')"
                 class="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171B1F] hover:bg-zinc-800 border border-[#272C31] text-[10px] font-mono font-bold text-zinc-300 hover:text-white transition-colors">
                 <i data-lucide="play-circle" class="w-3.5 h-3.5 text-[#E50914]"></i>
                 <span>GIF</span>
@@ -9838,7 +9846,7 @@
     }
 
     // 10. MODAL DE DEMONSTRAÇÃO VISUAL (GIF & INSTRUÇÕES)
-    function openExerciseGuideModal(exId, encodedName = '') {
+    function openExerciseGuideModal(exId, encodedName = '', overrides = null) {
       let decodedName = '';
       try { if (encodedName) decodedName = decodeURIComponent(encodedName); } catch (_) { decodedName = encodedName; }
 
@@ -9895,7 +9903,7 @@
         foundEx = {
           id: exId || 'erg_cardio',
           name: decodedName || 'Cardio / Ergômetro',
-          group: 'Cardio & Ergômetro',
+          group: 'Cardio & Ergômetros',
           equip: 'Ergômetro · Cardiovascular',
           primary: 'Aptidão Cardiorrespiratória & Capacidade Aeróbia',
           secondary: 'Membros Inferiores & Sistema Cardiovascular',
@@ -9936,62 +9944,119 @@
         foundEx = (firstRoutine && firstRoutine.exercises[0]) || { name: 'Exercício', group: 'Geral' };
       }
 
-      document.getElementById('guideModalTitle').textContent = foundEx.name;
-      document.getElementById('guideModalGroup').textContent = foundEx.group;
-      document.getElementById('guideModalEquip').textContent = foundEx.equip;
-      document.getElementById('guideModalPrimary').textContent = foundEx.primary;
-      document.getElementById('guideModalSecondary').textContent = foundEx.secondary;
-      document.getElementById('guideModalCadence').textContent = `Cadência: ${foundEx.cadence}`;
+      const titleEl = document.getElementById('guideModalTitle');
+      if (titleEl) titleEl.textContent = foundEx.name;
+      const groupEl = document.getElementById('guideModalGroup');
+      if (groupEl) groupEl.textContent = foundEx.group;
+      const equipEl = document.getElementById('guideModalEquip');
+      if (equipEl) equipEl.textContent = foundEx.equip;
+      const primaryEl = document.getElementById('guideModalPrimary');
+      if (primaryEl) primaryEl.textContent = foundEx.primary;
+      const secondaryEl = document.getElementById('guideModalSecondary');
+      if (secondaryEl) secondaryEl.textContent = foundEx.secondary;
+      const cadenceEl = document.getElementById('guideModalCadence');
+      if (cadenceEl) cadenceEl.textContent = `Cadência: ${foundEx.cadence}`;
 
       const gifImg = document.getElementById('guideModalGif');
-      const resolvedGif = resolveExerciseGif(foundEx);
-      foundEx.gif = resolvedGif;
-      gifImg.dataset.exname = foundEx.name;
-      gifImg.dataset.exgroup = foundEx.group;
-      gifImg.dataset.triedFallback = 'false';
-      gifImg.dataset.triedGroupFallback = 'false';
-      gifImg.src = resolvedGif;
+      if (gifImg) {
+        gifImg.style.display = 'block';
+        const resolvedGif = (overrides && overrides.gifUrl) ? overrides.gifUrl : resolveExerciseGif(foundEx);
+        foundEx.gif = resolvedGif;
+        gifImg.dataset.exname = foundEx.name;
+        gifImg.dataset.exgroup = foundEx.group;
+        gifImg.dataset.triedRawMirror = 'false';
+        gifImg.dataset.triedGroupFallback = 'false';
+        gifImg.dataset.triedGroupRaw = 'false';
+        gifImg.dataset.triedFallback = 'false';
+        gifImg.src = resolvedGif;
+        gifImg.alt = `Execução de ${foundEx.name}`;
+      }
 
       // Passos
       const stepsContainer = document.getElementById('guideModalSteps');
-      stepsContainer.innerHTML = (foundEx.steps || ['Execute com amplitude completa e controle escapular.']).map((step, idx) => `
-        <div class="flex items-start gap-2">
-          <span class="w-4 h-4 rounded-full bg-blue-950 border border-blue-800 text-blue-300 font-mono text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-            ${idx + 1}
-          </span>
-          <p class="text-zinc-300 leading-relaxed text-[11px]">${step}</p>
-        </div>
-      `).join('');
+      if (stepsContainer) {
+        const stepsArr = (overrides && overrides.steps)
+          ? (Array.isArray(overrides.steps) ? overrides.steps : [overrides.steps])
+          : (foundEx.steps || ['Execute com amplitude completa e controle escapular.']);
+        stepsContainer.innerHTML = stepsArr.map((step, idx) => `
+          <div class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-blue-950 border border-blue-800 text-blue-300 font-mono text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+              ${idx + 1}
+            </span>
+            <p class="text-zinc-300 leading-relaxed text-[11px]">${step}</p>
+          </div>
+        `).join('');
+      }
 
-      document.getElementById('guideModalBreathing').textContent = foundEx.breathing || 'Inspire na fase excêntrica e expire na concêntrica.';
-      document.getElementById('guideModalMistakes').textContent = foundEx.mistakes || 'Evite compensações articulares.';
+      const breathingEl = document.getElementById('guideModalBreathing');
+      if (breathingEl) breathingEl.textContent = (overrides && overrides.breathing) || foundEx.breathing || 'Inspire na fase excêntrica e expire na concêntrica.';
+      const mistakesEl = document.getElementById('guideModalMistakes');
+      if (mistakesEl) mistakesEl.textContent = (overrides && overrides.mistakes) || foundEx.mistakes || 'Evite compensações articulares.';
 
-      document.getElementById('exerciseGuideModal').classList.remove('hidden');
+      const modalEl = document.getElementById('exerciseGuideModal');
+      if (modalEl) modalEl.classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons(typeof container !== 'undefined' && container ? { root: container } : undefined);
     }
 
+    function openExerciseGifModal(name, gifUrl, steps, breathing, mistakes) {
+      if (name) {
+        openExerciseGuideModal(null, encodeURIComponent(name), { gifUrl, steps, breathing, mistakes });
+      } else {
+        openExerciseGuideModal();
+      }
+    }
+
     function closeExerciseGuideModal() {
-      document.getElementById('exerciseGuideModal').classList.add('hidden');
+      const modalEl = document.getElementById('exerciseGuideModal');
+      if (modalEl) modalEl.classList.add('hidden');
       stopRestTimer();
     }
 
     function handleGuideGifError(imgEl) {
-      if (!imgEl) return;
+      if (!imgEl || !imgEl.src) return;
+      imgEl.style.display = 'block';
       const exName = imgEl.dataset.exname || 'Exercício';
       const exGroup = imgEl.dataset.exgroup || 'Peitoral';
+      const currentSrc = imgEl.src;
 
-      // 1ª Tentativa de recuperação: GIF oficial do grupo muscular
+      // 1ª Tentativa: Espelho Raw GitHub se for URL do jsDelivr
+      if (imgEl.dataset.triedRawMirror !== 'true') {
+        imgEl.dataset.triedRawMirror = 'true';
+        if (currentSrc.includes('cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB')) {
+          const rawUrl = currentSrc.replace(/https:\/\/cdn\.jsdelivr\.net\/gh\/JahelCuadrado\/ExerciseGymGifsDB(@[^/]+)?\//, 'https://raw.githubusercontent.com/JahelCuadrado/ExerciseGymGifsDB/main/');
+          if (rawUrl !== currentSrc) {
+            console.warn('[Disciplina GIF] Falha no jsDelivr. Tentando espelho Raw GitHub:', rawUrl);
+            imgEl.src = rawUrl;
+            return;
+          }
+        }
+      }
+
+      // 2ª Tentativa de recuperação: GIF oficial do grupo muscular
       if (imgEl.dataset.triedGroupFallback !== 'true') {
         imgEl.dataset.triedGroupFallback = 'true';
-        const groupGif = GROUP_DEFAULT_GIFS[exGroup] || GROUP_DEFAULT_GIFS['Peitoral'];
-        if (groupGif && imgEl.src !== groupGif) {
+        const groupGif = GROUP_DEFAULT_GIFS[exGroup] || GROUP_DEFAULT_GIFS['Geral'] || GROUP_DEFAULT_GIFS['Peitoral'];
+        if (groupGif && currentSrc !== groupGif) {
           console.warn('[Disciplina GIF] Falha na URL primária. Carregando GIF do grupo:', exGroup);
           imgEl.src = groupGif;
           return;
         }
       }
 
-      // 2ª Tentativa defensiva: SVG animado de contingência
+      // 3ª Tentativa: Espelho Raw GitHub para o GIF do grupo muscular
+      if (imgEl.dataset.triedGroupRaw !== 'true') {
+        imgEl.dataset.triedGroupRaw = 'true';
+        if (currentSrc.includes('cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB')) {
+          const groupRawUrl = currentSrc.replace(/https:\/\/cdn\.jsdelivr\.net\/gh\/JahelCuadrado\/ExerciseGymGifsDB(@[^/]+)?\//, 'https://raw.githubusercontent.com/JahelCuadrado/ExerciseGymGifsDB/main/');
+          if (groupRawUrl !== currentSrc) {
+            console.warn('[Disciplina GIF] Tentando espelho Raw GitHub do grupo:', groupRawUrl);
+            imgEl.src = groupRawUrl;
+            return;
+          }
+        }
+      }
+
+      // 4ª Tentativa defensiva: SVG animado de contingência
       if (imgEl.dataset.triedFallback === 'true') return;
       imgEl.dataset.triedFallback = 'true';
       const name = (imgEl.dataset.exname || 'Exercício').replace(/</g, '&lt;');
@@ -10010,6 +10075,11 @@
 
       imgEl.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
+
+    window.openExerciseGuideModal = openExerciseGuideModal;
+    window.openExerciseGifModal = openExerciseGifModal;
+    window.closeExerciseGuideModal = closeExerciseGuideModal;
+    window.handleGuideGifError = handleGuideGifError;
 
     // 11. CRONÔMETRO DE DESCANSO REGRESSIVO
     let restTimerInterval = null;

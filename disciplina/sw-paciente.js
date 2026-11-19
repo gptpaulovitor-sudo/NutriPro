@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════
 // NutriAx Disciplina — Service Worker Exclusivo do Paciente
-// Escopo: /disciplina/ | Cache: nutriax-disciplina-v1.0.14
+// Escopo: /disciplina/ | Cache: nutriax-disciplina-v1.0.15
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-disciplina-v1.0.14';
+const CACHE_NAME = 'nutriax-disciplina-v1.0.15';
 
 const PRECACHE_ASSETS = [
   './',
@@ -77,11 +77,14 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http')) return;
 
-  // Ignora APIs e Firebase
+  // Ignora APIs, Firebase e CDNs externos de mídia/GIFs para não sobrecarregar CacheStorage
   if (
     event.request.url.includes('googleapis.com') ||
     event.request.url.includes('firebaseio.com') ||
-    event.request.url.includes('script.google.com')
+    event.request.url.includes('script.google.com') ||
+    event.request.url.includes('cdn.jsdelivr.net') ||
+    event.request.url.includes('raw.githubusercontent.com') ||
+    event.request.url.includes('gifdotreino.com')
   ) {
     return;
   }

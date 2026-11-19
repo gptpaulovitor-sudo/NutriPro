@@ -19997,21 +19997,53 @@ function perfGenerateFallbackSvg(exerciseName, muscleGroup) {
 }
 
 function perfHandleGifError(imgEl) {
-  if (!imgEl) return;
+  if (!imgEl || !imgEl.src) return;
+  imgEl.style.display = 'block';
   const exName = imgEl.dataset.exname || 'Exercício';
   const exGroup = imgEl.dataset.exgroup || 'Peitoral';
+  const currentSrc = imgEl.src;
 
-  if (!imgEl.dataset.triedGroupFallback) {
+  // 1. Espelho Raw GitHub para a URL original da DB
+  if (imgEl.dataset.triedRawMirror !== 'true') {
+    imgEl.dataset.triedRawMirror = 'true';
+    if (currentSrc.includes('cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB')) {
+      const rawUrl = currentSrc.replace(/https:\/\/cdn\.jsdelivr\.net\/gh\/JahelCuadrado\/ExerciseGymGifsDB(@[^/]+)?\//, 'https://raw.githubusercontent.com/JahelCuadrado/ExerciseGymGifsDB/main/');
+      if (rawUrl !== currentSrc) {
+        console.warn('[NutriPro GIF] Falha no jsDelivr. Tentando espelho Raw GitHub:', rawUrl);
+        imgEl.src = rawUrl;
+        return;
+      }
+    }
+  }
+
+  // 2. GIF oficial do grupo muscular
+  if (imgEl.dataset.triedGroupFallback !== 'true') {
     imgEl.dataset.triedGroupFallback = 'true';
-    const groupGif = (typeof GROUP_DEFAULT_GIFS !== 'undefined' ? GROUP_DEFAULT_GIFS[exGroup] : null) || 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
-    if (groupGif && imgEl.src !== groupGif) {
+    const groupGif = (typeof GROUP_DEFAULT_GIFS !== 'undefined' ? (GROUP_DEFAULT_GIFS[exGroup] || GROUP_DEFAULT_GIFS['Geral'] || GROUP_DEFAULT_GIFS['Peitoral']) : null) || 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif';
+    if (groupGif && currentSrc !== groupGif) {
+      console.warn('[NutriPro GIF] Falha no espelho original. Carregando GIF do grupo:', exGroup);
       imgEl.src = groupGif;
       return;
     }
   }
 
-  if (!imgEl.dataset.triedFallback) {
+  // 3. Espelho Raw GitHub para o GIF do grupo muscular
+  if (imgEl.dataset.triedGroupRaw !== 'true') {
+    imgEl.dataset.triedGroupRaw = 'true';
+    if (currentSrc.includes('cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB')) {
+      const groupRawUrl = currentSrc.replace(/https:\/\/cdn\.jsdelivr\.net\/gh\/JahelCuadrado\/ExerciseGymGifsDB(@[^/]+)?\//, 'https://raw.githubusercontent.com/JahelCuadrado/ExerciseGymGifsDB/main/');
+      if (groupRawUrl !== currentSrc) {
+        console.warn('[NutriPro GIF] Tentando espelho Raw GitHub do grupo:', groupRawUrl);
+        imgEl.src = groupRawUrl;
+        return;
+      }
+    }
+  }
+
+  // 4. Fallback visual em SVG
+  if (imgEl.dataset.triedFallback !== 'true') {
     imgEl.dataset.triedFallback = 'true';
+    console.warn('[NutriPro GIF] Todos os espelhos falharam. Exibindo SVG ilustrativo:', exName);
     imgEl.src = perfGenerateFallbackSvg(exName, exGroup);
   }
 }
@@ -20535,7 +20567,11 @@ function perfOpenExerciseGuide(exerciseId, routineId = null, explicitName = '') 
   }
 
   if (gifEl) {
-    gifEl.dataset.triedFallback = '';
+    gifEl.style.display = 'block';
+    gifEl.dataset.triedRawMirror = 'false';
+    gifEl.dataset.triedGroupFallback = 'false';
+    gifEl.dataset.triedGroupRaw = 'false';
+    gifEl.dataset.triedFallback = 'false';
     gifEl.dataset.exname = data.name;
     gifEl.dataset.exgroup = data.group;
     gifEl.src = data.gifUrl;
