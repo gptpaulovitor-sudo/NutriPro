@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════
 // NutriAx Disciplina — Service Worker Exclusivo do Paciente
-// Escopo: /disciplina/ | Cache: nutriax-disciplina-v1.0.16
+// Escopo: /disciplina/ | Cache: nutriax-disciplina-v1.0.17
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nutriax-disciplina-v1.0.16';
+const CACHE_NAME = 'nutriax-disciplina-v1.0.17';
 
 const PRECACHE_ASSETS = [
   './',
@@ -109,7 +109,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets estáticos
+  // Scripts JS e JSON locais: Network-First para garantir execução de código fresco
+  if (event.request.url.includes('.js') || event.request.url.includes('.json')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' })
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Assets estáticos (imagens, ícones, fontes)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)

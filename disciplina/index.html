@@ -216,9 +216,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-  <script src="../firebase-service.js"></script>
-  <script src="../fasting-module.js"></script>
-  <script src="../workout-cycle-module.js"></script>
+  <script src="../firebase-service.js?v=1.0.17"></script>
+  <script src="../fasting-module.js?v=1.0.17"></script>
+  <script src="../workout-cycle-module.js?v=1.0.17"></script>
 
   <style>
     html,
@@ -357,24 +357,21 @@
     .tab-view {
       display: none;
       opacity: 0;
-      transition: opacity 0.2s ease-in-out;
     }
 
     .tab-view.active {
       display: block;
       opacity: 1;
-      animation: tabFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: tabFadeIn 0.12s ease-out;
     }
 
     @keyframes tabFadeIn {
       from {
-        opacity: 0;
-        transform: translateY(6px);
+        opacity: 0.6;
       }
 
       to {
         opacity: 1;
-        transform: translateY(0);
       }
     }
 
@@ -585,7 +582,7 @@
   <!-- HEADER COMPACTO MOBILE (IDENTIDADE NUTRIAX PRO)            -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <header
-    class="w-full max-w-md sticky top-0 z-30 bg-[#08090A]/95 backdrop-blur-md border-b border-[#272C31] px-4 py-2.5 flex items-center justify-between shadow-lg">
+    class="w-full max-w-md sticky top-0 z-30 bg-[#08090A] border-b border-[#272C31] px-4 py-2.5 flex items-center justify-between shadow-lg">
     <div class="flex items-center gap-2">
       <div
         class="w-7 h-7 rounded-lg bg-[#121518] border border-[#272C31] flex items-center justify-center shadow-inner">
@@ -2137,7 +2134,7 @@
   <!-- BARRA DE NAVEGAÇÃO INFERIOR FIXA (5 ABAS DO MOCKUP)        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <nav
-    class="fixed bottom-0 inset-x-0 z-40 max-w-md mx-auto bg-[#08090A]/95 backdrop-blur-md border-t border-[#272C31] px-2 py-2 flex items-center justify-around shadow-2xl safe-bottom">
+    class="fixed bottom-0 inset-x-0 z-40 max-w-md mx-auto bg-[#08090A] border-t border-[#272C31] px-2 py-2 flex items-center justify-around shadow-2xl safe-bottom">
 
     <!-- Aba 1: Hoje -->
     <button type="button" id="navItemHoje" onclick="switchPatientTab('hoje')"
@@ -3047,31 +3044,30 @@
 
       window.scrollTo({ top: 0, behavior: 'auto' });
 
-      // Se navegou para Treino, garante que a ficha e visuais estejam renderizados
+      // Renderização sob demanda apenas se o conteúdo da aba ainda não foi populado
       if (tabKey === 'treino') {
-        if (typeof renderWorkoutExercises === 'function') {
-          renderWorkoutExercises();
+        const exList = document.getElementById('patientExercisesList');
+        if (!exList || !exList.children || exList.children.length === 0) {
+          if (typeof renderWorkoutExercises === 'function') renderWorkoutExercises();
         }
-        if (typeof updateWorkoutVisuals === 'function') {
-          updateWorkoutVisuals();
+        if (typeof updateWorkoutVisuals === 'function') updateWorkoutVisuals();
+      } else if (tabKey === 'progresso') {
+        const svgEl = document.getElementById('scoresEvolutionSvg');
+        if (!svgEl || !svgEl.innerHTML || svgEl.innerHTML.trim() === '') {
+          if (typeof setScorePeriod === 'function') {
+            setScorePeriod(currentScoresPeriod || 7);
+          } else if (typeof renderScoreEvolutionChart === 'function') {
+            renderScoreEvolutionChart(currentScoresPeriod || 7);
+          }
         }
-      }
-
-      // Se navegou para Progresso, atualiza o gráfico SVG de evolução, heatmap, detalhamento e hero stats
-      if (tabKey === 'progresso') {
-        if (typeof setScorePeriod === 'function') {
-          setScorePeriod(currentScoresPeriod || 7);
-        } else if (typeof renderScoreEvolutionChart === 'function') {
-          renderScoreEvolutionChart(currentScoresPeriod || 7);
+        const heatEl = document.getElementById('heatmapGridContainer');
+        if (!heatEl || !heatEl.children || heatEl.children.length === 0) {
+          if (typeof renderConsistencyHeatmap === 'function') renderConsistencyHeatmap();
         }
-        if (typeof renderConsistencyHeatmap === 'function') {
-          renderConsistencyHeatmap();
-        }
-        if (typeof renderScoresBreakdown === 'function') {
-          renderScoresBreakdown();
-        }
-        if (typeof updateHeroProgressStats === 'function') {
-          updateHeroProgressStats();
+      } else if (tabKey === 'nutricao') {
+        const mealsEl = document.getElementById('patientMealsList');
+        if (!mealsEl || !mealsEl.children || mealsEl.children.length === 0) {
+          if (typeof renderMeals === 'function') renderMeals();
         }
       }
 
@@ -6403,7 +6399,7 @@
       }
 
       try {
-        if (_authorizedPatientId) {
+        if (_authorizedPatientId && !options.skipSave) {
           localStorage.setItem(`nutriax_patient_payload_${_authorizedPatientId}`, JSON.stringify(dataPayload));
         }
       } catch (_) { }
@@ -11237,7 +11233,7 @@
       }
 
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
+        window.lucide.createIcons(card ? { root: card } : undefined);
       }
     }
     window.renderClinicalNudgesProgresso = renderClinicalNudgesProgresso;
@@ -11645,6 +11641,7 @@
       } catch (_) { }
     }
 
+    let _storageEventDebounceTimer = null;
     window.addEventListener('storage', (e) => {
       // INVARIANTE 2 & 8: localStorage NUNCA concede autorização nem altera o paciente ativo
       if (!_authorizedPatientId) return;
@@ -11665,10 +11662,13 @@
       );
 
       if (isPerfKey) {
-        try {
-          loadState();
-          renderAll();
-        } catch (_) { }
+        if (_storageEventDebounceTimer) clearTimeout(_storageEventDebounceTimer);
+        _storageEventDebounceTimer = setTimeout(() => {
+          try {
+            loadState();
+            renderAll();
+          } catch (_) { }
+        }, 350);
       } else if (e.key && e.key === `nutriax_fasting_protocol_${_authorizedPatientId}`) {
         const rawFp = localStorage.getItem(`nutriax_fasting_protocol_${_authorizedPatientId}`);
         if (rawFp) {
@@ -12614,12 +12614,16 @@
           navigator.serviceWorker.register(swDiscScript, { scope: swDiscScope })
             .then((registration) => {
               console.log('[Disciplina PWA] Service Worker registrado. Escopo:', registration.scope);
+              // Força verificação imediata de atualizações no script do Service Worker
+              try { registration.update(); } catch (_) { }
+
               registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker) {
                   installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('[Disciplina PWA] Nova versão do Disciplina disponível.');
+                      console.log('[Disciplina PWA] Nova versão do Disciplina instalada. Ativando imediatamente...');
+                      installingWorker.postMessage({ action: 'skipWaiting' });
                     }
                   };
                 }
@@ -12628,6 +12632,15 @@
             .catch((error) => {
               console.warn('[Disciplina PWA] Falha ao registrar Service Worker:', error);
             });
+
+          let swRefreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!swRefreshing) {
+              swRefreshing = true;
+              console.log('[Disciplina PWA] Novo Service Worker ativo. Recarregando interface...');
+              window.location.reload();
+            }
+          });
         };
 
         if (document.readyState === 'loading') {
