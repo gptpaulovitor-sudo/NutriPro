@@ -89,6 +89,29 @@
         window.lucide._origCreateIcons = origCreateIcons;
         window.lucide._engineV3 = true;
 
+        const ICON_ALIASES = {
+          'play-circle': 'CirclePlay',
+          'play': 'Play',
+          'alert-circle': 'CircleAlert',
+          'check-circle': 'CircleCheck',
+          'x-circle': 'CircleX',
+          'help-circle': 'CircleHelp',
+          'bar-chart-2': 'ChartBar',
+          'pie-chart': 'ChartPie',
+          'line-chart': 'ChartLine',
+          'trending-up': 'TrendingUp',
+          'calendar-days': 'CalendarDays',
+          'calendar-check': 'CalendarCheck',
+          'list-checks': 'ListChecks',
+          'message-square': 'MessageSquare',
+          'check-check': 'CheckCheck',
+          'chevron-right': 'ChevronRight',
+          'chevron-left': 'ChevronLeft',
+          'chevron-down': 'ChevronDown',
+          'shield-check': 'ShieldCheck',
+          'shield-alert': 'ShieldAlert'
+        };
+
         function toPascalCase(string) {
           let out = "";
           let upperNext = false;
@@ -120,7 +143,7 @@
 
         function renderPendingIcons(root) {
           const target = (root && root.querySelectorAll) ? root : document;
-          const pending = target.querySelectorAll('i[data-lucide], span[data-lucide], [data-lucide]:not(svg), [icon-name]:not(svg)');
+          const pending = target.querySelectorAll('i[data-lucide]:not([data-nax-rendered]), span[data-lucide]:not([data-nax-rendered]), [data-lucide]:not(svg):not([data-nax-rendered]), [icon-name]:not(svg):not([data-nax-rendered])');
           if (!pending || pending.length === 0) return;
 
           const icons = window.lucide.icons || {};
@@ -130,7 +153,8 @@
             const iconName = el.getAttribute('data-lucide') || el.getAttribute('icon-name');
             if (!iconName) return;
             const pascalName = toPascalCase(iconName);
-            const iconNode = icons[pascalName] || icons[iconName];
+            const aliasName = ICON_ALIASES[iconName];
+            const iconNode = icons[pascalName] || (aliasName ? icons[aliasName] : null) || icons[iconName];
 
             if (iconNode && canCreate) {
               const elAttrs = getAttrs(el);
@@ -160,8 +184,11 @@
                 if (el.parentNode) {
                   el.parentNode.replaceChild(svg, el);
                 }
-              } catch (err) { }
+              } catch (err) {
+                el.setAttribute('data-nax-rendered', 'error');
+              }
             } else {
+              el.setAttribute('data-nax-rendered', 'handled');
               try {
                 if (el.parentNode && origCreateIcons) {
                   origCreateIcons.call(window.lucide, { root: el.parentNode });
@@ -2988,6 +3015,8 @@
     // ═══════════════════════════════════════════════════════════
     window.switchPatientTab = function (tabKey) {
       const tabs = ['hoje', 'treino', 'nutricao', 'progresso', 'mais'];
+      let targetViewEl = null;
+
       tabs.forEach(t => {
         const viewId = 'tabView' + t.charAt(0).toUpperCase() + t.slice(1);
         const navId = 'navItem' + t.charAt(0).toUpperCase() + t.slice(1);
@@ -2996,6 +3025,7 @@
 
         if (viewEl) {
           if (t === tabKey) {
+            targetViewEl = viewEl;
             viewEl.classList.remove('hidden');
             viewEl.classList.add('active');
           } else {
@@ -3017,6 +3047,16 @@
 
       window.scrollTo({ top: 0, behavior: 'auto' });
 
+      // Se navegou para Treino, garante que a ficha e visuais estejam renderizados
+      if (tabKey === 'treino') {
+        if (typeof renderWorkoutExercises === 'function') {
+          renderWorkoutExercises();
+        }
+        if (typeof updateWorkoutVisuals === 'function') {
+          updateWorkoutVisuals();
+        }
+      }
+
       // Se navegou para Progresso, atualiza o gráfico SVG de evolução, heatmap, detalhamento e hero stats
       if (tabKey === 'progresso') {
         if (typeof setScorePeriod === 'function') {
@@ -3035,8 +3075,9 @@
         }
       }
 
-      if (window.lucide) {
-        window.lucide.createIcons();
+      // Renderiza ícones com escopo estrito na view ativada para garantir transição suave e instantânea
+      if (window.lucide && targetViewEl) {
+        window.lucide.createIcons({ root: targetViewEl });
       }
     };
 
@@ -3588,12 +3629,15 @@
     };
 
     window.initHeroInteractive = function() {
+      if (window._heroInteractiveInitialized) return;
+      window._heroInteractiveInitialized = true;
       var dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
       var todayDay = dayMap[new Date().getDay()] || 'seg';
       window.selectHeroDay(todayDay);
       window.renderConsistencyHeatmap();
 
       setInterval(function() {
+        if (document.hidden) return;
         var activeTab = document.querySelector('.tab-view.active');
         if (!activeTab) return;
         var tabId = activeTab.id;
@@ -4930,6 +4974,7 @@
     let _activeFastingUnsubscribe = null;
     let _activePerfUnsubscribe = null;
     let _authListenerAttached = false;
+    const _localSessionClientId = 'disc_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
 
     // Resolução segura do paciente ativo: ESTRITAMENTE baseada em autorização
     window.getActivePatientId = function () {
@@ -5643,6 +5688,10 @@
           }
           _activeDisciplineUnsubscribe = window.NutriProFirebase.discipline.subscribe(_authorizedPatientId, (updatedDisc) => {
             if (updatedDisc) {
+              // Previne loop de eco se o update foi enviado por esta mesma sessão de cliente
+              if (updatedDisc.lastSenderClientId && updatedDisc.lastSenderClientId === _localSessionClientId) {
+                return;
+              }
               // Previne auto-eco se a atualização da nuvem tem timestamp menor ou igual ao último update local,
               // EXCETO se houver prescrição ou renovação de ciclo de treino (mudança de cycleId ou reativação de ciclo)
               const isCycleUpdate = updatedDisc.workoutCycle && (
@@ -7232,7 +7281,7 @@
       }, 1200);
     }
 
-    function saveState() {
+    function saveState(options = {}) {
       // INVARIANTE 1 & 2: Nunca salvar dados se não houver paciente autorizado
       if (!_authorizedPatientId) return;
       const storageKey = getDisciplineStorageKey();
@@ -7241,7 +7290,10 @@
       try {
         const todayIso = getLocalDateIso();
         patientState.lastActiveDate = todayIso;
-        patientState.updatedAtClient = new Date().toISOString();
+        if (!options.preserveUpdatedAtClient) {
+          patientState.updatedAtClient = new Date().toISOString();
+        }
+        patientState.lastSenderClientId = _localSessionClientId;
         const curScore = calculateDailyIDCValue();
         patientState.scoreIDC = curScore;
 
@@ -7374,19 +7426,21 @@
         localStorage.setItem(storageKey, stateJson);
 
         window.dispatchEvent(new Event('nutriax_data_updated'));
-        try {
-          if (typeof BroadcastChannel !== 'undefined') {
-            const bc = new BroadcastChannel('nutriax_bidirectional_sync');
-            bc.postMessage({
-              type: 'PATIENT_DISCIPLINE_UPDATED',
-              patientId: _authorizedPatientId,
-              payload: patientState
-            });
-          }
-        } catch (_) { }
+        if (!options.skipCloudSync) {
+          try {
+            if (typeof BroadcastChannel !== 'undefined') {
+              const bc = new BroadcastChannel('nutriax_bidirectional_sync');
+              bc.postMessage({
+                type: 'PATIENT_DISCIPLINE_UPDATED',
+                patientId: _authorizedPatientId,
+                payload: patientState
+              });
+            }
+          } catch (_) { }
 
-        // Sincronização em nuvem via Firebase Firestore com debounce inteligente de 1200ms
-        scheduleCloudDisciplineSync();
+          // Sincronização em nuvem via Firebase Firestore com debounce inteligente de 1200ms
+          scheduleCloudDisciplineSync();
+        }
       } catch (e) {
         console.warn('Erro ao salvar state local', e);
       }
@@ -11310,6 +11364,12 @@
 
     function applyCloudDiscipline(cloud) {
       if (!cloud) return;
+      if (cloud.updatedAtClient) {
+        patientState.updatedAtClient = cloud.updatedAtClient;
+      }
+      if (cloud.lastSenderClientId) {
+        patientState.lastSenderClientId = cloud.lastSenderClientId;
+      }
       const todayIso = getLocalDateIso();
       if (cloud.streakDays && Number(cloud.streakDays) > Number(patientState.streakDays || 0)) {
         patientState.streakDays = Number(cloud.streakDays);
@@ -11443,7 +11503,7 @@
           }
         }
       }
-      saveState();
+      saveState({ skipCloudSync: true, preserveUpdatedAtClient: true });
     }
 
     async function onUserAuthenticated(user) {

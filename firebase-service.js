@@ -196,7 +196,8 @@
         history: disciplineState.history || {},
         workoutCycle: disciplineState.workoutCycle || null,
         pastWorkoutCycles: Array.isArray(disciplineState.pastWorkoutCycles) ? disciplineState.pastWorkoutCycles : [],
-        updatedAtClient: new Date().toISOString(),
+        updatedAtClient: disciplineState.updatedAtClient || new Date().toISOString(),
+        lastSenderClientId: disciplineState.lastSenderClientId || null,
         serverTimestamp: firebase.firestore.FieldValue.serverTimestamp()
       };
 
